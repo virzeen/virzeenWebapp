@@ -18,9 +18,13 @@ export default function ContactPage() {
     >
       <ContentHeading>Email</ContentHeading>
       <p>
-        <Link href={`mailto:${SITE.contactEmail}`}>{SITE.contactEmail}</Link> — we reply within one working
-        day.
+        For orders and sizing, email <Link href={`mailto:${SITE.salesEmail}`}>{SITE.salesEmail}</Link>.
       </p>
+      <p>
+        For collaborations and anything else, email{" "}
+        <Link href={`mailto:${SITE.infoEmail}`}>{SITE.infoEmail}</Link>.
+      </p>
+      <p>We reply within one working day.</p>
       <ContentHeading>Your orders</ContentHeading>
       <p>
         Track an order and see its status any time in <Link href="/account/orders">your account</Link>. Please

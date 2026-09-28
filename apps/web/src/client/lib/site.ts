@@ -2,6 +2,8 @@
 export const SITE = {
   name: "Virzeen",
   tagline: "timeless monochromium experience.",
-  contactEmail: "hello@virzeen.com", // ◆
+  // Both forward to the partners' inbox (docs/runbooks/email-setup.md). Decided 2026-09-28.
+  salesEmail: "sales@virzeen.com", // orders and sizing
+  infoEmail: "info@virzeen.com", // collaborations and everything else
   instagram: "https://www.instagram.com/virzeen", // ◆
 } as const;
