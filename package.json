@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "turbo run dev --filter=@virzeen/web",
     "build": "turbo run build",
-    "start": "pnpm --filter @virzeen/web start",
+    "start": "pnpm db:deploy && pnpm --filter @virzeen/web start",
     "storybook": "pnpm --filter @virzeen/ui storybook",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
