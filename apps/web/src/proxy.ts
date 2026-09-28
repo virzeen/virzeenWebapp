@@ -18,6 +18,11 @@ const originOf = (url: string | undefined, fallback: string) => {
 const ESEWA_FORM_ORIGIN = originOf(process.env.ESEWA_BASE_URL, "https://rc-epay.esewa.com.np");
 const IS_HTTPS = (process.env.NEXT_PUBLIC_SITE_URL ?? "").startsWith("https://");
 
+// The live site also answers on its Railway address. Pages there redirect to the real domain, so there's one
+// canonical host and nobody browses around Cloudflare. /api stays reachable (outside the matcher) for Railway.
+const SITE_ORIGIN = IS_HTTPS ? originOf(process.env.NEXT_PUBLIC_SITE_URL, "") : "";
+const isRailwayHost = (hostname: string) => hostname.endsWith(".up.railway.app");
+
 // Maintenance mode (docs/runbooks/restore-backup.md): set MAINTENANCE_MODE=true in Railway and redeploy.
 // Every page answers 503 with this notice and no database access; /api/health is outside the matcher.
 const MAINTENANCE = process.env.MAINTENANCE_MODE === "true";
@@ -66,7 +71,11 @@ export function proxy(request: NextRequest) {
     });
   }
 
-  const { pathname, search } = request.nextUrl;
+  const { pathname, search, hostname } = request.nextUrl;
+  if (SITE_ORIGIN && isRailwayHost(hostname)) {
+    return NextResponse.redirect(new URL(`${pathname}${search}`, SITE_ORIGIN), 308);
+  }
+
   const hasSession = SESSION_COOKIES.some((name) => request.cookies.has(name));
 
   // Fast path: guests never see account/checkout/admin pages (each page re-checks the session itself).

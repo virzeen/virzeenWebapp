@@ -2,6 +2,7 @@ import "@/server/bootstrap";
 import { isAppError } from "@virzeen/core";
 import { toNextJsHandler } from "better-auth/next-js";
 import { auth } from "@/server/auth/auth";
+import { trackOtpDelivery } from "@/server/auth/otp-delivery";
 import { CLIENT_IP_HEADER, trustedClientIp } from "@/server/security/client-ip";
 import { clientIp, rateLimit } from "@/server/security/rate-limit";
 
@@ -82,8 +83,20 @@ export async function GET(request: Request) {
   return isAllowed("GET", request) ? handler.GET(withClientIp(request)) : notFound();
 }
 
+// The code (not containing "EMAIL") makes the sign-in form show its generic "try again" message.
+const deliveryFailed = () =>
+  Response.json(
+    { code: "DELIVERY_FAILED", message: "We couldn't send your code. Please try again in a few minutes." },
+    { status: 503 },
+  );
+
 export async function POST(request: Request) {
   if (!isAllowed("POST", request)) return notFound();
   const limited = await limitOtp(request);
-  return limited ?? handler.POST(withClientIp(request));
+  if (limited) return limited;
+  if (!new URL(request.url).pathname.endsWith("/email-otp/send-verification-otp")) {
+    return handler.POST(withClientIp(request));
+  }
+  const { result, failed } = await trackOtpDelivery(() => handler.POST(withClientIp(request)));
+  return failed ? deliveryFailed() : result;
 }

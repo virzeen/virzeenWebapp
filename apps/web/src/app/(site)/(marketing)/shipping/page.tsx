@@ -7,9 +7,10 @@ export const metadata: Metadata = {
   alternates: { canonical: "/shipping" },
 };
 
+// Delivery times confirmed by the owner on 2026-09-28.
 export default function ShippingPage() {
   return (
-    <ContentPage eyebrow="Help" title="Shipping" draftNotice>
+    <ContentPage eyebrow="Help" title="Shipping">
       <p>
         Shipping is free everywhere in Nepal. The price you see on a product already includes delivery, so
         there is nothing extra to pay at checkout.

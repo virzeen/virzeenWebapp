@@ -1,5 +1,5 @@
 import "server-only";
-import type { Prisma } from "@virzeen/db";
+import type { OrderStatus, Prisma } from "@virzeen/db";
 import { cartService } from "../cart/cart.service";
 import { restoreStock } from "../inventory/stock";
 import { transitionOrder } from "./order-state";
@@ -11,13 +11,21 @@ import { transitionOrder } from "./order-state";
  */
 export async function cancelOrderAndRestock(
   tx: Prisma.TransactionClient,
-  input: { orderId: string; actor: string; reason: string; restoreToCart: boolean },
+  input: {
+    orderId: string;
+    actor: string;
+    reason: string;
+    restoreToCart: boolean;
+    /** Only cancel from these statuses (e.g. admins can't cancel a shipped order the ordinary way). */
+    expectFrom?: readonly OrderStatus[];
+  },
 ) {
   const result = await transitionOrder(tx, {
     orderId: input.orderId,
     to: "CANCELLED",
     actor: input.actor,
     reason: input.reason,
+    ...(input.expectFrom ? { expectFrom: input.expectFrom } : {}),
     data: { cancelReason: input.reason, reservedUntil: null },
   });
   if (!result.changed) return result;

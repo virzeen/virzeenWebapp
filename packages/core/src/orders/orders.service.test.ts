@@ -107,6 +107,66 @@ describe("orderService.advance — fulfilment", () => {
   });
 });
 
+describe("orderService.markRefusedAtDoor — COD refused at delivery (payment-policy.md §7)", () => {
+  beforeEach(resetDatabase);
+
+  async function shipCod(options: { stock?: number; quantity?: number } = {}) {
+    const placed = await placeCod(options);
+    await orderService.advance(placed.admin.id, { orderNumber: placed.orderNumber, to: "PROCESSING" });
+    await orderService.advance(placed.admin.id, {
+      orderNumber: placed.orderNumber,
+      to: "SHIPPED",
+      courierName: "NCM",
+      trackingNumber: "1",
+    });
+    sentEmails.length = 0;
+    return placed;
+  }
+
+  it("cancels the order, fails the cash payment and restores stock, without emailing", async () => {
+    const { orderNumber, admin, variant } = await shipCod({ stock: 5, quantity: 2 });
+
+    await orderService.markRefusedAtDoor(admin.id, orderNumber, "Customer not home twice");
+
+    const order = await db.order.findUniqueOrThrow({ where: { orderNumber }, include: { payments: true } });
+    expect(order).toMatchObject({
+      status: "CANCELLED",
+      paymentStatus: "FAILED",
+      cancelReason: "Refused at delivery: Customer not home twice",
+    });
+    expect(order.payments[0]?.status).toBe("FAILED");
+    expect((await db.productVariant.findUniqueOrThrow({ where: { id: variant.id } })).stock).toBe(5);
+    expect(sentEmails).toEqual([]);
+    expect(await db.auditLog.count({ where: { action: "order.refused_at_door" } })).toBe(1);
+  });
+
+  it("is idempotent: a second click changes nothing and restocks once", async () => {
+    const { orderNumber, admin, variant } = await shipCod({ stock: 5, quantity: 2 });
+
+    await orderService.markRefusedAtDoor(admin.id, orderNumber, "Refused");
+    await orderService.markRefusedAtDoor(admin.id, orderNumber, "Refused");
+
+    expect((await db.productVariant.findUniqueOrThrow({ where: { id: variant.id } })).stock).toBe(5);
+  });
+
+  it("only applies to shipped orders", async () => {
+    const { orderNumber, admin } = await placeCod();
+
+    await expect(orderService.markRefusedAtDoor(admin.id, orderNumber, "Refused")).rejects.toMatchObject({
+      code: "INVALID_STATE_TRANSITION",
+    });
+  });
+
+  it("won't undo an order whose cash was collected", async () => {
+    const { orderNumber, admin } = await shipCod();
+    await orderService.markCodCollected(admin.id, orderNumber);
+
+    await expect(orderService.markRefusedAtDoor(admin.id, orderNumber, "Refused")).rejects.toMatchObject({
+      code: "INVALID_STATE_TRANSITION",
+    });
+  });
+});
+
 describe("orderService — payments", () => {
   beforeEach(resetDatabase);
 
