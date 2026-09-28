@@ -21,6 +21,7 @@ import {
   advanceOrderAction,
   markCodCollectedAction,
   markPaidManuallyAction,
+  markRefusedAtDoorAction,
   recordRefundAction,
   reverifyPaymentAction,
 } from "@/server/actions/admin/orders";
@@ -195,6 +196,26 @@ export function OrderActions({ orderNumber, status, paymentStatus, paymentMethod
         >
           Cash collected
         </Button>
+      )}
+      {status === "SHIPPED" && paymentStatus === "COD_DUE" && (
+        <ReasonDialog
+          trigger={
+            <Button variant="destructive" shape="pill">
+              Refused at door
+            </Button>
+          }
+          title="Customer refused the parcel?"
+          description="The order is cancelled and its items go back into stock. The customer isn't emailed. This can't be undone."
+          fields={[{ name: "reason", label: "What happened (for your records)", multiline: true }]}
+          confirmLabel="Mark refused"
+          destructive
+          onConfirm={(v) =>
+            run(
+              () => markRefusedAtDoorAction({ orderNumber, reason: v.reason ?? "" }),
+              "Marked as refused; stock restored",
+            )
+          }
+        />
       )}
       {isOnline && paymentStatus === "PENDING" && (
         <>

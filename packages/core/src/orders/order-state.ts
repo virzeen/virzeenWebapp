@@ -9,7 +9,8 @@ export const ORDER_TRANSITIONS: Record<OrderStatus, readonly OrderStatus[]> = {
   PENDING: ["CONFIRMED", "CANCELLED"],
   CONFIRMED: ["PROCESSING", "CANCELLED"],
   PROCESSING: ["SHIPPED", "CANCELLED"],
-  SHIPPED: ["DELIVERED"],
+  // CANCELLED only for a COD parcel refused at the door (orderService.markRefusedAtDoor, payment-policy.md §7).
+  SHIPPED: ["DELIVERED", "CANCELLED"],
   DELIVERED: ["RETURNED"],
   CANCELLED: [],
   RETURNED: [],

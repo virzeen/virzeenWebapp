@@ -29,6 +29,7 @@ Allowed transitions only (everything else throws `INVALID_STATE_TRANSITION`):
 | `CONFIRMED`, `PROCESSING` | `CANCELLED`    | admin (triggers refund if paid online)         |
 | `PROCESSING`              | `SHIPPED`      | admin adds courier + tracking                  |
 | `SHIPPED`                 | `DELIVERED`    | courier/admin                                  |
+| `SHIPPED`                 | `CANCELLED`    | admin: COD parcel refused at the door (§7)     |
 | `DELIVERED`               | `RETURNED`     | admin approves a return                        |
 
 | Payment status | → allowed next                              |
@@ -75,7 +76,7 @@ Flow:
 - Available within Nepal only. Max order total in `pricing/cod-rules.ts`: **no limit** (owner decision 2026-09-28, while COD is the only payment method).
 - Launch is **COD only**; eSewa and Khalti stay built but switched off (no keys) until the owner turns them on, planned about one month after launch.
 - Placing a COD order: order `CONFIRMED`, payment `COD_DUE`, confirmation email/SMS.
-- On delivery, admin marks `COD_COLLECTED`. Refused at door → `FAILED`, order `CANCELLED`, stock restored.
+- On delivery, admin marks `COD_COLLECTED`. Refused at door (admin "Refused at door" on a `SHIPPED` order with `COD_DUE`; owner decision 2026-09-28) → payment `FAILED`, order `CANCELLED`, stock restored, in one transaction and audited; no customer email. The ordinary admin cancel still stops at `PROCESSING`.
 
 ## 8. Reconciliation (cron every 10 minutes)
 

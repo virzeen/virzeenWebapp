@@ -31,6 +31,16 @@ export async function markCodCollectedAction(input: unknown) {
   });
 }
 
+/** A shipped COD parcel refused at the door: cancel, fail the cash payment, restock (payment-policy.md §7). */
+export async function markRefusedAtDoorAction(input: unknown) {
+  return runAdminAction("markRefusedAtDoor", async (admin) => {
+    const { orderNumber, reason } = orderWithReasonSchema.parse(input);
+    const result = await orderService.markRefusedAtDoor(admin.id, orderNumber, reason);
+    refresh(orderNumber);
+    return result;
+  });
+}
+
 /** Records a refund already made in the eSewa/Khalti dashboard (payment-policy.md §10). */
 export async function recordRefundAction(input: unknown) {
   return runAdminAction("recordRefund", async (admin) => {
