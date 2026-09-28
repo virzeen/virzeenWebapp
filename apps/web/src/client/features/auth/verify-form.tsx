@@ -1,28 +1,47 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Alert, Button, CodeInput, FormField, Stack, toast } from "@virzeen/ui";
+import { Alert, Button, CodeInput, FormField, Stack, VisuallyHidden, toast } from "@virzeen/ui";
 import { verifyOtpSchema, type VerifyOtpInput } from "@virzeen/validators";
+import { CheckCircle2, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { Controller, useForm } from "react-hook-form";
 import { authClient } from "@/client/lib/auth-client";
-import { authErrorMessage } from "./auth-errors";
+import { authErrorMessage, codeCheckFailure, type AuthError } from "./auth-errors";
 
 const RESEND_SECONDS = 60;
+// A wrong code stays on screen (red, shaking) this long before the boxes empty: just past --animate-shake (400ms).
+const CLEAR_WRONG_CODE_MS = 500;
 
-/** Enter the 6-digit code. On success the guest bag is merged on the next page load. */
+// checking → success (until the next page shows) or back to idle with an error. locked: too many wrong codes,
+// so the field stays shut until a new code is sent.
+type Phase = "idle" | "checking" | "success" | "locked";
+
+/**
+ * Enter the 6-digit code. It's checked as soon as the last digit is in (docs/specs/sign-in-code.md).
+ * On success the guest bag is merged on the next page load.
+ */
 export function VerifyForm({ email, next }: { email: string; next: string }) {
   const router = useRouter();
-  const [formError, setFormError] = useState<string | null>(null);
+  const [phase, setPhase] = useState<Phase>("idle");
+  const [alert, setAlert] = useState<{ message: string; retry: boolean } | null>(null);
+  const [attempt, setAttempt] = useState(0); // +1 per error shown on the field: replays the shake
   const [cooldown, setCooldown] = useState(RESEND_SECONDS);
   const [resending, setResending] = useState(false);
+  // Checking, accepted, or still showing a rejected code: ignore completes and Enter (no double submissions).
+  const busy = useRef(false);
+  const clearTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const resendButton = useRef<HTMLButtonElement>(null);
   const form = useForm<VerifyOtpInput>({
     resolver: zodResolver(verifyOtpSchema),
-    mode: "onBlur",
+    // Validated on submit only: a half-typed code shouldn't turn red on blur or while typing.
+    mode: "onSubmit",
+    reValidateMode: "onSubmit",
     defaultValues: { email, otp: "" },
   });
-  const { errors, isSubmitting } = form.formState;
+  const fieldError = form.formState.errors.otp?.message;
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -30,50 +49,170 @@ export function VerifyForm({ email, next }: { email: string; next: string }) {
     return () => clearTimeout(timer);
   }, [cooldown]);
 
-  async function onSubmit({ otp }: VerifyOtpInput) {
-    setFormError(null);
-    const { error } = await authClient.signIn.emailOtp({ email, otp });
-    if (error) {
-      // A wrong or expired code belongs to the code field (docs/ui/patterns.md §4); anything else to the Alert.
-      const code = (error.code ?? "").toUpperCase();
-      if (["INVALID_OTP", "INVALID_CODE", "OTP_EXPIRED"].includes(code)) {
-        return form.setError("otp", { message: authErrorMessage(error, email) }, { shouldFocus: true });
-      }
-      return setFormError(authErrorMessage(error, email));
+  // The field is shut (which drops focus to the page), so move to the way out. While the resend cooldown runs
+  // that button can't take focus: it gets it when the cooldown ends, unless the person has gone elsewhere.
+  useEffect(() => {
+    if (phase !== "locked" || cooldown > 0) return;
+    const current = document.activeElement;
+    if (!current || current === document.body || current.matches(":disabled")) resendButton.current?.focus();
+  }, [phase, cooldown]);
+
+  // A rejected code stays on screen for a moment, then empties and a code can be submitted again.
+  function clearRejectedCodeSoon() {
+    clearTimer.current = setTimeout(() => {
+      clearTimer.current = undefined;
+      form.setValue("otp", "");
+      busy.current = false;
+    }, CLEAR_WRONG_CODE_MS);
+  }
+
+  // The person edits the rejected code (or a new code was sent) first: keep what they have and accept input.
+  function cancelClear() {
+    if (clearTimer.current === undefined) return;
+    clearTimeout(clearTimer.current);
+    clearTimer.current = undefined;
+    busy.current = false;
+  }
+
+  async function check({ otp }: VerifyOtpInput) {
+    if (busy.current) return;
+    busy.current = true;
+    setAlert(null);
+    form.clearErrors("otp");
+    setPhase("checking");
+    let error: AuthError | null;
+    try {
+      ({ error } = await authClient.signIn.emailOtp({ email, otp }));
+    } catch {
+      error = {}; // offline or the request failed: handled like any unexpected error
     }
-    router.replace(next);
-    router.refresh();
+    if (!error) {
+      setPhase("success"); // `busy` stays set
+      router.replace(next);
+      router.refresh();
+      return;
+    }
+    const failure = codeCheckFailure(error);
+    if (failure === "other") {
+      // The code itself may be right: keep it, so "Try again" (or Enter) checks it again without retyping.
+      busy.current = false;
+      setPhase("idle");
+      return setAlert({ message: authErrorMessage(error), retry: true });
+    }
+    // A wrong or expired code belongs to the code field (docs/ui/patterns.md §4). Focus never left it.
+    setPhase(failure === "locked" ? "locked" : "idle");
+    setAttempt((n) => n + 1);
+    form.setError("otp", { message: authErrorMessage(error) });
+    // The wrong code shakes in red, then the boxes empty so the person can simply retype.
+    clearRejectedCodeSoon();
+  }
+
+  // Enter, a completed code and "Try again" all submit the same way. An invalid submit shakes the boxes again.
+  function submit(event?: React.BaseSyntheticEvent) {
+    event?.preventDefault();
+    // Checked first: handleSubmit would clear the field error (e.g. Enter while a wrong code is still showing).
+    if (busy.current) return;
+    void form.handleSubmit(check, () => setAttempt((n) => n + 1))(event);
+  }
+
+  function retry() {
+    form.setFocus("otp"); // this button goes away while the code is checked
+    submit();
   }
 
   async function resend() {
     setResending(true);
-    const { error } = await authClient.emailOtp.sendVerificationOtp({ email, type: "sign-in" });
+    let error: AuthError | null;
+    try {
+      ({ error } = await authClient.emailOtp.sendVerificationOtp({ email, type: "sign-in" }));
+    } catch {
+      error = {};
+    }
     setResending(false);
-    if (error) return setFormError(authErrorMessage(error, email));
-    form.resetField("otp"); // the old code no longer works
-    setFormError(null);
+    if (error) return setAlert({ message: authErrorMessage(error), retry: false });
+    // The old code no longer works: start again with an empty field, usable even after too many wrong codes.
+    cancelClear();
+    flushSync(() => setPhase("idle")); // enable the field before focusing it
+    form.resetField("otp");
+    setAlert(null);
     setCooldown(RESEND_SECONDS);
     toast.success("We sent a new code");
+    form.setFocus("otp");
   }
 
   return (
     <Stack gap={6}>
-      {formError && <Alert variant="danger">{formError}</Alert>}
-      <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
-        <FormField label="6-digit code" error={errors.otp?.message} required>
+      {alert && (
+        <Alert variant="danger" action={alert.retry && <Button onClick={retry}>Try again</Button>}>
+          {alert.message}
+        </Alert>
+      )}
+      {/* No submit button: the code is checked once the last digit is in (the page says so). Enter works too,
+          because the code is this form's only field (implicit submission). */}
+      <form onSubmit={submit} noValidate className="flex flex-col gap-2">
+        <FormField label="6-digit code" error={fieldError} required>
           <Controller
             control={form.control}
             name="otp"
-            render={({ field }) => <CodeInput length={6} {...field} />}
+            render={({ field }) => (
+              <CodeInput
+                {...field}
+                length={6}
+                // The only thing to do on this page.
+                autoFocus
+                status={phase === "checking" || phase === "success" ? phase : undefined}
+                disabled={phase === "locked"}
+                errorKey={attempt}
+                onChange={(code) => {
+                  if (code === field.value) return;
+                  cancelClear();
+                  // An error stays until the person starts typing a new code.
+                  if (code.length > field.value.length) form.clearErrors("otp");
+                  field.onChange(code);
+                }}
+                onComplete={() => submit()}
+              />
+            )}
           />
         </FormField>
-        <Button type="submit" size="lg" shape="pill" loading={isSubmitting}>
-          Sign in
-        </Button>
+        <CheckStatus phase={phase} error={fieldError} attempt={attempt} />
       </form>
-      <Button variant="link" onClick={resend} disabled={cooldown > 0 || resending} className="self-center">
+      <Button
+        ref={resendButton}
+        variant="link"
+        onClick={resend}
+        disabled={cooldown > 0 || resending || phase === "checking" || phase === "success"}
+        className="self-center"
+      >
         {cooldown > 0 ? `Send a new code in ${cooldown}s` : "Send a new code"}
       </Button>
     </Stack>
+  );
+}
+
+type CheckStatusProps = { phase: Phase; error: string | undefined; attempt: number };
+
+/**
+ * The polite live region for the check, right under the boxes. FormField's error text isn't a live region, so a
+ * field error is repeated here for screen readers only (on screen it shows once); the danger Alert announces itself.
+ */
+function CheckStatus({ phase, error, attempt }: CheckStatusProps) {
+  return (
+    <div role="status" className="text-small">
+      {phase === "checking" && (
+        <p className="flex items-center gap-2 text-ink-muted">
+          <Loader2 className="size-4 animate-spin" strokeWidth={1.5} aria-hidden />
+          Checking your code…
+        </p>
+      )}
+      {phase === "success" && (
+        <p className="flex items-center gap-2 text-success">
+          <CheckCircle2 className="size-4" strokeWidth={1.5} aria-hidden />
+          Code accepted. Signing you in…
+        </p>
+      )}
+      {/* Keyed by attempt so the same message after another wrong code is announced again. */}
+      {error && <VisuallyHidden key={attempt}>{error}</VisuallyHidden>}
+    </div>
   );
 }
