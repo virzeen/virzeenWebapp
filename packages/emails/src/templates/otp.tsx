@@ -7,8 +7,9 @@ export type OtpEmailProps = { otp: string; siteUrl: string };
 export function OtpEmail({ otp, siteUrl }: OtpEmailProps) {
   return (
     <EmailLayout preview={`Your Virzeen sign-in code is ${otp}`} siteUrl={siteUrl} invitesReply={false}>
-      <Heading as="h1" className="m-0 text-h2 font-normal">
-        Your Virzeen sign-in code
+      {/* Wording and weight chosen by the owners (2026-09-29). */}
+      <Heading as="h1" className="m-0 text-h3 font-medium">
+        Your VIRZEEN Member Profile Code
       </Heading>
       <Text className="m-0 mt-4 text-body">Here&apos;s the one-time code you asked for:</Text>
       <Hr className="mt-8 mb-0 border-line" />

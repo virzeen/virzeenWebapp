@@ -35,7 +35,7 @@ describe("renderOtpEmail", () => {
     expect(email.html).toContain('href="https://virzeen.com/privacy"');
     expect(email.html).toContain('href="https://virzeen.com/contact"');
     expect(email.html).toContain("virzeen.com</a>");
-    expect(email.text).toContain("Your Virzeen sign-in code");
+    expect(email.text).toContain("Your VIRZEEN Member Profile Code");
     expect(email.text).toContain("This code expires in 10 minutes.");
     expect(email.text).not.toContain("Reply to this email");
     expect(email.html).not.toContain("Reply to this email");
