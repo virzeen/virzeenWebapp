@@ -64,6 +64,8 @@ export function createEnvSchema(nodeEnv: string | undefined) {
       CRON_SECRET: z.string().min(24, "CRON_SECRET must be at least 24 characters"),
       SENTRY_DSN: optional,
       SEED_ADMIN_EMAIL: optional,
+      // Read by proxy.ts: every page answers 503 "back soon" (runbooks/restore-backup.md).
+      MAINTENANCE_MODE: z.stringbool().default(false),
     })
     .superRefine((env, ctx) => {
       const problem = (key: string, message: string) =>

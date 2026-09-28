@@ -77,3 +77,24 @@ test.describe("Storefront pages", () => {
     expect(response?.status()).toBe(404);
   });
 });
+
+test.describe("Installable app", () => {
+  test("serves the manifest and shows the offline page when the connection drops", async ({
+    page,
+    context,
+  }) => {
+    const manifest = await page.request.get("/manifest.webmanifest");
+    expect(await manifest.json()).toMatchObject({ name: "Virzeen", display: "standalone" });
+
+    await page.goto("/");
+    await page.evaluate(async () => {
+      await navigator.serviceWorker.ready;
+    });
+    await page.reload(); // now controlled by the service worker
+
+    await context.setOffline(true);
+    await page.goto("/shop");
+    await expect(page.getByText("You're offline.")).toBeVisible();
+    await context.setOffline(false);
+  });
+});

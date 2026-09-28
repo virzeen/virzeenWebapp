@@ -50,6 +50,14 @@ const nextConfig: NextConfig = {
         source: "/(account|checkout|admin|api)/:path*",
         headers: [{ key: "Cache-Control", value: "private, no-store" }],
       },
+      {
+        // Browsers must always fetch the latest service worker (public/sw.js).
+        source: "/sw.js",
+        headers: [
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+          { key: "Content-Security-Policy", value: "default-src 'self'; script-src 'self'" },
+        ],
+      },
     ];
   },
 };
