@@ -63,7 +63,7 @@ export function SiteFooter() {
             <LogoMark className="size-6 text-canvas" inverse />
             <p>© {new Date().getFullYear()} Virzeen. Prices include 13% VAT.</p>
           </div>
-          <p>Cash on delivery · Free shipping across Nepal</p>
+          <p>Cash on delivery · Free shipping across Nepal · 7-day free returns</p>
           <div className="flex gap-4">
             <Link href="/privacy" variant="subtle" className="text-canvas/70 hover:text-canvas">
               Privacy

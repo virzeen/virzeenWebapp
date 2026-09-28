@@ -92,7 +92,8 @@ Flow:
 
 ## 10. Refunds
 
-- Phase 1: refunds are processed manually in the eSewa/Khalti merchant dashboards by the owner, then recorded in admin (`REFUNDED` + reason). No automated refund API calls in phase 1.
+- Returns (owner decision 2026-09-28): **7 days from delivery, no fee** (free pickup, full price refunded; shipping is part of the price). Items unworn, tags on, original packaging; free size exchange if in stock.
+- Phase 1: refunds are paid manually by the owner (COD orders: bank transfer or wallet; online payments later: the eSewa/Khalti merchant dashboards), then recorded in admin (`REFUNDED` + reason). No automated refund API calls in phase 1.
 - Customer-facing refund/return rules live on the `/returns` page; keep it consistent with this section.
 
 ## 11. Security for payment code

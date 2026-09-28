@@ -1,3 +1,4 @@
+import { Link } from "@virzeen/ui";
 import type { Metadata } from "next";
 import { ContentHeading, ContentPage } from "@/client/components/shared/content-page";
 
@@ -17,6 +18,11 @@ export default function TermsPage() {
       <p>Your order is confirmed when we email you an order number.</p>
       <ContentHeading>Cash on delivery</ContentHeading>
       <p>Pay the courier in cash when your order arrives.</p>
+      <ContentHeading>Returns</ContentHeading>
+      <p>
+        You can return items within 7 days of delivery, free of charge. See our{" "}
+        <Link href="/returns">returns policy</Link>.
+      </p>
     </ContentPage>
   );
 }

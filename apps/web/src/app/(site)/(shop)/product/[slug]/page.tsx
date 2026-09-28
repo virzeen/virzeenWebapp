@@ -53,7 +53,8 @@ export default async function ProductPage({ params }: Props) {
             <h1 className="font-display text-h1">{product.name}</h1>
             <ProductPurchase variants={product.variants} sizes={product.sizes} colors={product.colors} />
             <p className="text-small text-ink-muted">
-              Prices include 13% VAT. Free shipping across Nepal. Pay in cash when it arrives.
+              Prices include 13% VAT. Free shipping across Nepal and 7-day free returns. Pay in cash when it
+              arrives.
             </p>
             <Accordion type="multiple" defaultValue={["description"]}>
               <AccordionItem value="description" title="Description">
@@ -66,8 +67,8 @@ export default async function ProductPage({ params }: Props) {
               )}
               <AccordionItem value="shipping" title="Shipping & returns">
                 <p>
-                  Free delivery in 1–3 days inside Kathmandu Valley and 3–7 days elsewhere in Nepal.{" "}
-                  <Link href="/returns">Read our returns policy</Link>.
+                  Free delivery in 1–3 days inside Kathmandu Valley and 3–7 days elsewhere in Nepal. Free
+                  returns within 7 days of delivery. <Link href="/returns">Read our returns policy</Link>.
                 </p>
               </AccordionItem>
             </Accordion>

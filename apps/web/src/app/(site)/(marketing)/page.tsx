@@ -1,5 +1,5 @@
 import { ButtonLink, Container, Grid, Link } from "@virzeen/ui";
-import { Banknote, PackageCheck, ShieldCheck, Truck } from "lucide-react";
+import { Banknote, RotateCcw, ShieldCheck, Truck } from "lucide-react";
 import type { Metadata } from "next";
 import { CloudImage } from "@/client/components/shared/cloud-image";
 import { ProductCard } from "@/client/features/products/product-card";
@@ -22,9 +22,9 @@ const PROMISES = [
     text: "VAT included. The price you see is the price you pay.",
   },
   {
-    icon: PackageCheck,
-    title: "Track every order",
-    text: "Follow it from your account, with an email when it ships.",
+    icon: RotateCcw,
+    title: "7-day free returns",
+    text: "Changed your mind? We pick it up free and refund you in full.",
   },
 ] as const;
 

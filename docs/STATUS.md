@@ -44,7 +44,7 @@
 
 - ◆ **Brand**: tokens are monochrome from the logo/posters; fonts are Inter Tight (display) + Inter (text) placeholders. Wordmark is traced from `typo.png` (Mesdag font file has no licence info, so it is not shipped).
 - **Money rules (decided 2026-09-28)**: shipping is a per-product amount entered in admin and included in the displayed price; customers see "Free shipping". No COD order limit. ◆ Still open: delivery estimates 1–3 / 3–7 days.
-- ◆ **Policy copy**: returns window/conditions, shipping, privacy and terms pages show a "being finalised" notice. About page text, contact email (`client/lib/site.ts`) and `SECURITY.md` address are placeholders.
+- ◆ **Policy copy**: returns decided 2026-09-28 (7 days, no fee), written on `/returns` (and home, product, footer, terms). ◆ Owner to confirm the details added there: unworn/tags/packaging, free pickup, refund within 5 working days by bank or wallet, free size exchange. Shipping, privacy and terms pages still show a "being finalised" notice. About page text, contact email (`client/lib/site.ts`) and `SECURITY.md` address are placeholders.
 - ◆ **Catalogue**: products, portfolio stories and photos are local seed samples (grey placeholder photography).
 - **Docs conflict**: payment-policy §7 says a COD order refused at the door becomes CANCELLED, but the §3 state table has no SHIPPED → CANCELLED. Implemented the table strictly; refused-at-door orders currently stay SHIPPED. Decide whether to allow SHIPPED → CANCELLED (COD refusal only).
 - **Docs conflict**: security-policy §5 (CSP with nonces) forces dynamic rendering, while backend-policies §6 wants cached product pages. Pages are dynamic with a nonce CSP; add data caching (Next 16 `use cache` + tags) as performance work.
