@@ -2,7 +2,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { AlertTriangle, CheckCircle2, Info, XCircle } from "lucide-react";
 import { cn } from "../lib/cn";
 
-const alertVariants = cva("gap-3 px-4 py-3 flex items-start rounded-md border text-body", {
+const alertVariants = cva("flex items-start gap-3 rounded-md border px-4 py-3 text-body", {
   variants: {
     variant: {
       info: "border-line bg-surface text-ink",
@@ -41,7 +41,7 @@ export function Alert({ className, variant, title, action, children, ...props }:
       {...props}
     >
       <Icon className={cn("mt-0.5 size-5 shrink-0", iconClass)} strokeWidth={1.5} aria-hidden />
-      <div className="gap-2 flex flex-col">
+      <div className="flex flex-col gap-2">
         {title && <p className="font-medium">{title}</p>}
         {children && <div className="text-ink">{children}</div>}
         {action && <div className="pt-1">{action}</div>}

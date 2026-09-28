@@ -13,7 +13,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
     <CartProvider initialCart={cart}>
       <a
         href="#main"
-        className="px-4 py-2 focus:top-2 focus:left-2 sr-only z-60 rounded-sm bg-ink text-canvas focus:not-sr-only focus:fixed"
+        className="sr-only z-60 rounded-sm bg-ink px-4 py-2 text-canvas focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
       >
         Skip to content
       </a>

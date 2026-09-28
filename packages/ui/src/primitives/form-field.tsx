@@ -54,8 +54,8 @@ export function FormField({ label, helper, error, required = false, className, c
 
   return (
     <FormFieldContext value={{ id, labelId, describedBy, invalid: Boolean(error), required }}>
-      <div className={cn("gap-2 flex flex-col", className)}>
-        <label id={labelId} htmlFor={id} className="font-medium text-small text-ink">
+      <div className={cn("flex flex-col gap-2", className)}>
+        <label id={labelId} htmlFor={id} className="text-small font-medium text-ink">
           {label}
           {required && (
             <span className="text-ink-muted" aria-hidden>

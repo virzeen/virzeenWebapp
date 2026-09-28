@@ -28,17 +28,17 @@ export function ShopListing({ data, title, intro, filters, params, activeCategor
     page.items.length === 0 ? "No products" : `${page.items.length}${page.nextCursor ? "+" : ""} products`;
 
   return (
-    <Container className="gap-8 py-12 lg:py-16 flex flex-col">
-      <header className="gap-4 flex flex-col">
+    <Container className="flex flex-col gap-8 py-12 lg:py-16">
+      <header className="flex flex-col gap-4">
         <h1 className="font-display text-h1">{title}</h1>
         {intro && <p className="max-w-prose text-body-lg text-ink-muted">{intro}</p>}
         {categories.length > 0 && (
-          <nav aria-label="Categories" className="-mx-4 gap-2 px-4 pb-1 flex overflow-x-auto">
+          <nav aria-label="Categories" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
             <Link
               href="/shop"
               variant="subtle"
               aria-current={!activeCategory && !filters.collection ? "page" : undefined}
-              className="min-h-11 px-4 inline-flex shrink-0 items-center rounded-full border border-line text-small aria-[current=page]:border-ink aria-[current=page]:bg-ink aria-[current=page]:text-canvas"
+              className="inline-flex min-h-11 shrink-0 items-center rounded-full border border-line px-4 text-small aria-[current=page]:border-ink aria-[current=page]:bg-ink aria-[current=page]:text-canvas"
             >
               All
             </Link>
@@ -48,7 +48,7 @@ export function ShopListing({ data, title, intro, filters, params, activeCategor
                 href={`/shop/${category.slug}`}
                 variant="subtle"
                 aria-current={activeCategory === category.slug ? "page" : undefined}
-                className="min-h-11 px-4 inline-flex shrink-0 items-center rounded-full border border-line text-small aria-[current=page]:border-ink aria-[current=page]:bg-ink aria-[current=page]:text-canvas"
+                className="inline-flex min-h-11 shrink-0 items-center rounded-full border border-line px-4 text-small aria-[current=page]:border-ink aria-[current=page]:bg-ink aria-[current=page]:text-canvas"
               >
                 {category.name}
               </Link>

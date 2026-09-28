@@ -10,7 +10,7 @@ const linkVariants = cva(
       variant: {
         default: "text-ink underline underline-offset-4 hover:text-ink-muted",
         subtle: "text-ink-muted hover:text-ink",
-        nav: "min-h-11 font-medium tracking-wide inline-flex items-center text-small text-ink hover:text-ink-muted aria-[current=page]:underline aria-[current=page]:underline-offset-8",
+        nav: "inline-flex min-h-11 items-center text-small font-medium tracking-wide text-ink hover:text-ink-muted aria-[current=page]:underline aria-[current=page]:underline-offset-8",
       },
     },
     defaultVariants: { variant: "default" },

@@ -80,7 +80,7 @@ function OrderSummary({ order }: { order: OrderEmailData }) {
 
 function AddressBlock({ address }: { address: OrderEmailData["address"] }) {
   return (
-    <Section className="mt-6 px-6 py-4 rounded-md bg-surface">
+    <Section className="mt-6 rounded-md bg-surface px-6 py-4">
       <Text className="m-0 text-caption text-ink-muted uppercase">Delivering to</Text>
       <Text className="m-0 mt-2 text-body">
         {address.fullName}
@@ -99,7 +99,7 @@ export function OrderConfirmationEmail({ order }: { order: OrderEmailData }) {
   const url = `${order.siteUrl}/account/orders/${order.orderNumber}`;
   return (
     <EmailLayout preview={`Your order ${order.orderNumber} is confirmed`} siteUrl={order.siteUrl}>
-      <Heading as="h1" className="m-0 font-normal text-h1">
+      <Heading as="h1" className="m-0 text-h1 font-normal">
         Thank you — your order {order.orderNumber} is confirmed.
       </Heading>
       <Text className="text-body text-ink-muted">
@@ -107,7 +107,7 @@ export function OrderConfirmationEmail({ order }: { order: OrderEmailData }) {
       </Text>
       <OrderSummary order={order} />
       <AddressBlock address={order.address} />
-      <Button href={url} className="mt-8 px-6 py-3 rounded-full bg-ink text-body text-canvas">
+      <Button href={url} className="mt-8 rounded-full bg-ink px-6 py-3 text-body text-canvas">
         View your order
       </Button>
     </EmailLayout>
@@ -125,19 +125,19 @@ export type OrderShippedEmailData = {
 export function OrderShippedEmail({ order }: { order: OrderShippedEmailData }) {
   return (
     <EmailLayout preview={`Your order ${order.orderNumber} is on its way`} siteUrl={order.siteUrl}>
-      <Heading as="h1" className="m-0 font-normal text-h1">
+      <Heading as="h1" className="m-0 text-h1 font-normal">
         Your order is on its way.
       </Heading>
       <Text className="text-body text-ink-muted">
         Hi {order.customerName}, order {order.orderNumber} has been handed to {order.courierName}.
       </Text>
-      <Section className="mt-6 px-6 py-4 rounded-md bg-surface">
+      <Section className="mt-6 rounded-md bg-surface px-6 py-4">
         <Text className="m-0 text-caption text-ink-muted uppercase">Tracking number</Text>
         <Text className="m-0 mt-2 text-h2">{order.trackingNumber}</Text>
       </Section>
       <Button
         href={`${order.siteUrl}/account/orders/${order.orderNumber}`}
-        className="mt-8 px-6 py-3 rounded-full bg-ink text-body text-canvas"
+        className="mt-8 rounded-full bg-ink px-6 py-3 text-body text-canvas"
       >
         Track your order
       </Button>
@@ -156,7 +156,7 @@ export type OrderCancelledEmailData = {
 export function OrderCancelledEmail({ order }: { order: OrderCancelledEmailData }) {
   return (
     <EmailLayout preview={`Your order ${order.orderNumber} was cancelled`} siteUrl={order.siteUrl}>
-      <Heading as="h1" className="m-0 font-normal text-h1">
+      <Heading as="h1" className="m-0 text-h1 font-normal">
         Your order {order.orderNumber} was cancelled.
       </Heading>
       <Text className="text-body text-ink-muted">
@@ -170,7 +170,7 @@ export function OrderCancelledEmail({ order }: { order: OrderCancelledEmailData 
       )}
       <Button
         href={`${order.siteUrl}/shop`}
-        className="mt-8 px-6 py-3 rounded-full bg-ink text-body text-canvas"
+        className="mt-8 rounded-full bg-ink px-6 py-3 text-body text-canvas"
       >
         Continue shopping
       </Button>
@@ -183,7 +183,7 @@ export type AdminAlertEmailData = { siteUrl: string; title: string; lines: strin
 export function AdminAlertEmail({ alert }: { alert: AdminAlertEmailData }) {
   return (
     <EmailLayout preview={alert.title} siteUrl={alert.siteUrl}>
-      <Heading as="h1" className="m-0 font-normal text-h2">
+      <Heading as="h1" className="m-0 text-h2 font-normal">
         {alert.title}
       </Heading>
       {alert.lines.map((line) => (
@@ -193,7 +193,7 @@ export function AdminAlertEmail({ alert }: { alert: AdminAlertEmailData }) {
       ))}
       <Button
         href={`${alert.siteUrl}/admin/orders`}
-        className="mt-8 px-6 py-3 rounded-sm bg-ink text-body text-canvas"
+        className="mt-8 rounded-sm bg-ink px-6 py-3 text-body text-canvas"
       >
         Open admin
       </Button>

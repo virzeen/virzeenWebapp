@@ -22,7 +22,7 @@ export default function SiteError({
         title="Something went wrong on our side."
         description="Please try again. If it keeps happening, come back in a few minutes."
         action={
-          <div className="gap-3 flex flex-wrap justify-center">
+          <div className="flex flex-wrap justify-center gap-3">
             <Button shape="pill" onClick={reset}>
               Try again
             </Button>

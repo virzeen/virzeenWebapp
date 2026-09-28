@@ -111,11 +111,11 @@ export function CheckoutForm({
   }
 
   return (
-    <div className="gap-12 lg:grid-cols-[3fr_2fr] grid">
+    <div className="grid gap-12 lg:grid-cols-[3fr_2fr]">
       <Stack gap={12}>
         {formError && <Alert variant="danger">{formError}</Alert>}
 
-        <section aria-labelledby="address-heading" className="gap-4 flex flex-col">
+        <section aria-labelledby="address-heading" className="flex flex-col gap-4">
           <h2 id="address-heading" className="font-display text-h3">
             1. Delivery address
           </h2>
@@ -154,7 +154,7 @@ export function CheckoutForm({
           )}
         </section>
 
-        <section aria-labelledby="delivery-heading" className="gap-2 flex flex-col">
+        <section aria-labelledby="delivery-heading" className="flex flex-col gap-2">
           <h2 id="delivery-heading" className="font-display text-h3">
             2. Delivery
           </h2>
@@ -165,7 +165,7 @@ export function CheckoutForm({
           </p>
         </section>
 
-        <section aria-labelledby="payment-heading" className="gap-4 flex flex-col">
+        <section aria-labelledby="payment-heading" className="flex flex-col gap-4">
           <h2 id="payment-heading" className="font-display text-h3">
             3. Payment
           </h2>
@@ -190,7 +190,7 @@ export function CheckoutForm({
       </Stack>
 
       <aside aria-labelledby="summary-heading" className="lg:sticky lg:top-24 lg:self-start">
-        <Stack gap={4} className="p-6 rounded-md bg-surface" aria-busy={isRefreshing || undefined}>
+        <Stack gap={4} className="rounded-md bg-surface p-6" aria-busy={isRefreshing || undefined}>
           <h2 id="summary-heading" className="font-display text-h3">
             Order summary
           </h2>

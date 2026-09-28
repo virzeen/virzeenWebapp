@@ -21,7 +21,7 @@ export function BagButton() {
       <ShoppingBag className="size-5" strokeWidth={1.5} aria-hidden />
       {count > 0 && (
         <span
-          className="top-1.5 right-1 size-4 absolute flex items-center justify-center rounded-full bg-ink text-caption text-canvas tabular-nums"
+          className="absolute top-1.5 right-1 flex size-4 items-center justify-center rounded-full bg-ink text-caption text-canvas tabular-nums"
           aria-hidden
         >
           {count > 9 ? "9+" : count}

@@ -50,14 +50,14 @@ export function VerifyForm({ email, next }: { email: string; next: string }) {
   return (
     <Stack gap={6}>
       {formError && <Alert variant="danger">{formError}</Alert>}
-      <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="gap-4 flex flex-col">
+      <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
         <FormField label="6-digit code" error={errors.otp?.message} required>
           <Input
             type="text"
             inputMode="numeric"
             autoComplete="one-time-code"
             maxLength={6}
-            className="tracking-widest text-center text-h3"
+            className="text-center text-h3 tracking-widest"
             {...form.register("otp")}
           />
         </FormField>

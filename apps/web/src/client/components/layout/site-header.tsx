@@ -10,16 +10,16 @@ type SiteHeaderProps = { isSignedIn: boolean; categories: { slug: string; name: 
 /** Global header: navigation, wordmark, account and bag. Sticky, calm, translucent. */
 export function SiteHeader({ isSignedIn, categories }: SiteHeaderProps) {
   return (
-    <header className="top-0 backdrop-blur-md sticky z-10 border-b border-line bg-canvas/85">
-      <Container className="h-16 grid grid-cols-[1fr_auto_1fr] items-center">
+    <header className="sticky top-0 z-10 border-b border-line bg-canvas/85 backdrop-blur-md">
+      <Container className="grid h-16 grid-cols-[1fr_auto_1fr] items-center">
         <div className="flex items-center">
           <MobileNav categories={categories} isSignedIn={isSignedIn} />
           <NavLinks />
         </div>
         <Link href="/" variant="subtle" className="text-ink hover:text-ink" aria-label="Virzeen home">
-          <Wordmark className="h-4 sm:h-5 w-auto" title="Virzeen" />
+          <Wordmark className="h-4 w-auto sm:h-5" title="Virzeen" />
         </Link>
-        <div className="gap-1 flex items-center justify-end">
+        <div className="flex items-center justify-end gap-1">
           <ButtonLink
             href={isSignedIn ? "/account" : "/login"}
             variant="ghost"

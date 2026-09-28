@@ -20,7 +20,7 @@ export default async function OrderPage({ params }: Props) {
 
   return (
     <Stack gap={8}>
-      <div className="gap-2 flex flex-col">
+      <div className="flex flex-col gap-2">
         <Link href="/account/orders" variant="subtle" className="text-small">
           ← All orders
         </Link>

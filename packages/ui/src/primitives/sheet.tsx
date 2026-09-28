@@ -18,7 +18,7 @@ const sheetVariants = cva("fixed z-40 flex flex-col bg-canvas shadow-md outline-
   variants: {
     side: {
       right:
-        "inset-y-0 right-0 max-w-md h-full w-full data-[state=closed]:animate-slide-out-right data-[state=open]:animate-slide-in-right",
+        "inset-y-0 right-0 h-full w-full max-w-md data-[state=closed]:animate-slide-out-right data-[state=open]:animate-slide-in-right",
       bottom:
         "inset-x-0 bottom-0 max-h-5/6 rounded-t-md data-[state=closed]:animate-slide-out-bottom data-[state=open]:animate-slide-in-bottom",
     },
@@ -46,13 +46,13 @@ export function SheetContent({
 }: SheetContentProps) {
   return (
     <SheetPrimitive.Portal>
-      <SheetPrimitive.Overlay className="inset-0 fixed z-40 bg-ink/40 data-[state=closed]:animate-fade-out data-[state=open]:animate-fade-in" />
+      <SheetPrimitive.Overlay className="fixed inset-0 z-40 bg-ink/40 data-[state=closed]:animate-fade-out data-[state=open]:animate-fade-in" />
       <SheetPrimitive.Content
         className={cn(sheetVariants({ side }), className)}
         {...(description ? {} : { "aria-describedby": undefined })}
         {...props}
       >
-        <div className="gap-4 px-6 py-3 flex items-center justify-between border-b border-line">
+        <div className="flex items-center justify-between gap-4 border-b border-line px-6 py-3">
           <div className="flex flex-col">
             <SheetPrimitive.Title className="font-display text-h3 text-ink">{title}</SheetPrimitive.Title>
             {description && (
@@ -62,14 +62,14 @@ export function SheetContent({
             )}
           </div>
           <SheetPrimitive.Close
-            className="-mr-3 size-11 inline-flex items-center justify-center rounded-full text-ink-muted transition-colors duration-150 ease-standard hover:bg-surface hover:text-ink focus-visible:ring-2 focus-visible:ring-focus focus-visible:outline-none"
+            className="-mr-3 inline-flex size-11 items-center justify-center rounded-full text-ink-muted transition-colors duration-150 ease-standard hover:bg-surface hover:text-ink focus-visible:ring-2 focus-visible:ring-focus focus-visible:outline-none"
             aria-label="Close"
           >
             <X className="size-5" strokeWidth={1.5} aria-hidden />
           </SheetPrimitive.Close>
         </div>
-        <div className="px-6 py-4 flex-1 overflow-y-auto">{children}</div>
-        {footer && <div className="px-6 py-4 border-t border-line">{footer}</div>}
+        <div className="flex-1 overflow-y-auto px-6 py-4">{children}</div>
+        {footer && <div className="border-t border-line px-6 py-4">{footer}</div>}
       </SheetPrimitive.Content>
     </SheetPrimitive.Portal>
   );

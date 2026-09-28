@@ -38,7 +38,7 @@ export function DataTable<Row>({ columns, rows, getRowId, caption, empty, classN
                 key={column.key}
                 scope="col"
                 className={cn(
-                  "px-4 py-3 font-medium text-caption text-ink-muted uppercase",
+                  "px-4 py-3 text-caption font-medium text-ink-muted uppercase",
                   column.align === "right" && "text-right",
                   column.hideOnMobile && "max-md:hidden",
                 )}

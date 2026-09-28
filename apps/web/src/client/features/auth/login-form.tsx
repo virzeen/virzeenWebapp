@@ -54,14 +54,14 @@ export function LoginForm({ next, googleEnabled }: LoginFormProps) {
           >
             Continue with Google
           </Button>
-          <div className="gap-4 flex items-center text-small text-ink-muted">
+          <div className="flex items-center gap-4 text-small text-ink-muted">
             <Separator className="flex-1" />
             or
             <Separator className="flex-1" />
           </div>
         </>
       )}
-      <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="gap-4 flex flex-col">
+      <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
         <FormField
           label="Email"
           error={errors.email?.message}

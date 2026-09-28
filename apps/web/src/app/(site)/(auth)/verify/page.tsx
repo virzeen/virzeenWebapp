@@ -15,8 +15,8 @@ export default async function VerifyPage({ searchParams }: { searchParams: Searc
   if (await getUser()) redirect(next);
   if (!email.success) redirect(`/login?next=${encodeURIComponent(next)}`);
   return (
-    <Container width="narrow" className="max-w-md gap-8 py-16 lg:py-24 flex flex-col">
-      <header className="gap-2 flex flex-col">
+    <Container width="narrow" className="flex max-w-md flex-col gap-8 py-16 lg:py-24">
+      <header className="flex flex-col gap-2">
         <h1 className="font-display text-h1">Check your email</h1>
         <p className="text-body text-ink-muted">
           We sent a 6-digit code to <span className="text-ink">{email.data}</span>. It expires in 10 minutes.

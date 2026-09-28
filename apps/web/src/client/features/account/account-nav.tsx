@@ -14,7 +14,7 @@ export function AccountNav({ isAdmin }: { isAdmin: boolean }) {
   return (
     <nav
       aria-label="Account"
-      className="-mx-4 gap-6 px-4 md:mx-0 md:flex-col md:gap-1 md:border-0 md:px-0 flex overflow-x-auto border-b border-line"
+      className="-mx-4 flex gap-6 overflow-x-auto border-b border-line px-4 md:mx-0 md:flex-col md:gap-1 md:border-0 md:px-0"
     >
       {ITEMS.map((item) => (
         <Link

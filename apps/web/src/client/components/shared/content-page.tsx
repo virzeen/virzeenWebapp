@@ -12,8 +12,8 @@ type ContentPageProps = {
 /** Reading layout for about, help and legal pages (max 70ch line length). */
 export function ContentPage({ eyebrow, title, intro, draftNotice = false, children }: ContentPageProps) {
   return (
-    <Container width="narrow" className="gap-8 py-12 lg:py-20 flex flex-col">
-      <header className="gap-4 flex flex-col">
+    <Container width="narrow" className="flex flex-col gap-8 py-12 lg:py-20">
+      <header className="flex flex-col gap-4">
         {eyebrow && <p className="text-caption text-ink-muted uppercase">{eyebrow}</p>}
         <h1 className="font-display text-h1">{title}</h1>
         {intro && <p className="text-body-lg text-ink-muted">{intro}</p>}
@@ -24,7 +24,7 @@ export function ContentPage({ eyebrow, title, intro, draftNotice = false, childr
           help.
         </Alert>
       )}
-      <div className="max-w-prose gap-6 flex flex-col text-body text-ink">{children}</div>
+      <div className="flex max-w-prose flex-col gap-6 text-body text-ink">{children}</div>
     </Container>
   );
 }

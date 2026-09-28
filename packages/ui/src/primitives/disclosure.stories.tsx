@@ -64,7 +64,7 @@ export const ProductTabs: Story = {
 
 export const Separators: Story = {
   render: () => (
-    <div className="max-w-md gap-4 flex flex-col">
+    <div className="flex max-w-md flex-col gap-4">
       <p>Subtotal</p>
       <Separator />
       <p>Total</p>

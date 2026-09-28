@@ -19,7 +19,7 @@ export function MobileNav({ categories, isSignedIn }: { categories: Category[]; 
         </Button>
       </SheetTrigger>
       <SheetContent side="bottom" title="Menu">
-        <nav aria-label="Mobile" className="pb-4 flex flex-col">
+        <nav aria-label="Mobile" className="flex flex-col pb-4">
           {PRIMARY_NAV.map((item) => (
             <Link key={item.href} href={item.href} variant="nav" className="text-h3" onClick={close}>
               {item.label}

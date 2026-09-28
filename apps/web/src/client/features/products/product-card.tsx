@@ -20,7 +20,7 @@ export function ProductCard({ product, priority = false }: { product: ProductCar
     <Link
       href={`/product/${product.slug}`}
       variant="subtle"
-      className="group gap-3 flex flex-col text-ink hover:text-ink"
+      className="group flex flex-col gap-3 text-ink hover:text-ink"
     >
       <div className="relative">
         <CloudImage
@@ -31,12 +31,12 @@ export function ProductCard({ product, priority = false }: { product: ProductCar
           imageClassName="transition-transform duration-400 ease-standard motion-safe:group-hover:scale-102"
         />
         {!product.inStock && (
-          <Badge variant="neutral" className="top-3 left-3 absolute">
+          <Badge variant="neutral" className="absolute top-3 left-3">
             Out of stock
           </Badge>
         )}
       </div>
-      <div className="gap-1 flex flex-col">
+      <div className="flex flex-col gap-1">
         <span className="text-body">{product.name}</span>
         <Price paisa={product.fromPricePaisa} className="text-small text-ink-muted" />
         {product.colorCount > 1 && (

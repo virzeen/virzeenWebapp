@@ -33,7 +33,7 @@ export default async function ProductPage({ params }: Props) {
     <>
       <Container className="py-6 pb-28 md:pb-16 lg:py-12">
         <nav aria-label="Breadcrumb" className="pb-6">
-          <ol className="gap-2 flex items-center text-small text-ink-muted">
+          <ol className="flex items-center gap-2 text-small text-ink-muted">
             <li>
               <Link href="/shop" variant="subtle">
                 Shop
@@ -47,9 +47,9 @@ export default async function ProductPage({ params }: Props) {
             </li>
           </ol>
         </nav>
-        <div className="gap-8 lg:grid-cols-[3fr_2fr] lg:gap-16 grid">
+        <div className="grid gap-8 lg:grid-cols-[3fr_2fr] lg:gap-16">
           <ProductGallery images={product.images} productName={product.name} />
-          <div className="gap-8 lg:sticky lg:top-24 lg:self-start flex flex-col">
+          <div className="flex flex-col gap-8 lg:sticky lg:top-24 lg:self-start">
             <h1 className="font-display text-h1">{product.name}</h1>
             <ProductPurchase variants={product.variants} sizes={product.sizes} colors={product.colors} />
             <p className="text-small text-ink-muted">
@@ -77,7 +77,7 @@ export default async function ProductPage({ params }: Props) {
       </Container>
 
       {related.length > 0 && (
-        <Container as="section" className="gap-8 py-16 flex flex-col" aria-labelledby="related-heading">
+        <Container as="section" className="flex flex-col gap-8 py-16" aria-labelledby="related-heading">
           <h2 id="related-heading" className="font-display text-h2">
             You may also like
           </h2>

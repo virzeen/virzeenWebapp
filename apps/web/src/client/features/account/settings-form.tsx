@@ -34,7 +34,7 @@ export function SettingsForm({ name, email }: { name: string; email: string }) {
 
   return (
     <Stack gap={8}>
-      <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="max-w-md gap-4 flex flex-col">
+      <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="flex max-w-md flex-col gap-4">
         {formError && <Alert variant="danger">{formError}</Alert>}
         <FormField label="Name" error={errors.name?.message} required>
           <Input autoComplete="name" {...form.register("name")} />

@@ -5,7 +5,7 @@ import { cn } from "../lib/cn";
 import { useFormFieldControl } from "./form-field";
 
 const fieldVariants = cva(
-  "px-3 w-full rounded-sm border bg-canvas font-text text-body text-ink transition-colors duration-150 ease-standard placeholder:text-ink-muted focus-visible:border-ink focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1 focus-visible:outline-none disabled:cursor-not-allowed disabled:bg-surface disabled:opacity-60",
+  "w-full rounded-sm border bg-canvas px-3 font-text text-body text-ink transition-colors duration-150 ease-standard placeholder:text-ink-muted focus-visible:border-ink focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1 focus-visible:outline-none disabled:cursor-not-allowed disabled:bg-surface disabled:opacity-60",
   {
     variants: {
       variant: {

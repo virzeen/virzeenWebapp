@@ -67,7 +67,7 @@ export function AddressForm({
   }
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="gap-4 flex flex-col">
+    <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
       {formError && <Alert variant="danger">{formError}</Alert>}
 
       <FormField label="Full name" error={errors.fullName?.message} required>
@@ -89,7 +89,7 @@ export function AddressForm({
         />
       </FormField>
 
-      <div className="gap-4 sm:grid-cols-2 grid">
+      <div className="grid gap-4 sm:grid-cols-2">
         <FormField label="Province" error={errors.province?.message} required>
           <Controller
             control={form.control}
@@ -152,7 +152,7 @@ export function AddressForm({
         )}
       />
 
-      <div className="gap-3 sm:flex-row sm:justify-end flex flex-col-reverse">
+      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         {onCancel && (
           <Button variant="secondary" shape="pill" onClick={onCancel}>
             Cancel

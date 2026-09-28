@@ -13,8 +13,8 @@ export default async function LoginPage({ searchParams }: { searchParams: Search
   const next = safeRedirectSchema.parse(flattenSearchParams(await searchParams).next ?? "/account");
   if (await getUser()) redirect(next);
   return (
-    <Container width="narrow" className="max-w-md gap-8 py-16 lg:py-24 flex flex-col">
-      <header className="gap-2 flex flex-col">
+    <Container width="narrow" className="flex max-w-md flex-col gap-8 py-16 lg:py-24">
+      <header className="flex flex-col gap-2">
         <h1 className="font-display text-h1">Sign in</h1>
         <p className="text-body text-ink-muted">
           No password needed. New here? We&apos;ll create your account.

@@ -64,11 +64,11 @@ export function ShopToolbar({ sizes, colors, resultLabel }: ShopToolbarProps) {
   const activeCount = ["size", "color", "inStock"].filter((key) => params.has(key)).length;
 
   return (
-    <div className="gap-4 py-3 flex items-center justify-between border-y border-line">
+    <div className="flex items-center justify-between gap-4 border-y border-line py-3">
       <p className="text-small text-ink-muted" aria-live="polite">
         {resultLabel}
       </p>
-      <div className="gap-2 flex items-center">
+      <div className="flex items-center gap-2">
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
             <Button variant="ghost" size="sm" shape="pill">
@@ -80,7 +80,7 @@ export function ShopToolbar({ sizes, colors, resultLabel }: ShopToolbarProps) {
             side="bottom"
             title="Filters"
             footer={
-              <div className="gap-3 flex">
+              <div className="flex gap-3">
                 <Button
                   variant="secondary"
                   shape="pill"
@@ -115,7 +115,7 @@ export function ShopToolbar({ sizes, colors, resultLabel }: ShopToolbarProps) {
                     variant="card"
                     value={draft.color}
                     onValueChange={(color) => setDraft((d) => ({ ...d, color }))}
-                    className="sm:grid-cols-3 grid-cols-2"
+                    className="grid-cols-2 sm:grid-cols-3"
                   >
                     {colors.map((color) => (
                       <RadioGroupItem key={color} value={color} label={color} />

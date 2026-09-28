@@ -5,7 +5,7 @@ export default function ProductLoading() {
   return (
     <Container className="py-6 lg:py-12" aria-busy>
       <Skeleton shape="text" className="mb-6 w-40" />
-      <div className="gap-8 lg:grid-cols-[3fr_2fr] lg:gap-16 grid">
+      <div className="grid gap-8 lg:grid-cols-[3fr_2fr] lg:gap-16">
         <Skeleton shape="image" />
         <Stack gap={6}>
           <Skeleton className="h-10 w-3/4" />

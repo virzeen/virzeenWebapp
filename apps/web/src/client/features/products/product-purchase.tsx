@@ -74,7 +74,7 @@ export function ProductPurchase({ variants, sizes, colors }: ProductPurchaseProp
               setColor(value);
               if (size && !variantFor(value, size)?.stock) setSize(null);
             }}
-            className="sm:grid-cols-3 grid-cols-2"
+            className="grid-cols-2 sm:grid-cols-3"
           >
             {colors.map((c) => (
               <RadioGroupItem key={c} value={c} label={c} disabled={!colorHasStock(c)} />
@@ -96,9 +96,9 @@ export function ProductPurchase({ variants, sizes, colors }: ProductPurchaseProp
 
       {selected ? <StockLabel stock={selected.stock} /> : !anyInStock && <StockLabel stock={0} />}
 
-      <div className="inset-x-0 bottom-0 px-4 py-3 backdrop-blur-md md:static md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none fixed z-10 border-t border-line bg-canvas/95">
-        <div className="gap-4 flex items-center">
-          <Price paisa={displayPrice} className="md:hidden text-body" />
+      <div className="fixed inset-x-0 bottom-0 z-10 border-t border-line bg-canvas/95 px-4 py-3 backdrop-blur-md md:static md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none">
+        <div className="flex items-center gap-4">
+          <Price paisa={displayPrice} className="text-body md:hidden" />
           <Button
             size="lg"
             shape="pill"

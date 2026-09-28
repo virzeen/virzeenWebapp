@@ -15,14 +15,14 @@ type SummaryLine = {
 /** Compact list of bag lines for the checkout summary. */
 export function OrderSummaryLines({ items }: { items: SummaryLine[] }) {
   return (
-    <ul className="gap-4 flex flex-col">
+    <ul className="flex flex-col gap-4">
       {items
         .filter((item) => item.isAvailable)
         .map((item) => (
-          <li key={item.id} className="gap-3 flex items-center">
-            <div className="w-14 relative shrink-0">
+          <li key={item.id} className="flex items-center gap-3">
+            <div className="relative w-14 shrink-0">
               <CloudImage src={item.imageUrl} alt={item.imageAlt} sizes="56px" />
-              <span className="-top-2 -right-2 size-5 absolute flex items-center justify-center rounded-full bg-ink text-caption text-canvas">
+              <span className="absolute -top-2 -right-2 flex size-5 items-center justify-center rounded-full bg-ink text-caption text-canvas">
                 {item.quantity}
               </span>
             </div>

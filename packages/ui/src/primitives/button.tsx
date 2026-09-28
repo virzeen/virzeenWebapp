@@ -4,7 +4,7 @@ import { cn } from "../lib/cn";
 
 const buttonVariants = cva(
   // base: layout → typography → interaction → focus → disabled
-  "gap-2 font-medium inline-flex shrink-0 items-center justify-center font-text text-body whitespace-nowrap transition-colors duration-150 ease-standard select-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 aria-busy:cursor-progress",
+  "inline-flex shrink-0 items-center justify-center gap-2 font-text text-body font-medium whitespace-nowrap transition-colors duration-150 ease-standard select-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 aria-busy:cursor-progress",
   {
     variants: {
       variant: {
@@ -13,7 +13,7 @@ const buttonVariants = cva(
         ghost: "text-ink hover:bg-surface",
         inverse: "bg-canvas text-ink hover:bg-canvas/85",
         destructive: "bg-danger text-canvas hover:bg-danger/90",
-        link: "px-0 h-auto text-ink underline-offset-4 hover:underline",
+        link: "h-auto px-0 text-ink underline-offset-4 hover:underline",
       },
       size: {
         sm: "h-9 px-3 text-small",
@@ -26,7 +26,7 @@ const buttonVariants = cva(
         pill: "rounded-full",
       },
     },
-    compoundVariants: [{ variant: "link", className: "px-0 h-auto" }],
+    compoundVariants: [{ variant: "link", className: "h-auto px-0" }],
     defaultVariants: { variant: "primary", size: "md", shape: "default" },
   },
 );

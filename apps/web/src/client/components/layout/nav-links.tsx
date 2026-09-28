@@ -13,7 +13,7 @@ export const PRIMARY_NAV = [
 export function NavLinks() {
   const pathname = usePathname();
   return (
-    <nav aria-label="Main" className="gap-8 md:flex hidden items-center">
+    <nav aria-label="Main" className="hidden items-center gap-8 md:flex">
       {PRIMARY_NAV.map((item) => (
         <Link
           key={item.href}

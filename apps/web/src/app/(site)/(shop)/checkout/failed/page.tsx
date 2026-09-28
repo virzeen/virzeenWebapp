@@ -10,7 +10,7 @@ export default function CheckoutFailedPage() {
       <Stack gap={6}>
         <h1 className="font-display text-h1">Payment didn&apos;t go through.</h1>
         <Alert variant="warning">Your bag is saved — try again or choose another method.</Alert>
-        <div className="gap-3 flex flex-wrap">
+        <div className="flex flex-wrap gap-3">
           <ButtonLink href="/checkout" shape="pill" size="lg">
             Try again
           </ButtonLink>

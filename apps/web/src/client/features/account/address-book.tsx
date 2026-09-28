@@ -53,7 +53,7 @@ export function AddressBook({ addresses }: { addresses: AddressView[] }) {
 
   if (editing === "new") {
     return (
-      <section aria-labelledby="new-address" className="gap-6 flex flex-col">
+      <section aria-labelledby="new-address" className="flex flex-col gap-6">
         <h2 id="new-address" className="font-display text-h3">
           New address
         </h2>
@@ -65,7 +65,7 @@ export function AddressBook({ addresses }: { addresses: AddressView[] }) {
   const editingAddress = addresses.find((a) => a.id === editing);
   if (editingAddress) {
     return (
-      <section aria-labelledby="edit-address" className="gap-6 flex flex-col">
+      <section aria-labelledby="edit-address" className="flex flex-col gap-6">
         <h2 id="edit-address" className="font-display text-h3">
           Edit address
         </h2>
@@ -84,18 +84,18 @@ export function AddressBook({ addresses }: { addresses: AddressView[] }) {
   }
 
   return (
-    <div className="gap-6 flex flex-col">
+    <div className="flex flex-col gap-6">
       {addresses.length === 0 ? (
         <EmptyState
           icon={<MapPin className="size-5" strokeWidth={1.5} aria-hidden />}
           title="No saved addresses yet."
         />
       ) : (
-        <ul className="gap-4 sm:grid-cols-2 grid">
+        <ul className="grid gap-4 sm:grid-cols-2">
           {addresses.map((address) => (
-            <li key={address.id} className="gap-4 p-5 flex flex-col rounded-md border border-line">
-              <div className="gap-2 flex items-start justify-between">
-                <p className="font-medium text-body">{address.fullName}</p>
+            <li key={address.id} className="flex flex-col gap-4 rounded-md border border-line p-5">
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-body font-medium">{address.fullName}</p>
                 {address.isDefault && <Badge>Default</Badge>}
               </div>
               <p className="text-small text-ink-muted">
@@ -111,7 +111,7 @@ export function AddressBook({ addresses }: { addresses: AddressView[] }) {
                 <br />
                 {address.phone}
               </p>
-              <div className="gap-2 mt-auto flex">
+              <div className="mt-auto flex gap-2">
                 <Button variant="secondary" size="sm" shape="pill" onClick={() => setEditing(address.id)}>
                   Edit
                 </Button>

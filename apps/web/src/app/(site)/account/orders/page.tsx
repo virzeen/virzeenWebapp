@@ -36,19 +36,19 @@ export default async function OrdersPage() {
             <Link
               href={`/account/orders/${order.orderNumber}`}
               variant="subtle"
-              className="gap-2 py-5 sm:flex-row sm:items-center sm:justify-between flex flex-col text-ink hover:text-ink"
+              className="flex flex-col gap-2 py-5 text-ink hover:text-ink sm:flex-row sm:items-center sm:justify-between"
             >
-              <span className="gap-1 flex flex-col">
+              <span className="flex flex-col gap-1">
                 <span className="font-mono text-body">{order.orderNumber}</span>
                 <span className="text-small text-ink-muted">
                   {formatDate(order.createdAt)} · {order._count.items}{" "}
                   {order._count.items === 1 ? "item" : "items"}
                 </span>
               </span>
-              <span className="gap-2 flex flex-wrap items-center">
+              <span className="flex flex-wrap items-center gap-2">
                 <Badge variant={status.variant}>{status.label}</Badge>
                 <Badge variant={payment.variant}>{payment.label}</Badge>
-                <Price paisa={order.totalPaisa} className="sm:pl-4 text-body" />
+                <Price paisa={order.totalPaisa} className="text-body sm:pl-4" />
               </span>
             </Link>
           </li>

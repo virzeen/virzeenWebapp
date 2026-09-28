@@ -12,11 +12,11 @@ export function ProductGallery({ images, productName }: { images: GalleryImage[]
   }
   return (
     <section aria-label={`${productName} images`} className="-mx-4 sm:mx-0">
-      <ul className="gap-2 px-4 sm:px-0 lg:grid lg:grid-cols-2 lg:gap-4 lg:overflow-visible flex snap-x snap-mandatory overflow-x-auto">
+      <ul className="flex snap-x snap-mandatory gap-2 overflow-x-auto px-4 sm:px-0 lg:grid lg:grid-cols-2 lg:gap-4 lg:overflow-visible">
         {images.map((image, index) => (
           <li
             key={image.id}
-            className="sm:w-7/12 lg:w-auto first:lg:col-span-2 w-10/12 shrink-0 snap-center"
+            className="w-10/12 shrink-0 snap-center sm:w-7/12 lg:w-auto first:lg:col-span-2"
             aria-label={`Image ${index + 1} of ${images.length}`}
           >
             <CloudImage

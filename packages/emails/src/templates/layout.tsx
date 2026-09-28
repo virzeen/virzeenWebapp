@@ -26,11 +26,11 @@ export function EmailLayout({ preview, siteUrl, children }: EmailLayoutProps) {
       <Head />
       <Preview>{preview}</Preview>
       <Tailwind config={emailTailwindConfig as unknown as TailwindConfig}>
-        <Body className="m-0 py-8 bg-surface font-text text-ink">
-          <Container className="max-w-xl px-8 py-10 mx-auto bg-canvas">
+        <Body className="m-0 bg-surface py-8 font-text text-ink">
+          <Container className="mx-auto max-w-xl bg-canvas px-8 py-10">
             <Section>
               <Link href={siteUrl} className="text-ink no-underline">
-                <Text className="m-0 tracking-widest text-h2">VIRZEEN</Text>
+                <Text className="m-0 text-h2 tracking-widest">VIRZEEN</Text>
               </Link>
             </Section>
             <Section className="pt-6">{children}</Section>

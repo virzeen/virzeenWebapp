@@ -12,8 +12,8 @@ export const metadata: Metadata = {
 export default async function PortfolioPage() {
   const projects = await listPortfolioProjects();
   return (
-    <Container className="gap-12 py-12 lg:py-16 flex flex-col">
-      <header className="max-w-3xl gap-4 flex flex-col">
+    <Container className="flex flex-col gap-12 py-12 lg:py-16">
+      <header className="flex max-w-3xl flex-col gap-4">
         <p className="text-caption text-ink-muted uppercase">Portfolio</p>
         <h1 className="font-display text-display">Campaigns, lookbooks and collaborations.</h1>
       </header>
@@ -26,7 +26,7 @@ export default async function PortfolioPage() {
               key={project.id}
               href={`/portfolio/${project.slug}`}
               variant="subtle"
-              className="group gap-4 flex flex-col text-ink hover:text-ink"
+              className="group flex flex-col gap-4 text-ink hover:text-ink"
             >
               <CloudImage
                 src={project.coverUrl}

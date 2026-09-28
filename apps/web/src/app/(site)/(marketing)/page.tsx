@@ -37,11 +37,11 @@ export default async function HomePage() {
           className="min-h-128 md:min-h-0"
           imageClassName="object-cover"
         />
-        <Container className="inset-0 gap-8 pb-12 md:items-end md:justify-center md:pb-0 md:text-right absolute flex flex-col justify-end">
+        <Container className="absolute inset-0 flex flex-col justify-end gap-8 pb-12 md:items-end md:justify-center md:pb-0 md:text-right">
           <h1 className="max-w-xl font-display text-display motion-safe:animate-reveal">
             timeless monochromium experience.
           </h1>
-          <div className="gap-3 md:justify-end flex flex-wrap">
+          <div className="flex flex-wrap gap-3 md:justify-end">
             <ButtonLink href="/shop" variant="inverse" shape="pill" size="lg">
               Shop the collection
             </ButtonLink>
@@ -62,11 +62,11 @@ export default async function HomePage() {
       {arrivals.length > 0 && (
         <Container
           as="section"
-          className="gap-8 py-16 lg:py-24 flex flex-col"
+          className="flex flex-col gap-8 py-16 lg:py-24"
           aria-labelledby="arrivals-heading"
         >
-          <div className="gap-4 flex items-end justify-between">
-            <div className="gap-2 flex flex-col">
+          <div className="flex items-end justify-between gap-4">
+            <div className="flex flex-col gap-2">
               <p className="text-caption text-ink-muted uppercase">New in</p>
               <h2 id="arrivals-heading" className="font-display text-h2">
                 The latest pieces
@@ -87,14 +87,14 @@ export default async function HomePage() {
       {/* Featured portfolio story */}
       {story && (
         <section aria-labelledby="story-heading" className="bg-surface">
-          <Container className="gap-8 py-16 md:grid-cols-2 lg:gap-16 lg:py-24 grid items-center">
+          <Container className="grid items-center gap-8 py-16 md:grid-cols-2 lg:gap-16 lg:py-24">
             <CloudImage
               src={story.coverUrl}
               alt={story.coverAlt}
               ratio="portrait"
               sizes="(min-width: 768px) 50vw, 100vw"
             />
-            <div className="gap-4 flex flex-col">
+            <div className="flex flex-col gap-4">
               <p className="text-caption text-ink-muted uppercase">{story.kind.toLowerCase()}</p>
               <h2 id="story-heading" className="font-display text-h1">
                 {story.title}
@@ -112,7 +112,7 @@ export default async function HomePage() {
       {collections.length > 0 && (
         <Container
           as="section"
-          className="gap-8 py-16 lg:py-24 flex flex-col"
+          className="flex flex-col gap-8 py-16 lg:py-24"
           aria-labelledby="collections-heading"
         >
           <h2 id="collections-heading" className="font-display text-h2">
@@ -134,8 +134,8 @@ export default async function HomePage() {
                     ratio="landscape"
                     sizes="(min-width: 1024px) 33vw, 100vw"
                   />
-                  <span className="inset-0 absolute bg-ink/30 transition-colors duration-250 ease-standard group-hover:bg-ink/45" />
-                  <span className="bottom-4 left-4 absolute font-display text-h3">{collection.name}</span>
+                  <span className="absolute inset-0 bg-ink/30 transition-colors duration-250 ease-standard group-hover:bg-ink/45" />
+                  <span className="absolute bottom-4 left-4 font-display text-h3">{collection.name}</span>
                 </Link>
               );
             })}
@@ -147,7 +147,7 @@ export default async function HomePage() {
       {moreStories.length > 0 && (
         <Container
           as="section"
-          className="gap-8 pb-16 lg:pb-24 flex flex-col"
+          className="flex flex-col gap-8 pb-16 lg:pb-24"
           aria-labelledby="more-stories-heading"
         >
           <h2 id="more-stories-heading" className="font-display text-h2">
@@ -159,7 +159,7 @@ export default async function HomePage() {
                 key={project.id}
                 href={`/portfolio/${project.slug}`}
                 variant="subtle"
-                className="group gap-4 flex flex-col text-ink hover:text-ink"
+                className="group flex flex-col gap-4 text-ink hover:text-ink"
               >
                 <CloudImage
                   src={project.coverUrl}
@@ -177,12 +177,12 @@ export default async function HomePage() {
 
       {/* Promises */}
       <section aria-label="Why shop with Virzeen" className="border-t border-line">
-        <Container className="gap-8 py-12 sm:grid-cols-2 lg:grid-cols-4 grid grid-cols-1">
+        <Container className="grid grid-cols-1 gap-8 py-12 sm:grid-cols-2 lg:grid-cols-4">
           {PROMISES.map(({ icon: Icon, title, text }) => (
-            <div key={title} className="gap-4 flex">
+            <div key={title} className="flex gap-4">
               <Icon className="size-6 shrink-0 text-ink" strokeWidth={1.5} aria-hidden />
-              <div className="gap-1 flex flex-col">
-                <p className="font-medium text-body">{title}</p>
+              <div className="flex flex-col gap-1">
+                <p className="text-body font-medium">{title}</p>
                 <p className="text-small text-ink-muted">{text}</p>
               </div>
             </div>

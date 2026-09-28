@@ -11,7 +11,7 @@ export function StockLabel({ stock, className }: { stock: number; className?: st
         ? [`Only ${stock} left`, "text-warning"]
         : ["In stock", "text-success"];
   return (
-    <p className={cn("gap-2 flex items-center text-small", tone, className)} aria-live="polite">
+    <p className={cn("flex items-center gap-2 text-small", tone, className)} aria-live="polite">
       <span className="size-2 rounded-full bg-current" aria-hidden />
       {text}
     </p>

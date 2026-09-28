@@ -4,6 +4,6 @@
   "singleQuote": false,
   "trailingComma": "all",
   "plugins": ["prettier-plugin-tailwindcss"],
-  "tailwindStylesheet": "./packages/ui/src/tokens/tokens.css",
+  "tailwindStylesheet": "./packages/ui/src/styles.css",
   "tailwindFunctions": ["cva", "cn"]
 }

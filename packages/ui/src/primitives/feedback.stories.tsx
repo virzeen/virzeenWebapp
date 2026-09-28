@@ -38,7 +38,7 @@ export const AlertDanger: Story = {
 
 export const Badges: Story = {
   render: () => (
-    <div className="gap-2 flex flex-wrap">
+    <div className="flex flex-wrap gap-2">
       <Badge>New</Badge>
       <Badge variant="accent">Limited</Badge>
       <Badge variant="success">Paid</Badge>
@@ -50,9 +50,9 @@ export const Badges: Story = {
 
 export const Skeletons: Story = {
   render: () => (
-    <div className="max-w-md gap-4 grid grid-cols-2">
+    <div className="grid max-w-md grid-cols-2 gap-4">
       {["a", "b"].map((id) => (
-        <div key={id} className="gap-2 flex flex-col">
+        <div key={id} className="flex flex-col gap-2">
           <Skeleton shape="image" />
           <Skeleton shape="text" className="w-3/4" />
           <Skeleton shape="text" className="w-1/3" />
@@ -78,7 +78,7 @@ export const Empty: Story = {
 
 export const Toasts: Story = {
   render: () => (
-    <div className="gap-4 flex flex-wrap">
+    <div className="flex flex-wrap gap-4">
       <Toaster />
       <Button onClick={() => toast.success("Added to bag")}>Success toast</Button>
       <Button

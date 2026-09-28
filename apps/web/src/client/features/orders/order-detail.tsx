@@ -43,16 +43,16 @@ export function OrderDetail({ order }: { order: OrderDetailView }) {
   const timeline = order.events.filter((event) => event.type === "ORDER_STATUS");
 
   return (
-    <div className="gap-12 lg:grid-cols-[2fr_1fr] grid">
+    <div className="grid gap-12 lg:grid-cols-[2fr_1fr]">
       <Stack gap={8}>
-        <div className="gap-2 flex flex-wrap items-center">
+        <div className="flex flex-wrap items-center gap-2">
           <Badge variant={status.variant}>{status.label}</Badge>
           <Badge variant={payment.variant}>{payment.label}</Badge>
           <span className="text-small text-ink-muted">Placed {formatDateTime(order.createdAt)}</span>
         </div>
 
         {order.trackingNumber && (
-          <div className="p-5 rounded-md bg-surface">
+          <div className="rounded-md bg-surface p-5">
             <p className="text-caption text-ink-muted uppercase">Tracking</p>
             <p className="pt-1 text-body">
               {order.courierName} · <span className="font-mono">{order.trackingNumber}</span>
@@ -69,11 +69,11 @@ export function OrderDetail({ order }: { order: OrderDetailView }) {
           </h2>
           <ul className="divide-y divide-line border-y border-line">
             {order.items.map((item) => (
-              <li key={item.id} className="gap-4 py-4 flex">
+              <li key={item.id} className="flex gap-4 py-4">
                 <div className="w-16 shrink-0">
                   <CloudImage src={item.imageUrl} alt={item.productName} sizes="64px" />
                 </div>
-                <div className="gap-4 flex flex-1 justify-between">
+                <div className="flex flex-1 justify-between gap-4">
                   <div>
                     <p className="text-body">{item.productName}</p>
                     <p className="text-small text-ink-muted">
@@ -91,10 +91,10 @@ export function OrderDetail({ order }: { order: OrderDetailView }) {
           <h2 id="timeline-heading" className="pb-4 font-display text-h3">
             Timeline
           </h2>
-          <ol className="gap-4 pl-6 flex flex-col border-l border-line">
+          <ol className="flex flex-col gap-4 border-l border-line pl-6">
             {timeline.map((event) => (
               <li key={event.id} className="relative">
-                <span className="top-2 -left-7 size-2 absolute rounded-full bg-ink" aria-hidden />
+                <span className="absolute top-2 -left-7 size-2 rounded-full bg-ink" aria-hidden />
                 <p className="text-body">{timelineLabel(event.to)}</p>
                 <p className="text-small text-ink-muted">{formatDateTime(event.createdAt)}</p>
               </li>
@@ -103,8 +103,8 @@ export function OrderDetail({ order }: { order: OrderDetailView }) {
         </section>
       </Stack>
 
-      <aside className="gap-6 lg:sticky lg:top-24 lg:self-start flex flex-col">
-        <Stack gap={3} className="p-6 rounded-md bg-surface">
+      <aside className="flex flex-col gap-6 lg:sticky lg:top-24 lg:self-start">
+        <Stack gap={3} className="rounded-md bg-surface p-6">
           <div className="flex justify-between text-body">
             <span>Subtotal</span>
             <Price paisa={order.subtotalPaisa} />
@@ -122,7 +122,7 @@ export function OrderDetail({ order }: { order: OrderDetailView }) {
             Includes VAT. Payment: {PAYMENT_METHOD_LABELS[order.paymentMethod] ?? order.paymentMethod}.
           </p>
         </Stack>
-        <div className="gap-1 px-1 flex flex-col">
+        <div className="flex flex-col gap-1 px-1">
           <p className="text-caption text-ink-muted uppercase">Delivering to</p>
           <p className="text-body">{order.address.fullName}</p>
           <p className="text-small text-ink-muted">

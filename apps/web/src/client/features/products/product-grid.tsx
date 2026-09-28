@@ -35,7 +35,7 @@ export function ProductGrid({ initialItems, initialCursor, filters }: ProductGri
   }
 
   return (
-    <div className="gap-12 flex flex-col">
+    <div className="flex flex-col gap-12">
       <Grid columns="products" gap={4} className="gap-y-10">
         {items.map((product, index) => (
           <ProductCard key={product.id} product={product} priority={index < 2} />

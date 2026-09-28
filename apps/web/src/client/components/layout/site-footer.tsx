@@ -33,22 +33,22 @@ const COLUMNS = [
 export function SiteFooter() {
   return (
     <footer className="mt-24 bg-ink text-canvas">
-      <Container className="gap-12 py-16 flex flex-col">
-        <div className="gap-12 md:flex-row md:justify-between flex flex-col">
-          <div className="max-w-xs gap-4 flex flex-col">
+      <Container className="flex flex-col gap-12 py-16">
+        <div className="flex flex-col gap-12 md:flex-row md:justify-between">
+          <div className="flex max-w-xs flex-col gap-4">
             <Wordmark className="h-6 w-auto self-start" title="Virzeen" />
             <p className="text-small text-canvas/70">timeless monochromium experience.</p>
           </div>
-          <div className="gap-8 sm:grid-cols-3 md:gap-16 grid grid-cols-2">
+          <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 md:gap-16">
             {COLUMNS.map((column) => (
-              <nav key={column.title} aria-label={column.title} className="gap-1 flex flex-col">
+              <nav key={column.title} aria-label={column.title} className="flex flex-col gap-1">
                 <p className="pb-2 text-caption text-canvas/60 uppercase">{column.title}</p>
                 {column.links.map((link) => (
                   <Link
                     key={link.href}
                     href={link.href}
                     variant="subtle"
-                    className="min-h-11 md:min-h-9 inline-flex items-center text-small text-canvas/85 hover:text-canvas"
+                    className="inline-flex min-h-11 items-center text-small text-canvas/85 hover:text-canvas md:min-h-9"
                   >
                     {link.label}
                   </Link>
@@ -58,13 +58,13 @@ export function SiteFooter() {
           </div>
         </div>
         <Separator className="bg-canvas/15" />
-        <div className="gap-4 md:flex-row md:items-center md:justify-between flex flex-col text-small text-canvas/60">
-          <div className="gap-3 flex items-center">
+        <div className="flex flex-col gap-4 text-small text-canvas/60 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-3">
             <LogoMark className="size-6 text-canvas" inverse />
             <p>© {new Date().getFullYear()} Virzeen. Prices include 13% VAT.</p>
           </div>
           <p>Cash on delivery · eSewa · Khalti</p>
-          <div className="gap-4 flex">
+          <div className="flex gap-4">
             <Link href="/privacy" variant="subtle" className="text-canvas/70 hover:text-canvas">
               Privacy
             </Link>

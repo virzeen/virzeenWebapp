@@ -26,14 +26,14 @@ export function CartPageContent({ notice }: { notice?: string | null }) {
   }
 
   return (
-    <div className="gap-12 lg:grid-cols-[2fr_1fr] grid">
+    <div className="grid gap-12 lg:grid-cols-[2fr_1fr]">
       <ul className="divide-y divide-line border-y border-line">
         {cart.items.map((line) => (
           <CartLine key={line.id} line={line} />
         ))}
       </ul>
       <aside aria-labelledby="summary-heading" className="lg:sticky lg:top-24 lg:self-start">
-        <Stack gap={4} className="p-6 rounded-md bg-surface">
+        <Stack gap={4} className="rounded-md bg-surface p-6">
           <h2 id="summary-heading" className="font-display text-h3">
             Summary
           </h2>

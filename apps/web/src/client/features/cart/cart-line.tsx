@@ -51,12 +51,12 @@ export function CartLine({ line, compact = false }: { line: Line; compact?: bool
   }
 
   return (
-    <li className="gap-4 py-4 flex" aria-busy={isPending || undefined}>
-      <Link href={`/product/${line.productSlug}`} variant="subtle" className="w-20 sm:w-24 shrink-0">
+    <li className="flex gap-4 py-4" aria-busy={isPending || undefined}>
+      <Link href={`/product/${line.productSlug}`} variant="subtle" className="w-20 shrink-0 sm:w-24">
         <CloudImage src={line.imageUrl} alt={line.imageAlt} sizes="96px" />
       </Link>
-      <div className="min-w-0 gap-2 flex flex-1 flex-col">
-        <div className="gap-4 flex items-start justify-between">
+      <div className="flex min-w-0 flex-1 flex-col gap-2">
+        <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <Link href={`/product/${line.productSlug}`} variant="subtle" className="text-body text-ink">
               {line.productName}
@@ -66,7 +66,7 @@ export function CartLine({ line, compact = false }: { line: Line; compact?: bool
           <Price paisa={line.lineTotalPaisa} className="shrink-0 text-body" />
         </div>
         {line.isAvailable ? (
-          <div className="gap-2 flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2">
             <QuantityStepper
               value={line.quantity}
               max={Math.max(line.maxQuantity, line.quantity)}
@@ -80,7 +80,7 @@ export function CartLine({ line, compact = false }: { line: Line; compact?: bool
             </Button>
           </div>
         ) : (
-          <div className="gap-2 flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2">
             <p className="text-small text-danger">No longer available</p>
             <Button variant="link" size="sm" onClick={remove} disabled={isPending}>
               Remove

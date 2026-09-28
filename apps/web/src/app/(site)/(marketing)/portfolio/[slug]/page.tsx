@@ -27,8 +27,8 @@ export default async function PortfolioProjectPage({ params }: Props) {
     <article>
       <header className="relative isolate bg-ink text-canvas">
         <CloudImage src={project.coverUrl} alt={project.coverAlt} ratio="hero" sizes="100vw" priority />
-        <div className="inset-0 absolute bg-ink/35" aria-hidden />
-        <Container className="inset-x-0 bottom-0 gap-4 pb-12 absolute flex flex-col">
+        <div className="absolute inset-0 bg-ink/35" aria-hidden />
+        <Container className="absolute inset-x-0 bottom-0 flex flex-col gap-4 pb-12">
           <p className="text-caption text-canvas/80 uppercase">{project.kind.toLowerCase()}</p>
           <h1 className="max-w-3xl font-display text-display motion-safe:animate-reveal">{project.title}</h1>
         </Container>
@@ -38,13 +38,13 @@ export default async function PortfolioProjectPage({ params }: Props) {
         <p className="text-body-lg text-ink-muted">{project.summary}</p>
       </Container>
 
-      <div className="gap-16 pb-16 lg:gap-24 flex flex-col">
+      <div className="flex flex-col gap-16 pb-16 lg:gap-24">
         {project.body.map((block) =>
           block.type === "text" ? (
             <Container
               key={`text-${block.heading ?? ""}-${block.text.slice(0, 40)}`}
               width="narrow"
-              className="gap-4 flex flex-col"
+              className="flex flex-col gap-4"
             >
               {block.heading && <h2 className="font-display text-h2">{block.heading}</h2>}
               <p className="text-body-lg whitespace-pre-line text-ink">{block.text}</p>
@@ -52,7 +52,7 @@ export default async function PortfolioProjectPage({ params }: Props) {
           ) : (
             <figure
               key={`image-${block.url}`}
-              className={block.layout === "full" ? "w-full" : "max-w-5xl px-4 sm:px-6 lg:px-8 mx-auto w-full"}
+              className={block.layout === "full" ? "w-full" : "mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8"}
             >
               <CloudImage
                 src={block.url}
@@ -61,7 +61,7 @@ export default async function PortfolioProjectPage({ params }: Props) {
                 sizes={block.layout === "full" ? "100vw" : "(min-width: 1024px) 1024px, 100vw"}
               />
               {block.caption && (
-                <figcaption className="px-4 pt-3 sm:px-6 lg:px-8 text-small text-ink-muted">
+                <figcaption className="px-4 pt-3 text-small text-ink-muted sm:px-6 lg:px-8">
                   {block.caption}
                 </figcaption>
               )}
@@ -73,10 +73,10 @@ export default async function PortfolioProjectPage({ params }: Props) {
       {project.products.length > 0 && (
         <Container
           as="section"
-          className="gap-8 py-16 flex flex-col border-t border-line"
+          className="flex flex-col gap-8 border-t border-line py-16"
           aria-labelledby="shop-the-story"
         >
-          <div className="gap-4 flex items-end justify-between">
+          <div className="flex items-end justify-between gap-4">
             <h2 id="shop-the-story" className="font-display text-h2">
               Shop the story
             </h2>

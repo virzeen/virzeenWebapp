@@ -27,14 +27,14 @@ export function Separator({ className, ...props }: React.ComponentProps<typeof S
 export const Tabs = TabsPrimitive.Root;
 
 export function TabsList({ className, ...props }: React.ComponentProps<typeof TabsPrimitive.List>) {
-  return <TabsPrimitive.List className={cn("gap-6 flex border-b border-line", className)} {...props} />;
+  return <TabsPrimitive.List className={cn("flex gap-6 border-b border-line", className)} {...props} />;
 }
 
 export function TabsTrigger({ className, ...props }: React.ComponentProps<typeof TabsPrimitive.Trigger>) {
   return (
     <TabsPrimitive.Trigger
       className={cn(
-        "min-h-11 font-medium -mb-px inline-flex items-center border-b-2 border-transparent text-small text-ink-muted transition-colors duration-150 ease-standard hover:text-ink focus-visible:ring-2 focus-visible:ring-focus focus-visible:outline-none data-[state=active]:border-ink data-[state=active]:text-ink",
+        "-mb-px inline-flex min-h-11 items-center border-b-2 border-transparent text-small font-medium text-ink-muted transition-colors duration-150 ease-standard hover:text-ink focus-visible:ring-2 focus-visible:ring-focus focus-visible:outline-none data-[state=active]:border-ink data-[state=active]:text-ink",
         className,
       )}
       {...props}
@@ -67,7 +67,7 @@ export function AccordionItem({ className, title, children, ...props }: Accordio
   return (
     <AccordionPrimitive.Item className={cn("border-b border-line", className)} {...props}>
       <AccordionPrimitive.Header>
-        <AccordionPrimitive.Trigger className="group min-h-14 gap-4 py-4 font-medium flex w-full items-center justify-between text-left text-body text-ink focus-visible:ring-2 focus-visible:ring-focus focus-visible:outline-none">
+        <AccordionPrimitive.Trigger className="group flex min-h-14 w-full items-center justify-between gap-4 py-4 text-left text-body font-medium text-ink focus-visible:ring-2 focus-visible:ring-focus focus-visible:outline-none">
           {title}
           <ChevronDown
             className="size-5 shrink-0 text-ink-muted transition-transform duration-250 ease-standard group-aria-expanded:rotate-180"
@@ -101,7 +101,7 @@ export function Tooltip({
           <TooltipPrimitive.Content
             side={side}
             sideOffset={6}
-            className="px-2 py-1 z-20 rounded-sm bg-ink text-small text-canvas shadow-sm data-[state=delayed-open]:animate-fade-in"
+            className="z-20 rounded-sm bg-ink px-2 py-1 text-small text-canvas shadow-sm data-[state=delayed-open]:animate-fade-in"
           >
             {content}
           </TooltipPrimitive.Content>

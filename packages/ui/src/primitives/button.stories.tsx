@@ -36,7 +36,7 @@ export const Inverse: Story = {
   args: { variant: "inverse", shape: "pill", children: "Explore" },
   decorators: [
     (Story) => (
-      <div className="p-8 bg-ink">
+      <div className="bg-ink p-8">
         <Story />
       </div>
     ),
@@ -62,7 +62,7 @@ export const IconOnly: Story = {
 
 export const AllVariants: Story = {
   render: () => (
-    <div className="gap-4 flex flex-wrap items-center">
+    <div className="flex flex-wrap items-center gap-4">
       <Button>Primary</Button>
       <Button variant="secondary">Secondary</Button>
       <Button variant="ghost">Ghost</Button>

@@ -12,8 +12,8 @@ const VariantContext = createContext<Variant>("default");
 const groupVariants = cva("", {
   variants: {
     variant: {
-      default: "gap-3 flex flex-col",
-      card: "gap-2 grid grid-cols-[repeat(auto-fill,minmax(4.5rem,1fr))]",
+      default: "flex flex-col gap-3",
+      card: "grid grid-cols-[repeat(auto-fill,minmax(4.5rem,1fr))] gap-2",
     },
   },
   defaultVariants: { variant: "default" },
@@ -59,13 +59,13 @@ export function RadioGroupItem({ className, label, description, aside, ...props 
     return (
       <RadioGroupPrimitive.Item
         className={cn(
-          "group min-h-11 gap-3 px-3 py-2 relative flex items-center justify-between rounded-sm border border-line-strong bg-canvas text-left text-body text-ink transition-colors duration-150 ease-standard hover:border-ink focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:border-line disabled:text-ink-muted disabled:line-through data-[state=checked]:border-ink data-[state=checked]:bg-ink data-[state=checked]:text-canvas",
+          "group relative flex min-h-11 items-center justify-between gap-3 rounded-sm border border-line-strong bg-canvas px-3 py-2 text-left text-body text-ink transition-colors duration-150 ease-standard hover:border-ink focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:border-line disabled:text-ink-muted disabled:line-through data-[state=checked]:border-ink data-[state=checked]:bg-ink data-[state=checked]:text-canvas",
           description ? "py-3" : "justify-center",
           className,
         )}
         {...props}
       >
-        <span className="gap-1 flex flex-col">
+        <span className="flex flex-col gap-1">
           <span className="font-medium">{label}</span>
           {description && (
             <span className="text-small text-ink-muted group-aria-checked:text-canvas/80">{description}</span>
@@ -77,10 +77,10 @@ export function RadioGroupItem({ className, label, description, aside, ...props 
   }
 
   return (
-    <label className="min-h-11 gap-3 flex cursor-pointer items-center text-body text-ink has-disabled:cursor-not-allowed has-disabled:text-ink-muted">
+    <label className="flex min-h-11 cursor-pointer items-center gap-3 text-body text-ink has-disabled:cursor-not-allowed has-disabled:text-ink-muted">
       <RadioGroupPrimitive.Item
         className={cn(
-          "size-5 flex shrink-0 items-center justify-center rounded-full border border-line-strong bg-canvas transition-colors duration-150 ease-standard focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-50 data-[state=checked]:border-ink",
+          "flex size-5 shrink-0 items-center justify-center rounded-full border border-line-strong bg-canvas transition-colors duration-150 ease-standard focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-50 data-[state=checked]:border-ink",
           className,
         )}
         {...props}

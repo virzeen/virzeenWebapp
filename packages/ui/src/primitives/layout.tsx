@@ -1,7 +1,7 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "../lib/cn";
 
-const containerVariants = cva("px-4 sm:px-6 lg:px-8 mx-auto w-full", {
+const containerVariants = cva("mx-auto w-full px-4 sm:px-6 lg:px-8", {
   variants: {
     width: {
       default: "max-w-7xl",

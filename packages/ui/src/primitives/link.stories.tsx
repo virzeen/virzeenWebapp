@@ -16,7 +16,7 @@ export const Default: Story = {};
 export const Subtle: Story = { args: { variant: "subtle", children: "Returns policy" } };
 export const Nav: Story = {
   render: () => (
-    <nav aria-label="Example" className="gap-6 flex">
+    <nav aria-label="Example" className="flex gap-6">
       <Link variant="nav" href="/shop" aria-current="page">
         Shop
       </Link>
@@ -32,7 +32,7 @@ export const Nav: Story = {
 
 export const AsButton: Story = {
   render: () => (
-    <div className="gap-4 flex flex-wrap">
+    <div className="flex flex-wrap gap-4">
       <ButtonLink href="/shop" shape="pill" size="lg">
         Shop the collection
       </ButtonLink>

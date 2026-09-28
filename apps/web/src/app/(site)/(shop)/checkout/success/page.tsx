@@ -19,7 +19,7 @@ export default async function CheckoutSuccessPage({ searchParams }: { searchPara
   const confirmed = order.status !== "PENDING" && order.status !== "CANCELLED";
 
   return (
-    <Container className="gap-10 py-12 lg:py-16 flex flex-col">
+    <Container className="flex flex-col gap-10 py-12 lg:py-16">
       <Stack gap={4} className="max-w-2xl">
         {confirmed && (
           <>
@@ -41,7 +41,7 @@ export default async function CheckoutSuccessPage({ searchParams }: { searchPara
             </Alert>
           </>
         )}
-        <div className="gap-3 flex flex-wrap">
+        <div className="flex flex-wrap gap-3">
           <ButtonLink href={`/account/orders/${order.orderNumber}`} shape="pill">
             View order
           </ButtonLink>
