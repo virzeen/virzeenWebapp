@@ -40,6 +40,12 @@ describe("imageLoader", () => {
     );
   });
 
+  it("serves the brand photos from their WebP width variants", () => {
+    expect(imageLoader({ src: "/brand/hero.jpg", width: 400 })).toBe("/brand/hero-400.webp");
+    expect(imageLoader({ src: "/brand/hero.jpg", width: 1000 })).toBe("/brand/hero-1200.webp");
+    expect(imageLoader({ src: "/brand/hero.jpg", width: 3840 })).toBe("/brand/hero-1600.webp");
+  });
+
   it("serves uploaded Cloudinary images resized with automatic format and quality", async () => {
     vi.stubEnv("NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME", "demo");
     vi.resetModules();
