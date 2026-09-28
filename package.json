@@ -1,0 +1,39 @@
+{
+  "name": "virzeen",
+  "private": true,
+  "packageManager": "pnpm@11.15.1",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "turbo run dev --filter=@virzeen/web",
+    "build": "turbo run build",
+    "start": "pnpm --filter @virzeen/web start",
+    "storybook": "pnpm --filter @virzeen/ui storybook",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:e2e": "pnpm --filter @virzeen/web test:e2e",
+    "check:ui": "node scripts/check-ui.mjs --all",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "db:generate": "pnpm --filter @virzeen/db db:generate",
+    "db:migrate": "pnpm --filter @virzeen/db db:migrate",
+    "db:deploy": "pnpm --filter @virzeen/db db:deploy",
+    "db:studio": "pnpm --filter @virzeen/db db:studio",
+    "db:seed": "pnpm --filter @virzeen/db db:seed",
+    "db:reset:local": "pnpm --filter @virzeen/db db:reset:local",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "husky": "9.1.7",
+    "lint-staged": "17.6.0",
+    "prettier": "3.9.9",
+    "prettier-plugin-tailwindcss": "0.8.1",
+    "turbo": "2.11.5",
+    "typescript": "6.0.3"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,mjs,cjs,json,css,md,yml,yaml}": "prettier --write"
+  }
+}

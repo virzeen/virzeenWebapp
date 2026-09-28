@@ -1,0 +1,30 @@
+# Local development services only. Never used in production (see docs/architecture.md).
+name: virzeen
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: virzeen
+      POSTGRES_PASSWORD: virzeen
+      POSTGRES_DB: virzeen
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./scripts/docker/init-test-db.sql:/docker-entrypoint-initdb.d/init-test-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U virzeen"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Local inbox for OTP and order emails (http://localhost:8025). Replaces Resend in development.
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+
+volumes:
+  postgres-data:

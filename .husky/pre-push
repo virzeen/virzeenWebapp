@@ -1,0 +1,3 @@
+# Heavier checks before code leaves your machine.
+pnpm turbo run test --affected
+pnpm test:e2e

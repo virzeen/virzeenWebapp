@@ -1,0 +1,438 @@
+// Virzeen database schema. Rules: docs/database/data-rules.md
+// Money is Int paisa (fields end in `Paisa`). Ids are cuid2. Catalog is archived, never deleted. Orders are never deleted.
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = ""
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ───────────────────────────── Enums ─────────────────────────────
+
+enum Role {
+  CUSTOMER
+  ADMIN
+  STAFF
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  RETURNED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PENDING
+  PAID
+  FAILED
+  EXPIRED
+  REFUNDED
+  PARTIALLY_REFUNDED
+  COD_DUE
+  COD_COLLECTED
+}
+
+enum PaymentMethod {
+  COD
+  ESEWA
+  KHALTI
+}
+
+enum ShippingZone {
+  KATHMANDU_VALLEY
+  OUTSIDE_VALLEY
+}
+
+enum OrderEventType {
+  ORDER_STATUS
+  PAYMENT_STATUS
+  NOTE
+}
+
+enum PortfolioKind {
+  CAMPAIGN
+  LOOKBOOK
+  COLLABORATION
+}
+
+// ─────────────────── Accounts (Better Auth tables) ───────────────────
+// Shape required by Better Auth; ids are generated as cuid2 by the auth config.
+
+model User {
+  id               String    @id
+  name             String
+  email            String    @unique
+  emailVerified    Boolean   @default(false)
+  image            String?
+  role             Role      @default(CUSTOMER)
+  twoFactorEnabled Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  sessions         Session[]
+  accounts         Account[]
+  twoFactors       TwoFactor[]
+  addresses        Address[]
+  cart             Cart?
+  orders           Order[]
+  auditLogs        AuditLog[]
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+}
+
+model TwoFactor {
+  id                      String    @id
+  secret                  String
+  backupCodes             String
+  userId                  String
+  user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  verified                Boolean   @default(true)
+  failedVerificationCount Int       @default(0)
+  lockedUntil             DateTime?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([secret])
+}
+
+// ───────────────────────────── Customers ─────────────────────────────
+
+model Address {
+  id        String   @id @default(cuid(2))
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName  String
+  phone     String
+  province  String
+  district  String
+  city      String
+  street    String
+  landmark  String?
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// ───────────────────────────── Catalog ─────────────────────────────
+
+model Category {
+  id         String    @id @default(cuid(2))
+  slug       String    @unique
+  name       String
+  sortOrder  Int       @default(0)
+  archivedAt DateTime?
+  products   Product[]
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([sortOrder])
+}
+
+model Collection {
+  id          String    @id @default(cuid(2))
+  slug        String    @unique
+  name        String
+  description String?
+  isFeatured  Boolean   @default(false)
+  archivedAt  DateTime?
+  products    Product[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([isFeatured])
+}
+
+model Product {
+  id                String             @id @default(cuid(2))
+  slug              String             @unique
+  name              String
+  description       String
+  care              String?
+  seoDescription    String?
+  categoryId        String
+  category          Category           @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  /// Lowest active variant price, kept in sync by catalogService.saveProduct (used for sorting and cards).
+  fromPricePaisa    Int                @default(0)
+  isPublished       Boolean            @default(false)
+  publishedAt       DateTime?
+  archivedAt        DateTime?
+  images            ProductImage[]
+  variants          ProductVariant[]
+  collections       Collection[]
+  portfolioProjects PortfolioProject[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  @@index([categoryId])
+  @@index([isPublished, archivedAt, publishedAt])
+  @@index([fromPricePaisa])
+}
+
+model ProductImage {
+  id        String   @id @default(cuid(2))
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  /// Cloudinary public id (or a /public path for local seed data).
+  url       String
+  alt       String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId, sortOrder])
+}
+
+model ProductVariant {
+  id         String      @id @default(cuid(2))
+  productId  String
+  product    Product     @relation(fields: [productId], references: [id], onDelete: Restrict)
+  sku        String      @unique
+  size       String?
+  color      String?
+  pricePaisa Int
+  stock      Int         @default(0)
+  isActive   Boolean     @default(true)
+  sortOrder  Int         @default(0)
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  @@index([productId, sortOrder])
+  @@index([size])
+  @@index([color])
+}
+
+// ───────────────────────────── Cart ─────────────────────────────
+
+model Cart {
+  id         String     @id @default(cuid(2))
+  userId     String?    @unique
+  user       User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Random token stored in the guest's httpOnly cookie.
+  guestToken String?    @unique
+  expiresAt  DateTime
+  items      CartItem[]
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  @@index([expiresAt])
+}
+
+model CartItem {
+  id             String         @id @default(cuid(2))
+  cartId         String
+  cart           Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  variantId      String
+  variant        ProductVariant @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  quantity       Int
+  /// Price when the line was added; checkout compares it with the current price (PRICE_CHANGED).
+  unitPricePaisa Int
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@unique([cartId, variantId])
+  @@index([variantId])
+}
+
+// ───────────────────────────── Orders ─────────────────────────────
+
+model Order {
+  id              String        @id @default(cuid(2))
+  /// Human-facing number: VZ-YYMMDD-XXXX
+  orderNumber     String        @unique
+  userId          String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Restrict)
+  status          OrderStatus   @default(PENDING)
+  paymentStatus   PaymentStatus @default(UNPAID)
+  paymentMethod   PaymentMethod
+  subtotalPaisa   Int
+  shippingPaisa   Int
+  totalPaisa      Int
+  shippingZone    ShippingZone
+  /// Snapshot of the delivery address at purchase time.
+  addressSnapshot Json
+  /// Snapshot of the customer's email for order emails.
+  customerEmail   String
+  /// Online payments hold stock until this time (payment-policy.md §4).
+  reservedUntil   DateTime?
+  courierName     String?
+  trackingNumber  String?
+  cancelReason    String?
+  confirmedAt     DateTime?
+  shippedAt       DateTime?
+  deliveredAt     DateTime?
+  cancelledAt     DateTime?
+  items           OrderItem[]
+  payments        Payment[]
+  events          OrderEvent[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+  @@index([paymentStatus])
+  @@index([reservedUntil])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id             String         @id @default(cuid(2))
+  orderId        String
+  order          Order          @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  variantId      String
+  variant        ProductVariant @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  productName    String
+  productSlug    String
+  sku            String
+  variantLabel   String
+  imageUrl       String?
+  unitPricePaisa Int
+  quantity       Int
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([orderId])
+  @@index([variantId])
+}
+
+model Payment {
+  id            String        @id @default(cuid(2))
+  orderId       String
+  order         Order         @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  provider      PaymentMethod
+  /// eSewa transaction_uuid, Khalti pidx, or COD-<orderNumber>.
+  providerRef   String        @unique
+  attempt       Int           @default(1)
+  amountPaisa   Int
+  status        PaymentStatus
+  /// eSewa ref_id / Khalti transaction_id once verified.
+  providerTxnId String?
+  verifiedAt    DateTime?
+  lastCheckedAt DateTime?
+  /// Last provider status or problem seen during verification (e.g. "AMOUNT_MISMATCH", "AMBIGUOUS").
+  lastIssue     String?
+  /// Set once the owner has been alerted about this payment (amount mismatch, ambiguous > 24h).
+  flaggedAt     DateTime?
+  rawResponse   Json?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([orderId])
+  @@index([status, createdAt])
+}
+
+model OrderEvent {
+  id        String         @id @default(cuid(2))
+  orderId   String
+  order     Order          @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  type      OrderEventType
+  from      String?
+  to        String
+  /// "system", "customer:<userId>", "admin:<userId>", "provider:esewa", "cron:reconcile"
+  actor     String
+  reason    String?
+  createdAt DateTime       @default(now())
+
+  @@index([orderId, createdAt])
+}
+
+/// Daily counter behind order numbers (VZ-YYMMDD-XXXX).
+model OrderNumberCounter {
+  day   String @id
+  value Int
+}
+
+// ───────────────────────────── Portfolio ─────────────────────────────
+
+model PortfolioProject {
+  id          String        @id @default(cuid(2))
+  slug        String        @unique
+  title       String
+  kind        PortfolioKind
+  summary     String
+  /// Array of blocks validated by portfolioBlockSchema (@virzeen/validators).
+  body        Json
+  coverUrl    String
+  coverAlt    String
+  isPublished Boolean       @default(false)
+  publishedAt DateTime?
+  sortOrder   Int           @default(0)
+  archivedAt  DateTime?
+  products    Product[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([isPublished, archivedAt, sortOrder])
+}
+
+// ───────────────────────────── Audit ─────────────────────────────
+
+model AuditLog {
+  id        String   @id @default(cuid(2))
+  actorId   String
+  actor     User     @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  action    String
+  entity    String
+  entityId  String
+  diff      Json?
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([actorId])
+  @@index([createdAt])
+}

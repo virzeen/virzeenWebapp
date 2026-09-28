@@ -1,0 +1,79 @@
+# Architecture
+
+## System overview
+
+```
+Customer (browser / installed PWA / Capacitor app)
+        │  HTTPS
+        ▼
+Cloudflare (DNS, SSL Full-strict, WAF, DDoS)
+        │
+        ▼
+Railway — service "web" (Next.js, Singapore)
+   ├── pages (React Server Components)          → frontend
+   ├── server actions + /api routes             → backend entry points
+   └── packages/core (business logic) ──► packages/db (Prisma) ──► Railway Postgres
+                         │
+                         ├──► eSewa / Khalti APIs (payments)
+                         ├──► Cloudinary (images)
+                         ├──► Resend (email)
+                         └──► Upstash Redis (rate limits)
+Railway — service "cron": calls /api/cron/* with a secret (payment reconciliation)
+GitHub Actions: CI on every PR, nightly pg_dump → Cloudflare R2
+```
+
+## Monorepo layout
+
+| Path                  | Role                                                 | May import from                                                                                             |
+| --------------------- | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `apps/web/src/app`    | Routes. Pages render UI; `api/` holds HTTP endpoints | `client`, `server`, `@virzeen/ui`, `@virzeen/validators`                                                    |
+| `apps/web/src/client` | Frontend components, feature UI, hooks               | `@virzeen/ui`, `@virzeen/validators`, other `client`, and **only** Server Actions from `@/server/actions/*` |
+| `apps/web/src/server` | Server actions, queries, auth, security              | `@virzeen/core`, `@virzeen/db`, `@virzeen/validators`                                                       |
+| `apps/mobile`         | Capacitor shell loading the web app                  | nothing from packages at runtime                                                                            |
+| `packages/core`       | All business logic, pure services                    | `@virzeen/db`, `@virzeen/validators`, `@virzeen/emails`                                                     |
+| `packages/db`         | Prisma schema, migrations, client singleton          | nothing internal                                                                                            |
+| `packages/validators` | Zod schemas and inferred types                       | nothing internal                                                                                            |
+| `packages/ui`         | Primitives, tokens, Storybook                        | nothing internal                                                                                            |
+| `packages/emails`     | React Email templates                                | `@virzeen/ui` tokens only                                                                                   |
+
+These boundaries are enforced by `eslint-plugin-boundaries`. A violation fails CI.
+
+## The layer rule
+
+```
+page / component  →  server action or /api route  →  core service  →  db
+     (client)              (server, thin)            (logic)       (data)
+```
+
+- Pages never query the database.
+- Actions and routes never contain business rules.
+- Core services never read cookies, headers, or request objects; callers pass what they need.
+
+## Web vs mobile
+
+- Web uses Server Actions for mutations and server-side queries for reads.
+- The mobile app uses `/api/v1/*` (see `backend/api-contract.md`). Both call the same `core` services, so behavior can never drift.
+
+## Environments
+
+| Env        | Where                    | Branch                          | Payments     | Data                    |
+| ---------- | ------------------------ | ------------------------------- | ------------ | ----------------------- |
+| local      | your machine             | any                             | sandbox keys | local Postgres (Docker) |
+| staging    | Railway env "staging"    | `staging` (optional in phase 1) | sandbox keys | separate DB             |
+| production | Railway env "production" | `main`                          | live keys    | production DB           |
+
+## Environment variables
+
+Validated at startup by `apps/web/src/server/env.ts` (Zod). The app refuses to boot if one is missing or malformed.
+Names only — values live in Railway / `.env.local` (never committed). Keep `.env.example` in sync.
+
+```
+DATABASE_URL, BETTER_AUTH_SECRET, BETTER_AUTH_URL,
+GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET,
+ESEWA_PRODUCT_CODE, ESEWA_SECRET_KEY, ESEWA_BASE_URL,
+KHALTI_SECRET_KEY, KHALTI_BASE_URL,
+CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET,
+RESEND_API_KEY, EMAIL_FROM,
+UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN,
+CRON_SECRET, SENTRY_DSN, NEXT_PUBLIC_SITE_URL
+```
