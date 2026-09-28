@@ -4,6 +4,7 @@ import { Redis } from "@upstash/redis";
 import { AppError } from "@virzeen/core";
 import { headers } from "next/headers";
 import { env } from "@/server/env";
+import { ipRateLimitKey, trustedClientIp } from "./client-ip";
 
 // Rate limits from docs/security/security-policy.md §6. Upstash in production; in-memory for local dev.
 
@@ -71,13 +72,8 @@ export async function rateLimit(name: LimitName, key: string): Promise<void> {
   if (!allowed) throw new AppError("RATE_LIMITED", "Too many attempts. Please wait a minute and try again.");
 }
 
-/** Client IP (Cloudflare → proxy → unknown). Used only as a rate-limit key, never logged. */
+/** Client IP as a rate-limit key (see client-ip.ts). Never logged. */
 export async function clientIp(): Promise<string> {
-  const h = await headers();
-  return (
-    h.get("cf-connecting-ip") ??
-    h.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    h.get("x-real-ip") ??
-    "unknown"
-  );
+  const ip = trustedClientIp(await headers());
+  return ip ? ipRateLimitKey(ip) : "unknown";
 }

@@ -48,7 +48,9 @@
 | Payment callbacks   | 30 / min per IP                          |
 | `/api/v1/*` general | 120 / min per IP                         |
 
-The OTP limits run in `app/api/auth/[...all]/route.ts` before Better Auth. Better Auth's own limiter stays on for its other endpoints (60 / min per IP, IP from `cf-connecting-ip` → `x-real-ip` → `x-forwarded-for`); its built-in OTP rules are switched off because they are per IP only and would block real customers signing in at the same time.
+The OTP limits run in `app/api/auth/[...all]/route.ts` before Better Auth. Better Auth's own limiter stays on for its other endpoints (60 / min per IP); its built-in OTP rules are switched off because they are per IP only and would block real customers signing in at the same time.
+
+"Per IP" means the address from `server/security/client-ip.ts`, and every limiter uses it, Better Auth included: the first `x-forwarded-for` entry, which Railway's edge sets and a visitor can't forge. `cf-connecting-ip` is used only when that entry is a Cloudflare edge address, because anyone can send it straight to Railway. IPv6 is limited per /64, the block one customer controls.
 
 ## 7. Edge protection (Cloudflare)
 

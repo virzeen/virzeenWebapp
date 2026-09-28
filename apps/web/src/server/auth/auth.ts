@@ -7,6 +7,7 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
 import { emailOTP, twoFactor } from "better-auth/plugins";
 import { env, features, siteUrl } from "@/server/env";
+import { CLIENT_IP_HEADER } from "@/server/security/client-ip";
 
 // Better Auth (docs/security/security-policy.md §2): Google + email OTP, no customer passwords.
 // Admin TOTP is enrolled with the two-factor plugin and enforced per session by requireAdmin()
@@ -47,9 +48,9 @@ export const auth = betterAuth({
     cookiePrefix: "vz",
     useSecureCookies: env.NODE_ENV === "production",
     defaultCookieAttributes: { httpOnly: true, sameSite: "lax" },
-    // Same order as clientIp() in server/security/rate-limit.ts. Without a readable client IP Better Auth
-    // puts every visitor in one shared rate-limit bucket.
-    ipAddress: { ipAddressHeaders: ["cf-connecting-ip", "x-real-ip", "x-forwarded-for"] },
+    // Set by app/api/auth/[...all]/route.ts from the same trusted IP our own limiter uses. Without a readable
+    // client IP Better Auth puts every visitor in one shared rate-limit bucket.
+    ipAddress: { ipAddressHeaders: [CLIENT_IP_HEADER] },
   },
   // General limit for everything else. The two email-code endpoints are limited per email and per IP by our
   // own limiter (app/api/auth/[...all]/route.ts, security-policy.md §6); Better Auth's built-in 3-per-minute

@@ -2,9 +2,27 @@ import "@/server/bootstrap";
 import { isAppError } from "@virzeen/core";
 import { toNextJsHandler } from "better-auth/next-js";
 import { auth } from "@/server/auth/auth";
+import { CLIENT_IP_HEADER, trustedClientIp } from "@/server/security/client-ip";
 import { clientIp, rateLimit } from "@/server/security/rate-limit";
 
 const handler = toNextJsHandler(auth);
+
+// Better Auth reads the client IP only from CLIENT_IP_HEADER (auth.ts); set it here so a visitor can't.
+function withClientIp(request: Request): Request {
+  const headers = new Headers(request.headers);
+  headers.delete(CLIENT_IP_HEADER);
+  const ip = trustedClientIp(request.headers);
+  if (ip) headers.set(CLIENT_IP_HEADER, ip);
+  // Built from parts: Next's request object can't be passed to the Request constructor.
+  const init: RequestInit & { duplex: "half" } = {
+    method: request.method,
+    headers,
+    body: request.body,
+    signal: request.signal,
+    duplex: "half",
+  };
+  return new Request(request.url, init);
+}
 
 // Only the endpoints our pages use are reachable over HTTP. Everything else Better Auth ships — in particular
 // /two-factor/* (enable/disable would let someone with an admin's inbox replace their authenticator) and the
@@ -61,11 +79,11 @@ async function limitOtp(request: Request): Promise<Response | null> {
 }
 
 export async function GET(request: Request) {
-  return isAllowed("GET", request) ? handler.GET(request) : notFound();
+  return isAllowed("GET", request) ? handler.GET(withClientIp(request)) : notFound();
 }
 
 export async function POST(request: Request) {
   if (!isAllowed("POST", request)) return notFound();
   const limited = await limitOtp(request);
-  return limited ?? handler.POST(request);
+  return limited ?? handler.POST(withClientIp(request));
 }
