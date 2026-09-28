@@ -15,7 +15,7 @@ describe("formatDate / formatDateTime", () => {
 describe("messageFor", () => {
   it("uses the content-style copy for known codes", () => {
     expect(messageFor({ code: "RATE_LIMITED", message: "x" })).toBe(
-      "Too many attempts. Please wait a minute and try again.",
+      "Too many attempts. Please wait a few minutes and try again.",
     );
     expect(messageFor({ code: "PRICE_CHANGED", message: "x" })).toBe(
       "A price changed since you added this item. Please review your bag.",

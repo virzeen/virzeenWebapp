@@ -7,7 +7,7 @@ const MESSAGES: Partial<Record<ActionError["code"], string>> = {
   PAYMENT_FAILED: "Payment didn't go through. Your bag is saved — try again or choose another method.",
   PAYMENT_PENDING:
     "We're confirming your payment. This usually takes a minute — you'll get an email when it's done.",
-  RATE_LIMITED: "Too many attempts. Please wait a minute and try again.",
+  RATE_LIMITED: "Too many attempts. Please wait a few minutes and try again.",
   INTERNAL: "Something went wrong on our side. Please try again.",
   UNAUTHENTICATED: "Please sign in to continue.",
   CART_EMPTY: "Your bag is empty.",

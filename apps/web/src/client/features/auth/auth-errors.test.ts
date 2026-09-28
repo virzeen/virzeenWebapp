@@ -35,7 +35,7 @@ describe("authErrorMessage", () => {
       "Too many wrong codes. Send a new code to try again.",
     );
     expect(authErrorMessage({ code: "RATE_LIMITED", status: 429 })).toBe(
-      "Too many attempts. Please wait a minute and try again.",
+      "Too many attempts. Please wait a few minutes and try again.",
     );
   });
 
