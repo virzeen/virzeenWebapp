@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Alert, Button, FormField, Input, Link, Stack, toast } from "@virzeen/ui";
 import { totpCodeSchema } from "@virzeen/validators";
 import { useRouter } from "next/navigation";
+import { QRCodeSVG } from "qrcode.react";
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import type { z } from "zod";
@@ -64,7 +65,7 @@ export function TotpVerify() {
   );
 }
 
-/** First-time setup: show the key, save backup codes, confirm with a code. */
+/** First-time setup: show the QR code and key, save backup codes, confirm with a code. */
 export function TotpEnrollment() {
   const router = useRouter();
   const [setup, setSetup] = useState<{ totpURI: string; backupCodes: string[] } | null>(null);
@@ -99,7 +100,19 @@ export function TotpEnrollment() {
   return (
     <Stack gap={6}>
       <Stack gap={2}>
-        <p className="text-body">1. Add Virzeen to your authenticator app with this setup key:</p>
+        <p className="text-body">1. Scan this QR code with your authenticator app.</p>
+        {/* Drawn in the browser: the secret never goes to a QR service. Black on white (the library's
+            default) with a quiet zone, which authenticator apps scan reliably in dark mode too. */}
+        <div className="self-start">
+          <QRCodeSVG
+            value={setup.totpURI}
+            size={200}
+            level="M"
+            marginSize={4}
+            title="Authenticator setup code"
+          />
+        </div>
+        <p className="text-small text-ink-muted">Can&apos;t scan it? Type this setup key instead:</p>
         <p className="rounded-md bg-surface p-4 font-mono text-body break-all select-all">
           {secret.match(/.{1,4}/g)?.join(" ")}
         </p>
