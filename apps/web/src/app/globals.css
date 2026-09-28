@@ -1,0 +1,5 @@
+@import "tailwindcss";
+@import "@virzeen/ui/tokens.css";
+
+/* Tailwind v4 only scans this app by default; primitives live in packages/ui (docs/ai/common-mistakes.md). */
+@source "../../../../packages/ui/src";

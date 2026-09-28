@@ -1,0 +1,74 @@
+"use client";
+
+import { ButtonLink, EmptyState, Sheet, SheetContent, Stack } from "@virzeen/ui";
+import { ShoppingBag } from "lucide-react";
+import { Price } from "@/client/components/shared/price";
+import { CartLine } from "./cart-line";
+import { useCart } from "./cart-provider";
+
+/** Right-side bag drawer (patterns.md §7). Opens after add-to-bag and from the header. */
+export function CartDrawer() {
+  const { cart, isOpen, setOpen } = useCart();
+  const isEmpty = cart.items.length === 0;
+
+  return (
+    <Sheet open={isOpen} onOpenChange={setOpen}>
+      <SheetContent
+        title="Bag"
+        description={isEmpty ? undefined : `${cart.itemCount} ${cart.itemCount === 1 ? "item" : "items"}`}
+        footer={
+          isEmpty ? undefined : (
+            <Stack gap={4}>
+              <div className="flex items-baseline justify-between">
+                <span className="text-body">Subtotal</span>
+                <span data-testid="cart-subtotal">
+                  <Price paisa={cart.subtotalPaisa} className="text-h3" />
+                </span>
+              </div>
+              <p className="text-small text-ink-muted">
+                Shipping calculated at checkout. Prices include VAT.
+              </p>
+              <ButtonLink
+                href="/checkout"
+                size="lg"
+                shape="pill"
+                className="w-full"
+                onClick={() => setOpen(false)}
+              >
+                Checkout
+              </ButtonLink>
+              <ButtonLink
+                href="/cart"
+                variant="secondary"
+                size="lg"
+                shape="pill"
+                className="w-full"
+                onClick={() => setOpen(false)}
+              >
+                View bag
+              </ButtonLink>
+            </Stack>
+          )
+        }
+      >
+        {isEmpty ? (
+          <EmptyState
+            icon={<ShoppingBag className="size-5" strokeWidth={1.5} aria-hidden />}
+            title="Your bag is empty."
+            action={
+              <ButtonLink href="/shop" shape="pill" onClick={() => setOpen(false)}>
+                Browse the collection
+              </ButtonLink>
+            }
+          />
+        ) : (
+          <ul className="divide-y divide-line">
+            {cart.items.map((line) => (
+              <CartLine key={line.id} line={line} compact />
+            ))}
+          </ul>
+        )}
+      </SheetContent>
+    </Sheet>
+  );
+}

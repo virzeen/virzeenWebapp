@@ -26,17 +26,20 @@ export type CoreConfig = {
   fetch: typeof fetch;
 };
 
-let current: CoreConfig | null = null;
+// Stored on globalThis: Next.js may bundle this module more than once (instrumentation vs routes),
+// and every copy must see the same configuration.
+const holder = globalThis as unknown as { __virzeenCoreConfig?: CoreConfig };
 
 export function configureCore(config: CoreConfig): void {
-  current = config;
+  holder.__virzeenCoreConfig = config;
 }
 
 export function getCoreConfig(): CoreConfig {
-  if (!current) throw new Error("configureCore() must be called before using @virzeen/core services.");
-  return current;
+  const config = holder.__virzeenCoreConfig;
+  if (!config) throw new Error("configureCore() must be called before using @virzeen/core services.");
+  return config;
 }
 
 export function isCoreConfigured(): boolean {
-  return current !== null;
+  return holder.__virzeenCoreConfig !== undefined;
 }

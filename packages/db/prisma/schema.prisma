@@ -69,15 +69,15 @@ enum PortfolioKind {
 // Shape required by Better Auth; ids are generated as cuid2 by the auth config.
 
 model User {
-  id               String    @id
+  id               String      @id
   name             String
-  email            String    @unique
-  emailVerified    Boolean   @default(false)
+  email            String      @unique
+  emailVerified    Boolean     @default(false)
   image            String?
-  role             Role      @default(CUSTOMER)
-  twoFactorEnabled Boolean   @default(false)
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  role             Role        @default(CUSTOMER)
+  twoFactorEnabled Boolean     @default(false)
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
   sessions         Session[]
   accounts         Account[]
   twoFactors       TwoFactor[]
@@ -88,15 +88,17 @@ model User {
 }
 
 model Session {
-  id        String   @id
-  expiresAt DateTime
-  token     String   @unique
-  ipAddress String?
-  userAgent String?
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id              String    @id
+  expiresAt       DateTime
+  token           String    @unique
+  ipAddress       String?
+  userAgent       String?
+  /// When an admin passed the TOTP step-up in this session (email OTP and Google sign-in don't ask for it).
+  adminVerifiedAt DateTime?
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   @@index([userId])
 }

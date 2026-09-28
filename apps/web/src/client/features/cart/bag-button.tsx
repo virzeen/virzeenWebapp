@@ -1,0 +1,32 @@
+"use client";
+
+import { Button } from "@virzeen/ui";
+import { ShoppingBag } from "lucide-react";
+import { useCart } from "./cart-provider";
+
+/** Header bag icon with the live item count. */
+export function BagButton() {
+  const { cart, open } = useCart();
+  const count = cart.itemCount;
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      shape="pill"
+      onClick={open}
+      aria-label={count > 0 ? `Open bag, ${count} ${count === 1 ? "item" : "items"}` : "Open bag"}
+      className="relative"
+      data-testid="open-bag"
+    >
+      <ShoppingBag className="size-5" strokeWidth={1.5} aria-hidden />
+      {count > 0 && (
+        <span
+          className="top-1.5 right-1 size-4 absolute flex items-center justify-center rounded-full bg-ink text-caption text-canvas tabular-nums"
+          aria-hidden
+        >
+          {count > 9 ? "9+" : count}
+        </span>
+      )}
+    </Button>
+  );
+}
