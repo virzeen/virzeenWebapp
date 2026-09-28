@@ -20,14 +20,20 @@ test("admin sets up two-factor, creates a product and it appears in the shop", a
 
   // Enrol an authenticator, then pass the step-up.
   await page.getByRole("button", { name: "Set up authenticator" }).click();
-  await expect(page.getByRole("img", { name: "Authenticator setup code" })).toBeVisible();
-  // The key is only inside the QR code and the "open in app" link; backup codes show on request.
+  // Step 1: the key is only inside the QR code and the phone-only "open in app" link; backup codes on request.
+  const qr = page.getByRole("img", { name: "Authenticator setup code" });
+  await expect(qr).toBeVisible();
+  const openInApp = page.locator('a[href^="otpauth:"]');
+  await expect(openInApp).toBeHidden(); // desktop viewport
   const backupCode = page.getByText(/^[A-Za-z0-9]{5}-[A-Za-z0-9]{5}$/).first();
   await expect(backupCode).toBeHidden();
   await page.getByRole("button", { name: "Show backup codes" }).click();
   await expect(backupCode).toBeVisible();
-  const uri = await page.getByRole("link", { name: /Open in your authenticator app/ }).getAttribute("href");
-  const secret = new URL(uri ?? "").searchParams.get("secret") ?? "";
+  const secret = new URL((await openInApp.getAttribute("href")) ?? "").searchParams.get("secret") ?? "";
+  // Step 2: the QR code gives way to the code field.
+  await page.getByRole("button", { name: "Next" }).click();
+  await expect(qr).toBeHidden();
+  await expect(page.getByText("2. Enter the 6-digit code your app shows.")).toBeVisible();
   await page.getByLabel(/6-digit code/).fill(totp(secret));
   await page.getByRole("button", { name: "Turn on two-factor" }).click();
   await expect(page.getByRole("button", { name: "Verify" })).toBeVisible();

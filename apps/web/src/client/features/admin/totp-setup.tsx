@@ -5,7 +5,7 @@ import { Alert, Button, FormField, Input, Link, Stack, toast } from "@virzeen/ui
 import { totpCodeSchema } from "@virzeen/validators";
 import { useRouter } from "next/navigation";
 import { QRCodeSVG } from "qrcode.react";
-import { useId, useState, useTransition } from "react";
+import { useEffect, useId, useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import type { z } from "zod";
 import { messageFor } from "@/client/lib/error-messages";
@@ -15,14 +15,22 @@ type CodeInput = z.infer<typeof totpCodeSchema>;
 
 function CodeForm({
   submitLabel,
+  autoFocus = false,
   onVerified,
 }: {
   submitLabel: string;
+  /** Move focus to the code field on mount (the second setup step appears after a click). */
+  autoFocus?: boolean;
   onVerified: (enrolled: boolean) => void;
 }) {
   const [formError, setFormError] = useState<string | null>(null);
   const form = useForm<CodeInput>({ resolver: zodResolver(totpCodeSchema), defaultValues: { code: "" } });
   const { errors, isSubmitting } = form.formState;
+  const { setFocus } = form;
+
+  useEffect(() => {
+    if (autoFocus) setFocus("code");
+  }, [autoFocus, setFocus]);
 
   async function onSubmit(values: CodeInput) {
     setFormError(null);
@@ -93,10 +101,15 @@ function BackupCodes({ codes }: { codes: string[] }) {
   );
 }
 
-/** First-time setup: scan the QR code, confirm with a code; backup codes on request. */
+/**
+ * First-time setup in two steps: scan the QR code (backup codes on request), then confirm with a code.
+ * Scanning happens offline in the authenticator app, so the site can't detect it: the admin moves on
+ * with "Next", and a correct code is what proves the scan worked.
+ */
 export function TotpEnrollment() {
   const router = useRouter();
   const [setup, setSetup] = useState<{ totpURI: string; backupCodes: string[] } | null>(null);
+  const [step, setStep] = useState<"scan" | "code">("scan");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -124,36 +137,51 @@ export function TotpEnrollment() {
     );
   }
 
+  if (step === "scan") {
+    return (
+      <Stack gap={6}>
+        <Stack gap={2}>
+          <p className="text-body">1. Scan this QR code with your authenticator app.</p>
+          {/* Drawn in the browser: the secret never goes to a QR service. Black on white (the library's
+              default) with a quiet zone, which authenticator apps scan reliably in dark mode too. */}
+          <div className="self-start">
+            <QRCodeSVG
+              value={setup.totpURI}
+              size={200}
+              level="M"
+              marginSize={4}
+              title="Authenticator setup code"
+            />
+          </div>
+          {/* A phone can't scan its own screen; on desktop the QR code is the way in. */}
+          <Link href={setup.totpURI} className="text-small md:hidden">
+            On this phone? Open in your authenticator app
+          </Link>
+        </Stack>
+        <BackupCodes codes={setup.backupCodes} />
+        <Button shape="pill" size="lg" onClick={() => setStep("code")}>
+          Next
+        </Button>
+      </Stack>
+    );
+  }
+
   return (
     <Stack gap={6}>
-      <Stack gap={2}>
-        <p className="text-body">1. Scan this QR code with your authenticator app.</p>
-        {/* Drawn in the browser: the secret never goes to a QR service. Black on white (the library's
-            default) with a quiet zone, which authenticator apps scan reliably in dark mode too. */}
-        <div className="self-start">
-          <QRCodeSVG
-            value={setup.totpURI}
-            size={200}
-            level="M"
-            marginSize={4}
-            title="Authenticator setup code"
-          />
-        </div>
-        <Link href={setup.totpURI} className="text-small">
-          On this phone? Open in your authenticator app
-        </Link>
-      </Stack>
-      <BackupCodes codes={setup.backupCodes} />
       <Stack gap={2}>
         <p className="text-body">2. Enter the 6-digit code your app shows.</p>
         <CodeForm
           submitLabel="Turn on two-factor"
+          autoFocus
           onVerified={() => {
             toast.success("Two-factor is on. Enter a new code to continue.");
             router.refresh();
           }}
         />
       </Stack>
+      <Button variant="link" className="self-start text-small" onClick={() => setStep("scan")}>
+        Back to the QR code
+      </Button>
     </Stack>
   );
 }
