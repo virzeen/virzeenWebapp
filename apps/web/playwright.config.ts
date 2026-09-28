@@ -31,7 +31,9 @@ export default defineConfig({
     },
     {
       command: `pnpm exec next build && pnpm exec next start --port ${E2E_PORT}`,
-      url: `${E2E_BASE_URL}/api/health`,
+      // A static route: /api/health needs a migrated database, which globalSetup only prepares after the
+      // server is up (on a fresh CI database that deadlocks).
+      url: `${E2E_BASE_URL}/manifest.webmanifest`,
       env: E2E_ENV,
       timeout: 600_000,
       reuseExistingServer: false,
