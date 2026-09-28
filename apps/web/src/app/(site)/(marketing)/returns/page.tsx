@@ -8,8 +8,8 @@ export const metadata: Metadata = {
   alternates: { canonical: "/returns" },
 };
 
-// Owner decision 2026-09-28: 7-day returns, no fee. Details below (condition, pickup, refund timing,
-// exchanges) await owner confirmation (docs/STATUS.md).
+// Owner decisions 2026-09-28: 7-day returns, no fee; condition, free pickup, refund within 5 working days and
+// free size exchange confirmed the same day (docs/payments/payment-policy.md §10).
 export default function ReturnsPage() {
   return (
     <ContentPage
