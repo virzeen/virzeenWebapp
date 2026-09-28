@@ -19,7 +19,14 @@
   - [ ] Resend Pro from launch day (recommended to the owner 2026-09-28; free plan fine until then).
   - [~] Google sign-in (owner, 2026-09-28): Google Cloud project "Virzeen", OAuth web client with localhost + `https://virzeen.com` origins/callbacks, keys in `apps/web/.env.local`; button shows on `/login` and hands off to Google correctly (checked 360/768/1280). Still (details in `runbooks/service-setup.md` "Google sign-in"): owner test sign-in; Railway `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`; before launch a separate "Virzeen Dev" client for localhost (Google policy: no test servers in the production client), support email off the shared Gmail, second partner as Owner; at launch a privacy policy covering Google sign-in, then Publish app.
   - [x] Sign-in pages (owner, 2026-09-28): email first, then "Continue with Google" with a black "G" (owner's choice; Google's guidelines ask for the colour "G"), no "or" divider, no helper line; the code page shows six boxes (new `CodeInput` primitive, digits in regular weight, paste and phone autofill work).
-- [ ] Day 2: Railway deploy, Cloudflare DNS, Resend `website` API key (domain already verified), production variables, `pnpm admin grant` for the owner.
+- [x] Day 2 (2026-09-28): live on https://virzeen.com.
+  - Railway project "abundant-harmony": web + Postgres in Singapore, deploys `main`.
+  - Cloudflare DNS: apex CNAME, "DNS only" for now; HTTPS certificate issued by Railway.
+  - Production variables set: Resend, Upstash, Cloudinary, email senders.
+  - First admin granted with `pnpm admin grant` (the owner's personal address). The admin two-factor setup shows a QR code; backup codes appear on request.
+  - [ ] Railway GitHub App on the `virzeen` GitHub account, so pushes to `main` deploy by themselves. Until then a deploy needs `railway service source connect --branch main` or a dashboard deploy.
+  - [ ] Cloudflare proxy on (orange cloud) with SSL "Full (strict)". The client IP code is ready for it (`server/security/client-ip.ts`).
+  - [ ] Railway ignored the `deploy` section of `railway.json` (no pre-deploy migrations, no health check), so `pnpm start` applies migrations itself. Look into it when moving to `.railway/railway.ts` before 2026-12-01; that needs the `railway` npm SDK added to the repo.
 - [ ] Day 3: owner enters real products/photos in `/admin`; speed checks, policy pages final.
 - [ ] Day 4: smoke test on the live site (real COD order), fixes, launch.
 
@@ -36,9 +43,9 @@
 - [x] Days 6–9: portfolio pages, shop listing, product page, cart (drawer + page, guest merge)
 - [x] Days 10–13: checkout — COD, eSewa, Khalti, order state machine, reconciliation cron
 - [x] Days 14–15: customer account, order emails, admin order management
-- [~] Days 16–17: security hardening, PWA, SEO — headers/CSP/rate limits/audit/sitemap/manifest done; **service worker not yet added**
+- [x] Days 16–17: security hardening, PWA, SEO — headers/CSP/rate limits/audit/sitemap/manifest, service worker + offline page (`public/sw.js`)
 - [~] Days 18–19: e2e tests, performance — e2e suite done; **Lighthouse CI + data caching not yet added**
-- [ ] Day 20: launch on Railway
+- [x] Day 20: on Railway (2026-09-28); public launch follows the 4-day plan above
 
 ## What works today (verified locally)
 
@@ -62,9 +69,8 @@
 - Admin 2FA: Better Auth only challenges password sign-ins, so the TOTP step-up for `/admin` is enforced by `requireAdmin()` with `Session.adminVerifiedAt` (12h).
 - Root-level Sentry wizard files (`next.config.js`, `instrumentation*.js`, `sentry.*.config.js`, `pages/`) were created outside the app; Sentry now lives in `apps/web`. Those root files are untracked and can be deleted. Move `.env.sentry-build-plugin` into `apps/web/` (or set `SENTRY_AUTH_TOKEN` in Railway) for source-map uploads.
 - Product pages stream behind a loading state, so an unknown product answers 200 with a `noindex` tag (Next.js behaviour) rather than a 404 status. Other unknown URLs return 404.
-- `docs/runbooks/restore-backup.md` says to set `MAINTENANCE_MODE=true`, but no maintenance mode exists yet (Day 20 work).
-- Not verified with real keys yet (need the owner's accounts): a full Google sign-in (keys set locally 2026-09-28; redirect to Google verified), Cloudinary uploads (signature checked against Cloudinary's documented example), Upstash, and the site's own Resend sending (domain verified and SMTP delivery tested 2026-09-28; needs the `website` key).
-- Not built yet: service worker (Serwist) + offline page, Lighthouse CI, data caching, Railway/Cloudflare setup (the R2 backup workflow and Dependabot are in `.github/` and switch on once secrets exist).
+- Not verified on the live site yet: a full Google sign-in (Railway has no `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` yet) and Cloudinary uploads (keys set, first product upload pending). Resend and Upstash work: the owner's sign-in on 2026-09-28 sent the code email and passed the Upstash rate limit.
+- Not built yet: Lighthouse CI, data caching. The R2 backup workflow and Dependabot are in `.github/` and switch on once secrets exist.
 
 ## Log
 
