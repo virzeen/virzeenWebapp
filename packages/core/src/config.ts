@@ -3,7 +3,14 @@ import "server-only";
 // Core never reads env, cookies or requests (docs/architecture.md "The layer rule").
 // The web app passes everything core needs once at startup via configureCore().
 
-export type OutgoingEmail = { to: string; subject: string; html: string; text: string };
+export type OutgoingEmail = {
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+  /** "auth" for sign-in codes, which the web app sends from their own address; otherwise the default sender. */
+  sender?: "auth";
+};
 
 export type Mailer = { send(message: OutgoingEmail): Promise<void> };
 

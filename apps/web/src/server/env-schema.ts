@@ -54,6 +54,8 @@ export function createEnvSchema(nodeEnv: string | undefined) {
       EMAIL_TRANSPORT: z.enum(["resend", "mailpit"]).default(isProduction ? "resend" : "mailpit"),
       RESEND_API_KEY: optional,
       EMAIL_FROM: z.string().min(3),
+      EMAIL_FROM_AUTH: optional,
+      EMAIL_REPLY_TO: optional.pipe(z.email().optional()),
       MAILPIT_URL: z.url().default("http://localhost:8025"),
       OWNER_ALERT_EMAIL: z.email(),
 

@@ -53,6 +53,7 @@ describe("checkoutService.placeOrder — COD", () => {
     expect((await db.productVariant.findUniqueOrThrow({ where: { id: fixture.variant.id } })).stock).toBe(3);
     expect(await db.cartItem.count({ where: { cartId: fixture.cart.id } })).toBe(0);
     expect(sentEmails.map((e) => e.subject)).toEqual([`Order ${result.orderNumber} confirmed`]);
+    expect(sentEmails[0]?.sender).toBeUndefined(); // order emails use the default sender, not the sign-in one
   });
 
   it("uses the outside-valley rate for other districts", async () => {

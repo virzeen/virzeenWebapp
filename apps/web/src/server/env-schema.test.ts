@@ -88,6 +88,22 @@ describe("environment validation", () => {
     expect(problems(live)).toEqual([]);
   });
 
+  it("treats a blank EMAIL_FROM_AUTH as unset, so sign-in codes use EMAIL_FROM", () => {
+    const parsed = createEnvSchema("production").parse({ ...live, EMAIL_FROM_AUTH: " " });
+    expect(parsed.EMAIL_FROM_AUTH).toBeUndefined();
+  });
+
+  it("accepts a Reply-To address, treats a blank one as unset and rejects anything else", () => {
+    const schema = createEnvSchema("production");
+    expect(schema.parse({ ...live, EMAIL_REPLY_TO: "sales@virzeen.example" }).EMAIL_REPLY_TO).toBe(
+      "sales@virzeen.example",
+    );
+    expect(schema.parse({ ...live, EMAIL_REPLY_TO: "" }).EMAIL_REPLY_TO).toBeUndefined();
+    expect(problems({ ...live, EMAIL_REPLY_TO: "Virzeen Sales <sales@virzeen.example>" })).toEqual([
+      "EMAIL_REPLY_TO",
+    ]);
+  });
+
   it("requires https, Resend and Upstash on the live site", () => {
     expect(
       problems({

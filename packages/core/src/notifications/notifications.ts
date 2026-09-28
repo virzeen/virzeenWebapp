@@ -45,7 +45,7 @@ export const notifications = {
   async sendOtp(email: string, otp: string) {
     const { siteUrl, mailer } = getCoreConfig();
     // OTP delivery must surface failures so the sign-in form can say so; never log the code.
-    await mailer.send({ to: email, ...(await renderOtpEmail({ otp, siteUrl })) });
+    await mailer.send({ to: email, ...(await renderOtpEmail({ otp, siteUrl })), sender: "auth" });
   },
 
   async orderConfirmed(orderId: string) {

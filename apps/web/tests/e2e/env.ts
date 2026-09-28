@@ -22,6 +22,8 @@ export const E2E_ENV: Record<string, string> = {
   EMAIL_TRANSPORT: "mailpit",
   MAILPIT_URL,
   EMAIL_FROM: "Virzeen <orders@example.com>",
+  EMAIL_FROM_AUTH: "Virzeen <verify@example.com>",
+  EMAIL_REPLY_TO: "sales@example.com",
   OWNER_ALERT_EMAIL: "owner@example.com",
   RATE_LIMIT_STORE: "memory",
   CRON_SECRET: "e2e-cron-secret-e2e-cron-secret",

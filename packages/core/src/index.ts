@@ -6,6 +6,7 @@ export {
   type CoreConfig,
   type Logger,
   type Mailer,
+  type OutgoingEmail,
 } from "./config";
 export { AppError, ERROR_CODES, isAppError, type ErrorCode } from "./errors";
 
