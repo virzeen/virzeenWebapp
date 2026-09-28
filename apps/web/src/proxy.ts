@@ -20,8 +20,9 @@ const IS_HTTPS = (process.env.NEXT_PUBLIC_SITE_URL ?? "").startsWith("https://")
 
 // The live site also answers on its Railway address. Pages there redirect to the real domain, so there's one
 // canonical host and nobody browses around Cloudflare. /api stays reachable (outside the matcher) for Railway.
+// Read the Host header: behind Railway, request.nextUrl carries the server's own internal address.
 const SITE_ORIGIN = IS_HTTPS ? originOf(process.env.NEXT_PUBLIC_SITE_URL, "") : "";
-const isRailwayHost = (hostname: string) => hostname.endsWith(".up.railway.app");
+const isRailwayHost = (host: string | null) => (host ?? "").split(":")[0]!.endsWith(".up.railway.app");
 
 // Maintenance mode (docs/runbooks/restore-backup.md): set MAINTENANCE_MODE=true in Railway and redeploy.
 // Every page answers 503 with this notice and no database access; /api/health is outside the matcher.
@@ -71,8 +72,8 @@ export function proxy(request: NextRequest) {
     });
   }
 
-  const { pathname, search, hostname } = request.nextUrl;
-  if (SITE_ORIGIN && isRailwayHost(hostname)) {
+  const { pathname, search } = request.nextUrl;
+  if (SITE_ORIGIN && isRailwayHost(request.headers.get("host"))) {
     return NextResponse.redirect(new URL(`${pathname}${search}`, SITE_ORIGIN), 308);
   }
 
