@@ -1,0 +1,48 @@
+# Nightly pg_dump of production to Cloudflare R2, 30-day retention (docs/runbooks/restore-backup.md).
+# Needs repository secrets: PROD_DATABASE_URL, R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET.
+name: Nightly database backup
+
+on:
+  schedule:
+    - cron: "15 20 * * *" # 02:00 Nepal time
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PROD_DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+    steps:
+      - name: Skip until secrets are configured
+        if: env.PROD_DATABASE_URL == ''
+        run: echo "Backup secrets not configured yet; skipping."
+      - name: Install PostgreSQL 17 client
+        if: env.PROD_DATABASE_URL != ''
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSo /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update && sudo apt-get install -y postgresql-client-17
+      - name: Dump and upload
+        if: env.PROD_DATABASE_URL != ''
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+        run: |
+          FILE="$(date -u +%Y-%m-%d).dump"
+          /usr/lib/postgresql/17/bin/pg_dump --format=custom --no-owner --no-privileges "$PROD_DATABASE_URL" -f "$FILE"
+          aws s3 cp "$FILE" "s3://${{ secrets.R2_BUCKET }}/$FILE" --endpoint-url "https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com"
+      - name: Delete backups older than 30 days
+        if: env.PROD_DATABASE_URL != ''
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+        run: |
+          CUTOFF=$(date -u -d "30 days ago" +%Y-%m-%d)
+          aws s3 ls "s3://${{ secrets.R2_BUCKET }}/" --endpoint-url "https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com" \
+            | awk '{print $4}' | while read -r key; do
+              [[ "${key%.dump}" < "$CUTOFF" ]] && aws s3 rm "s3://${{ secrets.R2_BUCKET }}/$key" --endpoint-url "https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com"
+            done || true

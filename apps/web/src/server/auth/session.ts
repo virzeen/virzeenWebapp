@@ -105,9 +105,10 @@ const guestCookieOptions = {
 
 /**
  * Who owns the bag for this request. When a guest signs in, their guest bag is merged into the account
- * (glossary: Cart). Read-only: safe in Server Components.
+ * (glossary: Cart). Sets no cookies, so it is safe in Server Components. Memoised per request so the layout and
+ * the page merge once; mergeGuestCart is also safe against concurrent requests.
  */
-export async function getCartOwner(): Promise<CartOwner | null> {
+export const getCartOwner = cache(async (): Promise<CartOwner | null> => {
   const user = await getUser();
   const guestToken = (await cookies()).get(GUEST_CART_COOKIE)?.value;
   if (user) {
@@ -115,7 +116,7 @@ export async function getCartOwner(): Promise<CartOwner | null> {
     return { userId: user.id };
   }
   return guestToken ? { guestToken } : null;
-}
+});
 
 /** Like getCartOwner but creates the bag if needed. Only in Server Actions / Route Handlers (sets a cookie). */
 export async function ensureCart(): Promise<{ cartId: string; key: string; userId: string | null }> {

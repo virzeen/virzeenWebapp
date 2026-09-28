@@ -16,9 +16,12 @@ import { useCart } from "./cart-provider";
 
 type Line = CartView["items"][number];
 
-/** One bag line: image, name, variant, quantity stepper, line price, remove with undo (patterns.md §7). */
+/**
+ * One bag line: image, name, variant, quantity stepper, line price, remove with undo (patterns.md §7).
+ * In the drawer (`compact`) the drawer shows Undo itself; on the bag page it is a toast.
+ */
 export function CartLine({ line, compact = false }: { line: Line; compact?: boolean }) {
-  const { setCart } = useCart();
+  const { setCart, setLastRemoved } = useCart();
   const [isPending, startTransition] = useTransition();
 
   function changeQuantity(quantity: number) {
@@ -35,6 +38,7 @@ export function CartLine({ line, compact = false }: { line: Line; compact?: bool
       if (!result.ok) return void toast.error(messageFor(result.error));
       setCart(result.data.cart);
       const { removed } = result.data;
+      if (compact) return setLastRemoved({ ...removed, productName: line.productName });
       toast.message("Removed from bag", {
         action: {
           label: "Undo",

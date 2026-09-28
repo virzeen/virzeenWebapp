@@ -166,6 +166,10 @@ export const cartService = {
         },
       });
       if (!guest || guest.userId) return;
+      // Claim the guest cart first: a concurrent merge (layout and page rendering at once) waits on this row,
+      // then deletes nothing and stops, so the lines are merged exactly once.
+      const claimed = await tx.cart.deleteMany({ where: { id: guest.id, userId: null } });
+      if (claimed.count === 0) return;
       const target = await tx.cart.upsert({
         where: { userId: input.userId },
         create: { userId: input.userId, expiresAt: expiry() },
@@ -173,7 +177,6 @@ export const cartService = {
         select: { id: true },
       });
       await mergeLines(tx, target.id, guest.items);
-      await tx.cart.delete({ where: { id: guest.id } });
     });
   },
 

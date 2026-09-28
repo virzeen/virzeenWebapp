@@ -65,4 +65,12 @@ Known traps for this stack and project. When a new mistake happens twice, add it
 
 Format: `YYYY-MM-DD — what went wrong — rule/doc updated`
 
-- (empty)
+- 2026-09-28 — Next.js 16 ships its own docs in `node_modules/next/dist/docs` and writes `apps/web/AGENTS.md`; read them before using proxy, caching or metadata APIs — lesson recorded here.
+- 2026-09-28 — Better Auth's two-factor plugin only challenges password/username/phone sign-ins; email OTP and Google bypass it. Admin TOTP is enforced by `requireAdmin()` + `Session.adminVerifiedAt` — never rely on the plugin alone.
+- 2026-09-28 — Prettier's Tailwind plugin must point at `packages/ui/src/styles.css` (which imports Tailwind), not `tokens.css`, or class order goes wrong.
+- 2026-09-28 — Git Bash rewrites arguments starting with `/` into Windows paths; prefix scripts with `MSYS_NO_PATHCONV=1`.
+- 2026-09-28 — eSewa's sandbox secret is `8gBm/:&EnhH.1/q` (their docs page shows a trailing `(` that is not part of the key); the published test vector is in `esewa.test.ts`.
+- 2026-09-28 — A layout and its page render at the same time, so a write both trigger (the guest bag merge) ran twice and crashed checkout. Wrap such helpers in React `cache()` **and** make the write claim its row first (`deleteMany … where` + check `count`), with a concurrency test.
+- 2026-09-28 — Better Auth has built-in limits (sign-in 3/10 s, OTP send 3/60 s) and, without `advanced.ipAddress.ipAddressHeaders`, one shared bucket for every visitor. Set the headers; our own per-email/IP limits replace its OTP rules (`auth.ts`).
+- 2026-09-28 — Anything behind a modal (Sheet/Dialog) is inert and hidden from assistive tech: a toast's Undo can't be clicked while the bag drawer is open. Put the action inside the modal.
+- 2026-09-28 — `notFound()` under a `loading.tsx` streams, so the status is 200 with a `noindex` meta (Next's documented behaviour). Test the noindex, not the status.

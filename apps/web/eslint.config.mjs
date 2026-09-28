@@ -7,7 +7,14 @@ const config = [
   ...nextVitals,
   ...nextTs,
   {
-    ignores: [".next/**", "next-env.d.ts", "playwright-report/**", "test-results/**", "public/**"],
+    ignores: [
+      ".next/**",
+      ".next-e2e/**",
+      "next-env.d.ts",
+      "playwright-report/**",
+      "test-results/**",
+      "public/**",
+    ],
   },
   {
     files: ["src/**/*.{ts,tsx}"],

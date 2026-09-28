@@ -3,8 +3,12 @@ import type { NextConfig } from "next";
 
 // Security headers from docs/security/security-policy.md §5. The CSP (with a per-request nonce) is set in
 // src/proxy.ts because it must change on every request.
+const isHttps = (process.env.NEXT_PUBLIC_SITE_URL ?? "").startsWith("https://");
 const securityHeaders = [
-  { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
+  // HSTS only over HTTPS (never pin localhost to HTTPS during development or e2e runs).
+  ...(isHttps
+    ? [{ key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" }]
+    : []),
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "X-Frame-Options", value: "DENY" },
@@ -13,6 +17,8 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // e2e builds use their own folder so they never clash with a running dev server.
+  distDir: process.env.NEXT_DIST_DIR ?? ".next",
   poweredByHeader: false,
   reactStrictMode: true,
   transpilePackages: [

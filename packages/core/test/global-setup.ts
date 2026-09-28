@@ -10,6 +10,6 @@ export default function setup() {
   execSync("pnpm exec prisma migrate deploy", {
     cwd: fileURLToPath(new URL("../../db", import.meta.url)),
     env: { ...process.env, DATABASE_URL: url },
-    stdio: "pipe",
+    stdio: ["ignore", "pipe", "inherit"],
   });
 }

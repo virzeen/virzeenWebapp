@@ -5,6 +5,18 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const SESSION_COOKIES = ["vz.session_token", "__Secure-vz.session_token"];
 
+const originOf = (url: string | undefined, fallback: string) => {
+  try {
+    return new URL(url ?? fallback).origin;
+  } catch {
+    return fallback;
+  }
+};
+
+// The eSewa form target differs between sandbox and production, so it comes from the environment.
+const ESEWA_FORM_ORIGIN = originOf(process.env.ESEWA_BASE_URL, "https://rc-epay.esewa.com.np");
+const IS_HTTPS = (process.env.NEXT_PUBLIC_SITE_URL ?? "").startsWith("https://");
+
 function contentSecurityPolicy(nonce: string) {
   const isDev = process.env.NODE_ENV === "development";
   return [
@@ -19,11 +31,11 @@ function contentSecurityPolicy(nonce: string) {
     "object-src 'none'",
     "base-uri 'self'",
     // Checkout posts the signed eSewa form; Google sign-in redirects.
-    "form-action 'self' https://rc-epay.esewa.com.np https://epay.esewa.com.np https://accounts.google.com",
+    `form-action 'self' ${ESEWA_FORM_ORIGIN} https://accounts.google.com`,
     "frame-ancestors 'none'",
     "worker-src 'self'",
     "manifest-src 'self'",
-    isDev ? "" : "upgrade-insecure-requests",
+    IS_HTTPS ? "upgrade-insecure-requests" : "",
   ]
     .filter(Boolean)
     .join("; ");

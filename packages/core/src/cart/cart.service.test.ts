@@ -111,6 +111,21 @@ describe("cartService.mergeGuestCart", () => {
     expect(await db.cart.findUnique({ where: { id: guestCart.id } })).toBeNull();
   });
 
+  it("merges exactly once when two requests merge the same guest bag at the same time", async () => {
+    const user = await createUser();
+    const guestCart = await createCart();
+    const variant = await createVariant({ stock: 10 });
+    await addToCart(guestCart.id, variant.id, 2);
+    const input = { guestToken: guestCart.guestToken as string, userId: user.id };
+
+    await expect(
+      Promise.all([cartService.mergeGuestCart(input), cartService.mergeGuestCart(input)]),
+    ).resolves.toBeDefined();
+
+    const summary = await cartService.getSummary({ userId: user.id });
+    expect(summary.items.map((item) => item.quantity)).toEqual([2]);
+  });
+
   it("is a no-op when the guest cart is already gone", async () => {
     const user = await createUser();
     await expect(

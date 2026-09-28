@@ -1,0 +1,19 @@
+# Weekly dependency updates (docs/security/security-policy.md §8).
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      storybook:
+        patterns: ["storybook", "@storybook/*"]
+      prisma:
+        patterns: ["prisma", "@prisma/*"]
+      next:
+        patterns: ["next", "eslint-config-next", "@next/*"]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

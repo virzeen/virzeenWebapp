@@ -77,3 +77,21 @@ RESEND_API_KEY, EMAIL_FROM,
 UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN,
 CRON_SECRET, SENTRY_DSN, NEXT_PUBLIC_SITE_URL
 ```
+
+## Configuration-driven features (decided during the phase-1 build)
+
+`env.ts` always requires the site URL, database, auth secret, email sender/owner inbox, cron secret, and the keys for the chosen `EMAIL_TRANSPORT` (`resend` | `mailpit`) and `RATE_LIMIT_STORE` (`upstash` | `memory`). Production defaults are `resend` + `upstash`.
+Google sign-in, eSewa, Khalti, Cloudinary uploads and Sentry switch themselves off (with a startup warning in production) when their keys are missing, so the shop can launch with COD while merchant approvals are pending.
+`CLOUDINARY_CLOUD_NAME` and `SENTRY_DSN` are exposed to the browser through `next.config.ts` (`NEXT_PUBLIC_*`); both are public identifiers, not secrets. Env is validated at build time too (Railway injects variables into builds).
+
+## Rendering and caching
+
+`src/proxy.ts` sets a per-request CSP nonce (security-policy.md §5), which makes every page dynamically rendered. Data is read per request from Postgres; tag-based data caching (`use cache` + `cacheTag`, revalidated by admin actions) is the planned performance step. Static metadata routes (robots, manifest, icons, OG image) are prerendered.
+
+## Local development services
+
+`docker compose up -d` starts Postgres on **5434** (databases `virzeen`, `virzeen_test`, `virzeen_e2e`) and Mailpit on **8025** (inbox for OTP and order emails). The e2e suite builds the app into `.next-e2e`, runs it on port 3100 against `virzeen_e2e`, and fakes eSewa/Khalti with `apps/web/tests/e2e/mock-providers.mjs` on port 4010.
+
+## Core configuration
+
+`packages/core` never reads env or requests. `apps/web/src/server/bootstrap.ts` calls `configureCore()` (site URL, mailer, logger, provider settings, `fetch`) once per process; tests inject fakes the same way.

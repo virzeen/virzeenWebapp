@@ -6,6 +6,30 @@ import { clientIp, rateLimit } from "@/server/security/rate-limit";
 
 const handler = toNextJsHandler(auth);
 
+// Only the endpoints our pages use are reachable over HTTP. Everything else Better Auth ships — in particular
+// /two-factor/* (enable/disable would let someone with an admin's inbox replace their authenticator) and the
+// password-reset endpoints — answers 404. Server code calls `auth.api.*` in-process and is unaffected.
+const ALLOWED = {
+  GET: [
+    /^\/api\/auth\/get-session$/,
+    /^\/api\/auth\/callback\/[a-z]+$/,
+    /^\/api\/auth\/error$/,
+    /^\/api\/auth\/ok$/,
+  ],
+  POST: [
+    /^\/api\/auth\/email-otp\/send-verification-otp$/,
+    /^\/api\/auth\/sign-in\/email-otp$/,
+    /^\/api\/auth\/sign-in\/social$/,
+    /^\/api\/auth\/sign-out$/,
+    /^\/api\/auth\/callback\/[a-z]+$/,
+  ],
+} as const;
+
+const isAllowed = (method: "GET" | "POST", request: Request) =>
+  ALLOWED[method].some((pattern) => pattern.test(new URL(request.url).pathname));
+
+const notFound = () => Response.json({ code: "NOT_FOUND", message: "Not found." }, { status: 404 });
+
 // OTP abuse limits (security-policy.md §6) applied before Better Auth sees the request.
 async function limitOtp(request: Request): Promise<Response | null> {
   const path = new URL(request.url).pathname;
@@ -36,9 +60,12 @@ async function limitOtp(request: Request): Promise<Response | null> {
   }
 }
 
-export const GET = handler.GET;
+export async function GET(request: Request) {
+  return isAllowed("GET", request) ? handler.GET(request) : notFound();
+}
 
 export async function POST(request: Request) {
+  if (!isAllowed("POST", request)) return notFound();
   const limited = await limitOtp(request);
   return limited ?? handler.POST(request);
 }

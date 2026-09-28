@@ -14,6 +14,8 @@
 - Session cookies: `httpOnly`, `secure`, `sameSite=lax`. Session rotated on login and role change.
 - OTP: 6 digits, expires in 10 minutes, max 5 attempts, rate-limited per email and IP.
 - Admins must enable TOTP two-factor. Admin routes reject sessions without 2FA.
+- How it is enforced: Better Auth's two-factor plugin only challenges password sign-ins, so `/admin` requires `role = ADMIN`, `twoFactorEnabled`, and a TOTP code verified in the current session within 12 hours (`Session.adminVerifiedAt`, set by `verifyAdminTotpAction`). The step-up is rate-limited (5 / 10 min per admin).
+- Only the auth endpoints the site uses are reachable over HTTP (`app/api/auth/[...all]/route.ts` allowlist: send code, sign in with code, social sign-in + callback, get session, sign out). `/two-factor/*`, password-reset and account-management endpoints return 404; enrolment happens through server actions only.
 
 ## 3. Authorization
 
@@ -45,6 +47,8 @@
 | Payment callbacks   | 30 / min per IP                          |
 | `/api/v1/*` general | 120 / min per IP                         |
 
+The OTP limits run in `app/api/auth/[...all]/route.ts` before Better Auth. Better Auth's own limiter stays on for its other endpoints (60 / min per IP, IP from `cf-connecting-ip` → `x-real-ip` → `x-forwarded-for`); its built-in OTP rules are switched off because they are per IP only and would block real customers signing in at the same time.
+
 ## 7. Edge protection (Cloudflare)
 
 Proxy on, SSL "Full (strict)", WAF managed rules, bot fight mode, rate limiting on `/api/auth/*`. Origin only accepts traffic via Cloudflare where possible.
@@ -55,7 +59,7 @@ Dependabot weekly, `pnpm audit` in CI (fail on high/critical), lockfile committe
 
 ## 9. Logging and privacy
 
-No secrets, tokens, OTPs, or full personal data in logs. Sentry PII scrubbing enabled. Admin actions recorded in `AuditLog`. Privacy policy page describes what is stored and why.
+No secrets, tokens, OTPs, or full personal data in logs. One owner-approved exception (2026-09-28): in local development (`NODE_ENV=development` and a localhost site URL) sign-in codes are also printed in the dev-server terminal (`server/auth/auth.ts`); never in production. Sentry PII scrubbing enabled. Admin actions recorded in `AuditLog`. Privacy policy page describes what is stored and why.
 
 ## 10. Accounts that must have 2FA
 

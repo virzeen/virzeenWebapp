@@ -1,35 +1,36 @@
 # Design Tokens
 
 Tokens are the only source of visual values. They live in `packages/ui/src/tokens/tokens.css` and are exposed to Tailwind v4 through `@theme`, which generates utilities like `bg-surface`, `text-ink`, `rounded-md`, `shadow-sm`, `text-h2`.
-Values below are the phase-1 defaults. **Brand values marked ◆ are placeholders until the Virzeen brand guide is final** — change them here and in `tokens.css` together, never in components.
+Values below are the phase-1 defaults, set from the brand artwork (monochrome logo, posters, "timeless monochromium experience." cover). **Brand values marked ◆ are placeholders until the Virzeen brand guide is final** — change them here and in `tokens.css` together, never in components.
 
 ## 1. Color
 
-| Token                     | Utility examples               | Default   | Use for                                   |
-| ------------------------- | ------------------------------ | --------- | ----------------------------------------- |
-| `--color-ink` ◆           | `text-ink`, `bg-ink`           | `#141414` | Primary text, primary button background   |
-| `--color-ink-muted`       | `text-ink-muted`               | `#6B6966` | Secondary text, captions, placeholders    |
-| `--color-canvas`          | `bg-canvas`                    | `#FFFFFF` | Page background                           |
-| `--color-surface` ◆       | `bg-surface`                   | `#F5F3EF` | Cards, image placeholders, section bands  |
-| `--color-line`            | `border-line`, `divide-line`   | `#E4E1DB` | Borders, dividers, input outlines         |
-| `--color-accent` ◆        | `text-accent`, `bg-accent`     | `#2F4A3A` | Brand highlights, links on hover, badges  |
-| `--color-accent-contrast` | `text-accent-contrast`         | `#FFFFFF` | Text on accent backgrounds                |
-| `--color-success`         | `text-success`                 | `#2E7D4F` | In stock, payment success                 |
-| `--color-warning`         | `text-warning`                 | `#A56A00` | Low stock, pending                        |
-| `--color-danger`          | `text-danger`, `border-danger` | `#B3261E` | Errors, out of stock, destructive actions |
-| `--color-focus`           | `ring-focus`                   | `#2F6FEB` | Focus rings only                          |
+| Token                     | Utility examples               | Default   | Use for                                                              |
+| ------------------------- | ------------------------------ | --------- | -------------------------------------------------------------------- |
+| `--color-ink` ◆           | `text-ink`, `bg-ink`           | `#141414` | Primary text, primary button background                              |
+| `--color-ink-muted`       | `text-ink-muted`               | `#666666` | Secondary text, captions, placeholders                               |
+| `--color-canvas`          | `bg-canvas`                    | `#FFFFFF` | Page background                                                      |
+| `--color-surface` ◆       | `bg-surface`                   | `#F5F5F5` | Cards, image placeholders, section bands                             |
+| `--color-line`            | `border-line`, `divide-line`   | `#E5E5E5` | Borders, dividers, input outlines                                    |
+| `--color-line-strong`     | `border-line-strong`           | `#8A8A8A` | Input, checkbox and radio outlines (3:1 against canvas, WCAG 1.4.11) |
+| `--color-accent` ◆        | `text-accent`, `bg-accent`     | `#231F20` | Brand highlights, links on hover, badges                             |
+| `--color-accent-contrast` | `text-accent-contrast`         | `#FFFFFF` | Text on accent backgrounds                                           |
+| `--color-success`         | `text-success`                 | `#2E7D4F` | In stock, payment success                                            |
+| `--color-warning`         | `text-warning`                 | `#8A5A00` | Low stock, pending                                                   |
+| `--color-danger`          | `text-danger`, `border-danger` | `#B3261E` | Errors, out of stock, destructive actions                            |
+| `--color-focus`           | `ring-focus`                   | `#2F6FEB` | Focus rings only                                                     |
 
-Rules: text on `canvas`/`surface` uses `ink` or `ink-muted` only. Status colors are for status, never decoration. Every pairing must meet WCAG AA (4.5:1 body, 3:1 large text/UI).
+Rules: text on `canvas`/`surface` uses `ink` or `ink-muted` only. On dark imagery and the ink footer, use `text-canvas` (and `/80`, `/70` opacity steps for secondary text). Status colors are for status, never decoration. Every pairing must meet WCAG AA (4.5:1 body, 3:1 large text/UI).
 
 ## 2. Typography
 
-Two families: **display** (headings, brand moments) and **text** (everything else), loaded with `next/font` and exposed as `--font-display` / `--font-text` ◆.
+Two families: **display** (headings, brand moments) and **text** (everything else), loaded with `next/font` and exposed as `--font-display` / `--font-text` ◆. Phase-1 placeholders: **Inter Tight** (display) and **Inter** (text), light weights echoing the posters. The wordmark is an SVG traced from the brand artwork (`client/components/layout/wordmark.tsx`), never set in a web font.
 
 | Token            | Utility        | Size / line-height            | Weight                        | Use                             |
 | ---------------- | -------------- | ----------------------------- | ----------------------------- | ------------------------------- |
-| `--text-display` | `text-display` | 3.5rem / 1.05 (mobile 2.5rem) | 500                           | Hero headline, one per page max |
-| `--text-h1`      | `text-h1`      | 2.5rem / 1.1 (mobile 2rem)    | 500                           | Page title                      |
-| `--text-h2`      | `text-h2`      | 1.75rem / 1.2                 | 500                           | Section title                   |
+| `--text-display` | `text-display` | 3.5rem / 1.05 (mobile 2.5rem) | 300                           | Hero headline, one per page max |
+| `--text-h1`      | `text-h1`      | 2.5rem / 1.1 (mobile 2rem)    | 300                           | Page title                      |
+| `--text-h2`      | `text-h2`      | 1.75rem / 1.2                 | 400                           | Section title                   |
 | `--text-h3`      | `text-h3`      | 1.25rem / 1.3                 | 500                           | Card/group title                |
 | `--text-body-lg` | `text-body-lg` | 1.125rem / 1.6                | 400                           | Product description, intros     |
 | `--text-body`    | `text-body`    | 1rem / 1.6                    | 400                           | Default text                    |
@@ -82,6 +83,8 @@ Max content width `max-w-7xl` (1280px) via `Container`. Product grid: 2 cols bas
 `lucide-react`, sizes 16 / 20 / 24 via `size-4 / size-5 / size-6`, `strokeWidth={1.5}`. Icons inherit `currentColor`.
 
 ## 9. `tokens.css` shape (reference)
+
+The real file is `packages/ui/src/tokens/tokens.css`; `packages/ui/src/tokens/tokens.ts` mirrors the colours for emails and the PWA manifest. Tailwind's default palette, type scale, fonts, radii and shadows are reset (`--color-*: initial` etc.), so `text-sm` or `bg-gray-100` do not exist. Display/H1 sizes use `clamp()` for the mobile → desktop step.
 
 ```css
 @import "tailwindcss";

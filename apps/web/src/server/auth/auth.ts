@@ -6,11 +6,16 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
 import { emailOTP, twoFactor } from "better-auth/plugins";
-import { env, features } from "@/server/env";
+import { env, features, siteUrl } from "@/server/env";
 
 // Better Auth (docs/security/security-policy.md §2): Google + email OTP, no customer passwords.
 // Admin TOTP is enrolled with the two-factor plugin and enforced per session by requireAdmin()
 // (the plugin itself only challenges password sign-ins).
+
+// Local development only: sign-in codes are also printed in the dev-server terminal (owner exception to
+// security-policy.md §9). Never true in production or when the site URL is not localhost.
+const printCodesInTerminal =
+  env.NODE_ENV === "development" && ["localhost", "127.0.0.1", "[::1]"].includes(new URL(siteUrl).hostname);
 
 export const auth = betterAuth({
   appName: "Virzeen",
@@ -42,9 +47,19 @@ export const auth = betterAuth({
     cookiePrefix: "vz",
     useSecureCookies: env.NODE_ENV === "production",
     defaultCookieAttributes: { httpOnly: true, sameSite: "lax" },
+    // Same order as clientIp() in server/security/rate-limit.ts. Without a readable client IP Better Auth
+    // puts every visitor in one shared rate-limit bucket.
+    ipAddress: { ipAddressHeaders: ["cf-connecting-ip", "x-real-ip", "x-forwarded-for"] },
   },
-  // Our own Upstash limits wrap the OTP endpoints (app/api/auth/[...all]/route.ts); keep Better Auth's too.
-  rateLimit: { enabled: true, window: 60, max: 60 },
+  // General limit for everything else. The two email-code endpoints are limited per email and per IP by our
+  // own limiter (app/api/auth/[...all]/route.ts, security-policy.md §6); Better Auth's built-in 3-per-minute
+  // rule for them would block real customers signing in at the same time, so it is switched off.
+  rateLimit: {
+    enabled: true,
+    window: 60,
+    max: 60,
+    customRules: { "/email-otp/send-verification-otp": false, "/sign-in/email-otp": false },
+  },
   trustedOrigins: [env.NEXT_PUBLIC_SITE_URL],
   plugins: [
     emailOTP({
@@ -53,6 +68,8 @@ export const auth = betterAuth({
       allowedAttempts: 5,
       storeOTP: "hashed",
       async sendVerificationOTP({ email, otp }) {
+        if (printCodesInTerminal)
+          console.warn(`\n  Sign-in code for ${email}: ${otp} (expires in 10 minutes)\n`);
         await notifications.sendOtp(email, otp);
       },
     }),
