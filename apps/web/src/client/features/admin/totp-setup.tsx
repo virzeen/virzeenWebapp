@@ -5,7 +5,7 @@ import { Alert, Button, FormField, Input, Link, Stack, toast } from "@virzeen/ui
 import { totpCodeSchema } from "@virzeen/validators";
 import { useRouter } from "next/navigation";
 import { QRCodeSVG } from "qrcode.react";
-import { useState, useTransition } from "react";
+import { useId, useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import type { z } from "zod";
 import { messageFor } from "@/client/lib/error-messages";
@@ -65,13 +65,40 @@ export function TotpVerify() {
   );
 }
 
-/** First-time setup: show the QR code and key, save backup codes, confirm with a code. */
+/** Backup codes stay hidden until the admin asks for them. */
+function BackupCodes({ codes }: { codes: string[] }) {
+  const [shown, setShown] = useState(false);
+  const id = useId();
+  return (
+    <Stack gap={2}>
+      <Button
+        variant="secondary"
+        shape="pill"
+        className="self-start"
+        aria-expanded={shown}
+        aria-controls={id}
+        onClick={() => setShown((value) => !value)}
+      >
+        {shown ? "Hide backup codes" : "Show backup codes"}
+      </Button>
+      <div id={id} hidden={!shown}>
+        <p className="mb-2 text-small text-ink-muted">Each code works once if you lose your phone.</p>
+        <ul className="grid grid-cols-2 gap-2 rounded-md bg-surface p-4 font-mono text-small">
+          {codes.map((code) => (
+            <li key={code}>{code}</li>
+          ))}
+        </ul>
+      </div>
+    </Stack>
+  );
+}
+
+/** First-time setup: scan the QR code, confirm with a code; backup codes on request. */
 export function TotpEnrollment() {
   const router = useRouter();
   const [setup, setSetup] = useState<{ totpURI: string; backupCodes: string[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const secret = setup ? (new URL(setup.totpURI).searchParams.get("secret") ?? "") : "";
 
   function start() {
     setError(null);
@@ -112,26 +139,13 @@ export function TotpEnrollment() {
             title="Authenticator setup code"
           />
         </div>
-        <p className="text-small text-ink-muted">Can&apos;t scan it? Type this setup key instead:</p>
-        <p className="rounded-md bg-surface p-4 font-mono text-body break-all select-all">
-          {secret.match(/.{1,4}/g)?.join(" ")}
-        </p>
         <Link href={setup.totpURI} className="text-small">
           On this phone? Open in your authenticator app
         </Link>
       </Stack>
+      <BackupCodes codes={setup.backupCodes} />
       <Stack gap={2}>
-        <p className="text-body">
-          2. Save these backup codes somewhere safe. Each works once if you lose your phone.
-        </p>
-        <ul className="grid grid-cols-2 gap-2 rounded-md bg-surface p-4 font-mono text-small">
-          {setup.backupCodes.map((code) => (
-            <li key={code}>{code}</li>
-          ))}
-        </ul>
-      </Stack>
-      <Stack gap={2}>
-        <p className="text-body">3. Enter the 6-digit code your app shows.</p>
+        <p className="text-body">2. Enter the 6-digit code your app shows.</p>
         <CodeForm
           submitLabel="Turn on two-factor"
           onVerified={() => {
