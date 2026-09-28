@@ -39,18 +39,21 @@ Optional services switch on when their keys are in `.env.local`: Google sign-in,
 
 ## Commands
 
-| Command                                            | What it does                                                       |
-| -------------------------------------------------- | ------------------------------------------------------------------ |
-| `pnpm dev`                                         | Web app with hot reload                                            |
-| `pnpm storybook`                                   | Component workshop + MCP on :6006                                  |
-| `pnpm turbo run lint typecheck test`               | All checks (core integration tests use `virzeen_test`)             |
-| `pnpm test:e2e`                                    | Production build + Playwright journeys against mocked eSewa/Khalti |
-| `node scripts/check-ui.mjs --all`                  | UI rules guard (tokens, images, money, imports)                    |
-| `pnpm db:migrate` / `db:studio` / `db:reset:local` | Database tasks (reset is local-only)                               |
+| Command                                              | What it does                                                       |
+| ---------------------------------------------------- | ------------------------------------------------------------------ |
+| `pnpm dev`                                           | Web app with hot reload                                            |
+| `pnpm storybook`                                     | Component workshop + MCP on :6006                                  |
+| `pnpm turbo run lint typecheck test`                 | All checks (core integration tests use `virzeen_test`)             |
+| `pnpm test:e2e`                                      | Production build + Playwright journeys against mocked eSewa/Khalti |
+| `node scripts/check-ui.mjs --all`                    | UI rules guard (tokens, images, money, imports)                    |
+| `pnpm db:migrate` / `db:studio` / `db:reset:local`   | Database tasks (reset is local-only)                               |
+| `pnpm admin list` / `grant` / `reset-2fa` / `revoke` | Admin accounts ([runbook](docs/runbooks/admin-accounts.md))        |
 
 ## Deploying (Railway)
 
 Service `web`: build `pnpm install --frozen-lockfile && pnpm --filter @virzeen/web build`, pre-deploy `pnpm db:deploy`, start `pnpm start`, health check `/api/health`, region Singapore.
-Set every variable from `.env.example` (production uses `EMAIL_TRANSPORT=resend`, `RATE_LIMIT_STORE=upstash`, live payment keys, `ESEWA_BASE_URL=https://epay.esewa.com.np`, `ESEWA_STATUS_URL=https://esewa.com.np`, `KHALTI_BASE_URL=https://khalti.com/api/v2`).
+Set every variable from `.env.example`; the app refuses to start on a real domain with local or sandbox settings (production uses `EMAIL_TRANSPORT=resend`, `RATE_LIMIT_STORE=upstash`, live payment keys, `ESEWA_BASE_URL=https://epay.esewa.com.np`, `ESEWA_STATUS_URL=https://esewa.com.np`, `KHALTI_BASE_URL=https://khalti.com/api/v2`).
 Service `cron`: every 10 minutes `curl -fsS -H "Authorization: Bearer $CRON_SECRET" https://<domain>/api/cron/reconcile-payments`.
 Put Cloudflare in front (SSL Full-strict). Details: `docs/architecture.md`, `docs/adr/0002-railway-hosting.md`.
+Service accounts and keys: [runbook](docs/runbooks/service-setup.md).
+First admin: `pnpm admin grant <owner email> --yes` against the production database ([runbook](docs/runbooks/admin-accounts.md)); the seed is local-only.

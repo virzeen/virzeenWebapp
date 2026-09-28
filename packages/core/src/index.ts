@@ -10,6 +10,7 @@ export {
 export { AppError, ERROR_CODES, isAppError, type ErrorCode } from "./errors";
 
 export { addressService, MAX_ADDRESSES, type SavedAddress } from "./addresses/address.service";
+export { adminAccounts, type AdminAccount } from "./admin/admin-accounts";
 export { adminReads } from "./admin/admin-reads";
 export { cartService, type CartOwner } from "./cart/cart.service";
 export { type CartLine, type CartSummary } from "./cart/cart-summary";

@@ -15,6 +15,7 @@
 - OTP: 6 digits, expires in 10 minutes, max 5 attempts, rate-limited per email and IP.
 - Admins must enable TOTP two-factor. Admin routes reject sessions without 2FA.
 - How it is enforced: Better Auth's two-factor plugin only challenges password sign-ins, so `/admin` requires `role = ADMIN`, `twoFactorEnabled`, and a TOTP code verified in the current session within 12 hours (`Session.adminVerifiedAt`, set by `verifyAdminTotpAction`). The step-up is rate-limited (5 / 10 min per admin).
+- Admin rights and authenticator resets are changed only with `pnpm admin` by someone with database access, never from the website (`docs/runbooks/admin-accounts.md`). Each change ends the person's sessions and is audited.
 - Only the auth endpoints the site uses are reachable over HTTP (`app/api/auth/[...all]/route.ts` allowlist: send code, sign in with code, social sign-in + callback, get session, sign out). `/two-factor/*`, password-reset and account-management endpoints return 404; enrolment happens through server actions only.
 
 ## 3. Authorization

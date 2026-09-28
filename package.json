@@ -23,6 +23,7 @@
     "db:studio": "pnpm --filter @virzeen/db db:studio",
     "db:seed": "pnpm --filter @virzeen/db db:seed",
     "db:reset:local": "pnpm --filter @virzeen/db db:reset:local",
+    "admin": "pnpm --filter @virzeen/core admin",
     "prepare": "husky"
   },
   "devDependencies": {

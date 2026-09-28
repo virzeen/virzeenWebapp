@@ -64,19 +64,21 @@ page / component  →  server action or /api route  →  core service  →  db
 
 ## Environment variables
 
-Validated at startup by `apps/web/src/server/env.ts` (Zod). The app refuses to boot if one is missing or malformed.
+Validated at startup by `apps/web/src/server/env.ts` with the schema in `env-schema.ts` (Zod, unit-tested). The app refuses to boot if one is missing or malformed.
 Names only — values live in Railway / `.env.local` (never committed). Keep `.env.example` in sync.
 
 ```
 DATABASE_URL, BETTER_AUTH_SECRET, BETTER_AUTH_URL,
 GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET,
-ESEWA_PRODUCT_CODE, ESEWA_SECRET_KEY, ESEWA_BASE_URL,
-KHALTI_SECRET_KEY, KHALTI_BASE_URL,
+ESEWA_PRODUCT_CODE, ESEWA_SECRET_KEY, ESEWA_BASE_URL, ESEWA_STATUS_URL,
+KHALTI_SECRET_KEY, KHALTI_BASE_URL, ALLOW_SANDBOX_PAYMENTS,
 CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET,
-RESEND_API_KEY, EMAIL_FROM,
-UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN,
+EMAIL_TRANSPORT, RESEND_API_KEY, EMAIL_FROM, MAILPIT_URL, OWNER_ALERT_EMAIL,
+RATE_LIMIT_STORE, UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN,
 CRON_SECRET, SENTRY_DSN, NEXT_PUBLIC_SITE_URL
 ```
+
+**Live-site rules.** A production build on a real domain (not localhost) must use https, `EMAIL_TRANSPORT=resend`, `RATE_LIMIT_STORE=upstash`, and the live eSewa/Khalti endpoints with a merchant product code (not `EPAYTEST`). Sandbox payments on the live site would let anyone "pay" with eSewa's public test account. A staging site on sandbox keys sets `ALLOW_SANDBOX_PAYMENTS=true`. Local production builds (e2e tests) are exempt.
 
 ## Configuration-driven features (decided during the phase-1 build)
 

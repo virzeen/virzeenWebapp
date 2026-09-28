@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { addToBagMessage, messageFor } from "./error-messages";
 import { formatDate, formatDateTime } from "./format";
 import imageLoader from "./image-loader";
@@ -38,6 +38,16 @@ describe("imageLoader", () => {
     expect(imageLoader({ src: "/placeholder/product-01.jpg", width: 800 })).toBe(
       "/placeholder/product-01.jpg?w=800",
     );
+  });
+
+  it("serves uploaded Cloudinary images resized with automatic format and quality", async () => {
+    vi.stubEnv("NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME", "demo");
+    vi.resetModules();
+    const { default: loader } = await import("./image-loader");
+    expect(loader({ src: "virzeen/products/p1/tee-front", width: 800 })).toBe(
+      "https://res.cloudinary.com/demo/image/upload/f_auto,q_auto,c_limit,w_800/virzeen/products/p1/tee-front",
+    );
+    vi.unstubAllEnvs();
   });
 });
 
