@@ -81,6 +81,7 @@ Admin actions add `await requireRole("ADMIN")` right after authentication.
 
 - Sent from core services after the transaction commits (never inside it).
 - Templates in `packages/emails`. Every email has a plain-text fallback.
+- Senders (specs/email-senders.md): sign-in codes go out from `EMAIL_FROM_AUTH` (`verify@`, falling back to `EMAIL_FROM`), everything else from `EMAIL_FROM` (`no-reply@`). Order emails and alerts carry Reply-To `EMAIL_REPLY_TO` (`sales@`), because the footer says "Reply to this email"; sign-in code emails never do (a reply would carry a live code into the shared inbox). Core marks the email `sender: "auth"`; only the web mailer knows the addresses. Addresses and DNS: runbooks/email-setup.md.
 
 ## 10. Adding a dependency
 

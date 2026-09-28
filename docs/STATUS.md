@@ -11,7 +11,15 @@
 ## Launch plan (4 days, COD only)
 
 - [ ] Day 1: COD-only launch mode + per-product shipping folded into prices ✅; PWA (install + offline page), maintenance mode, data caching. Owner: accounts (Railway, Cloudflare + virzeen.com, Resend, Upstash, Cloudinary; Google optional), returns policy + contact details.
-- [ ] Day 2: Railway deploy, Cloudflare DNS, Resend domain verification, production variables, `pnpm admin grant` for the owner.
+  - [x] Email sending (owner, 2026-09-28): Resend verified `virzeen.com` (Tokyo) + DMARC; partners send as `info@`/`sales@` from the shared Gmail through Resend SMTP (test delivered). Site: sign-in codes from `verify@`, everything else from `no-reply@` (`EMAIL_FROM_AUTH`, built). `docs/runbooks/email-setup.md`
+  - [x] Email receiving (owner, 2026-09-28): Cloudflare Email Routing forwards `info@` and `sales@` to the shared Gmail; catch-all off.
+  - [ ] Email follow-ups (owner, today): Gmail "edit info" → reply-to address on both send-as addresses; "Show original" shows SPF/DKIM/DMARC pass; Gmail filter "Never send to Spam" for forwarded mail.
+  - [x] Contact page shows `sales@` (orders and sizing) + `info@` (everything else) instead of `hello@` (`SITE.salesEmail` / `SITE.infoEmail`; checked at 360/768/1280, 2026-09-28).
+  - [x] Replies to site emails go to `sales@` (`EMAIL_REPLY_TO`, built 2026-09-28); `SECURITY.md` → `info@` (owner, 2026-09-28).
+  - [ ] Resend Pro from launch day (recommended to the owner 2026-09-28; free plan fine until then).
+  - [~] Google sign-in (owner, 2026-09-28): Google Cloud project "Virzeen", OAuth web client with localhost + `https://virzeen.com` origins/callbacks, keys in `apps/web/.env.local`; button shows on `/login` and hands off to Google correctly (checked 360/768/1280). Still (details in `runbooks/service-setup.md` "Google sign-in"): owner test sign-in; Railway `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`; before launch a separate "Virzeen Dev" client for localhost (Google policy: no test servers in the production client), support email off the shared Gmail, second partner as Owner; at launch a privacy policy covering Google sign-in, then Publish app.
+  - [x] Sign-in pages (owner, 2026-09-28): email first, then "Continue with Google" with a black "G" (owner's choice; Google's guidelines ask for the colour "G"), no "or" divider, no helper line; the code page shows six boxes (new `CodeInput` primitive, digits in regular weight, paste and phone autofill work).
+- [ ] Day 2: Railway deploy, Cloudflare DNS, Resend `website` API key (domain already verified), production variables, `pnpm admin grant` for the owner.
 - [ ] Day 3: owner enters real products/photos in `/admin`; speed checks, policy pages final.
 - [ ] Day 4: smoke test on the live site (real COD order), fixes, launch.
 
@@ -19,6 +27,7 @@
 
 - **~1 month after launch: eSewa and Khalti.** Built and tested (unit + e2e against mocks) but switched off: no keys set, so checkout shows cash on delivery only. To turn on: merchant keys + live URLs in Railway (`docs/runbooks/service-setup.md`), the Railway `cron` service for `/api/cron/reconcile-payments`, one small real payment each, then restore wallet wording on home/about/product/shop/footer/privacy/terms/returns pages (removed 2026-09-28).
 - Lighthouse CI; COD limit review (currently none) once online payments exist.
+- **By December 2026: replace Gmail "Send mail as"** for `info@`/`sales@` — Google ends it for outside addresses in January 2027 (options in `docs/runbooks/email-setup.md`). Receiving is not affected.
 
 ## Build history (original 20-day plan)
 
@@ -44,20 +53,23 @@
 
 - ◆ **Brand**: tokens are monochrome from the logo/posters; fonts are Inter Tight (display) + Inter (text) placeholders. Wordmark is traced from `typo.png` (Mesdag font file has no licence info, so it is not shipped).
 - **Money rules (decided 2026-09-28)**: shipping is a per-product amount entered in admin and included in the displayed price; customers see "Free shipping". No COD order limit. ◆ Still open: delivery estimates 1–3 / 3–7 days.
-- ◆ **Policy copy**: returns decided 2026-09-28 (7 days, no fee), written on `/returns` (and home, product, footer, terms). ◆ Owner to confirm the details added there: unworn/tags/packaging, free pickup, refund within 5 working days by bank or wallet, free size exchange. Shipping, privacy and terms pages still show a "being finalised" notice. About page text, contact email (`client/lib/site.ts`) and `SECURITY.md` address are placeholders.
+- ◆ **Policy copy**: returns decided 2026-09-28 (7 days, no fee), written on `/returns` (and home, product, footer, terms). ◆ Owner to confirm the details added there: unworn/tags/packaging, free pickup, refund within 5 working days by bank or wallet, free size exchange. Shipping, privacy and terms pages still show a "being finalised" notice. About page text is a placeholder. Contact page shows `sales@` + `info@`; `SECURITY.md` uses `info@` (done 2026-09-28).
 - ◆ **Catalogue**: products, portfolio stories and photos are local seed samples (grey placeholder photography).
 - **Docs conflict**: payment-policy §7 says a COD order refused at the door becomes CANCELLED, but the §3 state table has no SHIPPED → CANCELLED. Implemented the table strictly; refused-at-door orders currently stay SHIPPED. Decide whether to allow SHIPPED → CANCELLED (COD refusal only).
 - **Docs conflict**: security-policy §5 (CSP with nonces) forces dynamic rendering, while backend-policies §6 wants cached product pages. Pages are dynamic with a nonce CSP; add data caching (Next 16 `use cache` + tags) as performance work.
 - eSewa `transaction_uuid` is `<orderNumber>-<attempt>` (e.g. `VZ-260928-0042-1`), not `VZ-<orderNumber>-<attempt>` (would double the prefix).
+- **Sign-in code failures are silent** (found 2026-09-28, not yet fixed): Better Auth 1.7.6 runs `sendVerificationOTP` through `runInBackgroundOrAwait`, which catches and only logs errors, so when Resend fails (e.g. the 100/day cap) the form still says a code was sent. The comment in `core/notifications/notifications.ts` `sendOtp` assumes the opposite. ◆ Decide: alert on "Failed to run background task" in Sentry/logs and/or move to Resend Pro (no daily cap).
 - Admin 2FA: Better Auth only challenges password sign-ins, so the TOTP step-up for `/admin` is enforced by `requireAdmin()` with `Session.adminVerifiedAt` (12h).
 - Root-level Sentry wizard files (`next.config.js`, `instrumentation*.js`, `sentry.*.config.js`, `pages/`) were created outside the app; Sentry now lives in `apps/web`. Those root files are untracked and can be deleted. Move `.env.sentry-build-plugin` into `apps/web/` (or set `SENTRY_AUTH_TOKEN` in Railway) for source-map uploads.
 - Product pages stream behind a loading state, so an unknown product answers 200 with a `noindex` tag (Next.js behaviour) rather than a 404 status. Other unknown URLs return 404.
 - `docs/runbooks/restore-backup.md` says to set `MAINTENANCE_MODE=true`, but no maintenance mode exists yet (Day 20 work).
-- Not verified with real keys yet (need the owner's accounts): Google sign-in, Cloudinary uploads (signature checked against Cloudinary's documented example), Resend, Upstash.
+- Not verified with real keys yet (need the owner's accounts): a full Google sign-in (keys set locally 2026-09-28; redirect to Google verified), Cloudinary uploads (signature checked against Cloudinary's documented example), Upstash, and the site's own Resend sending (domain verified and SMTP delivery tested 2026-09-28; needs the `website` key).
 - Not built yet: service worker (Serwist) + offline page, Lighthouse CI, data caching, Railway/Cloudflare setup (the R2 backup workflow and Dependabot are in `.github/` and switch on once secrets exist).
 
 ## Log
 
+- 2026-09-28 — Google sign-in keys set locally with the owner (redirect verified). Sign-in pages reworked on the owner's request: email first, Google second (black "G"), six-box code entry via new `CodeInput` primitive (+7 Storybook tests incl. paste; found and fixed a paste bug where "482 913" lost a digit). Review then found five more: `CodeInput` is now controlled (`Controller` in verify-form, so reset/resend clear the boxes), a paste replaces the whole code, the hidden caret stays at the end, focus is an outline (visible in Windows contrast themes), and a wrong/expired code is a field error (red boxes) instead of the top Alert.
+- 2026-09-28 — Email set up with the owner: Resend sending (`virzeen.com`, Tokyo, DMARC `p=none`), Cloudflare Email Routing (`info@`, `sales@` → shared Gmail), partners reply as those addresses via Gmail "Send mail as" + Resend SMTP. Built `EMAIL_FROM_AUTH` so sign-in codes come from `verify@` (spec `specs/email-senders.md`; +2 core, +4 web unit tests). New `runbooks/email-setup.md`. Then: contact page shows `sales@` + `info@`, order emails and alerts get Reply-To `sales@` (`EMAIL_REPLY_TO`, `mailer.test.ts` covers both transports; sign-in code emails get none, so replies can't carry live codes into the shared inbox — found in review), `SECURITY.md` → `info@`. Next: email follow-ups in the launch plan.
 - 2026-09-28 — Owner: launch in 4 days with COD only; eSewa/Khalti about a month later. Added `Product.shippingPaisa` (admin enters product price + shipping; customers pay and see the sum, with "Free shipping"), removed the COD limit, removed wallet wording from customer pages, CI secret scan via gitleaks CLI. PR #1 opened.
 
 - 2026-09-28 — Days 1–5 gap check: added `pnpm admin` (first admin on production, lost-phone reset, revoke; audited, tested), live-site env rules (the app refuses sandbox payments, http, Mailpit or the memory limiter on a real domain; the sandbox would have let anyone "pay" with eSewa's public test account), Cloudinary signature test, service-setup and admin-accounts runbooks.

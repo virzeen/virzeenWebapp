@@ -66,7 +66,7 @@ No secrets, tokens, OTPs, or full personal data in logs. One owner-approved exce
 
 ## 10. Accounts that must have 2FA
 
-GitHub (org-enforced), Railway, Cloudflare, domain registrar, eSewa/Khalti merchant, Google Cloud, Cloudinary, Resend, Upstash, Sentry.
+GitHub (org-enforced), Railway, Cloudflare, domain registrar, eSewa/Khalti merchant, Google Cloud, Cloudinary, Resend, Upstash, Sentry, and the partners' shared Gmail (it receives all `info@`/`sales@` mail and owner alerts — runbooks/email-setup.md). The shared Gmail is never an admin login: each partner has their own admin account on a personal address.
 
 ## 11. OWASP quick checklist for reviews
 

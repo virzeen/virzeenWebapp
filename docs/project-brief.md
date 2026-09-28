@@ -324,9 +324,10 @@ When revenue justifies it: Vercel Pro + Supabase Pro in Mumbai (~$45/month) for 
 ### Resend (email)
 
 - **Used for:** OTP codes, order confirmation, shipped, cancelled, admin alerts (e.g. payment amount mismatch).
-- **Setup:** verify our sending domain with SPF, DKIM, and DMARC records in Cloudflare; send from e.g. `orders@virzeen.com`.
+- **Setup (done 2026-09-28):** `virzeen.com` verified in Resend (region Tokyo) with DKIM, SPF and DMARC records in Cloudflare. The site sends sign-in codes from `verify@virzeen.com` and everything else from `no-reply@virzeen.com` (owner decision, specs/email-senders.md).
+- **Addresses (owner decision 2026-09-28):** the site shows `sales@virzeen.com` for contact and `info@virzeen.com` for general enquiries. Cloudflare Email Routing forwards both to the partners' shared Gmail, which is never shown on the site; the partners reply as `info@`/`sales@` through Resend SMTP. Details: runbooks/email-setup.md.
 - **Templates:** React Email in `packages/emails`, branded with our tokens, always with a plain-text version.
-- **Limits:** free plan = 3,000 emails/month, max 100/day, 1 domain. **OTP emails count too**, so a busy day can hit the daily cap — upgrade to Pro (~$20/month, no daily cap) around launch or campaigns.
+- **Limits:** free plan = 3,000 emails/month, max 100/day, counted per recipient, 3 domains (Resend pricing, checked 2026-09-28). **OTP emails count too, and so do the partners' own emails as `info@`/`sales@`**, so a busy day can hit the daily cap — upgrade to Pro (~$20/month, no daily cap) around launch or campaigns.
 - **Rules:** emails are sent after the database transaction commits, once per event.
 
 ### Upstash Redis (rate limiting)
@@ -494,7 +495,7 @@ Free-tier limits change; re-check each provider's pricing page before launch.
 - COD maximum order value.
 - Returns/refund policy text (days, conditions).
 - Business registration, PAN/VAT status (needed for merchant accounts and invoices).
-- Security contact email for `SECURITY.md`.
+- ~~Security contact email for `SECURITY.md`.~~ Decided 2026-09-28: `info@virzeen.com`.
 - Launch product list, photography, and portfolio content.
 
 ## 20. Where to find everything
