@@ -1,0 +1,162 @@
+/*
+ * Virzeen design tokens — the ONLY place visual values live (docs/ui/design-tokens.md).
+ * Hex values are allowed here and in tokens.ts only. Change both files and the doc together.
+ * Brand: "timeless monochromium experience" — black, white, and greys; status colours only for status.
+ *
+ * Default Tailwind palettes, type sizes, fonts, radii and shadows are reset so only these tokens exist
+ * (e.g. `text-sm`, `bg-gray-100`, `rounded-xl` do not generate).
+ */
+
+@theme {
+  /* ── 1. Colour ── */
+  --color-*: initial;
+  --color-ink: #141414;
+  --color-ink-muted: #666666;
+  --color-canvas: #ffffff;
+  --color-surface: #f5f5f5;
+  --color-line: #e5e5e5;
+  --color-line-strong: #8a8a8a;
+  --color-accent: #231f20;
+  --color-accent-contrast: #ffffff;
+  --color-success: #2e7d4f;
+  --color-warning: #8a5a00;
+  --color-danger: #b3261e;
+  --color-focus: #2f6feb;
+
+  /* ── 2. Typography ── (families are loaded with next/font and passed in as variables) */
+  --font-*: initial;
+  --font-display: var(--font-display-loaded), "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-text: var(--font-text-loaded), "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  --text-*: initial;
+  --text-display: clamp(2.5rem, 1.85rem + 2.8vw, 3.5rem);
+  --text-display--line-height: 1.05;
+  --text-display--letter-spacing: -0.03em;
+  --text-display--font-weight: 300;
+  --text-h1: clamp(2rem, 1.7rem + 1.3vw, 2.5rem);
+  --text-h1--line-height: 1.1;
+  --text-h1--letter-spacing: -0.02em;
+  --text-h1--font-weight: 300;
+  --text-h2: 1.75rem;
+  --text-h2--line-height: 1.2;
+  --text-h2--letter-spacing: -0.015em;
+  --text-h2--font-weight: 400;
+  --text-h3: 1.25rem;
+  --text-h3--line-height: 1.3;
+  --text-h3--letter-spacing: -0.01em;
+  --text-h3--font-weight: 500;
+  --text-body-lg: 1.125rem;
+  --text-body-lg--line-height: 1.6;
+  --text-body: 1rem;
+  --text-body--line-height: 1.6;
+  --text-small: 0.875rem;
+  --text-small--line-height: 1.5;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1.4;
+  --text-caption--letter-spacing: 0.08em;
+  --text-caption--font-weight: 500;
+
+  /* ── 4. Radius & shadow ── */
+  --radius-*: initial;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --shadow-*: initial;
+  --shadow-sm: 0 1px 2px 0 rgb(20 20 20 / 0.06), 0 1px 3px 0 rgb(20 20 20 / 0.04);
+  --shadow-md: 0 8px 24px -4px rgb(20 20 20 / 0.12), 0 2px 6px -2px rgb(20 20 20 / 0.06);
+
+  /* ── 5. Motion ── */
+  --ease-*: initial;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --animate-*: initial;
+  --animate-spin: spin 1s linear infinite;
+  --animate-shimmer: shimmer 1.6s ease-in-out infinite;
+  --animate-fade-in: fade-in 250ms cubic-bezier(0.2, 0, 0, 1);
+  --animate-fade-out: fade-out 150ms cubic-bezier(0.2, 0, 0, 1);
+  --animate-slide-in-right: slide-in-right 250ms cubic-bezier(0.2, 0, 0, 1);
+  --animate-slide-out-right: slide-out-right 250ms cubic-bezier(0.2, 0, 0, 1);
+  --animate-slide-in-bottom: slide-in-bottom 250ms cubic-bezier(0.2, 0, 0, 1);
+  --animate-slide-out-bottom: slide-out-bottom 250ms cubic-bezier(0.2, 0, 0, 1);
+  --animate-reveal: reveal 400ms cubic-bezier(0.2, 0, 0, 1) both;
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  @keyframes shimmer {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.55;
+    }
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes fade-out {
+    to {
+      opacity: 0;
+    }
+  }
+  @keyframes slide-in-right {
+    from {
+      transform: translateX(100%);
+    }
+  }
+  @keyframes slide-out-right {
+    to {
+      transform: translateX(100%);
+    }
+  }
+  @keyframes slide-in-bottom {
+    from {
+      transform: translateY(100%);
+    }
+  }
+  @keyframes slide-out-bottom {
+    to {
+      transform: translateY(100%);
+    }
+  }
+  @keyframes reveal {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+  }
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply bg-canvas font-text text-body text-ink antialiased;
+  }
+
+  ::selection {
+    @apply bg-ink text-canvas;
+  }
+
+  :focus-visible {
+    @apply outline-none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 1ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 1ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}

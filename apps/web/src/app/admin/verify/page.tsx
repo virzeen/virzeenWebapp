@@ -1,0 +1,34 @@
+import { Container, Link } from "@virzeen/ui";
+import { notFound, redirect } from "next/navigation";
+import { Wordmark } from "@/client/components/layout/wordmark";
+import { TotpEnrollment, TotpVerify } from "@/client/features/admin/totp-setup";
+import { getAdminState } from "@/server/auth/session";
+
+export const metadata = { title: "Verify" };
+
+/** Admin two-factor: first-time enrolment, then a TOTP step-up every 12 hours. */
+export default async function AdminVerifyPage() {
+  const { state, user } = await getAdminState();
+  if (!user) redirect("/login?next=%2Fadmin");
+  if (state === "not-admin") notFound();
+  if (state === "ok") redirect("/admin");
+
+  return (
+    <Container width="narrow" className="flex max-w-md flex-col gap-8 py-16">
+      <Link href="/" variant="subtle" aria-label="Virzeen home" className="self-start text-ink">
+        <Wordmark className="h-5 w-auto" />
+      </Link>
+      <header className="flex flex-col gap-2">
+        <h1 className="font-display text-h1">
+          {state === "needs-enrollment" ? "Secure your admin account" : "Admin verification"}
+        </h1>
+        <p className="text-body text-ink-muted">
+          {state === "needs-enrollment"
+            ? `Signed in as ${user.email}. Set up two-factor to open the admin area.`
+            : "Enter the code from your authenticator app."}
+        </p>
+      </header>
+      {state === "needs-enrollment" ? <TotpEnrollment /> : <TotpVerify />}
+    </Container>
+  );
+}

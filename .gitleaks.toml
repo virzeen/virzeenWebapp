@@ -1,0 +1,10 @@
+# Secret scanning config for CI (security-policy.md §8). Default gitleaks rules, plus one allowlisted value:
+# eSewa's published sandbox secret, which is public test data used in .env.example and the tests.
+title = "virzeen"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Public sandbox credentials"
+regexes = ['''8gBm/:&EnhH\.1/q''']

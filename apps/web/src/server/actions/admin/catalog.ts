@@ -1,0 +1,81 @@
+"use server";
+
+import "server-only";
+import { catalogService } from "@virzeen/core";
+import {
+  archiveSchema,
+  categorySchema,
+  collectionSchema,
+  saveProductSchema,
+  uploadSignatureSchema,
+} from "@virzeen/validators";
+import { revalidatePath } from "next/cache";
+import { signUpload } from "@/server/services/cloudinary";
+import { runAdminAction } from "./guard";
+
+const refreshCatalog = (slug?: string) => {
+  revalidatePath("/", "layout");
+  if (slug) revalidatePath(`/product/${slug}`);
+};
+
+export async function saveProductAction(input: unknown) {
+  return runAdminAction("saveProduct", async (admin) => {
+    const { id, product } = saveProductSchema.parse(input);
+    const saved = await catalogService.saveProduct(admin.id, { id, product });
+    refreshCatalog(saved.slug);
+    return saved;
+  });
+}
+
+export async function archiveProductAction(input: unknown) {
+  return runAdminAction("archiveProduct", async (admin) => {
+    const { id } = archiveSchema.parse(input);
+    const result = await catalogService.archiveProduct(admin.id, id);
+    refreshCatalog();
+    return result;
+  });
+}
+
+export async function saveCategoryAction(input: unknown) {
+  return runAdminAction("saveCategory", async (admin) => {
+    const data = categorySchema.parse(input);
+    const saved = await catalogService.saveCategory(admin.id, data);
+    refreshCatalog();
+    return saved;
+  });
+}
+
+export async function archiveCategoryAction(input: unknown) {
+  return runAdminAction("archiveCategory", async (admin) => {
+    const { id } = archiveSchema.parse(input);
+    const result = await catalogService.archiveCategory(admin.id, id);
+    refreshCatalog();
+    return result;
+  });
+}
+
+export async function saveCollectionAction(input: unknown) {
+  return runAdminAction("saveCollection", async (admin) => {
+    const data = collectionSchema.parse(input);
+    const saved = await catalogService.saveCollection(admin.id, data);
+    refreshCatalog();
+    return saved;
+  });
+}
+
+export async function archiveCollectionAction(input: unknown) {
+  return runAdminAction("archiveCollection", async (admin) => {
+    const { id } = archiveSchema.parse(input);
+    const result = await catalogService.archiveCollection(admin.id, id);
+    refreshCatalog();
+    return result;
+  });
+}
+
+/** Signed parameters for a direct browser → Cloudinary upload (the secret never leaves the server). */
+export async function getUploadSignatureAction(input: unknown) {
+  return runAdminAction("getUploadSignature", async () => {
+    const { folder, entityId } = uploadSignatureSchema.parse(input);
+    return signUpload(folder, entityId);
+  });
+}

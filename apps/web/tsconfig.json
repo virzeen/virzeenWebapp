@@ -1,0 +1,21 @@
+{
+  "extends": "@virzeen/config/tsconfig.react.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "allowJs": false,
+    "incremental": true,
+    "types": ["node"],
+    "plugins": [{ "name": "next" }],
+    "paths": { "@/*": ["./src/*"] }
+  },
+  "include": [
+    "next-env.d.ts",
+    "src",
+    "tests",
+    "*.ts",
+    "*.mts",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
+  ],
+  "exclude": ["node_modules", ".next"]
+}

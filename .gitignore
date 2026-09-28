@@ -1,0 +1,44 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# builds
+.next/
+.next-e2e/
+out/
+dist/
+build/
+storybook-static/
+*.tsbuildinfo
+.turbo/
+next-env.d.ts
+
+# generated
+packages/db/src/generated/
+
+# env — never commit secrets (docs/security/security-policy.md §1)
+.env
+.env.local
+.env.*.local
+.env.production
+!.env.example
+
+# tests
+coverage/
+playwright-report/
+test-results/
+blob-report/
+
+# AI agent local settings
+.claude/settings.local.json
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.log
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# Sentry Config File
+.env.sentry-build-plugin

@@ -1,0 +1,9 @@
+# Runs for humans AND AI agents on every commit.
+pnpm exec lint-staged
+node scripts/check-ui.mjs --changed --quiet
+pnpm turbo run typecheck --affected
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks protect --staged --redact
+else
+  echo "warning: gitleaks not installed locally; CI will still scan for secrets"
+fi

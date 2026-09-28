@@ -1,0 +1,30 @@
+{
+  "name": "@virzeen/core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "admin": "tsx --conditions=react-server scripts/admin.ts",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@virzeen/db": "workspace:*",
+    "@virzeen/emails": "workspace:*",
+    "@virzeen/validators": "workspace:*",
+    "server-only": "0.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.0",
+    "@virzeen/config": "workspace:*",
+    "dotenv": "18.0.4",
+    "eslint": "9.39.5",
+    "tsx": "4.23.15",
+    "typescript": "6.0.3",
+    "vitest": "5.0.2"
+  }
+}

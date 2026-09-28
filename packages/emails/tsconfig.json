@@ -1,0 +1,4 @@
+{
+  "extends": "@virzeen/config/tsconfig.react.json",
+  "include": ["src"]
+}

@@ -1,0 +1,6 @@
+/* Standalone stylesheet for Storybook and the Prettier Tailwind plugin. The web app builds its own
+   (apps/web/src/app/globals.css) from the same tokens. */
+@import "tailwindcss";
+@import "./tokens/tokens.css";
+
+@source "./";
