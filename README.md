@@ -51,9 +51,9 @@ Optional services switch on when their keys are in `.env.local`: Google sign-in,
 
 ## Deploying (Railway)
 
-Service `web`: build `pnpm install --frozen-lockfile && pnpm --filter @virzeen/web build`, pre-deploy `pnpm db:deploy`, start `pnpm start`, health check `/api/health`, region Singapore.
-Set every variable from `.env.example`; the app refuses to start on a real domain with local or sandbox settings (production uses `EMAIL_TRANSPORT=resend`, `RATE_LIMIT_STORE=upstash`, live payment keys, `ESEWA_BASE_URL=https://epay.esewa.com.np`, `ESEWA_STATUS_URL=https://esewa.com.np`, `KHALTI_BASE_URL=https://khalti.com/api/v2`).
-Service `cron`: every 10 minutes `curl -fsS -H "Authorization: Bearer $CRON_SECRET" https://<domain>/api/cron/reconcile-payments`.
+Service `web` is configured by [`railway.json`](railway.json): Railpack build (Node 24, pnpm from `packageManager`), `pnpm db:generate && pnpm --filter @virzeen/web build`, pre-deploy `pnpm db:deploy` (migrations), start `pnpm start` (Next reads Railway's `PORT`), health check `/api/health`, region Singapore. The build calls pnpm directly rather than turbo, because turbo's strict env mode would hide the variables `next build` validates.
+Set the variables from `.env.example` **before the first deploy** (the build validates them). The app refuses to start on a real domain with local or sandbox settings (production uses `EMAIL_TRANSPORT=resend`, `RATE_LIMIT_STORE=upstash`).
+Cash-on-delivery launch: leave the eSewa/Khalti keys empty and skip the `cron` service. When online payments are switched on, add service `cron`: every 10 minutes `curl -fsS -H "Authorization: Bearer $CRON_SECRET" https://<domain>/api/cron/reconcile-payments`, and the live URLs `ESEWA_BASE_URL=https://epay.esewa.com.np`, `ESEWA_STATUS_URL=https://esewa.com.np`, `KHALTI_BASE_URL=https://khalti.com/api/v2`.
 Put Cloudflare in front (SSL Full-strict). Details: `docs/architecture.md`, `docs/adr/0002-railway-hosting.md`.
 Service accounts and keys: [runbook](docs/runbooks/service-setup.md).
 First admin: `pnpm admin grant <owner email> --yes` against the production database ([runbook](docs/runbooks/admin-accounts.md)); the seed is local-only.

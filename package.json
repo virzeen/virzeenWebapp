@@ -3,7 +3,7 @@
   "private": true,
   "packageManager": "pnpm@11.15.1",
   "engines": {
-    "node": ">=24"
+    "node": "24.x"
   },
   "scripts": {
     "dev": "turbo run dev --filter=@virzeen/web",
