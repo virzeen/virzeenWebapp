@@ -1,17 +1,18 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Alert, Button, FormField, Input, Separator, Stack } from "@virzeen/ui";
+import { Alert, Button, FormField, Input, Stack } from "@virzeen/ui";
 import { requestOtpSchema, type RequestOtpInput } from "@virzeen/validators";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { authClient } from "@/client/lib/auth-client";
 import { authErrorMessage } from "./auth-errors";
+import { GoogleIcon } from "./google-icon";
 
 type LoginFormProps = { next: string; googleEnabled: boolean };
 
-/** Sign in with Google or a 6-digit email code (no passwords). */
+/** Sign in with a 6-digit email code or Google (no passwords). */
 export function LoginForm({ next, googleEnabled }: LoginFormProps) {
   const router = useRouter();
   const [formError, setFormError] = useState<string | null>(null);
@@ -40,40 +41,24 @@ export function LoginForm({ next, googleEnabled }: LoginFormProps) {
     }
   }
 
+  // Email first, Google second, no "or" divider (owner choice 2026-09-28).
   return (
     <Stack gap={6}>
       {formError && <Alert variant="danger">{formError}</Alert>}
-      {googleEnabled && (
-        <>
-          <Button
-            variant="secondary"
-            size="lg"
-            shape="pill"
-            loading={googlePending}
-            onClick={signInWithGoogle}
-          >
-            Continue with Google
-          </Button>
-          <div className="flex items-center gap-4 text-small text-ink-muted">
-            <Separator className="flex-1" />
-            or
-            <Separator className="flex-1" />
-          </div>
-        </>
-      )}
       <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
-        <FormField
-          label="Email"
-          error={errors.email?.message}
-          helper="We'll email you a 6-digit code."
-          required
-        >
+        <FormField label="Email" error={errors.email?.message} required>
           <Input type="email" inputMode="email" autoComplete="email" {...form.register("email")} />
         </FormField>
         <Button type="submit" size="lg" shape="pill" loading={isSubmitting}>
           Continue with email
         </Button>
       </form>
+      {googleEnabled && (
+        <Button variant="secondary" size="lg" shape="pill" loading={googlePending} onClick={signInWithGoogle}>
+          {!googlePending && <GoogleIcon className="size-5" />}
+          Continue with Google
+        </Button>
+      )}
     </Stack>
   );
 }

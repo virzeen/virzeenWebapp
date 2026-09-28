@@ -20,6 +20,7 @@ export {
 export { EmptyState, type EmptyStateProps } from "./primitives/empty-state";
 export { FormField, useFormFieldControl, type FormFieldProps } from "./primitives/form-field";
 export { Input, Textarea, type InputProps, type TextareaProps } from "./primitives/input";
+export { CodeInput, type CodeInputProps } from "./primitives/code-input";
 export {
   Container,
   Grid,

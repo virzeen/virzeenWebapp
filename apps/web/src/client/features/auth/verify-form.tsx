@@ -1,11 +1,11 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Alert, Button, FormField, Input, Stack, toast } from "@virzeen/ui";
+import { Alert, Button, CodeInput, FormField, Stack, toast } from "@virzeen/ui";
 import { verifyOtpSchema, type VerifyOtpInput } from "@virzeen/validators";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { authClient } from "@/client/lib/auth-client";
 import { authErrorMessage } from "./auth-errors";
 
@@ -33,7 +33,14 @@ export function VerifyForm({ email, next }: { email: string; next: string }) {
   async function onSubmit({ otp }: VerifyOtpInput) {
     setFormError(null);
     const { error } = await authClient.signIn.emailOtp({ email, otp });
-    if (error) return setFormError(authErrorMessage(error, email));
+    if (error) {
+      // A wrong or expired code belongs to the code field (docs/ui/patterns.md §4); anything else to the Alert.
+      const code = (error.code ?? "").toUpperCase();
+      if (["INVALID_OTP", "INVALID_CODE", "OTP_EXPIRED"].includes(code)) {
+        return form.setError("otp", { message: authErrorMessage(error, email) }, { shouldFocus: true });
+      }
+      return setFormError(authErrorMessage(error, email));
+    }
     router.replace(next);
     router.refresh();
   }
@@ -43,6 +50,8 @@ export function VerifyForm({ email, next }: { email: string; next: string }) {
     const { error } = await authClient.emailOtp.sendVerificationOtp({ email, type: "sign-in" });
     setResending(false);
     if (error) return setFormError(authErrorMessage(error, email));
+    form.resetField("otp"); // the old code no longer works
+    setFormError(null);
     setCooldown(RESEND_SECONDS);
     toast.success("We sent a new code");
   }
@@ -52,13 +61,10 @@ export function VerifyForm({ email, next }: { email: string; next: string }) {
       {formError && <Alert variant="danger">{formError}</Alert>}
       <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
         <FormField label="6-digit code" error={errors.otp?.message} required>
-          <Input
-            type="text"
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            maxLength={6}
-            className="text-center text-h3 tracking-widest"
-            {...form.register("otp")}
+          <Controller
+            control={form.control}
+            name="otp"
+            render={({ field }) => <CodeInput length={6} {...field} />}
           />
         </FormField>
         <Button type="submit" size="lg" shape="pill" loading={isSubmitting}>
