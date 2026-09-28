@@ -36,6 +36,7 @@ export const emailTailwindConfig = {
       },
       fontFamily: { text: fontStack, display: fontStack },
       fontSize: {
+        display: ["40px", { lineHeight: "1.05" }], // the smallest step of --text-display; email has no clamp()
         h1: ["28px", { lineHeight: "1.2" }],
         h2: ["22px", { lineHeight: "1.3" }],
         body: ["16px", { lineHeight: "1.6" }],
@@ -43,6 +44,8 @@ export const emailTailwindConfig = {
         caption: ["12px", { lineHeight: "1.4", letterSpacing: "0.08em" }],
       },
       borderRadius: { sm: "4px", md: "8px" },
+      // Email only: the reading column. In px because Outlook for Windows ignores rem.
+      maxWidth: { email: "448px" },
     },
   },
 } as const;

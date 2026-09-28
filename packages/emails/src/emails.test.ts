@@ -1,3 +1,4 @@
+import { fontStack } from "@virzeen/ui/tokens";
 import { describe, expect, it } from "vitest";
 import { formatPaisa, renderOrderConfirmationEmail, renderOtpEmail } from "./index";
 
@@ -15,7 +16,35 @@ describe("renderOtpEmail", () => {
     expect(email.subject).toBe("482913 is your Virzeen sign-in code");
     expect(email.html).toContain("482913");
     expect(email.text).toContain("482913");
+    // tests/e2e/helpers.ts reads the first 6-digit number in the text, so nothing may come before the code.
+    expect(/\b(\d{6})\b/.exec(email.text)?.[1]).toBe("482913");
     expect(email.html).not.toMatch(/class="/); // Tailwind classes are inlined for email clients
+  });
+
+  it("stays readable in Outlook for Windows: no rem units, font set on every element", async () => {
+    const email = await renderOtpEmail({ otp: "482913", siteUrl: "https://virzeen.com" });
+    expect(email.html).not.toMatch(/[0-9]rem/);
+    expect(email.html).toContain(`table, td, p, h1, h2, a { font-family: ${fontStack}; }`);
+    expect(email.html).toContain("max-width:448px");
+  });
+
+  it("uses the shared frame without inviting replies (sign-in codes have no Reply-To)", async () => {
+    const email = await renderOtpEmail({ otp: "482913", siteUrl: "https://virzeen.com" });
+    expect(email.html).toContain('src="https://virzeen.com/brand/email-wordmark.png"');
+    expect(email.html).toContain('alt="Virzeen"');
+    expect(email.html).toContain('href="https://virzeen.com/privacy"');
+    expect(email.html).toContain('href="https://virzeen.com/contact"');
+    expect(email.html).toContain("virzeen.com</a>");
+    expect(email.text).toContain("Your Virzeen sign-in code");
+    expect(email.text).toContain("This code expires in 10 minutes.");
+    expect(email.text).not.toContain("Reply to this email");
+    expect(email.html).not.toContain("Reply to this email");
+  });
+
+  it("shows the site's own host, with its port when there is one", async () => {
+    const email = await renderOtpEmail({ otp: "482913", siteUrl: "http://localhost:3000" });
+    expect(email.html).toContain("localhost:3000</a>");
+    expect(email.html).toContain('src="http://localhost:3000/brand/email-wordmark.png"');
   });
 });
 
@@ -53,5 +82,10 @@ describe("renderOrderConfirmationEmail", () => {
     expect(email.text).toContain("Linen Overshirt");
     expect(email.text).toContain("Rs 4,600");
     expect(email.html).toContain("28 Sep 2026");
+    // Order emails carry a Reply-To (sales@), so they invite replies; same frame as every email.
+    expect(email.text).toContain("Questions? Reply to this email");
+    expect(email.html).toContain('href="https://virzeen.com/privacy"');
+    expect(email.html).toContain("brand/email-wordmark.png");
+    expect(email.html).not.toMatch(/[0-9]rem/);
   });
 });

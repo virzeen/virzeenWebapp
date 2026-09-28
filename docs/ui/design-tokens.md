@@ -15,7 +15,7 @@ Values below are the phase-1 defaults, set from the brand artwork (monochrome lo
 | `--color-line-strong`     | `border-line-strong`           | `#8A8A8A` | Input, checkbox and radio outlines (3:1 against canvas, WCAG 1.4.11) |
 | `--color-accent` ◆        | `text-accent`, `bg-accent`     | `#231F20` | Brand highlights, links on hover, badges                             |
 | `--color-accent-contrast` | `text-accent-contrast`         | `#FFFFFF` | Text on accent backgrounds                                           |
-| `--color-success`         | `text-success`                 | `#2E7D4F` | In stock, payment success                                            |
+| `--color-success`         | `text-success`                 | `#2E7D4F` | In stock, payment success, accepted code boxes (`border-success`)    |
 | `--color-warning`         | `text-warning`                 | `#8A5A00` | Low stock, pending                                                   |
 | `--color-danger`          | `text-danger`, `border-danger` | `#B3261E` | Errors, out of stock, destructive actions                            |
 | `--color-focus`           | `ring-focus`                   | `#2F6FEB` | Focus rings only                                                     |
@@ -68,6 +68,12 @@ Borders are 1px `border-line`. Prefer borders and whitespace over shadows.
 | `--ease-standard` | `cubic-bezier(0.2, 0, 0, 1)` | Everything                        |
 
 Animate only `opacity` and `transform`. No bouncing, no infinite animations except loading skeleton shimmer. Wrap all motion in `motion-safe:` or check `useReducedMotion()`.
+
+Named animations (`animate-*`, defined with their keyframes in `tokens.css`): `spin`, `shimmer`, `fade-in`/`fade-out`, `slide-in-*`/`slide-out-*` (right, bottom) and `reveal`, used by the primitives, plus one feedback animation:
+
+| Token             | Value                                                        | Use                                                                                              |
+| ----------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| `--animate-shake` | 400ms, `ease-standard`, played once; a damped 6px side-shake | A wrong one-time code (`CodeInput`), always as `motion-safe:animate-shake`. Nothing else shakes. |
 
 ## 6. Breakpoints and layout
 
