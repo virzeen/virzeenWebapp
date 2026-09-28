@@ -69,7 +69,8 @@ export async function rateLimit(name: LimitName, key: string): Promise<void> {
     env.RATE_LIMIT_STORE === "upstash"
       ? (await upstashLimiter(name).limit(key)).success
       : memoryLimit(name, key);
-  if (!allowed) throw new AppError("RATE_LIMITED", "Too many attempts. Please wait a minute and try again.");
+  if (!allowed)
+    throw new AppError("RATE_LIMITED", "Too many attempts. Please wait a few minutes and try again.");
 }
 
 /** Client IP as a rate-limit key (see client-ip.ts). Never logged. */

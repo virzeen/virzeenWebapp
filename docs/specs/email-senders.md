@@ -6,7 +6,7 @@
 
 ## Goal
 
-Sign-in codes arrive from their own address, `verify@virzeen.com`, so customers learn that codes only ever come from there (easier to spot fake "Virzeen" emails, search for and allow-list). Order emails and owner alerts keep coming from `no-reply@virzeen.com`. Every site email ends with "Questions? Reply to this email", so replies go to `sales@virzeen.com`, which reaches the partners' inbox.
+Sign-in codes arrive from their own address, `verify@virzeen.com`, so customers learn that codes only ever come from there (easier to spot fake "Virzeen" emails, search for and allow-list). Order emails and owner alerts keep coming from `no-reply@virzeen.com`. Order emails end with "Questions? Reply to this email", so replies go to `sales@virzeen.com`, which reaches the partners' inbox. The sign-in code email has no reply line; its footer points to "Get help" (`/contact`).
 
 ## User flow
 
@@ -29,11 +29,11 @@ Sign-in codes arrive from their own address, `verify@virzeen.com`, so customers 
 
 - Checking that the sender's domain is verified in Resend; a wrong value still only fails at send time, as with `EMAIL_FROM`.
 - Other per-type Reply-To rules beyond "none on sign-in codes".
-- The code email's footer still says "Reply to this email" (shared layout); changing it is an owner copy decision (STATUS.md).
+- ~~The code email's footer still says "Reply to this email"~~ Resolved 2026-09-29: the code email no longer invites replies (`invitesReply={false}`, backend-policies.md §9).
 
 ## UI
 
-- None. Email templates are unchanged.
+- The emails' shared frame (wordmark, site link, footer) is described in backend-policies.md §9.
 
 ## Data & API
 

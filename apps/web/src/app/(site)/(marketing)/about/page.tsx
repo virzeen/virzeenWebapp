@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/about" },
 };
 
-// ◆ Placeholder brand story — replace with the owner's words before launch (docs/STATUS.md).
+// Neutral brand story, kept at the owner's request on 2026-09-28; they may replace it with their own words.
 export default function AboutPage() {
   return (
     <ContentPage
@@ -22,8 +22,9 @@ export default function AboutPage() {
       </p>
       <ContentHeading>Shop with confidence</ContentHeading>
       <p>
-        Prices include VAT and shipping across Nepal is free. Pay in cash when your order arrives, and follow
-        every order from your account.
+        Prices include VAT and shipping across Nepal is free: 1–3 days inside Kathmandu Valley, 3–7 days
+        elsewhere. Pay in cash when your order arrives, follow every order from your account, and send
+        anything back within 7 days, free.
       </p>
       <div>
         <ButtonLink href="/shop" shape="pill">

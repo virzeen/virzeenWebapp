@@ -29,10 +29,12 @@ describe("state machine tables (payment-policy.md §3)", () => {
     expect(canTransitionOrder("PROCESSING", "CANCELLED")).toBe(true);
     expect(canTransitionOrder("PROCESSING", "SHIPPED")).toBe(true);
     expect(canTransitionOrder("SHIPPED", "DELIVERED")).toBe(true);
+    // COD refused at the door only; orderService guards who may use it.
+    expect(canTransitionOrder("SHIPPED", "CANCELLED")).toBe(true);
     expect(canTransitionOrder("DELIVERED", "RETURNED")).toBe(true);
 
     expect(canTransitionOrder("PENDING", "SHIPPED")).toBe(false);
-    expect(canTransitionOrder("SHIPPED", "CANCELLED")).toBe(false);
+    expect(canTransitionOrder("DELIVERED", "CANCELLED")).toBe(false);
     expect(canTransitionOrder("CANCELLED", "CONFIRMED")).toBe(false);
   });
 

@@ -42,16 +42,17 @@ function OrderSummary({ order }: { order: OrderEmailData }) {
               {item.variantLabel} · Qty {item.quantity}
             </Text>
           </Column>
-          <Column className="py-3 text-right align-top">
+          {/* Money never wraps ("Rs" / "17,000") and keeps a gap from a long product name. */}
+          <Column className="py-3 pl-4 text-right align-top whitespace-nowrap">
             <Text className="m-0 text-body">{formatPaisa(item.lineTotalPaisa)}</Text>
           </Column>
         </Row>
       ))}
-      <Row className="pt-3">
+      <Row className="mt-3">
         <Column>
           <Text className="m-0 text-body text-ink-muted">Subtotal</Text>
         </Column>
-        <Column className="text-right">
+        <Column className="text-right whitespace-nowrap">
           <Text className="m-0 text-body">{formatPaisa(order.subtotalPaisa)}</Text>
         </Column>
       </Row>
@@ -59,7 +60,7 @@ function OrderSummary({ order }: { order: OrderEmailData }) {
         <Column>
           <Text className="m-0 text-body text-ink-muted">Shipping</Text>
         </Column>
-        <Column className="text-right">
+        <Column className="text-right whitespace-nowrap">
           <Text className="m-0 text-body">
             {order.shippingPaisa === 0 ? "Free" : formatPaisa(order.shippingPaisa)}
           </Text>
@@ -69,7 +70,7 @@ function OrderSummary({ order }: { order: OrderEmailData }) {
         <Column>
           <Text className="m-0 text-h2">Total</Text>
         </Column>
-        <Column className="text-right">
+        <Column className="text-right whitespace-nowrap">
           <Text className="m-0 text-h2">{formatPaisa(order.totalPaisa)}</Text>
         </Column>
       </Row>
@@ -100,12 +101,17 @@ function AddressBlock({ address }: { address: OrderEmailData["address"] }) {
 export function OrderConfirmationEmail({ order }: { order: OrderEmailData }) {
   const url = `${order.siteUrl}/account/orders/${order.orderNumber}`;
   return (
-    <EmailLayout preview={`Your order ${order.orderNumber} is confirmed`} siteUrl={order.siteUrl}>
+    <EmailLayout
+      preview={`Your order ${order.orderNumber} is confirmed`}
+      siteUrl={order.siteUrl}
+      invitesReply
+    >
       <Heading as="h1" className="m-0 text-h1 font-normal">
-        Thank you — your order {order.orderNumber} is confirmed.
+        Thank you — your order <span className="whitespace-nowrap">{order.orderNumber}</span> is confirmed.
       </Heading>
       <Text className="text-body text-ink-muted">
-        Hi {order.customerName}, we&apos;re getting your order ready. Placed on {formatDate(order.placedAt)}.
+        Hi {order.customerName}, we&apos;re getting your order ready. Placed on{" "}
+        <span className="whitespace-nowrap">{formatDate(order.placedAt)}</span>.
       </Text>
       <OrderSummary order={order} />
       <AddressBlock address={order.address} />
@@ -126,12 +132,17 @@ export type OrderShippedEmailData = {
 
 export function OrderShippedEmail({ order }: { order: OrderShippedEmailData }) {
   return (
-    <EmailLayout preview={`Your order ${order.orderNumber} is on its way`} siteUrl={order.siteUrl}>
+    <EmailLayout
+      preview={`Your order ${order.orderNumber} is on its way`}
+      siteUrl={order.siteUrl}
+      invitesReply
+    >
       <Heading as="h1" className="m-0 text-h1 font-normal">
         Your order is on its way.
       </Heading>
       <Text className="text-body text-ink-muted">
-        Hi {order.customerName}, order {order.orderNumber} has been handed to {order.courierName}.
+        Hi {order.customerName}, order <span className="whitespace-nowrap">{order.orderNumber}</span> has been
+        handed to {order.courierName}.
       </Text>
       <Section className="mt-6 rounded-md bg-surface px-6 py-4">
         <Text className="m-0 text-caption text-ink-muted uppercase">Tracking number</Text>
@@ -157,9 +168,13 @@ export type OrderCancelledEmailData = {
 
 export function OrderCancelledEmail({ order }: { order: OrderCancelledEmailData }) {
   return (
-    <EmailLayout preview={`Your order ${order.orderNumber} was cancelled`} siteUrl={order.siteUrl}>
+    <EmailLayout
+      preview={`Your order ${order.orderNumber} was cancelled`}
+      siteUrl={order.siteUrl}
+      invitesReply
+    >
       <Heading as="h1" className="m-0 text-h1 font-normal">
-        Your order {order.orderNumber} was cancelled.
+        Your order <span className="whitespace-nowrap">{order.orderNumber}</span> was cancelled.
       </Heading>
       <Text className="text-body text-ink-muted">
         Hi {order.customerName}, {order.reason}
@@ -184,7 +199,8 @@ export type AdminAlertEmailData = { siteUrl: string; title: string; lines: strin
 
 export function AdminAlertEmail({ alert }: { alert: AdminAlertEmailData }) {
   return (
-    <EmailLayout preview={alert.title} siteUrl={alert.siteUrl}>
+    // Goes to the owners themselves, so there is nothing to reply to.
+    <EmailLayout preview={alert.title} siteUrl={alert.siteUrl} invitesReply={false}>
       <Heading as="h1" className="m-0 text-h2 font-normal">
         {alert.title}
       </Heading>

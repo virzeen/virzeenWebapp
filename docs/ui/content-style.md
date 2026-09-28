@@ -36,7 +36,7 @@ Calm, warm, confident. Short sentences. Sentence case. No exclamation marks in e
 | `PRICE_CHANGED`            | A price changed since you added this item. Please review your bag.                               |
 | `PAYMENT_FAILED`           | Payment didn't go through. Your bag is saved — try again or choose another method.               |
 | `PAYMENT_PENDING`          | We're confirming your payment. This usually takes a minute — you'll get an email when it's done. |
-| `RATE_LIMITED`             | Too many attempts. Please wait a minute and try again.                                           |
+| `RATE_LIMITED`             | Too many attempts. Please wait a few minutes and try again.                                      |
 | `INTERNAL` / unknown       | Something went wrong on our side. Please try again.                                              |
 | Order confirmed            | Thank you — your order {orderNumber} is confirmed.                                               |
 
@@ -47,7 +47,38 @@ Calm, warm, confident. Short sentences. Sentence case. No exclamation marks in e
 | Required | Enter your {field}                                    |
 | Phone    | Enter a 10-digit mobile number starting with 97 or 98 |
 | Email    | Enter a valid email address                           |
-| OTP      | Enter the 6-digit code we sent to {email}             |
+| OTP      | Enter the 6-digit code we sent to your email          |
+
+## Sign-in code (`/verify`)
+
+The code is checked as soon as the sixth digit is in, so the page says so before the field (specs/sign-in-code.md).
+
+| Situation                                  | Text                                                                                                       |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| Intro under "Check your email"             | We sent a 6-digit code to {email}. Enter it and we'll sign you in straight away. It expires in 10 minutes. |
+| Checking (status line under the boxes)     | Checking your code…                                                                                        |
+| Accepted (status line)                     | Code accepted. Signing you in…                                                                             |
+| Wrong code (`INVALID_OTP`)                 | That code isn't right. Check it and try again.                                                             |
+| Expired code (`OTP_EXPIRED`)               | That code has expired. Send a new one.                                                                     |
+| Too many wrong codes (`TOO_MANY_ATTEMPTS`) | Too many wrong codes. Send a new code to try again.                                                        |
+| Resend link                                | Send a new code · while it waits: Send a new code in {n}s                                                  |
+| New code sent (toast)                      | We sent a new code                                                                                         |
+
+Too many requests and anything unexpected use the standard `RATE_LIMITED` and `INTERNAL` messages, in an `Alert` with "Try again".
+
+## Emails
+
+Frame and rules: backend-policies.md §9. The sign-in code email's heading is the owners' wording (2026-09-29), so it keeps its capitals.
+
+| Where                      | Text                                                                                       |
+| -------------------------- | ------------------------------------------------------------------------------------------ |
+| Code email subject         | {code} is your Virzeen sign-in code                                                        |
+| Code email heading         | Your VIRZEEN Member Profile Code                                                           |
+| Code email intro           | Here's the one-time code you asked for:                                                    |
+| Code email, after the code | This code expires in 10 minutes.                                                           |
+| Code email, small print    | If you didn't ask for this code, you can ignore this email. Nobody can sign in without it. |
+| Order emails, last line    | Questions? Reply to this email and we'll help.                                             |
+| Footer (every email)       | © {year} Virzeen. All rights reserved. · Privacy policy · Get help                         |
 
 ## Formatting
 

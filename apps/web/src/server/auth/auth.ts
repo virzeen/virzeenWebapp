@@ -8,6 +8,7 @@ import { nextCookies } from "better-auth/next-js";
 import { emailOTP, twoFactor } from "better-auth/plugins";
 import { env, features, siteUrl } from "@/server/env";
 import { CLIENT_IP_HEADER } from "@/server/security/client-ip";
+import { markOtpDeliveryFailed } from "./otp-delivery";
 
 // Better Auth (docs/security/security-policy.md §2): Google + email OTP, no customer passwords.
 // Admin TOTP is enrolled with the two-factor plugin and enforced per session by requireAdmin()
@@ -71,7 +72,12 @@ export const auth = betterAuth({
       async sendVerificationOTP({ email, otp }) {
         if (printCodesInTerminal)
           console.warn(`\n  Sign-in code for ${email}: ${otp} (expires in 10 minutes)\n`);
-        await notifications.sendOtp(email, otp);
+        try {
+          await notifications.sendOtp(email, otp);
+        } catch (error) {
+          markOtpDeliveryFailed(); // Better Auth only logs this; the auth route reports it (otp-delivery.ts)
+          throw error;
+        }
       },
     }),
     twoFactor({ issuer: "Virzeen", allowPasswordless: true, skipVerificationOnEnable: false }),

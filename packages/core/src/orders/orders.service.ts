@@ -208,6 +208,8 @@ export const orderService = {
             actor,
             reason: input.reason,
             restoreToCart: false,
+            // A shipped order can only be cancelled as a COD refusal (markRefusedAtDoor).
+            expectFrom: ["PENDING", "CONFIRMED", "PROCESSING"],
           });
           if (result.changed && current.paymentStatus === "COD_DUE") {
             await transitionPayment(tx, {
@@ -249,6 +251,55 @@ export const orderService = {
         paymentData: { verifiedAt: new Date() },
       });
       await recordAudit(tx, { actorId, action: "order.cod_collected", entity: "Order", entityId: orderId });
+    });
+    return { orderNumber };
+  },
+
+  /**
+   * A COD parcel the customer refused at the door (payment-policy.md §7, owner decision 2026-09-28): the order
+   * is cancelled, the cash payment fails and the stock goes back, in one transaction. No customer email.
+   */
+  async markRefusedAtDoor(actorId: string, orderNumber: string, note: string) {
+    const orderId = await findOrderId(orderNumber);
+    const actor = `admin:${actorId}`;
+    await db.$transaction(async (tx) => {
+      const current = await tx.order.findUniqueOrThrow({
+        where: { id: orderId },
+        select: { status: true, paymentMethod: true, paymentStatus: true },
+      });
+      if (current.status === "CANCELLED") return; // already recorded (double click)
+      if (
+        current.status !== "SHIPPED" ||
+        current.paymentMethod !== "COD" ||
+        current.paymentStatus !== "COD_DUE"
+      ) {
+        throw new AppError(
+          "INVALID_STATE_TRANSITION",
+          "Only a shipped cash-on-delivery order whose cash hasn't been collected can be marked as refused.",
+          { meta: { from: current.status, paymentStatus: current.paymentStatus } },
+        );
+      }
+      await cancelOrderAndRestock(tx, {
+        orderId,
+        actor,
+        reason: `Refused at delivery: ${note}`,
+        restoreToCart: false,
+        expectFrom: ["SHIPPED"],
+      });
+      await transitionPayment(tx, {
+        orderId,
+        ...(await latestPaymentIdIn(tx, orderId)),
+        to: "FAILED",
+        actor,
+        reason: "Refused at delivery",
+      });
+      await recordAudit(tx, {
+        actorId,
+        action: "order.refused_at_door",
+        entity: "Order",
+        entityId: orderId,
+        diff: { from: current.status, to: "CANCELLED" },
+      });
     });
     return { orderNumber };
   },
