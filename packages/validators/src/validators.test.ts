@@ -119,11 +119,18 @@ describe("productSchema", () => {
     collectionIds: [],
     isPublished: true,
     images: [{ url: "virzeen/products/abc/front", alt: "Front view" }],
+    shippingPaisa: 15_000,
     variants: [variant],
   };
 
   it("accepts a valid product", () => {
     expect(productSchema.safeParse(product).success).toBe(true);
+  });
+
+  it("requires a shipping price (0 allowed, never negative or blank)", () => {
+    expect(productSchema.safeParse({ ...product, shippingPaisa: 0 }).success).toBe(true);
+    expect(productSchema.safeParse({ ...product, shippingPaisa: -100 }).success).toBe(false);
+    expect(productSchema.safeParse({ ...product, shippingPaisa: Number.NaN }).success).toBe(false);
   });
 
   it("rejects duplicate SKUs", () => {

@@ -3,7 +3,7 @@
 import { Alert, Button, FormField, RadioGroup, RadioGroupItem, Separator, Stack, toast } from "@virzeen/ui";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { Price } from "@/client/components/shared/price";
+import { Price, ShippingPrice } from "@/client/components/shared/price";
 import { AddressForm } from "@/client/features/account/address-form";
 import type { AddressView } from "@/client/features/account/address-book";
 import { useCart } from "@/client/features/cart/cart-provider";
@@ -19,7 +19,7 @@ type Totals = {
   vatPaisa: number;
   deliveryEstimate: string;
   isCodAvailable: boolean;
-  codLimitPaisa: number;
+  codLimitPaisa: number | null;
 };
 
 type Method = "COD" | "ESEWA" | "KHALTI";
@@ -181,7 +181,7 @@ export function CheckoutForm({
               ))}
             </RadioGroup>
           </FormField>
-          {enabledMethods.COD && !totals.isCodAvailable && (
+          {enabledMethods.COD && !totals.isCodAvailable && totals.codLimitPaisa !== null && (
             <p className="text-small text-ink-muted">
               Cash on delivery is available for orders up to <Price paisa={totals.codLimitPaisa} />.
             </p>
@@ -202,7 +202,11 @@ export function CheckoutForm({
           </div>
           <div className="flex justify-between text-body">
             <span>Shipping</span>
-            {addressId ? <Price paisa={totals.shippingPaisa} /> : <span className="text-ink-muted">—</span>}
+            {totals.shippingPaisa === 0 || addressId ? (
+              <ShippingPrice paisa={totals.shippingPaisa} />
+            ) : (
+              <span className="text-ink-muted">—</span>
+            )}
           </div>
           <Separator />
           <div className="flex justify-between text-h3">

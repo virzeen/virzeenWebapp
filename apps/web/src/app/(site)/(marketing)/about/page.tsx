@@ -22,8 +22,8 @@ export default function AboutPage() {
       </p>
       <ContentHeading>Shop with confidence</ContentHeading>
       <p>
-        Prices include VAT and shipping is shown before you pay. Pay by cash on delivery, eSewa or Khalti, and
-        follow every order from your account.
+        Prices include VAT and shipping across Nepal is free. Pay in cash when your order arrives, and follow
+        every order from your account.
       </p>
       <div>
         <ButtonLink href="/shop" shape="pill">

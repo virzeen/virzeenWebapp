@@ -66,6 +66,12 @@ export const productSchema = z
     collectionIds: z.array(idSchema).max(20),
     isPublished: z.boolean(),
     images: z.array(productImageSchema).max(12),
+    /** Delivery charge added to every variant's price; customers see one price and free shipping. */
+    shippingPaisa: z
+      .int({ error: "Enter a shipping price (0 for none)" })
+      .min(0, { error: "Shipping price can't be negative" })
+      .max(10_000_000, { error: "Shipping price is too high" }),
+    /** Variant prices here are product prices before shipping. */
     variants: z.array(variantSchema).min(1, { error: "Add at least one variant" }).max(60),
   })
   .refine((p) => new Set(p.variants.map((v) => v.sku)).size === p.variants.length, {

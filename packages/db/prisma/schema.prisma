@@ -209,6 +209,9 @@ model Product {
   category          Category           @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   /// Lowest active variant price, kept in sync by catalogService.saveProduct (used for sorting and cards).
   fromPricePaisa    Int                @default(0)
+  /// Delivery charge for this product, already included in every variant's pricePaisa (owner decision
+  /// 2026-09-28: customers see one price and free shipping). Kept so admin can edit the two parts separately.
+  shippingPaisa     Int                @default(0)
   isPublished       Boolean            @default(false)
   publishedAt       DateTime?
   archivedAt        DateTime?
@@ -245,6 +248,7 @@ model ProductVariant {
   sku        String      @unique
   size       String?
   color      String?
+  /// What the customer pays for one unit: product price + the product's shippingPaisa, VAT included.
   pricePaisa Int
   stock      Int         @default(0)
   isActive   Boolean     @default(true)

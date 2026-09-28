@@ -17,10 +17,7 @@ export default function ReturnsPage() {
         number and we&apos;ll arrange the next steps with you.
       </p>
       <ContentHeading>Refunds</ContentHeading>
-      <p>
-        Refunds for eSewa and Khalti payments go back to the wallet you paid with. Cash on delivery refunds
-        are arranged with you directly.
-      </p>
+      <p>Refunds for cash on delivery orders are arranged with you directly.</p>
     </ContentPage>
   );
 }

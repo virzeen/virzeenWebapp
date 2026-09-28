@@ -18,8 +18,9 @@ import { productSchema, type ProductInput } from "@virzeen/validators";
 import { ArrowDown, ArrowUp, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Controller, useFieldArray, useForm } from "react-hook-form";
+import { Controller, useFieldArray, useForm, useWatch, type Control } from "react-hook-form";
 import { CloudImage } from "@/client/components/shared/cloud-image";
+import { Price } from "@/client/components/shared/price";
 import { messageFor } from "@/client/lib/error-messages";
 import { saveProductAction } from "@/server/actions/admin/catalog";
 import { ImageUploader } from "./image-uploader";
@@ -56,8 +57,24 @@ const EMPTY: ProductInput = {
   collectionIds: [],
   isPublished: false,
   images: [],
+  shippingPaisa: Number.NaN,
   variants: [{ sku: "", size: "", color: "", pricePaisa: Number.NaN, stock: 0, isActive: true }],
 };
+
+/** What the shop shows for one variant: product price + shipping (customers see free shipping). */
+function CustomerPrice({ control, index }: { control: Control<ProductInput>; index: number }) {
+  const [productPrice, shipping] = useWatch({
+    control,
+    name: [`variants.${index}.pricePaisa`, "shippingPaisa"],
+  });
+  if (!Number.isFinite(productPrice)) return null;
+  return (
+    <p className="text-small text-ink-muted sm:col-span-6">
+      Customers pay <Price paisa={productPrice + (Number.isFinite(shipping) ? shipping : 0)} />, shown with
+      free shipping.
+    </p>
+  );
+}
 
 /** Create/edit a product with its variants and images (patterns.md §10: forms in pages, not dialogs). */
 export function ProductForm({
@@ -247,6 +264,26 @@ export function ProductForm({
         <p className="text-small text-ink-muted">
           One row per colour and size. SKU format: VZ-PRODUCT-COLOUR-SIZE. Prices include VAT.
         </p>
+        <FormField
+          label="Shipping price (Rs)"
+          helper="Added to every variant's price. Customers see one price and free shipping. Enter 0 for none."
+          error={errors.shippingPaisa?.message}
+          required
+          className="sm:max-w-xs"
+        >
+          <Controller
+            control={form.control}
+            name="shippingPaisa"
+            render={({ field }) => (
+              <Input
+                inputMode="decimal"
+                defaultValue={toRupees(field.value)}
+                onChange={(e) => field.onChange(toPaisa(e.target.value))}
+                onBlur={field.onBlur}
+              />
+            )}
+          />
+        </FormField>
         {errors.variants?.message && <p className="text-small text-danger">{errors.variants.message}</p>}
         <ul className="flex flex-col gap-4">
           {variants.fields.map((variant, index) => {
@@ -265,7 +302,7 @@ export function ProductForm({
                 <FormField label="Size" error={rowErrors?.size?.message}>
                   <Input {...form.register(`variants.${index}.size`)} />
                 </FormField>
-                <FormField label="Price (Rs)" error={rowErrors?.pricePaisa?.message} required>
+                <FormField label="Product price (Rs)" error={rowErrors?.pricePaisa?.message} required>
                   <Controller
                     control={form.control}
                     name={`variants.${index}.pricePaisa`}
@@ -287,6 +324,7 @@ export function ProductForm({
                     {...form.register(`variants.${index}.stock`, { valueAsNumber: true })}
                   />
                 </FormField>
+                <CustomerPrice control={form.control} index={index} />
                 <div className="flex items-center justify-between gap-4 sm:col-span-6">
                   <Controller
                     control={form.control}

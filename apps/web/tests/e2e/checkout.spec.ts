@@ -21,7 +21,9 @@ test("checkout with cash on delivery confirms the order and shows it in the acco
   await completeEmailSignIn(page, email);
   await checkoutWith(page, /Cash on delivery/);
 
-  await expect(page.getByTestId("checkout-total")).toHaveText("Rs 2,550"); // Rs 2,450 + Rs 100 valley shipping
+  // Shipping is included in product prices, so checkout adds nothing and says so.
+  await expect(page.getByTestId("checkout-total")).toHaveText("Rs 2,450");
+  await expect(page.getByRole("complementary", { name: "Order summary" })).toContainText("ShippingFree");
   await page.getByRole("button", { name: "Place order" }).click();
 
   await expect(page).toHaveURL(/\/checkout\/success\?order=VZ-\d{6}-\d{4}/);

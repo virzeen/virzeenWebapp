@@ -43,9 +43,9 @@ export function CartPageContent({ notice }: { notice?: string | null }) {
               <Price paisa={cart.subtotalPaisa} />
             </span>
           </div>
-          <div className="flex justify-between text-body text-ink-muted">
+          <div className="flex justify-between text-body">
             <span>Shipping</span>
-            <span>Calculated at checkout</span>
+            <span>Free</span>
           </div>
           <Separator />
           <p className="text-small text-ink-muted">Prices include 13% VAT.</p>

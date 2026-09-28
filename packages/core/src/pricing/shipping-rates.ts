@@ -1,10 +1,11 @@
 import { KATHMANDU_VALLEY_DISTRICTS } from "@virzeen/validators";
 import type { ShippingZone } from "@virzeen/db";
 
-// ◆ OWNER DECISION PENDING (docs/STATUS.md): placeholder flat rates per zone (payment-policy.md §2).
+// Owner decision 2026-09-28: each product's shipping is included in its price (Product.shippingPaisa), so
+// checkout charges nothing extra and shows "Free". Zones still decide the delivery-time promise.
 export const SHIPPING_RATES_PAISA: Record<ShippingZone, number> = {
-  KATHMANDU_VALLEY: 10_000, // Rs 100
-  OUTSIDE_VALLEY: 20_000, // Rs 200
+  KATHMANDU_VALLEY: 0,
+  OUTSIDE_VALLEY: 0,
 };
 
 // ◆ OWNER DECISION PENDING: delivery-time promises shown to customers.

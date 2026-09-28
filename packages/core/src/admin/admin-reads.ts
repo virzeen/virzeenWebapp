@@ -46,6 +46,7 @@ export const adminReads = {
         seoDescription: true,
         categoryId: true,
         isPublished: true,
+        shippingPaisa: true,
         collections: { select: { id: true } },
         images: { select: { url: true, alt: true }, orderBy: { sortOrder: "asc" } },
         variants: {
@@ -64,7 +65,11 @@ export const adminReads = {
       },
     });
     if (!product) throw new AppError("NOT_FOUND", "Product not found.");
-    return product;
+    // The form edits the product price before shipping (catalogService.saveProduct adds it back).
+    return {
+      ...product,
+      variants: product.variants.map((v) => ({ ...v, pricePaisa: v.pricePaisa - product.shippingPaisa })),
+    };
   },
 
   async listCategories() {

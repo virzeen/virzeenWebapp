@@ -65,11 +65,20 @@ describe("checkoutService.placeOrder — COD", () => {
     expect(order.shippingPaisa).toBe(SHIPPING_RATES_PAISA.OUTSIDE_VALLEY);
   });
 
-  it("refuses COD above the limit without creating an order", async () => {
-    const fixture = await checkoutFixture({ pricePaisa: COD_MAX_TOTAL_PAISA, stock: 5 });
+  it.runIf(COD_MAX_TOTAL_PAISA !== null)(
+    "refuses COD above the limit without creating an order",
+    async () => {
+      const fixture = await checkoutFixture({ pricePaisa: COD_MAX_TOTAL_PAISA ?? 0, stock: 5 });
 
-    await expect(place(fixture, "COD")).rejects.toMatchObject({ code: "VALIDATION_FAILED" });
-    expect(await db.order.count()).toBe(0);
+      await expect(place(fixture, "COD")).rejects.toMatchObject({ code: "VALIDATION_FAILED" });
+      expect(await db.order.count()).toBe(0);
+    },
+  );
+
+  it.runIf(COD_MAX_TOTAL_PAISA === null)("accepts COD for a large order when there is no limit", async () => {
+    const fixture = await checkoutFixture({ pricePaisa: 5_000_000, stock: 5, quantity: 2 }); // Rs 1,00,000
+
+    await expect(place(fixture, "COD")).resolves.toMatchObject({ orderNumber: expect.any(String) });
   });
 
   it("creates only one order when submitted twice (double click)", async () => {
@@ -141,7 +150,11 @@ describe("checkoutService.placeOrder — online payments", () => {
     expect(result.next).toMatchObject({
       type: "form",
       action: "https://rc-epay.esewa.com.np/api/epay/main/v2/form",
-      fields: { transaction_uuid: "VZ-260928-0001-1", total_amount: "4600.00", product_code: "EPAYTEST" },
+      fields: {
+        transaction_uuid: "VZ-260928-0001-1",
+        total_amount: ((450_000 + SHIPPING_RATES_PAISA.KATHMANDU_VALLEY) / 100).toFixed(2),
+        product_code: "EPAYTEST",
+      },
     });
     const order = await db.order.findUniqueOrThrow({
       where: { orderNumber: result.orderNumber },
@@ -163,7 +176,11 @@ describe("checkoutService.placeOrder — online payments", () => {
 
     expect(result.next).toEqual({ type: "redirect", url: "https://test-pay.khalti.com/?pidx=PIDX123" });
     const payment = await db.payment.findUniqueOrThrow({ where: { providerRef: "PIDX123" } });
-    expect(payment).toMatchObject({ provider: "KHALTI", status: "PENDING", amountPaisa: 460_000 });
+    expect(payment).toMatchObject({
+      provider: "KHALTI",
+      status: "PENDING",
+      amountPaisa: 450_000 + SHIPPING_RATES_PAISA.KATHMANDU_VALLEY,
+    });
   });
 
   it("Khalti down: cancels the order, restores stock and puts the items back in the bag", async () => {

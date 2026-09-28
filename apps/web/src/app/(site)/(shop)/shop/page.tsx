@@ -7,7 +7,7 @@ import { flattenSearchParams, type SearchParams } from "@/server/queries/params"
 export const metadata: Metadata = {
   title: "Shop",
   description:
-    "Shop the Virzeen collection. Prices include VAT. Cash on delivery, eSewa and Khalti across Nepal.",
+    "Shop the Virzeen collection. Prices include VAT. Free shipping and cash on delivery across Nepal.",
   alternates: { canonical: "/shop" },
 };
 

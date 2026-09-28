@@ -14,7 +14,7 @@ This is the most important doc in the repo. Mistakes here lose real money or wro
 ## 2. Prices, VAT, shipping
 
 - Product prices are **VAT-inclusive** (13%) as displayed. The invoice shows the VAT portion: `vat = round(total × 13 / 113)`.
-- Shipping is calculated server-side from the address (phase 1: flat rates by zone — Kathmandu Valley / outside valley; values in `pricing/shipping-rates.ts`).
+- Shipping (owner decision 2026-09-28): each product has a shipping price (`Product.shippingPaisa`, set in admin) that is **included in every variant's `pricePaisa`**. Customers see one price and "Free shipping"; checkout adds nothing (`pricing/shipping-rates.ts` zone rates are 0). Zones still set the delivery-time promise.
 - If a price or stock changed between cart and checkout, checkout fails with `PRICE_CHANGED`/`OUT_OF_STOCK` and the cart is refreshed. Never silently charge a different amount.
 
 ## 3. Order and payment state machine
@@ -72,7 +72,8 @@ Flow:
 
 ## 7. Cash on Delivery
 
-- Available within Nepal only, up to a max order total set in `pricing/cod-rules.ts` (owner decides the value).
+- Available within Nepal only. Max order total in `pricing/cod-rules.ts`: **no limit** (owner decision 2026-09-28, while COD is the only payment method).
+- Launch is **COD only**; eSewa and Khalti stay built but switched off (no keys) until the owner turns them on, planned about one month after launch.
 - Placing a COD order: order `CONFIRMED`, payment `COD_DUE`, confirmation email/SMS.
 - On delivery, admin marks `COD_COLLECTED`. Refused at door → `FAILED`, order `CANCELLED`, stock restored.
 

@@ -1,5 +1,5 @@
 import { ButtonLink, Container, Grid, Link } from "@virzeen/ui";
-import { Banknote, ShieldCheck, Truck, Wallet } from "lucide-react";
+import { Banknote, PackageCheck, ShieldCheck, Truck } from "lucide-react";
 import type { Metadata } from "next";
 import { CloudImage } from "@/client/components/shared/cloud-image";
 import { ProductCard } from "@/client/features/products/product-card";
@@ -11,9 +11,21 @@ export const metadata: Metadata = {
 
 const PROMISES = [
   { icon: Banknote, title: "Cash on delivery", text: "Pay the courier when your order arrives." },
-  { icon: Wallet, title: "eSewa & Khalti", text: "Pay securely with the wallets you already use." },
-  { icon: Truck, title: "Delivery across Nepal", text: "1–3 days in Kathmandu Valley, 3–7 days elsewhere." },
-  { icon: ShieldCheck, title: "Honest prices", text: "VAT included. Shipping shown before you pay." },
+  {
+    icon: Truck,
+    title: "Free shipping",
+    text: "Across Nepal: 1–3 days in Kathmandu Valley, 3–7 days elsewhere.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Honest prices",
+    text: "VAT included. The price you see is the price you pay.",
+  },
+  {
+    icon: PackageCheck,
+    title: "Track every order",
+    text: "Follow it from your account, with an email when it ships.",
+  },
 ] as const;
 
 export default async function HomePage() {

@@ -25,7 +25,9 @@ export const catalogService = {
    */
   async saveProduct(actorId: string, input: { id?: string | undefined; product: ProductData }) {
     const { product } = input;
-    const activePrices = product.variants.filter((v) => v.isActive).map((v) => v.pricePaisa);
+    // Admin enters product price and shipping separately; customers pay (and see) the sum, with free shipping.
+    const customerPrice = (productPricePaisa: number) => productPricePaisa + product.shippingPaisa;
+    const activePrices = product.variants.filter((v) => v.isActive).map((v) => customerPrice(v.pricePaisa));
     const fromPricePaisa = activePrices.length > 0 ? Math.min(...activePrices) : 0;
     if (product.isPublished && activePrices.length === 0) {
       throw new AppError("VALIDATION_FAILED", "A published product needs at least one active variant.", {
@@ -62,6 +64,7 @@ export const catalogService = {
           category: { connect: { id: product.categoryId } },
           isPublished: product.isPublished,
           fromPricePaisa,
+          shippingPaisa: product.shippingPaisa,
           publishedAt: product.isPublished
             ? (existing?.publishedAt ?? new Date())
             : (existing?.publishedAt ?? null),
@@ -93,7 +96,7 @@ export const catalogService = {
             sku: variant.sku,
             size: emptyToNull(variant.size),
             color: emptyToNull(variant.color),
-            pricePaisa: variant.pricePaisa,
+            pricePaisa: customerPrice(variant.pricePaisa),
             stock: variant.stock,
             isActive: variant.isActive,
             sortOrder: index,
@@ -123,7 +126,12 @@ export const catalogService = {
           action: existing ? "product.update" : "product.create",
           entity: "Product",
           entityId: saved.id,
-          diff: { name: product.name, isPublished: product.isPublished, variants: product.variants.length },
+          diff: {
+            name: product.name,
+            isPublished: product.isPublished,
+            variants: product.variants.length,
+            shippingPaisa: product.shippingPaisa,
+          },
         });
         return saved;
       });

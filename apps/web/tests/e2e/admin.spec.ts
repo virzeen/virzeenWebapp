@@ -40,7 +40,10 @@ test("admin sets up two-factor, creates a product and it appears in the shop", a
   await page.getByRole("button", { name: "Add image" }).click();
   await page.getByLabel(/^SKU/).fill("VZ-BEANIE-BLK-OS");
   await page.getByLabel(/^Colour/).fill("Black");
-  await page.getByLabel(/^Price \(Rs\)/).fill("1500");
+  // Product price + shipping; customers see the sum (Rs 1,500) with free shipping.
+  await page.getByLabel(/^Shipping price \(Rs\)/).fill("150");
+  await page.getByLabel(/^Product price \(Rs\)/).fill("1350");
+  await expect(page.getByText(/Customers pay Rs 1,500/)).toBeVisible();
   await page.getByLabel(/^Stock/).fill("12");
   await page.getByRole("switch", { name: /Published/ }).click();
   await page.getByRole("button", { name: "Save product" }).click();

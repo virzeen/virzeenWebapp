@@ -51,8 +51,21 @@ describe("vatIncluded", () => {
 });
 
 describe("isCodAvailable", () => {
-  it("allows COD up to and including the limit", () => {
-    expect(isCodAvailable(COD_MAX_TOTAL_PAISA)).toBe(true);
-    expect(isCodAvailable(COD_MAX_TOTAL_PAISA + 1)).toBe(false);
+  it("allows COD up to and including the limit, or any total when there is no limit", () => {
+    if (COD_MAX_TOTAL_PAISA === null) {
+      expect(isCodAvailable(1_000_000_000)).toBe(true);
+    } else {
+      expect(isCodAvailable(COD_MAX_TOTAL_PAISA)).toBe(true);
+      expect(isCodAvailable(COD_MAX_TOTAL_PAISA + 1)).toBe(false);
+    }
+  });
+});
+
+describe("free shipping (owner decision 2026-09-28)", () => {
+  it("charges nothing at checkout because shipping is included in product prices", () => {
+    expect(calculateTotals([{ unitPricePaisa: 245_000, quantity: 1 }], "OUTSIDE_VALLEY")).toMatchObject({
+      shippingPaisa: 0,
+      totalPaisa: 245_000,
+    });
   });
 });

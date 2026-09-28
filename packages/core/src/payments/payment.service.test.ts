@@ -3,9 +3,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { checkoutFixture, createUser, resetDatabase } from "../../test/factories";
 import { json, mockProvider, sentEmails, TEST_ESEWA } from "../../test/setup";
 import { checkoutService } from "../orders/checkout.service";
+import { SHIPPING_RATES_PAISA } from "../pricing/shipping-rates";
 import { signEsewa } from "./esewa";
 import { paymentService } from "./payment.service";
 import { reconcilePayments } from "./reconcile";
+
+// The fixture order: one Rs 4,500 item delivered inside the valley.
+const TOTAL_PAISA = 450_000 + SHIPPING_RATES_PAISA.KATHMANDU_VALLEY;
+const TOTAL_RUPEES = TOTAL_PAISA / 100;
 
 const PLACED_AT = new Date("2026-09-28T06:00:00Z");
 const minutesLater = (minutes: number) => new Date(PLACED_AT.getTime() + minutes * 60_000);
@@ -34,7 +39,10 @@ async function placeOnline(method: "ESEWA" | "KHALTI", options: { stock?: number
   return { ...fixture, orderNumber: result.orderNumber, payment };
 }
 
-function esewaSuccessData(transactionUuid: string, totalAmount = "4,600.0") {
+function esewaSuccessData(
+  transactionUuid: string,
+  totalAmount = `${TOTAL_RUPEES.toLocaleString("en-US")}.0`,
+) {
   const payload: Record<string, string> = {
     transaction_code: "000AWEO",
     status: "COMPLETE",
@@ -52,7 +60,7 @@ function esewaSuccessData(transactionUuid: string, totalAmount = "4,600.0") {
   return Buffer.from(JSON.stringify(payload)).toString("base64");
 }
 
-const esewaStatus = (status: string, totalAmount = 4600) =>
+const esewaStatus = (status: string, totalAmount = TOTAL_RUPEES) =>
   mockProvider(() => json({ status, total_amount: totalAmount, ref_id: "REF-1" }));
 
 async function orderState(orderNumber: string) {
@@ -205,7 +213,7 @@ describe("Khalti return", () => {
   ])("lookup %s → %s", async (khaltiStatus, outcome, orderStatus, paymentStatus) => {
     const { orderNumber } = await placeOnline("KHALTI");
     mockProvider(() =>
-      json({ pidx: "PIDX123", status: khaltiStatus, total_amount: 460_000, transaction_id: "T1" }),
+      json({ pidx: "PIDX123", status: khaltiStatus, total_amount: TOTAL_PAISA, transaction_id: "T1" }),
     );
 
     const result = await paymentService.handleKhaltiReturn("PIDX123");
@@ -224,7 +232,7 @@ describe("reconcilePayments", () => {
 
   it("pending → reconciliation → paid", async () => {
     const { orderNumber } = await placeOnline("KHALTI");
-    mockProvider(() => json({ pidx: "PIDX123", status: "Completed", total_amount: 460_000 }));
+    mockProvider(() => json({ pidx: "PIDX123", status: "Completed", total_amount: TOTAL_PAISA }));
 
     const summary = await reconcilePayments(minutesLater(10));
 

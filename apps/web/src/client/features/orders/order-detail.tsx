@@ -1,6 +1,6 @@
 import { Badge, Separator, Stack } from "@virzeen/ui";
 import { CloudImage } from "@/client/components/shared/cloud-image";
-import { Price } from "@/client/components/shared/price";
+import { Price, ShippingPrice } from "@/client/components/shared/price";
 import { formatDateTime } from "@/client/lib/format";
 import { orderStatus, PAYMENT_METHOD_LABELS, paymentStatus, timelineLabel } from "@/client/lib/order-labels";
 
@@ -111,7 +111,7 @@ export function OrderDetail({ order }: { order: OrderDetailView }) {
           </div>
           <div className="flex justify-between text-body">
             <span>Shipping</span>
-            <Price paisa={order.shippingPaisa} />
+            <ShippingPrice paisa={order.shippingPaisa} />
           </div>
           <Separator />
           <div className="flex justify-between text-h3">

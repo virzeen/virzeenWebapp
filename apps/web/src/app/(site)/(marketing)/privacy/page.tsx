@@ -14,8 +14,7 @@ export default function PrivacyPage() {
       <ContentHeading>What we store</ContentHeading>
       <p>
         Your name and email (to sign you in and send order emails), your delivery addresses and mobile number
-        (so the courier can reach you), and your orders. We never see or store your eSewa or Khalti
-        credentials — payments happen on their sites.
+        (so the courier can reach you), and your orders. We don&apos;t collect any card or wallet details.
       </p>
       <ContentHeading>Why</ContentHeading>
       <p>

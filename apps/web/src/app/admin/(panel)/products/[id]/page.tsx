@@ -51,6 +51,7 @@ export default async function EditProductPage({ params }: Props) {
           collectionIds: product.collections.map((c) => c.id),
           isPublished: product.isPublished,
           images: product.images,
+          shippingPaisa: product.shippingPaisa,
           variants: product.variants.map((v) => ({ ...v, size: v.size ?? "", color: v.color ?? "" })),
         }}
       />

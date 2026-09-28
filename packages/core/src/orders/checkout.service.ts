@@ -34,7 +34,8 @@ export type CheckoutPreview = Totals & {
   zone: "KATHMANDU_VALLEY" | "OUTSIDE_VALLEY";
   deliveryEstimate: string;
   isCodAvailable: boolean;
-  codLimitPaisa: number;
+  /** null = no limit. */
+  codLimitPaisa: number | null;
 };
 
 async function loadAddress(userId: string, addressId: string) {

@@ -3,17 +3,24 @@
 > Update this file at the end of every task. Keep it under 150 lines.
 > Newest entries at the top of "Log".
 
-**Phase:** 1 — Foundation + domestic shop (target: 20 days)
-**Environment:** local only (Railway production not yet created)
+**Phase:** 1 — domestic shop, **launch in 4 days (deadline set 2026-09-28), cash on delivery only**
+**Environment:** local only (Railway production not yet created). Domain: `virzeen.com`
 **Owner:** Virzeen founder
-**Branch:** `feat/phase-1-foundation` (not yet pushed / no PR)
+**Branch:** `feat/phase-1-foundation` → PR #1 (https://github.com/virzeen/virzeenWebapp/pull/1)
 
-## Current focus
+## Launch plan (4 days, COD only)
 
-- [ ] Owner review of the phase-1 build (see "Decisions needed")
-- [ ] Production setup: Railway + Cloudflare + service accounts (Day 20 list below)
+- [ ] Day 1: COD-only launch mode + per-product shipping folded into prices ✅; PWA (install + offline page), maintenance mode, data caching. Owner: accounts (Railway, Cloudflare + virzeen.com, Resend, Upstash, Cloudinary; Google optional), returns policy + contact details.
+- [ ] Day 2: Railway deploy, Cloudflare DNS, Resend domain verification, production variables, `pnpm admin grant` for the owner.
+- [ ] Day 3: owner enters real products/photos in `/admin`; speed checks, policy pages final.
+- [ ] Day 4: smoke test on the live site (real COD order), fixes, launch.
 
-## 20-day plan
+## After launch (planned, owner will confirm timing)
+
+- **~1 month after launch: eSewa and Khalti.** Built and tested (unit + e2e against mocks) but switched off: no keys set, so checkout shows cash on delivery only. To turn on: merchant keys + live URLs in Railway (`docs/runbooks/service-setup.md`), the Railway `cron` service for `/api/cron/reconcile-payments`, one small real payment each, then restore wallet wording on home/about/product/shop/footer/privacy/terms/returns pages (removed 2026-09-28).
+- Lighthouse CI; COD limit review (currently none) once online payments exist.
+
+## Build history (original 20-day plan)
 
 - [x] Days 1–2: monorepo, tooling, CI, env validation (live-site rules), Prisma schema, design tokens — _merchant applications and service accounts are owner tasks: `docs/runbooks/service-setup.md`_
 - [x] Days 3–5: auth (Better Auth: email OTP + Google, admin TOTP), admin product CRUD, Cloudinary signed uploads, `pnpm admin` for first admin / lost phone (`docs/runbooks/admin-accounts.md`)
@@ -28,15 +35,15 @@
 
 - Storefront: home, shop + categories + collections (filters, sort, Load more), product page (variants, stock, JSON-LD), bag drawer/page with undo, portfolio stories, content pages.
 - Sign-in with a 6-digit email code (Mailpit locally); Google appears once keys are set. Guest bag merges at sign-in.
-- Checkout: COD end to end; eSewa and Khalti flows verified against mock providers (e2e) and unit tests. Totals are server-calculated.
+- Checkout: COD end to end, shipping shown as free (included in product prices). eSewa and Khalti are built and verified against mock providers, but switched off until month 2. Totals are server-calculated.
 - Account: orders + timeline, addresses, settings. Admin: TOTP enrolment + 12h step-up, dashboard, orders (pack/ship/deliver/cancel/COD collected/refund/re-verify/manual paid), products, categories, collections, portfolio, customers. Every admin write is audited.
 - `/api/v1` for the mobile app, `/api/cron/reconcile-payments`, `/api/health`, sitemap, robots, manifest.
-- Tests: 17 validators, 103 core (unit + integration on `virzeen_test`), 63 Storybook component + a11y, 3 email, 15 web unit, 14 Playwright journeys (`pnpm test:e2e`, production build against mock eSewa/Khalti).
+- Tests: 18 validators, 106 core (unit + integration on `virzeen_test`), 63 Storybook component + a11y, 3 email, 15 web unit, 14 Playwright journeys (`pnpm test:e2e`, production build against mock eSewa/Khalti).
 
 ## Known issues / decisions needed (owner)
 
 - ◆ **Brand**: tokens are monochrome from the logo/posters; fonts are Inter Tight (display) + Inter (text) placeholders. Wordmark is traced from `typo.png` (Mesdag font file has no licence info, so it is not shipped).
-- ◆ **Money rules**: shipping Rs 100 valley / Rs 200 outside (`pricing/shipping-rates.ts`), COD limit Rs 20,000 (`pricing/cod-rules.ts`), delivery estimates 1–3 / 3–7 days.
+- **Money rules (decided 2026-09-28)**: shipping is a per-product amount entered in admin and included in the displayed price; customers see "Free shipping". No COD order limit. ◆ Still open: delivery estimates 1–3 / 3–7 days.
 - ◆ **Policy copy**: returns window/conditions, shipping, privacy and terms pages show a "being finalised" notice. About page text, contact email (`client/lib/site.ts`) and `SECURITY.md` address are placeholders.
 - ◆ **Catalogue**: products, portfolio stories and photos are local seed samples (grey placeholder photography).
 - **Docs conflict**: payment-policy §7 says a COD order refused at the door becomes CANCELLED, but the §3 state table has no SHIPPED → CANCELLED. Implemented the table strictly; refused-at-door orders currently stay SHIPPED. Decide whether to allow SHIPPED → CANCELLED (COD refusal only).
@@ -50,6 +57,8 @@
 - Not built yet: service worker (Serwist) + offline page, Lighthouse CI, data caching, Railway/Cloudflare setup (the R2 backup workflow and Dependabot are in `.github/` and switch on once secrets exist).
 
 ## Log
+
+- 2026-09-28 — Owner: launch in 4 days with COD only; eSewa/Khalti about a month later. Added `Product.shippingPaisa` (admin enters product price + shipping; customers pay and see the sum, with "Free shipping"), removed the COD limit, removed wallet wording from customer pages, CI secret scan via gitleaks CLI. PR #1 opened.
 
 - 2026-09-28 — Days 1–5 gap check: added `pnpm admin` (first admin on production, lost-phone reset, revoke; audited, tested), live-site env rules (the app refuses sandbox payments, http, Mailpit or the memory limiter on a real domain; the sandbox would have let anyone "pay" with eSewa's public test account), Cloudinary signature test, service-setup and admin-accounts runbooks.
 

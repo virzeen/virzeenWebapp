@@ -39,3 +39,12 @@ export function Price({ paisa, compareAtPaisa, from = false, className }: PriceP
     </span>
   );
 }
+
+/** Shipping line amount: "Free" when nothing is charged (shipping is included in product prices). */
+export function ShippingPrice({ paisa, className }: { paisa: number; className?: string }) {
+  return paisa === 0 ? (
+    <span className={className}>Free</span>
+  ) : (
+    <Price paisa={paisa} className={className} />
+  );
+}

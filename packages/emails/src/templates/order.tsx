@@ -60,7 +60,9 @@ function OrderSummary({ order }: { order: OrderEmailData }) {
           <Text className="m-0 text-body text-ink-muted">Shipping</Text>
         </Column>
         <Column className="text-right">
-          <Text className="m-0 text-body">{formatPaisa(order.shippingPaisa)}</Text>
+          <Text className="m-0 text-body">
+            {order.shippingPaisa === 0 ? "Free" : formatPaisa(order.shippingPaisa)}
+          </Text>
         </Column>
       </Row>
       <Row>
