@@ -6,6 +6,10 @@ allowBuilds:
   esbuild: true
   prisma: true
   unrs-resolver: true
+# Security patches for transitive dependencies of the Prisma CLI (pnpm audit, CI). Remove once Prisma ships them.
+overrides:
+  deepmerge-ts: ">=8.0.0 <9" # GHSA-ggr8-5vv4-36mx; @prisma/config only calls deepmerge()
+  mysql2: ">=3.22.0 <4" # GHSA-3f6p-5ww8-9rcr; MySQL driver, unused (Postgres)
 minimumReleaseAgeExclude:
   - "@turbo/darwin-64@2.11.5"
   - "@turbo/darwin-arm64@2.11.5"
