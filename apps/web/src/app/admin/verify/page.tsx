@@ -22,11 +22,9 @@ export default async function AdminVerifyPage() {
         <h1 className="font-display text-h1">
           {state === "needs-enrollment" ? "Secure your admin account" : "Admin verification"}
         </h1>
-        <p className="text-body text-ink-muted">
-          {state === "needs-enrollment"
-            ? `Signed in as ${user.email}. Set up two-factor to open the admin area.`
-            : "Enter the code from your authenticator app."}
-        </p>
+        {state !== "needs-enrollment" && (
+          <p className="text-body text-ink-muted">Enter the code from your authenticator app.</p>
+        )}
       </header>
       {state === "needs-enrollment" ? <TotpEnrollment /> : <TotpVerify />}
     </Container>
