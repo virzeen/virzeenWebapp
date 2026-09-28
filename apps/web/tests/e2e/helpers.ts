@@ -37,8 +37,8 @@ export async function completeEmailSignIn(page: Page, email: string) {
   await page.getByRole("button", { name: "Continue with email" }).click();
   await expect(page).toHaveURL(/\/verify/);
   const code = /\b(\d{6})\b/.exec(await readEmail(email, /sign-in code/))?.[1] ?? "";
+  // No button: the code is checked as soon as the sixth digit is in.
   await page.getByLabel(/6-digit code/).fill(code);
-  await page.getByRole("button", { name: "Sign in" }).click();
   // Wait for the redirect off the sign-in code page (admins go on to /admin/verify for their authenticator):
   // the session cookie is set only once the code is accepted.
   await page.waitForURL((url) => url.pathname !== "/verify");

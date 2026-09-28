@@ -47,7 +47,24 @@ Calm, warm, confident. Short sentences. Sentence case. No exclamation marks in e
 | Required | Enter your {field}                                    |
 | Phone    | Enter a 10-digit mobile number starting with 97 or 98 |
 | Email    | Enter a valid email address                           |
-| OTP      | Enter the 6-digit code we sent to {email}             |
+| OTP      | Enter the 6-digit code we sent to your email          |
+
+## Sign-in code (`/verify`)
+
+The code is checked as soon as the sixth digit is in, so the page says so before the field (specs/sign-in-code.md).
+
+| Situation                                  | Text                                                                                                       |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| Intro under "Check your email"             | We sent a 6-digit code to {email}. Enter it and we'll sign you in straight away. It expires in 10 minutes. |
+| Checking (status line under the boxes)     | Checking your code…                                                                                        |
+| Accepted (status line)                     | Code accepted. Signing you in…                                                                             |
+| Wrong code (`INVALID_OTP`)                 | That code isn't right. Check it and try again.                                                             |
+| Expired code (`OTP_EXPIRED`)               | That code has expired. Send a new one.                                                                     |
+| Too many wrong codes (`TOO_MANY_ATTEMPTS`) | Too many wrong codes. Send a new code to try again.                                                        |
+| Resend link                                | Send a new code · while it waits: Send a new code in {n}s                                                  |
+| New code sent (toast)                      | We sent a new code                                                                                         |
+
+Too many requests and anything unexpected use the standard `RATE_LIMITED` and `INTERNAL` messages, in an `Alert` with "Try again".
 
 ## Formatting
 
