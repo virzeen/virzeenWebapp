@@ -20,6 +20,7 @@ test("admin sets up two-factor, creates a product and it appears in the shop", a
 
   // Enrol an authenticator, then pass the step-up.
   await page.getByRole("button", { name: "Set up authenticator" }).click();
+  await expect(page.getByRole("img", { name: "Authenticator setup code" })).toBeVisible();
   const secret = (await page.getByText(/^[A-Z2-7]{4}( [A-Z2-7]{1,4})+$/).innerText()).replace(/\s/g, "");
   await page.getByLabel(/6-digit code/).fill(totp(secret));
   await page.getByRole("button", { name: "Turn on two-factor" }).click();
