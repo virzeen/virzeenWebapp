@@ -21,7 +21,13 @@ test("admin sets up two-factor, creates a product and it appears in the shop", a
   // Enrol an authenticator, then pass the step-up.
   await page.getByRole("button", { name: "Set up authenticator" }).click();
   await expect(page.getByRole("img", { name: "Authenticator setup code" })).toBeVisible();
-  const secret = (await page.getByText(/^[A-Z2-7]{4}( [A-Z2-7]{1,4})+$/).innerText()).replace(/\s/g, "");
+  // The key is only inside the QR code and the "open in app" link; backup codes show on request.
+  const backupCode = page.getByText(/^[A-Za-z0-9]{5}-[A-Za-z0-9]{5}$/).first();
+  await expect(backupCode).toBeHidden();
+  await page.getByRole("button", { name: "Show backup codes" }).click();
+  await expect(backupCode).toBeVisible();
+  const uri = await page.getByRole("link", { name: /Open in your authenticator app/ }).getAttribute("href");
+  const secret = new URL(uri ?? "").searchParams.get("secret") ?? "";
   await page.getByLabel(/6-digit code/).fill(totp(secret));
   await page.getByRole("button", { name: "Turn on two-factor" }).click();
   await expect(page.getByRole("button", { name: "Verify" })).toBeVisible();
