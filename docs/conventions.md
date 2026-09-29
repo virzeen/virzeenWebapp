@@ -40,6 +40,7 @@
 
 - `main` = production. Protected: PR required, CI must pass, no force push.
 - Branches: `feat/<short-name>`, `fix/<short-name>`, `chore/<short-name>`, `docs/<short-name>`.
+- All work happens in the main `virzeenWebapp` folder: create and switch branches there. No git worktrees and no sibling copies (`vz-*`) — the owner looks at http://localhost:3000, which runs from this folder (owner rule, 2026-09-29).
 - Branches live 1–3 days. Small PRs (under ~400 changed lines when possible).
 - Commits: Conventional Commits with scope.
   - `feat(cart): merge guest cart on login`

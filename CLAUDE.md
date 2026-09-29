@@ -77,6 +77,7 @@ Reviewers: `security-reviewer`, `ui-reviewer` agents.
 
 ## 6. Working style (how to avoid mistakes)
 
+- **One folder: this one.** Work only in the main `virzeenWebapp` folder (owner rule, 2026-09-29). Make branches here with `git switch -c feat/<name>`; never `git worktree add`, never a copy next to it (`vz-*`). The owner's dev server on http://localhost:3000 runs from this folder, so this is where they see your work. Before switching branches: `git status` must show no one else's uncommitted changes (ask if it does), and check for busy peer sessions first.
 - **Read before you write.** Open a file and its neighbors before editing it. Edit surgically; don't rewrite whole files for small changes.
 - **Stay in scope.** Change only what the task needs. Note other problems in your summary instead of fixing them uninvited.
 - **Small steps.** One todo, one verification. Prefer several small commits over one large one.
