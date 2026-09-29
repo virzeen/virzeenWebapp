@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { addToBagMessage, messageFor } from "./error-messages";
 import { formatDate, formatDateTime } from "./format";
 import imageLoader from "./image-loader";
-import { orderStatus, timelineLabel } from "./order-labels";
+import { orderStatus, paymentStatus, timelineLabel } from "./order-labels";
 
 describe("formatDate / formatDateTime", () => {
   it("formats in Nepal time with fixed month names (content-style.md)", () => {
@@ -55,5 +55,11 @@ describe("order labels", () => {
   it("names the first timeline event 'Order placed' whatever the payment method", () => {
     expect(timelineLabel("PENDING")).toBe("Order placed");
     expect(orderStatus("PENDING").label).toBe("Awaiting payment");
+  });
+
+  it("shows a cancelled cash-on-delivery order as 'Not charged', not a red payment failure", () => {
+    expect(paymentStatus("FAILED", "COD")).toEqual({ label: "Not charged", variant: "neutral" });
+    expect(paymentStatus("FAILED", "ESEWA")).toEqual({ label: "Payment failed", variant: "danger" });
+    expect(paymentStatus("COD_DUE", "COD").label).toBe("Pay on delivery");
   });
 });

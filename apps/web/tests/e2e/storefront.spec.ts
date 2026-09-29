@@ -10,8 +10,9 @@ test.describe("Add to bag", () => {
       .click();
     await expect(page.getByRole("heading", { level: 1, name: "Linen Overshirt" })).toBeVisible();
 
-    const addButton = page.getByRole("button", { name: "Select a size" });
-    await expect(addButton).toBeDisabled();
+    // With no size chosen the button points at the size picker instead of adding.
+    await page.getByRole("button", { name: "Select a size" }).click();
+    await expect(page.getByRole("radiogroup", { name: "Size" })).toHaveAttribute("aria-invalid", "true");
 
     await page.getByRole("radio", { name: "M", exact: true }).click();
     await page.getByRole("button", { name: "Add to bag" }).click();
@@ -69,6 +70,8 @@ test.describe("Storefront pages", () => {
     // streamed not-found page noindex instead (node_modules/next/dist/docs, loading.md).
     await page.goto("/product/does-not-exist");
     await expect(page.getByText("We couldn't find that page.")).toBeVisible();
+    // generateMetadata calls notFound() too, so the tab says so instead of showing the site's default title.
+    await expect(page).toHaveTitle("Page not found — Virzeen");
     await expect(page.locator('meta[name="robots"][content*="noindex"]').first()).toBeAttached();
   });
 

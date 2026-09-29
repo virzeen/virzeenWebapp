@@ -66,4 +66,11 @@ test("admin sets up two-factor, creates a product and it appears in the shop", a
   await page.getByRole("link", { name: /E2E Monochrome Beanie/ }).click();
   await expect(page.getByRole("heading", { level: 1, name: "E2E Monochrome Beanie" })).toBeVisible();
   await expect(page.getByText("Rs 1,500").first()).toBeVisible();
+
+  // A mistyped admin address stays inside the admin frame, with a way back.
+  await page.goto("/admin/no-such-page");
+  await expect(
+    page.getByRole("heading", { level: 1, name: "This page doesn't exist, or the item was archived." }),
+  ).toBeVisible();
+  await expect(page.getByRole("link", { name: "Back to dashboard" })).toBeVisible();
 });

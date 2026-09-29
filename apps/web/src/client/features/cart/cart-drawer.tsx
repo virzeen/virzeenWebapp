@@ -1,24 +1,35 @@
 "use client";
 
-import { Button, ButtonLink, EmptyState, Sheet, SheetContent, Stack } from "@virzeen/ui";
+import { ButtonLink, EmptyState, Sheet, SheetContent, Stack } from "@virzeen/ui";
 import { ShoppingBag } from "lucide-react";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { Price } from "@/client/components/shared/price";
-import { messageFor } from "@/client/lib/error-messages";
-import { undoRemoveAction } from "@/server/actions/cart";
-import { CartLine } from "./cart-line";
-import { useCart, type RemovedLine } from "./cart-provider";
+import { CartLine, RemovedLineNotice } from "./cart-line";
+import { useCart } from "./cart-provider";
 
 /** Right-side bag drawer (patterns.md §7). Opens after add-to-bag and from the header. */
 export function CartDrawer() {
-  const { cart, isOpen, setOpen } = useCart();
+  const { cart, isOpen, setOpen, returnFocusRef, justAdded, lastRemoved, setLastRemoved } = useCart();
+  // The line Undo just put back, so focus can land on it instead of falling back to the drawer.
+  const [restoredVariantId, setRestoredVariantId] = useState<string | null>(null);
+  if (!isOpen && restoredVariantId) setRestoredVariantId(null);
   const isEmpty = cart.items.length === 0;
+  const count = `${cart.itemCount} ${cart.itemCount === 1 ? "item" : "items"}`;
 
   return (
     <Sheet open={isOpen} onOpenChange={setOpen}>
       <SheetContent
         title="Bag"
-        description={isEmpty ? undefined : `${cart.itemCount} ${cart.itemCount === 1 ? "item" : "items"}`}
+        // Right after an add the open drawer is the confirmation, so it says so (no toast over it).
+        description={isEmpty ? undefined : justAdded ? `Added to bag · ${count}` : count}
+        // The drawer has no SheetTrigger: send focus back to whatever opened it.
+        onCloseAutoFocus={(event) => {
+          const target = returnFocusRef.current;
+          if (target?.isConnected) {
+            event.preventDefault();
+            target.focus();
+          }
+        }}
         footer={
           isEmpty ? undefined : (
             <Stack gap={4}>
@@ -52,7 +63,20 @@ export function CartDrawer() {
           )
         }
       >
-        <RemovedNotice />
+        {/* The drawer is modal, so a toast's Undo button can't be reached: Undo sits here instead. */}
+        <div role="status">
+          {lastRemoved && (
+            <RemovedLineNotice
+              key={`${lastRemoved.variantId}:${lastRemoved.quantity}`}
+              line={lastRemoved}
+              onUndone={() => {
+                setLastRemoved(null);
+                setRestoredVariantId(lastRemoved.variantId);
+              }}
+              className="border-b border-line pb-4"
+            />
+          )}
+        </div>
         {isEmpty ? (
           <EmptyState
             icon={<ShoppingBag className="size-5" strokeWidth={1.5} aria-hidden />}
@@ -66,45 +90,16 @@ export function CartDrawer() {
         ) : (
           <ul className="divide-y divide-line">
             {cart.items.map((line) => (
-              <CartLine key={line.id} line={line} compact />
+              <CartLine
+                key={line.id}
+                line={line}
+                onRemoved={setLastRemoved}
+                focusOnMount={line.variantId === restoredVariantId}
+              />
             ))}
           </ul>
         )}
       </SheetContent>
     </Sheet>
-  );
-}
-
-/** "Removed X. Undo" inside the drawer: the drawer is modal, so a toast's Undo button can't be reached. */
-function RemovedNotice() {
-  const { lastRemoved } = useCart();
-  return (
-    <div role="status">
-      {lastRemoved && <UndoRow key={`${lastRemoved.variantId}:${lastRemoved.quantity}`} line={lastRemoved} />}
-    </div>
-  );
-}
-
-function UndoRow({ line }: { line: RemovedLine }) {
-  const { setLastRemoved, setCart } = useCart();
-  const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
-
-  function undo() {
-    startTransition(async () => {
-      const result = await undoRemoveAction({ variantId: line.variantId, quantity: line.quantity });
-      if (!result.ok) return setError(messageFor(result.error));
-      setCart(result.data);
-      setLastRemoved(null);
-    });
-  }
-
-  return (
-    <div className="flex items-center justify-between gap-4 border-b border-line pb-4">
-      <p className="text-small text-ink-muted">{error ?? `Removed ${line.productName}.`}</p>
-      <Button variant="link" size="sm" onClick={undo} disabled={isPending}>
-        Undo
-      </Button>
-    </div>
   );
 }

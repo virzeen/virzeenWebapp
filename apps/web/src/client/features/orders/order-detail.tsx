@@ -1,4 +1,4 @@
-import { Badge, Separator, Stack } from "@virzeen/ui";
+import { Badge, Link, Separator, Stack } from "@virzeen/ui";
 import { CloudImage } from "@/client/components/shared/cloud-image";
 import { Price, ShippingPrice } from "@/client/components/shared/price";
 import { formatDateTime } from "@/client/lib/format";
@@ -39,7 +39,7 @@ export type OrderDetailView = {
 /** Order lines, totals, delivery address and status timeline (account, checkout success, admin). */
 export function OrderDetail({ order }: { order: OrderDetailView }) {
   const status = orderStatus(order.status);
-  const payment = paymentStatus(order.paymentStatus);
+  const payment = paymentStatus(order.paymentStatus, order.paymentMethod);
   const timeline = order.events.filter((event) => event.type === "ORDER_STATUS");
 
   return (
@@ -55,7 +55,7 @@ export function OrderDetail({ order }: { order: OrderDetailView }) {
           <div className="rounded-md bg-surface p-5">
             <p className="text-caption text-ink-muted uppercase">Tracking</p>
             <p className="pt-1 text-body">
-              {order.courierName} · <span className="font-mono">{order.trackingNumber}</span>
+              {order.courierName} · <span className="font-mono wrap-anywhere">{order.trackingNumber}</span>
             </p>
           </div>
         )}
@@ -129,9 +129,19 @@ export function OrderDetail({ order }: { order: OrderDetailView }) {
             {order.address.street}, {order.address.city}
             <br />
             {order.address.district}, {order.address.province}
-            <br />
-            {order.address.phone}
+            {order.address.landmark && (
+              <>
+                <br />
+                Landmark: {order.address.landmark}
+              </>
+            )}
           </p>
+          <Link
+            href={`tel:${order.address.phone}`}
+            className="inline-flex min-h-11 items-center self-start text-small"
+          >
+            {order.address.phone}
+          </Link>
         </div>
       </aside>
     </div>

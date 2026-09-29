@@ -1,4 +1,5 @@
 import { Container, Link, Separator } from "@virzeen/ui";
+import { SITE } from "@/client/lib/site";
 import { LogoMark } from "./logo-mark";
 import { Wordmark } from "./wordmark";
 
@@ -17,6 +18,7 @@ const COLUMNS = [
       { href: "/about", label: "About" },
       { href: "/portfolio", label: "Portfolio" },
       { href: "/contact", label: "Contact" },
+      { href: SITE.instagram, label: "Instagram" },
     ],
   },
   {
@@ -48,7 +50,7 @@ export function SiteFooter() {
                     key={link.href}
                     href={link.href}
                     variant="subtle"
-                    className="inline-flex min-h-11 items-center text-small text-canvas/85 hover:text-canvas md:min-h-9"
+                    className="inline-flex min-h-11 items-center text-small text-canvas/85 hover:text-canvas lg:min-h-9"
                   >
                     {link.label}
                   </Link>
@@ -58,17 +60,30 @@ export function SiteFooter() {
           </div>
         </div>
         <Separator className="bg-canvas/15" />
-        <div className="flex flex-col gap-4 text-small text-canvas/60 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-4 text-small text-canvas/60 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-3">
             <LogoMark className="size-6 text-canvas" inverse />
             <p>© {new Date().getFullYear()} Virzeen. Prices include 13% VAT.</p>
           </div>
-          <p>Cash on delivery · Free shipping across Nepal · 7-day free returns</p>
+          {/* Each fact stays whole ("7-day" never splits); lines break only after a "·". */}
+          <p>
+            <span className="whitespace-nowrap">Cash on delivery ·</span>{" "}
+            <span className="whitespace-nowrap">Free shipping across Nepal ·</span>{" "}
+            <span className="whitespace-nowrap">7-day free returns</span>
+          </p>
           <div className="flex gap-4">
-            <Link href="/privacy" variant="subtle" className="text-canvas/70 hover:text-canvas">
+            <Link
+              href="/privacy"
+              variant="subtle"
+              className="inline-flex min-h-11 items-center text-canvas/70 hover:text-canvas"
+            >
               Privacy
             </Link>
-            <Link href="/terms" variant="subtle" className="text-canvas/70 hover:text-canvas">
+            <Link
+              href="/terms"
+              variant="subtle"
+              className="inline-flex min-h-11 items-center text-canvas/70 hover:text-canvas"
+            >
               Terms
             </Link>
           </div>

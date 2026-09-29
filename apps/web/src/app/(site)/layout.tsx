@@ -13,15 +13,19 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
     <CartProvider initialCart={cart}>
       <a
         href="#main"
-        className="sr-only z-60 rounded-sm bg-ink px-4 py-2 text-canvas focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
+        className="sr-only z-60 rounded-sm bg-ink text-canvas focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:px-4 focus:py-3"
       >
         Skip to content
       </a>
-      <SiteHeader isSignedIn={Boolean(user)} categories={categories} />
-      <main id="main" className="min-h-dvh">
-        {children}
-      </main>
-      <SiteFooter />
+      {/* At least one screen tall, with main taking the slack, so a short page's footer sits at the bottom.
+          The skip link's target stays clear of the sticky header through globals.css (scroll-padding-top). */}
+      <div className="flex min-h-dvh flex-col">
+        <SiteHeader isSignedIn={Boolean(user)} categories={categories} />
+        <main id="main" className="flex-1">
+          {children}
+        </main>
+        <SiteFooter />
+      </div>
       <CartDrawer />
     </CartProvider>
   );

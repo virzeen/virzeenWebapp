@@ -9,7 +9,7 @@ type Props = { params: Promise<{ slug: string }>; searchParams: SearchParams };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const collection = await getCollectionBySlug((await params).slug);
-  if (!collection) return {};
+  if (!collection) notFound();
   return {
     title: collection.name,
     description: collection.description ?? `The ${collection.name} collection from Virzeen.`,

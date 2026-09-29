@@ -21,7 +21,11 @@ export default async function OrderPage({ params }: Props) {
   return (
     <Stack gap={8}>
       <div className="flex flex-col gap-2">
-        <Link href="/account/orders" variant="subtle" className="text-small">
+        <Link
+          href="/account/orders"
+          variant="subtle"
+          className="inline-flex min-h-11 items-center self-start text-small"
+        >
           ← All orders
         </Link>
         <h2 className="font-mono text-h2">{order.orderNumber}</h2>

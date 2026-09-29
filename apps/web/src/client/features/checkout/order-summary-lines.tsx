@@ -1,5 +1,6 @@
+import { Separator } from "@virzeen/ui";
 import { CloudImage } from "@/client/components/shared/cloud-image";
-import { Price } from "@/client/components/shared/price";
+import { Price, ShippingPrice } from "@/client/components/shared/price";
 
 type SummaryLine = {
   id: string;
@@ -27,12 +28,50 @@ export function OrderSummaryLines({ items }: { items: SummaryLine[] }) {
               </span>
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-small">{item.productName}</p>
+              <p className="line-clamp-2 text-small">{item.productName}</p>
               <p className="text-small text-ink-muted">{item.variantLabel}</p>
             </div>
             <Price paisa={item.lineTotalPaisa} className="text-small" />
           </li>
         ))}
     </ul>
+  );
+}
+
+type OrderSummaryTotalsProps = {
+  totals: { subtotalPaisa: number; shippingPaisa: number; totalPaisa: number; vatPaisa: number };
+  /** Shipping and the total depend on the delivery address, so they wait for one. */
+  hasAddress: boolean;
+  /** Only the summary next to "Place order" carries the test id. */
+  totalTestId?: string;
+};
+
+/** Subtotal, shipping, total and the VAT note (server-calculated amounts). */
+export function OrderSummaryTotals({ totals, hasAddress, totalTestId }: OrderSummaryTotalsProps) {
+  return (
+    <>
+      <div className="flex justify-between text-body">
+        <span>Subtotal</span>
+        <Price paisa={totals.subtotalPaisa} />
+      </div>
+      <div className="flex justify-between text-body">
+        <span>Shipping</span>
+        {totals.shippingPaisa === 0 || hasAddress ? (
+          <ShippingPrice paisa={totals.shippingPaisa} />
+        ) : (
+          <span className="text-ink-muted">—</span>
+        )}
+      </div>
+      <Separator />
+      <div className="flex justify-between text-h3">
+        <span>Total</span>
+        <span data-testid={totalTestId}>
+          <Price paisa={hasAddress ? totals.totalPaisa : totals.subtotalPaisa} />
+        </span>
+      </div>
+      <p className="text-small text-ink-muted">
+        Includes <Price paisa={totals.vatPaisa} /> VAT (13%).
+      </p>
+    </>
   );
 }

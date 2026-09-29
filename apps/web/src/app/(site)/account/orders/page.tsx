@@ -30,26 +30,31 @@ export default async function OrdersPage() {
     <ul className="flex flex-col divide-y divide-line border-y border-line">
       {items.map((order) => {
         const status = orderStatus(order.status);
-        const payment = paymentStatus(order.paymentStatus);
+        const payment = paymentStatus(order.paymentStatus, order.paymentMethod);
         return (
           <li key={order.orderNumber}>
+            {/* The price keeps its own right-hand column, so totals line up down the list; the badges
+                go on a second line until the column is wide enough (lg) for one row. */}
             <Link
               href={`/account/orders/${order.orderNumber}`}
               variant="subtle"
-              className="flex flex-col gap-2 py-5 text-ink hover:text-ink sm:flex-row sm:items-center sm:justify-between"
+              className="grid grid-cols-[1fr_auto] items-start gap-x-4 gap-y-3 py-5 text-ink hover:text-ink lg:grid-cols-[1fr_auto_auto] lg:items-center"
             >
-              <span className="flex flex-col gap-1">
+              <span className="flex min-w-0 flex-col gap-1">
                 <span className="font-mono text-body">{order.orderNumber}</span>
-                <span className="text-small text-ink-muted">
+                <span className="text-small whitespace-nowrap text-ink-muted">
                   {formatDate(order.createdAt)} · {order._count.items}{" "}
                   {order._count.items === 1 ? "item" : "items"}
                 </span>
               </span>
-              <span className="flex flex-wrap items-center gap-2">
+              <span className="col-span-2 row-start-2 flex flex-wrap items-center gap-2 lg:col-span-1 lg:col-start-2 lg:row-start-1">
                 <Badge variant={status.variant}>{status.label}</Badge>
                 <Badge variant={payment.variant}>{payment.label}</Badge>
-                <Price paisa={order.totalPaisa} className="text-body sm:pl-4" />
               </span>
+              <Price
+                paisa={order.totalPaisa}
+                className="col-start-2 row-start-1 text-right text-body lg:col-start-3 lg:pl-4"
+              />
             </Link>
           </li>
         );

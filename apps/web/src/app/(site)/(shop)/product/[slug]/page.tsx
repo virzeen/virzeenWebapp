@@ -13,7 +13,7 @@ type Props = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const product = await getProductBySlug((await params).slug);
-  if (!product) return {};
+  if (!product) notFound();
   const description = product.seoDescription ?? product.description.slice(0, 155);
   return {
     title: product.name,
@@ -32,16 +32,21 @@ export default async function ProductPage({ params }: Props) {
   return (
     <>
       <Container className="py-6 pb-28 md:pb-16 lg:py-12">
-        <nav aria-label="Breadcrumb" className="pb-6">
+        {/* 44px-tall links; the negative top margin keeps the text where the shorter links had it. */}
+        <nav aria-label="Breadcrumb" className="-mt-3 pb-3">
           <ol className="flex items-center gap-2 text-small text-ink-muted">
             <li>
-              <Link href="/shop" variant="subtle">
+              <Link href="/shop" variant="subtle" className="inline-flex min-h-11 items-center">
                 Shop
               </Link>
             </li>
             <li aria-hidden>/</li>
             <li>
-              <Link href={`/shop/${product.category.slug}`} variant="subtle">
+              <Link
+                href={`/shop/${product.category.slug}`}
+                variant="subtle"
+                className="inline-flex min-h-11 items-center"
+              >
                 {product.category.name}
               </Link>
             </li>
