@@ -1,13 +1,16 @@
 import { Accordion, AccordionItem, Container, Link } from "@virzeen/ui";
-import { ProductGallery } from "./product-gallery";
 import { ProductPurchase } from "./product-purchase";
+import { SelectedStyleProvider } from "./selected-style";
+import { StyleGallery } from "./style-gallery";
+import { hasStylePhotos, initialStyle } from "./style-photos";
 
 export type ProductDetailsData = {
   name: string;
   description: string;
   care: string | null;
   category: { name: string; slug: string };
-  images: { id: string; url: string; alt: string }[];
+  /** `color`: the style a photo shows; null = every style (specs/product-styles.md). */
+  images: { id: string; url: string; alt: string; color: string | null }[];
   /** For sale only; `pricePaisa` is what the customer pays (shipping included). */
   variants: { id: string; size: string | null; color: string | null; pricePaisa: number; stock: number }[];
   sizes: string[];
@@ -26,6 +29,17 @@ export function ProductDetails({
   product: ProductDetailsData;
   preview?: boolean;
 }) {
+  const firstStyle = initialStyle(product.variants, product.colors);
+  // Styles with their own photos get picture swatches: each style's first photo.
+  const swatches = hasStylePhotos(product.images, product.colors)
+    ? Object.fromEntries(
+        product.colors.flatMap((style) => {
+          const photo = product.images.find((image) => image.color === style);
+          return photo ? [[style, { url: photo.url, alt: photo.alt }]] : [];
+        }),
+      )
+    : undefined;
+
   return (
     <Container className="py-6 pb-28 md:pb-16 lg:py-12">
       {/* 44px-tall links; the negative top margin keeps the text where the shorter links had it. */}
@@ -48,38 +62,46 @@ export function ProductDetails({
           </li>
         </ol>
       </nav>
-      <div className="grid gap-8 lg:grid-cols-[3fr_2fr] lg:gap-16">
-        <ProductGallery images={product.images} productName={product.name} />
-        <div className="flex flex-col gap-8 lg:sticky lg:top-24 lg:self-start">
-          <h1 className="font-display text-h1">{product.name}</h1>
-          <ProductPurchase
-            variants={product.variants}
-            sizes={product.sizes}
-            colors={product.colors}
-            preview={preview}
+      <SelectedStyleProvider initialStyle={firstStyle}>
+        <div className="grid gap-8 lg:grid-cols-[3fr_2fr] lg:gap-16">
+          <StyleGallery
+            images={product.images}
+            productName={product.name}
+            styles={product.colors}
+            initialStyle={firstStyle}
           />
-          <p className="text-small text-ink-muted">
-            Prices include 13% VAT. Free shipping across Nepal and 7-day free returns. Pay in cash when it
-            arrives.
-          </p>
-          <Accordion type="multiple" defaultValue={["description"]}>
-            <AccordionItem value="description" title="Description">
-              <p className="whitespace-pre-line">{product.description}</p>
-            </AccordionItem>
-            {product.care && (
-              <AccordionItem value="care" title="Care">
-                <p className="whitespace-pre-line">{product.care}</p>
+          <div className="flex flex-col gap-8 lg:sticky lg:top-24 lg:self-start">
+            <h1 className="font-display text-h1">{product.name}</h1>
+            <ProductPurchase
+              variants={product.variants}
+              sizes={product.sizes}
+              colors={product.colors}
+              preview={preview}
+              swatches={swatches}
+            />
+            <p className="text-small text-ink-muted">
+              Prices include 13% VAT. Free shipping across Nepal and 7-day free returns. Pay in cash when it
+              arrives.
+            </p>
+            <Accordion type="multiple" defaultValue={["description"]}>
+              <AccordionItem value="description" title="Description">
+                <p className="whitespace-pre-line">{product.description}</p>
               </AccordionItem>
-            )}
-            <AccordionItem value="shipping" title="Shipping & returns">
-              <p>
-                Free delivery in 1–3 days inside Kathmandu Valley and 3–7 days elsewhere in Nepal. Free
-                returns within 7 days of delivery. <Link href="/returns">Read our returns policy</Link>.
-              </p>
-            </AccordionItem>
-          </Accordion>
+              {product.care && (
+                <AccordionItem value="care" title="Care">
+                  <p className="whitespace-pre-line">{product.care}</p>
+                </AccordionItem>
+              )}
+              <AccordionItem value="shipping" title="Shipping & returns">
+                <p>
+                  Free delivery in 1–3 days inside Kathmandu Valley and 3–7 days elsewhere in Nepal. Free
+                  returns within 7 days of delivery. <Link href="/returns">Read our returns policy</Link>.
+                </p>
+              </AccordionItem>
+            </Accordion>
+          </div>
         </div>
-      </div>
+      </SelectedStyleProvider>
     </Container>
   );
 }

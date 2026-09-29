@@ -234,6 +234,8 @@ model ProductImage {
   /// Cloudinary public id (or a /public path for local seed data).
   url       String
   alt       String
+  /// The style (a variant `color`) this photo shows; null = shared by every style (specs/product-styles.md).
+  color     String?
   sortOrder Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

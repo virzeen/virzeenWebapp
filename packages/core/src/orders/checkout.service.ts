@@ -1,6 +1,7 @@
 import "server-only";
 import { db, type PaymentMethod, type Prisma } from "@virzeen/db";
 import { cartService } from "../cart/cart.service";
+import { imageForColor } from "../catalog/style-images";
 import { cartLineSelect, isLineAvailable, variantLabelOf } from "../cart/cart-summary";
 import { getCoreConfig } from "../config";
 import { AppError } from "../errors";
@@ -151,7 +152,7 @@ export const checkoutService = {
               productSlug: row.variant.product.slug,
               sku: row.variant.sku,
               variantLabel: variantLabelOf(row.variant),
-              imageUrl: row.variant.product.images[0]?.url ?? null,
+              imageUrl: imageForColor(row.variant.product.images, row.variant.color)?.url ?? null,
               unitPricePaisa: row.variant.pricePaisa,
               quantity: row.quantity,
             })),

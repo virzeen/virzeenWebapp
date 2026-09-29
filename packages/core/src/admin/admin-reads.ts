@@ -64,7 +64,7 @@ export const adminReads = {
         // The editor reloads its fields when this changes (after a save).
         updatedAt: true,
         collections: { select: { id: true } },
-        images: { select: { url: true, alt: true }, orderBy: { sortOrder: "asc" } },
+        images: { select: { url: true, alt: true, color: true }, orderBy: { sortOrder: "asc" } },
         // Variants not for sale too, so For sale can be ticked again (variants are never deleted).
         variants: {
           select: {
@@ -84,6 +84,7 @@ export const adminReads = {
     // The form edits the product price before shipping (catalogService.saveProduct adds it back).
     return {
       ...product,
+      images: product.images.map((image) => ({ ...image, color: image.color ?? "" })),
       variants: product.variants.map((v) => ({ ...v, pricePaisa: v.pricePaisa - product.shippingPaisa })),
     };
   },

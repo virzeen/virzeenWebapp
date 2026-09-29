@@ -20,6 +20,8 @@ const summarySelect = {
   publishedAt: true,
   images: { select: { url: true, alt: true }, orderBy: { sortOrder: "asc" }, take: 2 },
   variants: { where: { isActive: true }, select: { stock: true, color: true } },
+  // Photos tied to a style: the card then says "{n} styles" instead of "{n} colours".
+  _count: { select: { images: { where: { color: { not: null } } } } },
 } satisfies Prisma.ProductSelect;
 
 type SummaryRow = Prisma.ProductGetPayload<{ select: typeof summarySelect }>;
@@ -34,6 +36,8 @@ export type ProductSummary = {
   hoverImageUrl: string | null;
   inStock: boolean;
   colorCount: number;
+  /** The colours are styles with their own photos (specs/product-styles.md). */
+  hasStylePhotos: boolean;
 };
 
 function toSummary(row: SummaryRow): ProductSummary {
@@ -48,6 +52,7 @@ function toSummary(row: SummaryRow): ProductSummary {
     hoverImageUrl: second?.url ?? null,
     inStock: row.variants.some((v) => v.stock > 0),
     colorCount: new Set(row.variants.map((v) => v.color).filter(Boolean)).size,
+    hasStylePhotos: row._count.images > 0,
   };
 }
 
@@ -125,7 +130,7 @@ export const catalogReads = {
         fromPricePaisa: true,
         categoryId: true,
         category: { select: { slug: true, name: true } },
-        images: { select: { id: true, url: true, alt: true }, orderBy: { sortOrder: "asc" } },
+        images: { select: { id: true, url: true, alt: true, color: true }, orderBy: { sortOrder: "asc" } },
         variants: {
           where: { isActive: true },
           select: { id: true, sku: true, size: true, color: true, pricePaisa: true, stock: true },

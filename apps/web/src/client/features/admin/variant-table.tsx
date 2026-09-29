@@ -9,7 +9,8 @@ import { RupeesInput } from "./rupees-input";
 import { variantLabel } from "./variant-options";
 
 type VariantTableProps = {
-  fields: FieldArrayWithId<ProductInput, "variants", "fieldKey">[];
+  /** The rows to show with their place in the whole `variants` list (a style card shows only its own). */
+  rows: { field: FieldArrayWithId<ProductInput, "variants", "fieldKey">; index: number }[];
   showPrices: boolean;
   showSkus: boolean;
   onRemove: (index: number) => void;
@@ -23,9 +24,9 @@ const headerClass = "px-3 py-2 text-left text-caption font-medium text-ink-muted
  * Stock grid: one row per size × colour. The column headers are the visible labels (docs/ui/patterns.md §10), so each
  * input's accessible name repeats them with the row ("Stock, Black, M").
  */
-export function VariantTable({ fields, showPrices, showSkus, onRemove, onListChange }: VariantTableProps) {
+export function VariantTable({ rows, showPrices, showSkus, onRemove, onListChange }: VariantTableProps) {
   const form = useFormContext<ProductInput>();
-  const rows = useWatch({ control: form.control, name: "variants" });
+  const values = useWatch({ control: form.control, name: "variants" });
   const errors = form.formState.errors.variants;
   const idBase = useId();
 
@@ -70,8 +71,8 @@ export function VariantTable({ fields, showPrices, showSkus, onRemove, onListCha
           </tr>
         </thead>
         <tbody className="divide-y divide-line">
-          {fields.map((field, index) => {
-            const row = rows[index] ?? field;
+          {rows.map(({ field, index }) => {
+            const row = values[index] ?? field;
             const label = variantLabel(row);
             const stock = errorLine(index, "stock");
             const price = errorLine(index, "pricePaisa");
@@ -140,7 +141,7 @@ export function VariantTable({ fields, showPrices, showSkus, onRemove, onListCha
                 )}
                 <td className="px-1 py-2 align-top">
                   {/* Only a row that isn't saved yet can go: a saved one is switched off with For sale. */}
-                  {!field.id && fields.length > 1 && (
+                  {!field.id && values.length > 1 && (
                     <Button
                       variant="ghost"
                       size="icon"

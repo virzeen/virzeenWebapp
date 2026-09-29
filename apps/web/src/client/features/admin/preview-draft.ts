@@ -59,6 +59,7 @@ export function toPreviewProduct(draft: PreviewDraft): ProductDetailsData {
       id: `${index}-${image.url}`,
       url: image.url,
       alt: text(image.alt) || (index === 0 ? name : `${name}, photo ${index + 1}`),
+      color: text(image.color) || null,
     })),
     variants,
     sizes: sortSizes(variants.flatMap((variant) => (variant.size ? [variant.size] : []))),

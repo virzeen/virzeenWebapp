@@ -69,9 +69,10 @@ test("admin sets up two-factor, creates a product and it appears in the shop", a
   await page.getByLabel(/^Price \(Rs\)/).fill("1350");
   await page.getByLabel(/^Shipping \(Rs\)/).fill("150");
   await expect(page.getByText(/Customers pay Rs 1,500/)).toBeVisible();
-  // A colour, then two sizes typed with commas: a stock row for each combination.
-  await page.getByLabel(/^Colours/).fill("Black");
-  await page.getByLabel(/^Colours/).press("Enter");
+  // A style (colour), then two sizes typed with commas: a stock row for each combination.
+  await page.getByLabel(/^Add a style/).fill("Black");
+  await page.getByLabel(/^Add a style/).press("Enter");
+  await expect(page.getByRole("region", { name: "Black" })).toBeVisible();
   await page.getByLabel(/^Sizes/).fill("S, M,");
   await page.getByLabel("Stock, Black, S").fill("5");
   await page.getByLabel("Stock, Black, M").fill("7");
@@ -127,6 +128,31 @@ test("admin sets up two-factor, creates a product and it appears in the shop", a
   await expect(page.getByLabel(/^Product name/)).toHaveValue("E2E Monochrome Beanie (copy)");
   await expect(page.getByLabel("Stock, Black, S")).toHaveValue("0");
   await expect(page.getByRole("button", { name: "Publish", exact: true })).toBeVisible();
+
+  // Styles (specs/product-styles.md): a second design with its own photo and price on the same page.
+  await page.getByLabel(/^Add another style/).fill("Mountain print");
+  await page.getByLabel(/^Add another style/).press("Enter");
+  const mountain = page.getByRole("region", { name: "Mountain print" });
+  await mountain.getByLabel(/^Image reference/).fill("/placeholder/product-02.jpg");
+  await mountain.getByRole("button", { name: "Add photo" }).click();
+  await mountain.getByLabel(/^Price \(Rs\)/).fill("1650");
+  await expect(mountain.getByText(/Customers pay Rs 1,800/)).toBeVisible();
+  await mountain.getByLabel("Stock, Mountain print, S").fill("3");
+  const black = page.getByRole("region", { name: "Black" });
+  await black.getByLabel(/^Image reference/).fill("/placeholder/product-07.jpg");
+  await black.getByRole("button", { name: "Add photo" }).click();
+  await black.getByLabel("Stock, Black, S").fill("2");
+  await page.getByRole("button", { name: "Publish", exact: true }).click();
+  await expect(page.getByText("Product published")).toBeVisible();
+  // The shop page: picture swatches; picking a style changes its photos and price.
+  await page.goto("/product/e2e-monochrome-beanie-copy");
+  await expect(page.getByText("Style: Black")).toBeVisible();
+  await expect(page.locator('main img[src*="product-07"]').first()).toBeVisible();
+  await page.getByRole("radio", { name: "Mountain print" }).click();
+  await expect(page.getByText("Style: Mountain print")).toBeVisible();
+  await expect(page.locator('main img[src*="product-02"]').first()).toBeVisible();
+  await expect(page.getByText("Rs 1,800").first()).toBeVisible();
+  await expect(page.getByRole("radio", { name: "M", exact: true })).toBeDisabled();
 
   // A mistyped admin address stays inside the admin frame, with a way back.
   await page.goto("/admin/no-such-page");

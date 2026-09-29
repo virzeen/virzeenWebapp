@@ -59,9 +59,38 @@ async function fillBlankSkus(tx: Tx, productId: string | null, slug: string, var
   });
 }
 
-/** Blank photo descriptions become the product name ("{name}, photo 2" from the second on). */
-const altFor = (name: string, alt: string, index: number) =>
-  alt || (index === 0 ? name : `${name}, photo ${index + 1}`);
+type ImageData = ProductData["images"][number];
+
+/**
+ * Photos in shop order: each style's photos in the order of its variants, then the photos shared by every style
+ * (specs/product-styles.md). The first photo is the product card's picture, so it's the first style's main photo.
+ */
+function inShopOrder(images: readonly ImageData[], variants: readonly VariantData[]) {
+  const styles = [...new Set(variants.map((variant) => variant.color?.trim() ?? "").filter(Boolean))];
+  const rank = (image: ImageData) => {
+    const index = styles.indexOf(image.color?.trim() ?? "");
+    return index === -1 ? styles.length : index;
+  };
+  return images
+    .map((image, index) => ({ image, index }))
+    .sort((a, b) => rank(a.image) - rank(b.image) || a.index - b.index)
+    .map(({ image }) => image);
+}
+
+/**
+ * What a blank photo description becomes: the product name, plus the style for a style's photos, plus "photo n"
+ * from the second photo of each group on ("Oversized Tee, Mountain print, photo 2").
+ */
+function defaultAlts(name: string, images: readonly { color?: string | null }[]) {
+  const seen = new Map<string, number>();
+  return images.map((image) => {
+    const style = image.color?.trim() ?? "";
+    const count = (seen.get(style) ?? 0) + 1;
+    seen.set(style, count);
+    const base = style ? `${name}, ${style}` : name;
+    return count === 1 ? base : `${base}, photo ${count}`;
+  });
+}
 
 export const catalogService = {
   /**
@@ -163,11 +192,14 @@ export const catalogService = {
 
         await tx.productImage.deleteMany({ where: { productId: saved.id } });
         if (product.images.length > 0) {
+          const images = inShopOrder(product.images, product.variants);
+          const alts = defaultAlts(product.name, images);
           await tx.productImage.createMany({
-            data: product.images.map((image, index) => ({
+            data: images.map((image, index) => ({
               productId: saved.id,
               url: image.url,
-              alt: altFor(product.name, image.alt, index),
+              alt: image.alt || (alts[index] ?? product.name),
+              color: emptyToNull(image.color?.trim()),
               sortOrder: index,
             })),
           });
@@ -257,7 +289,7 @@ export const catalogService = {
         categoryId: true,
         shippingPaisa: true,
         collections: { where: { archivedAt: null }, select: { id: true } },
-        images: { select: { url: true, alt: true }, orderBy: { sortOrder: "asc" } },
+        images: { select: { url: true, alt: true, color: true }, orderBy: { sortOrder: "asc" } },
         variants: {
           select: { size: true, color: true, pricePaisa: true, isActive: true },
           orderBy: { sortOrder: "asc" },
@@ -276,8 +308,12 @@ export const catalogService = {
     for (let n = 2; used.has(slug); n++) slug = `${base}-${n}`;
 
     // A description made from the old name would name the old product, so it goes back to blank (made again).
-    const alt = (text: string, index: number) => (text === altFor(source.name, "", index) ? "" : text);
+    const madeAlts = defaultAlts(source.name, source.images);
+    const alt = (text: string, index: number) => (text === madeAlts[index] ? "" : text);
     const forSale = source.variants.filter((variant) => variant.isActive);
+    const copied = forSale.length > 0 ? forSale : source.variants;
+    // Photos of a style that isn't copied (switched off) would point at nothing.
+    const styles = new Set(copied.map((variant) => variant.color ?? ""));
     return catalogService.saveProduct(actorId, {
       duplicatedFrom: id,
       product: {
@@ -289,9 +325,13 @@ export const catalogService = {
         categoryId: source.categoryId,
         collectionIds: source.collections.map((collection) => collection.id),
         isPublished: false,
-        images: source.images.map((image, index) => ({ url: image.url, alt: alt(image.alt, index) })),
+        images: source.images.flatMap((image, index) =>
+          !image.color || styles.has(image.color)
+            ? [{ url: image.url, alt: alt(image.alt, index), color: image.color ?? "" }]
+            : [],
+        ),
         shippingPaisa: source.shippingPaisa,
-        variants: (forSale.length > 0 ? forSale : source.variants).map((variant) => ({
+        variants: copied.map((variant) => ({
           sku: "",
           size: variant.size ?? "",
           color: variant.color ?? "",

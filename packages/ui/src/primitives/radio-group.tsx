@@ -6,7 +6,7 @@ import { createContext, useContext } from "react";
 import { cn } from "../lib/cn";
 import { useFormFieldControl } from "./form-field";
 
-type Variant = "default" | "card";
+type Variant = "default" | "card" | "swatch";
 const VariantContext = createContext<Variant>("default");
 
 const groupVariants = cva("", {
@@ -14,6 +14,7 @@ const groupVariants = cva("", {
     variant: {
       default: "flex flex-col gap-3",
       card: "grid grid-cols-[repeat(auto-fill,minmax(4.5rem,1fr))] gap-2",
+      swatch: "grid grid-cols-[repeat(auto-fill,minmax(5rem,1fr))] gap-2",
     },
   },
   defaultVariants: { variant: "default" },
@@ -25,7 +26,8 @@ export type RadioGroupProps = Omit<React.ComponentProps<typeof RadioGroupPrimiti
 /**
  * Pick one of 2–4 choices (payment method, shipping option) or a product variant (size/colour).
  * `variant="card"`: bordered option tiles (variant pickers, payment methods). Unavailable options stay visible
- * but disabled with a line-through. Inside `FormField` the group is labelled by the field label.
+ * but disabled with a line-through. `variant="swatch"`: picture tiles (product styles) — the picked one gets an ink
+ * border, not a fill, so the picture stays visible. Inside `FormField` the group is labelled by the field label.
  */
 export function RadioGroup({ className, variant, ...props }: RadioGroupProps) {
   const { labelId, "aria-describedby": describedBy, "aria-invalid": invalid } = useFormFieldControl();
@@ -49,11 +51,35 @@ export type RadioGroupItemProps = Omit<React.ComponentProps<typeof RadioGroupPri
   description?: React.ReactNode;
   /** Content on the right of a card (e.g. a logo or price). */
   aside?: React.ReactNode;
+  /** Swatch variant: the picture above the label (decorative: the label names the option). */
+  media?: React.ReactNode;
 };
 
 /** One option inside `RadioGroup`. */
-export function RadioGroupItem({ className, label, description, aside, ...props }: RadioGroupItemProps) {
+export function RadioGroupItem({
+  className,
+  label,
+  description,
+  aside,
+  media,
+  ...props
+}: RadioGroupItemProps) {
   const variant = useContext(VariantContext);
+
+  if (variant === "swatch") {
+    return (
+      <RadioGroupPrimitive.Item
+        className={cn(
+          "group flex flex-col items-stretch gap-1 rounded-sm border border-line bg-canvas p-1 text-left text-small text-ink transition-colors duration-150 ease-standard hover:border-ink-muted focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:text-ink-muted data-[state=checked]:border-ink data-[state=checked]:outline-1 data-[state=checked]:-outline-offset-2 data-[state=checked]:outline-ink data-[state=checked]:outline-solid",
+          className,
+        )}
+        {...props}
+      >
+        <span className="group-disabled:opacity-50">{media}</span>
+        <span className="truncate px-1 pb-1 group-disabled:line-through">{label}</span>
+      </RadioGroupPrimitive.Item>
+    );
+  }
 
   if (variant === "card") {
     return (

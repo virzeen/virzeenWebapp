@@ -1,7 +1,8 @@
 import { db } from "@virzeen/db";
 import type { ProductData } from "@virzeen/validators";
 import { beforeEach, describe, expect, it } from "vitest";
-import { createCategory, createUser, resetDatabase } from "../../test/factories";
+import { createCart, createCategory, createUser, resetDatabase } from "../../test/factories";
+import { cartService } from "../cart/cart.service";
 import { adminReads } from "../admin/admin-reads";
 import { catalogReads } from "./catalog.reads";
 import { catalogService } from "./catalog.service";
@@ -446,5 +447,81 @@ describe("adminReads products status", () => {
     ]);
     expect(await adminReads.listProducts()).toHaveLength(2);
     expect(await adminReads.productStatusCounts()).toEqual({ all: 2, published: 1, draft: 1 });
+  });
+});
+
+describe("product styles (specs/product-styles.md)", () => {
+  beforeEach(resetDatabase);
+
+  const row = (color: string, size: string, pricePaisa: number) => ({
+    sku: "",
+    size,
+    color,
+    pricePaisa,
+    stock: 3,
+    isActive: true,
+  });
+
+  it("saves each style's photos in style order before shared ones, with descriptions naming the style", async () => {
+    const admin = await createUser({ role: "ADMIN" });
+    const saved = await catalogService.saveProduct(admin.id, {
+      product: await productInput({
+        name: "Oversized Tee",
+        slug: "oversized-tee",
+        images: [
+          { url: "virzeen/products/tee/chart", alt: "", color: "" },
+          { url: "virzeen/products/tee/river", alt: "", color: "River" },
+          { url: "virzeen/products/tee/mountain-front", alt: "", color: "Mountain" },
+          { url: "virzeen/products/tee/mountain-back", alt: "", color: "Mountain" },
+        ],
+        variants: [row("Mountain", "M", 180_000), row("River", "M", 165_000)],
+      }),
+    });
+
+    const images = await db.productImage.findMany({
+      where: { productId: saved.id },
+      orderBy: { sortOrder: "asc" },
+    });
+    expect(images.map(({ url, alt, color }) => [url.split("/").at(-1), alt, color])).toEqual([
+      ["mountain-front", "Oversized Tee, Mountain", "Mountain"],
+      ["mountain-back", "Oversized Tee, Mountain, photo 2", "Mountain"],
+      ["river", "Oversized Tee, River", "River"],
+      ["chart", "Oversized Tee", null],
+    ]);
+    const page = await catalogReads.getProductBySlug("oversized-tee");
+    expect(page?.images.map((image) => image.color)).toEqual(["Mountain", "Mountain", "River", null]);
+    expect(page?.colors).toEqual(["Mountain", "River"]);
+    const [card] = (await catalogReads.listProducts({ sort: "newest", inStock: false })).items;
+    expect(card).toMatchObject({
+      imageUrl: "virzeen/products/tee/mountain-front",
+      hasStylePhotos: true,
+      colorCount: 2,
+    });
+    const forEdit = await adminReads.getProductForEdit(saved.id);
+    expect(forEdit.images.at(-1)?.color).toBe("");
+  });
+
+  it("shows the bought style's photo in the bag", async () => {
+    const admin = await createUser({ role: "ADMIN" });
+    const saved = await catalogService.saveProduct(admin.id, {
+      product: await productInput({
+        images: [
+          { url: "virzeen/products/tee/mountain", alt: "", color: "Mountain" },
+          { url: "virzeen/products/tee/river", alt: "", color: "River" },
+        ],
+        variants: [row("Mountain", "M", 180_000), row("River", "M", 165_000)],
+      }),
+    });
+    const river = await db.productVariant.findFirstOrThrow({
+      where: { productId: saved.id, color: "River" },
+    });
+
+    const cart = await createCart();
+    const summary = await cartService.addItem({ cartId: cart.id, variantId: river.id, quantity: 1 });
+
+    expect(summary.items[0]).toMatchObject({
+      imageUrl: "virzeen/products/tee/river",
+      unitPricePaisa: 165_000,
+    });
   });
 });

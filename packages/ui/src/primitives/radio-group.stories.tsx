@@ -1,12 +1,13 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect } from "storybook/test";
+import { cn } from "../lib/cn";
 import { RadioGroup, RadioGroupItem } from "./radio-group";
 
 const meta = {
   title: "Primitives/RadioGroup",
   component: RadioGroup,
   tags: ["autodocs"],
-  argTypes: { variant: { control: "select", options: ["default", "card"] } },
+  argTypes: { variant: { control: "select", options: ["default", "card", "swatch"] } },
 } satisfies Meta<typeof RadioGroup>;
 
 export default meta;
@@ -55,4 +56,31 @@ export const PaymentMethods: Story = {
       <RadioGroupItem value="KHALTI" label="Khalti" description="You'll be taken to Khalti to pay" />
     </RadioGroup>
   ),
+};
+
+/** Product styles: a picture per style (the app passes a CloudImage as `media`); sold-out styles are disabled. */
+export const StyleSwatches: Story = {
+  render: () => (
+    <RadioGroup aria-label="Style" variant="swatch" defaultValue="mountain" className="max-w-sm">
+      {[
+        ["mountain", "Mountain print", "bg-ink"],
+        ["river", "River print", "bg-ink-muted"],
+        ["city", "City print", "bg-line-strong"],
+      ].map(([value, label, tone]) => (
+        <RadioGroupItem
+          key={value}
+          value={value as string}
+          label={label}
+          disabled={value === "city"}
+          media={<span className={cn("block aspect-4/5 rounded-sm", tone)} />}
+        />
+      ))}
+    </RadioGroup>
+  ),
+  play: async ({ canvas, userEvent }) => {
+    await expect(canvas.getByRole("radio", { name: "Mountain print" })).toBeChecked();
+    await expect(canvas.getByRole("radio", { name: "City print" })).toBeDisabled();
+    await userEvent.click(canvas.getByRole("radio", { name: "River print" }));
+    await expect(canvas.getByRole("radio", { name: "River print" })).toBeChecked();
+  },
 };

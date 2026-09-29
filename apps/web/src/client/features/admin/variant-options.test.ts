@@ -4,6 +4,7 @@ import {
   optionsFromRows,
   pricesDiffer,
   removeOption,
+  renameOption,
   sortRows,
   variantLabel,
   type VariantRow,
@@ -87,5 +88,14 @@ describe("variant options", () => {
     expect(
       pricesDiffer([row("", "S", { pricePaisa: Number.NaN }), row("", "M", { pricePaisa: Number.NaN })]),
     ).toBe(false);
+  });
+
+  it("renames a style on every row that has it, saved rows included", () => {
+    const rows = [row("Mountain", "S", { id: "saved1" }), row("Mountain", "M"), row("River", "S")];
+    expect(keys(renameOption(rows, "color", "mountain", "Mountain print"))).toEqual([
+      "Mountain print, S",
+      "Mountain print, M",
+      "River, S",
+    ]);
   });
 });

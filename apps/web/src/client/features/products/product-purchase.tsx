@@ -3,11 +3,14 @@
 import { Button, FormField, RadioGroup, RadioGroupItem, Stack, toast } from "@virzeen/ui";
 import { MAX_QTY_PER_LINE } from "@virzeen/validators";
 import { useRef, useState, useTransition } from "react";
+import { CloudImage } from "@/client/components/shared/cloud-image";
 import { Price } from "@/client/components/shared/price";
 import { StockLabel } from "@/client/components/shared/stock-label";
 import { useCart } from "@/client/features/cart/cart-provider";
 import { addToBagMessage } from "@/client/lib/error-messages";
 import { addToCartAction } from "@/server/actions/cart";
+import { useSelectedStyle } from "./selected-style";
+import { initialStyle } from "./style-photos";
 
 type Variant = { id: string; size: string | null; color: string | null; pricePaisa: number; stock: number };
 
@@ -17,6 +20,8 @@ type ProductPurchaseProps = {
   colors: string[];
   /** Admin preview of an unsaved product: Add to bag only says so (its variants may not exist yet). */
   preview?: boolean;
+  /** Styles with their own photos: each colour's first photo, shown as picture swatches (specs/product-styles.md). */
+  swatches?: Record<string, { url: string; alt: string }>;
 };
 
 /** Why Add to bag stops: the bag already holds every piece left, or the per-line cap. */
@@ -30,12 +35,18 @@ function allInBagMessage(limit: number): string {
  * On phones the button sits in a sticky bottom bar (`data-sticky-cta`: globals.css keeps focus and the footer
  * clear of it). Pressed before a size is chosen, it points to the sizes instead of doing nothing.
  */
-export function ProductPurchase({ variants, sizes, colors, preview = false }: ProductPurchaseProps) {
+export function ProductPurchase({
+  variants,
+  sizes,
+  colors,
+  preview = false,
+  swatches,
+}: ProductPurchaseProps) {
   const { cart, setCart, open } = useCart();
   const [isPending, startTransition] = useTransition();
-  // A sold-out product starts with no colour picked, so no chip looks both selected and crossed out.
-  const firstInStockColor = colors.find((c) => variants.some((v) => v.color === c && v.stock > 0)) ?? null;
-  const [color, setColor] = useState<string | null>(firstInStockColor);
+  // A sold-out product starts with no colour picked, so no chip looks both selected and crossed out. The pick is
+  // shared with the gallery, which shows that style's photos.
+  const { style: color, setStyle: setColor } = useSelectedStyle(initialStyle(variants, colors));
   const [size, setSize] = useState<string | null>(null);
   const [sizeError, setSizeError] = useState(false);
   // The variant whose Add to bag found every piece already in the bag.
@@ -48,7 +59,9 @@ export function ProductPurchase({ variants, sizes, colors, preview = false }: Pr
     variants.find((v) => (colors.length === 0 || v.color === c) && (!needsSize || v.size === s));
   const selected = needsSize && !size ? undefined : variantFor(color, size);
 
-  const prices = variants.map((v) => v.pricePaisa);
+  // Styles can have their own price: before a size is picked, show the picked style's (specs/product-styles.md).
+  const pool = color ? variants.filter((v) => v.color === color) : variants;
+  const prices = (pool.length > 0 ? pool : variants).map((v) => v.pricePaisa);
   const hasRange = Math.min(...prices) !== Math.max(...prices);
   const displayPrice = selected?.pricePaisa ?? Math.min(...prices);
   const colorHasStock = (c: string) => variants.some((v) => v.color === c && v.stock > 0);
@@ -93,18 +106,26 @@ export function ProductPurchase({ variants, sizes, colors, preview = false }: Pr
       <Price paisa={displayPrice} from={hasRange && !selected} className="text-h3" />
 
       {colors.length > 0 && (
-        <FormField label={color ? `Colour: ${color}` : "Colour"}>
+        <FormField label={`${swatches ? "Style" : "Colour"}${color ? `: ${color}` : ""}`}>
           <RadioGroup
-            variant="card"
+            variant={swatches ? "swatch" : "card"}
             value={color ?? ""}
             onValueChange={(value) => {
               setColor(value);
               if (size && !variantFor(value, size)?.stock) setSize(null);
             }}
-            className="grid-cols-2 sm:grid-cols-3"
+            className={swatches ? undefined : "grid-cols-2 sm:grid-cols-3"}
           >
             {colors.map((c) => (
-              <RadioGroupItem key={c} value={c} label={c} disabled={!colorHasStock(c)} />
+              <RadioGroupItem
+                key={c}
+                value={c}
+                label={c}
+                disabled={!colorHasStock(c)}
+                media={
+                  swatches ? <CloudImage src={swatches[c]?.url ?? null} alt="" sizes="80px" /> : undefined
+                }
+              />
             ))}
           </RadioGroup>
         </FormField>

@@ -1,6 +1,7 @@
 import "server-only";
 import type { Prisma, PrismaClient } from "@virzeen/db";
 import { MAX_QTY_PER_LINE } from "@virzeen/validators";
+import { imageForColor } from "../catalog/style-images";
 import { calculateSubtotal } from "../pricing/calculate-totals";
 
 type Client = Prisma.TransactionClient | PrismaClient;
@@ -54,7 +55,8 @@ export const cartLineSelect = {
           slug: true,
           isPublished: true,
           archivedAt: true,
-          images: { select: { url: true, alt: true }, orderBy: { sortOrder: "asc" }, take: 1 },
+          // All of them: the line shows the photo of the style bought (imageForColor).
+          images: { select: { url: true, alt: true, color: true }, orderBy: { sortOrder: "asc" } },
         },
       },
     },
@@ -70,7 +72,7 @@ export function isLineAvailable(row: CartLineRow): boolean {
 
 export function toCartLine(row: CartLineRow): CartLine {
   const { variant } = row;
-  const image = variant.product.images[0];
+  const image = imageForColor(variant.product.images, variant.color);
   const isAvailable = isLineAvailable(row);
   return {
     id: row.id,

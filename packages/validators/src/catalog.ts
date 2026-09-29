@@ -72,6 +72,8 @@ export const sortOrderSchema = z
 export const productImageSchema = z.strictObject({
   url: imageRefSchema,
   alt: altSchema,
+  /** The style (a variant colour) this photo shows; blank = shared by every style (specs/product-styles.md). */
+  color: z.string().trim().max(40).optional().or(z.literal("")),
 });
 export type ProductImageInput = z.infer<typeof productImageSchema>;
 
@@ -148,7 +150,7 @@ export const productSchema = z
     categoryId: z.cuid2({ error: "Choose a category" }),
     collectionIds: z.array(idSchema).max(20, { error: "Choose up to 20 collections" }),
     isPublished: z.boolean(),
-    images: z.array(productImageSchema).max(12, { error: "Add up to 12 images" }),
+    images: z.array(productImageSchema).max(60, { error: "Add up to 60 photos" }),
     /** Delivery charge added to every variant's price; customers see one price and free shipping. */
     shippingPaisa: z
       .int({ error: "Enter a shipping price (0 for none)" })
@@ -169,6 +171,20 @@ export const productSchema = z
         if (sku && skus.indexOf(sku) !== skus.lastIndexOf(sku)) {
           // On every clashing row, so the admin sees which ones to change.
           ctx.addIssue({ code: "custom", path: ["variants", index, "sku"], message: DUPLICATE_SKU });
+        }
+      });
+      const styles = new Set(
+        rows.map((row) => (isRecord(row) && typeof row.color === "string" ? row.color.trim() : "")),
+      );
+      const images: unknown[] = Array.isArray(product.images) ? product.images : [];
+      images.forEach((image, index) => {
+        const style = isRecord(image) && typeof image.color === "string" ? image.color.trim() : "";
+        if (style && !styles.has(style)) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["images", index, "color"],
+            message: `No style is called "${style}"`,
+          });
         }
       });
       if (product.isPublished !== true) return;

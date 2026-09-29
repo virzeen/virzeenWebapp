@@ -5,7 +5,7 @@ import { Accordion, AccordionItem, Alert, FormField, Input, Textarea, toast } fr
 import { productSchema, type ProductInput } from "@virzeen/validators";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FormProvider, useForm } from "react-hook-form";
+import { FormProvider, useFieldArray, useForm, useWatch } from "react-hook-form";
 import { messageFor } from "@/client/lib/error-messages";
 import { saveProductAction } from "@/server/actions/admin/catalog";
 import { useRevealFirstError } from "./form-focus";
@@ -72,6 +72,11 @@ export function ProductForm({
     shouldFocusError: false,
   });
   const { errors, isDirty, submitCount } = form.formState;
+  // One photo list for the shared photos and every style card (specs/product-styles.md).
+  const images = useFieldArray({ control: form.control, name: "images", keyName: "fieldKey" });
+  const hasStyles = useWatch({ control: form.control, name: "variants" }).some(
+    (row) => row.isActive && (row.color ?? "").trim() !== "",
+  );
   const formRef = useRevealFirstError(submitCount);
   useUnsavedChanges(isDirty && pending === null);
 
@@ -181,7 +186,19 @@ export function ProductForm({
             />
           </FormField>
 
-          <ProductPhotos productId={saved?.id} uploadsEnabled={uploadsEnabled} onListChange={recheckLists} />
+          <ProductPhotos
+            images={images}
+            style=""
+            title={hasStyles ? "Photos for every style" : "Photos"}
+            hint={
+              hasStyles
+                ? "Optional: photos that fit every style, like a size chart. Each style's own photos are in its card under Price and stock."
+                : undefined
+            }
+            productId={saved?.id}
+            uploadsEnabled={uploadsEnabled}
+            onListChange={recheckLists}
+          />
 
           <section aria-labelledby="description-heading" className="flex flex-col gap-4">
             <h2 id="description-heading" className="font-display text-h3">
@@ -198,6 +215,9 @@ export function ProductForm({
           <ProductVariants
             initialRows={initial.variants}
             savedAt={saved?.savedAt}
+            images={images}
+            productId={saved?.id}
+            uploadsEnabled={uploadsEnabled}
             onListChange={recheckLists}
           />
         </div>

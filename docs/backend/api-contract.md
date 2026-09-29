@@ -53,6 +53,7 @@ type ProductSummary = {
   hoverImageUrl: string | null;
   inStock: boolean;
   colorCount: number;
+  hasStylePhotos: boolean; // the colours are styles with their own photos ("{n} styles"), specs/product-styles.md
 };
 type ProductDetail = {
   id: string;
@@ -63,7 +64,7 @@ type ProductDetail = {
   fromPricePaisa: number;
   inStock: boolean;
   imageUrl: string | null;
-  images: { url: string; alt: string }[];
+  images: { url: string; alt: string; color: string | null }[]; // color: the style (variant color) shown; null = every style
   variants: Variant[];
 };
 type Variant = {

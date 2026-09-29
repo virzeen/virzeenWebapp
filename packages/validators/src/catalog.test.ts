@@ -109,6 +109,20 @@ describe("productSchema messages", () => {
     });
   });
 
+  it("takes photos for a style or for every style, and names a photo whose style doesn't exist", () => {
+    const withStyles = {
+      ...product,
+      images: [
+        { url: "virzeen/products/abc/front", alt: "", color: "Black" },
+        { url: "virzeen/products/abc/chart", alt: "", color: "" },
+      ],
+    };
+    expect(productSchema.safeParse(withStyles).success).toBe(true);
+    expect(
+      errorsOf({ ...product, images: [{ url: "virzeen/products/abc/front", alt: "", color: "Blue" }] }),
+    ).toEqual({ "images.0.color": 'No style is called "Blue"' });
+  });
+
   it("lets a draft have no images and no variant for sale", () => {
     const draft = { ...product, isPublished: false, images: [], variants: [{ ...variant, isActive: false }] };
     expect(productSchema.safeParse(draft).success).toBe(true);

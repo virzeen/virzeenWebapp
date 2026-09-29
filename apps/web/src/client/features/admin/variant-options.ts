@@ -105,3 +105,17 @@ export function sortRows(rows: readonly VariantRow[], options: Options): Variant
 /** True when the rows don't all have the same product price (the editor then shows a price per row). */
 export const pricesDiffer = (rows: readonly VariantRow[]) =>
   rows.some((row) => !Object.is(row.pricePaisa, rows[0]?.pricePaisa));
+
+/** Rows after renaming a size or colour (style) everywhere it's used; the caller checks `to` is new and not blank. */
+export const renameOption = (rows: readonly VariantRow[], kind: OptionKind, from: string, to: string) =>
+  rows.map((row) => (sameValue(row[kind], from) ? { ...row, [kind]: to } : row));
+
+/** True when some style has different prices for its sizes (styles may differ from each other: that's their price). */
+export function pricesDifferInAStyle(rows: readonly VariantRow[]) {
+  const byStyle = new Map<string, VariantRow[]>();
+  for (const row of rows) {
+    const style = clean(row.color).toLowerCase();
+    byStyle.set(style, [...(byStyle.get(style) ?? []), row]);
+  }
+  return [...byStyle.values()].some(pricesDiffer);
+}
