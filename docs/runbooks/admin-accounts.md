@@ -13,15 +13,19 @@ By default it uses `DATABASE_URL` from `apps/web/.env.local` (your local databas
 
 ## Against production
 
-1. In Railway, open the Postgres service and copy its **public** connection URL (`DATABASE_PUBLIC_URL`). The private URL only works inside Railway.
-2. In a terminal at the repo root (PowerShell):
+The production database has no public address. Reach it through a Railway tunnel.
+
+1. Install the Railway CLI, run `railway link` in the repo folder (project `abundant-harmony`), then `railway connect Postgres --tunnel-only`. It prints a local connection URL and keeps the tunnel open until Ctrl+C.
+2. In a second terminal at the repo root (PowerShell):
    ```powershell
-   $env:DATABASE_URL = "<public connection URL>"
+   $env:DATABASE_URL = "<URL printed by the tunnel>"
    pnpm admin list
    pnpm admin grant owner@yourdomain.com --yes
    Remove-Item Env:DATABASE_URL
    ```
-3. Check the line starting `Database:` shows the production host before you add `--yes`.
+3. Check the line starting `Database:` reads `railway on localhost (Railway)` before you add `--yes`. Close the tunnel when you're done.
+
+Don't switch on the database's Public Access for this. While `DATABASE_PUBLIC_URL` exists, Railway keeps recreating the public proxy.
 
 ## First admin (launch day)
 

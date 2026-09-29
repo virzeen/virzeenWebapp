@@ -19,7 +19,8 @@ Railway — service "web" (Next.js, Singapore)
                          ├──► Resend (email)
                          └──► Upstash Redis (rate limits)
 Railway — service "cron": calls /api/cron/* with a secret (payment reconciliation)
-GitHub Actions: CI on every PR, nightly pg_dump → Cloudflare R2
+Railway — service "db-backup": nightly pg_dump over the private network → Backblaze B2
+GitHub Actions: CI on every PR
 ```
 
 ## Monorepo layout

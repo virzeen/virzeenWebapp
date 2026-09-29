@@ -31,6 +31,7 @@ export default function PrivacyPage() {
       <p>A few companies help us run the shop. Each gets only what it needs for its job:</p>
       <ul className="flex list-disc flex-col gap-2 pl-6">
         <li>Railway hosts the website and our database, in Singapore.</li>
+        <li>Backblaze keeps encrypted nightly backups of our database, in the USA, for about a month.</li>
         <li>Cloudflare runs our domain and protects the site from attacks.</li>
         <li>Resend delivers our emails.</li>
         <li>

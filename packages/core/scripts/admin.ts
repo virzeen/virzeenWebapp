@@ -28,9 +28,12 @@ try {
 } catch {
   fail("DATABASE_URL is missing or invalid. Set it, or add it to apps/web/.env.local.");
 }
-const isLocal = ["localhost", "127.0.0.1", "::1", "[::1]"].includes(host);
+// Railway names its databases "railway". Production reached through `railway connect --tunnel-only` shows up
+// on localhost, so that name never counts as this computer.
+const isRailway = name === "railway";
+const isLocal = ["localhost", "127.0.0.1", "::1", "[::1]"].includes(host) && !isRailway;
 // Host and database name only: the URL also holds the password.
-console.log(`Database: ${name} on ${host}${isLocal ? " (this computer)" : ""}`);
+console.log(`Database: ${name} on ${host}${isLocal ? " (this computer)" : isRailway ? " (Railway)" : ""}`);
 
 if (command !== "list") {
   if (!["grant", "reset-2fa", "revoke"].includes(command ?? "") || !email) fail(USAGE);
