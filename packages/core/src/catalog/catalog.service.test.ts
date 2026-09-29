@@ -24,6 +24,7 @@ async function productInput(overrides: Partial<ProductData> = {}): Promise<Produ
     isPublished: true,
     images: [{ url: "virzeen/products/linen/front", alt: "Front view" }],
     features: [],
+    styles: [],
     shippingPaisa: 0,
     variants: [
       { sku: "VZ-LINEN-BLK-M", size: "M", color: "Black", pricePaisa: 450_000, stock: 3, isActive: true },
@@ -625,10 +626,14 @@ describe("product details, features and size guides (specs/product-page.md, spec
       },
     });
     const after = await adminReads.getProductForEdit(saved.id);
+    // A cleared origin stays cleared: the editor shows what the product page shows (no origin line).
     expect(after).toMatchObject({ countryOfOrigin: "", sizeGuideId: "" });
+    expect(after.values.countryOfOrigin).toBe("");
     expect(after.features.map((feature) => feature.title)).toEqual(["Roomy pockets"]);
     expect(await db.productFeature.count()).toBe(1);
-    expect((await catalogReads.getProductBySlug("linen-overshirt"))?.sizeGuide).toBeNull();
+    const shop = await catalogReads.getProductBySlug("linen-overshirt");
+    expect(shop?.sizeGuide).toBeNull();
+    expect(shop?.countryOfOrigin).toBeNull();
   });
 
   it("refuses a size guide that is archived or doesn't exist, in the form's words", async () => {

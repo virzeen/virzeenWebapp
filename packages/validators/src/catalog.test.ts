@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   adminProductFiltersSchema,
   categorySchema,
+  createDraftProductSchema,
   parseSizeChart,
   productSchema,
+  relatedByCategorySchema,
   saveSizeGuideSchema,
   sizeChartSchema,
   sizeGuideSchema,
@@ -33,6 +35,7 @@ const product = {
   isPublished: true,
   images: [{ url: "virzeen/products/abc/front", alt: "Front view" }],
   features: [],
+  styles: [],
   shippingPaisa: 15_000,
   variants: [variant],
 };
@@ -61,7 +64,6 @@ describe("productSchema messages", () => {
     expect(errors).toEqual({
       name: "Enter the product name",
       slug: "Enter a URL slug",
-      description: "Enter a description",
       categoryId: "Choose a category",
       shippingPaisa: "Enter a shipping price (0 for none)",
       "variants.0.pricePaisa": "Enter a price in rupees, e.g. 1250",
@@ -137,9 +139,24 @@ describe("productSchema messages", () => {
     ).toEqual({ "images.0.color": 'No style is called "Blue"' });
   });
 
-  it("lets a draft have no images and no variant for sale", () => {
-    const draft = { ...product, isPublished: false, images: [], variants: [{ ...variant, isActive: false }] };
+  it("lets a draft have no description, no images and no variant for sale", () => {
+    const draft = {
+      ...product,
+      description: " ",
+      isPublished: false,
+      images: [],
+      variants: [{ ...variant, isActive: false }],
+    };
     expect(productSchema.safeParse(draft).success).toBe(true);
+  });
+
+  it("needs a description to publish", () => {
+    expect(errorsOf({ ...product, description: "  " })).toEqual({
+      description: "Add a description before publishing",
+    });
+    expect(errorsOf({ ...product, description: "x".repeat(5001) })).toEqual({
+      description: "Keep the description under 5,000 characters",
+    });
   });
 
   it("does not crash on input that is not an object", () => {
@@ -169,8 +186,12 @@ describe("productSchema: product details and features (specs/product-page.md)", 
   });
 
   it("needs every new key, so old forms fail loudly instead of wiping the details", () => {
-    const { benefits: _benefits, features: _features, ...old } = product;
-    expect(errorsOf(old)).toMatchObject({ benefits: expect.any(String), features: expect.any(String) });
+    const { benefits: _benefits, features: _features, styles: _styles, ...old } = product;
+    expect(errorsOf(old)).toMatchObject({
+      benefits: expect.any(String),
+      features: expect.any(String),
+      styles: expect.any(String),
+    });
   });
 
   it("limits benefits to 12, details to 20 and each line to 200 characters", () => {
@@ -219,6 +240,85 @@ describe("productSchema: product details and features (specs/product-page.md)", 
     expect(errorsOf({ ...product, features: [{ title: "Soft", body: "Very." }] })).toEqual({
       "features.0.imageUrl": "Add a picture for the feature",
     });
+  });
+});
+
+describe("productSchema: styles (specs/product-editor-on-page.md)", () => {
+  it("takes each style's colour shown and the style number it had, trimmed, with blanks allowed", () => {
+    const result = productSchema.safeParse({
+      ...product,
+      styles: [
+        { color: " Black ", colourShown: " Black/White ", code: " VZ0042-101 " },
+        { color: "Bone", colourShown: "" },
+        { color: "", code: "" },
+      ],
+    });
+    expect(result.success).toBe(true);
+    expect(result.data?.styles).toEqual([
+      { color: "Black", colourShown: "Black/White", code: "VZ0042-101" },
+      { color: "Bone", colourShown: "" },
+      { color: "", code: "" },
+    ]);
+  });
+
+  it("names every style that has another style's name, ignoring case and spaces", () => {
+    expect(
+      errorsOf({
+        ...product,
+        styles: [{ color: "Black" }, { color: "White" }, { color: " black " }],
+      }),
+    ).toEqual({
+      "styles.0.color": "Two styles have the same name",
+      "styles.2.color": "Two styles have the same name",
+    });
+  });
+
+  it("limits styles to 20 and their names and colour shown to 40 and 80 characters", () => {
+    expect(
+      errorsOf({ ...product, styles: Array.from({ length: 21 }, (_, i) => ({ color: `Style ${i}` })) }),
+    ).toEqual({ styles: "Add up to 20 styles" });
+    expect(
+      errorsOf({ ...product, styles: [{ color: "x".repeat(41), colourShown: "x".repeat(81), extra: 1 }] }),
+    ).toMatchObject({
+      "styles.0.color": "Keep the style name under 40 characters",
+      "styles.0.colourShown": "Keep the colour shown under 80 characters",
+    });
+  });
+});
+
+describe("createDraftProductSchema (New product popup)", () => {
+  it("takes a name, a category and a price", () => {
+    expect(
+      createDraftProductSchema.parse({ name: " Beanie ", categoryId: VALID_ID, pricePaisa: 135_000 }),
+    ).toEqual({ name: "Beanie", categoryId: VALID_ID, pricePaisa: 135_000 });
+  });
+
+  it("says what is missing in the product form's words, and takes nothing else", () => {
+    const result = createDraftProductSchema.safeParse({ name: "", categoryId: "", pricePaisa: Number.NaN });
+    const errors = Object.fromEntries(result.error?.issues.map((i) => [i.path.join("."), i.message]) ?? []);
+    expect(errors).toEqual({
+      name: "Enter the product name",
+      categoryId: "Choose a category",
+      pricePaisa: "Enter a price in rupees, e.g. 1250",
+    });
+    expect(
+      createDraftProductSchema.safeParse({
+        name: "Beanie",
+        categoryId: VALID_ID,
+        pricePaisa: 135_000,
+        isPublished: true,
+      }).success,
+    ).toBe(false);
+  });
+});
+
+describe("relatedByCategorySchema", () => {
+  it("takes a category and, optionally, the product to leave out", () => {
+    expect(relatedByCategorySchema.safeParse({ categoryId: VALID_ID }).success).toBe(true);
+    expect(relatedByCategorySchema.safeParse({ categoryId: VALID_ID, excludeId: VALID_ID }).success).toBe(
+      true,
+    );
+    expect(relatedByCategorySchema.safeParse({ categoryId: "" }).success).toBe(false);
   });
 });
 

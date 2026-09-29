@@ -23,6 +23,7 @@ await db.$transaction([
   db.productFeature.deleteMany(),
   db.productImage.deleteMany(),
   db.productVariant.deleteMany(),
+  db.productStyle.deleteMany(),
   db.product.deleteMany(),
   db.sizeGuide.deleteMany(),
   db.portfolioProject.deleteMany(),

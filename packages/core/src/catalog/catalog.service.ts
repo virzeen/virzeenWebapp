@@ -1,8 +1,16 @@
 import "server-only";
 import { db, type Prisma } from "@virzeen/db";
-import type { CategoryInput, CollectionInput, ProductData, SizeGuideInput } from "@virzeen/validators";
+import type {
+  CategoryInput,
+  CollectionInput,
+  CreateDraftProductInput,
+  ProductData,
+  SizeGuideInput,
+} from "@virzeen/validators";
+import { DEFAULT_COUNTRY_OF_ORIGIN, readProductForEdit, type ProductFormValues } from "../admin/admin-reads";
 import { recordAudit } from "../audit/audit";
 import { AppError, isUniqueViolation } from "../errors";
+import { saveStyles, styleColors } from "./product-styles";
 
 const emptyToNull = (value: string | undefined) => (value && value.length > 0 ? value : null);
 
@@ -22,6 +30,37 @@ const plural = (count: number, one: string, many: string) => `${count} ${count =
 
 type Tx = Prisma.TransactionClient;
 type VariantData = ProductData["variants"][number];
+
+/**
+ * What a save hands back to the product editor (specs/product-editor-on-page.md): the product as the editor's values
+ * right after the save (variant ids, made SKUs and photo descriptions, style numbers), so the next autosave updates
+ * the same rows instead of adding them again. `savedAt` is the product's updatedAt (ISO).
+ */
+export type SavedProduct = { id: string; slug: string; savedAt: string; values: ProductFormValues };
+
+/** A URL slug from a name: "Linen Shirt (Black)" → "linen-shirt-black"; "product" when nothing is left. */
+function slugFrom(name: string) {
+  const slug = name
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "")
+    .slice(0, 110)
+    .replace(/-+$/, "");
+  return slug || "product";
+}
+
+/** `base`, or `base`-2, -3… when another product (archived ones too) has it. */
+async function freeSlug(base: string) {
+  const used = new Set(
+    (await db.product.findMany({ where: { slug: { startsWith: base } }, select: { slug: true } })).map(
+      (row) => row.slug,
+    ),
+  );
+  let slug = base;
+  for (let n = 2; used.has(slug); n++) slug = `${base}-${n}`;
+  return slug;
+}
 
 /** Letters and digits only, upper case, cut to `max` (SKU parts must match [A-Z0-9]+). */
 const skuPart = (text: string | undefined, max: number) =>
@@ -97,14 +136,15 @@ function defaultAlts(name: string, images: readonly { color?: string | null }[])
 
 export const catalogService = {
   /**
-   * Creates or updates a product with its images, variants and collections in one transaction.
+   * Creates or updates a product with its images, variants, styles and collections in one transaction.
    * Variants missing from the input are deactivated (never deleted: orders reference them); a new row with one
-   * of their SKUs brings that variant back. Blank SKUs and photo descriptions are made here.
+   * of their SKUs brings that variant back. Blank SKUs, photo descriptions and style numbers (saveStyles) are made
+   * here. Returns the product as the editor's values after the save.
    */
   async saveProduct(
     actorId: string,
     input: { id?: string | undefined; product: ProductData; duplicatedFrom?: string },
-  ) {
+  ): Promise<SavedProduct> {
     const { product } = input;
     // Admin enters product price and shipping separately; customers pay (and see) the sum, with free shipping.
     const customerPrice = (productPricePaisa: number) => productPricePaisa + product.shippingPaisa;
@@ -113,6 +153,12 @@ export const catalogService = {
     if (product.isPublished && activePrices.length === 0) {
       throw new AppError("VALIDATION_FAILED", "A published product needs at least one variant for sale.", {
         fields: { variants: "Tick For sale on at least one variant, or switch off Published" },
+      });
+    }
+    // Drafts may have no description yet (specs/product-editor-on-page.md); productSchema says the same.
+    if (product.isPublished && product.description.trim() === "") {
+      throw new AppError("VALIDATION_FAILED", "Add a description before publishing.", {
+        fields: { description: "Add a description before publishing" },
       });
     }
 
@@ -206,7 +252,7 @@ export const catalogService = {
           ? await tx.product.update({
               where: { id: existing.id },
               data: { ...data, sizeGuide: sizeGuide ?? { disconnect: true } },
-              select: { id: true, slug: true },
+              select: { id: true, number: true },
             })
           : await tx.product.create({
               data: {
@@ -214,7 +260,7 @@ export const catalogService = {
                 ...(sizeGuide ? { sizeGuide } : {}),
                 collections: { connect: product.collectionIds.map((id) => ({ id })) },
               },
-              select: { id: true, slug: true },
+              select: { id: true, number: true },
             });
 
         await tx.productImage.deleteMany({ where: { productId: saved.id } });
@@ -291,6 +337,10 @@ export const catalogService = {
           data: { isActive: false },
         });
 
+        // Style numbers and colour shown: one per variant colour (or one for a product without colours).
+        const styles = styleColors(product.variants);
+        await saveStyles(tx, saved, styles, product.styles);
+
         await recordAudit(tx, {
           actorId,
           action: existing ? "product.update" : "product.create",
@@ -300,13 +350,20 @@ export const catalogService = {
             name: product.name,
             isPublished: product.isPublished,
             variants: product.variants.length,
+            styles: styles.filter(Boolean).length,
             features: product.features.length,
             sizeGuideId,
             shippingPaisa: product.shippingPaisa,
             ...(input.duplicatedFrom ? { duplicatedFrom: input.duplicatedFrom } : {}),
           },
         });
-        return saved;
+        const after = await readProductForEdit(tx, saved.id);
+        return {
+          id: after.id,
+          slug: after.slug,
+          savedAt: after.updatedAt.toISOString(),
+          values: after.values,
+        };
       });
     } catch (error) {
       if (isUniqueViolation(error)) {
@@ -319,10 +376,10 @@ export const catalogService = {
 
   /**
    * Copies a product as a draft to start a similar one: "{name} (copy)", slug "{slug}-copy" (then -copy-2…), same
-   * photos, text, details, features, size guide, category, collections, shipping and prices; stock 0 and new SKUs
-   * (made like blank ones).
+   * photos, text, details, features, size guide, category, collections, shipping, prices and colour shown; stock 0,
+   * new SKUs (made like blank ones), and a new product number with new style numbers.
    */
-  async duplicateProduct(actorId: string, id: string) {
+  async duplicateProduct(actorId: string, id: string): Promise<SavedProduct> {
     const source = await db.product.findFirst({
       where: { id, archivedAt: null },
       select: {
@@ -347,18 +404,12 @@ export const catalogService = {
           select: { size: true, color: true, pricePaisa: true, isActive: true },
           orderBy: { sortOrder: "asc" },
         },
+        styles: { select: { color: true, colourShown: true } },
       },
     });
     if (!source) throw new AppError("NOT_FOUND", "Product not found.");
 
-    const base = `${source.slug.slice(0, 110).replace(/-+$/, "")}-copy`;
-    const usedSlugs = await db.product.findMany({
-      where: { slug: { startsWith: base } },
-      select: { slug: true },
-    });
-    const used = new Set(usedSlugs.map((row) => row.slug));
-    let slug = base;
-    for (let n = 2; used.has(slug); n++) slug = `${base}-${n}`;
+    const slug = await freeSlug(`${source.slug.slice(0, 110).replace(/-+$/, "")}-copy`);
 
     // A description made from the old name would name the old product, so it goes back to blank (made again).
     const madeAlts = defaultAlts(source.name, source.images);
@@ -376,7 +427,7 @@ export const catalogService = {
         care: source.care ?? "",
         benefits: source.benefits,
         details: source.details,
-        countryOfOrigin: source.countryOfOrigin ?? "",
+        countryOfOrigin: source.countryOfOrigin?.trim() || DEFAULT_COUNTRY_OF_ORIGIN,
         seoDescription: source.seoDescription ?? "",
         categoryId: source.categoryId,
         sizeGuideId: source.sizeGuide && !source.sizeGuide.archivedAt ? source.sizeGuide.id : "",
@@ -393,6 +444,8 @@ export const catalogService = {
           imageUrl: feature.imageUrl,
           alt: feature.imageAlt === featureAlt(source.name, feature.title) ? "" : feature.imageAlt,
         })),
+        // The colour shown is copied; the style numbers are the copy's own (saveStyles makes them).
+        styles: source.styles.map((style) => ({ color: style.color, colourShown: style.colourShown ?? "" })),
         shippingPaisa: source.shippingPaisa,
         variants: copied.map((variant) => ({
           sku: "",
@@ -405,6 +458,36 @@ export const catalogService = {
         })),
       },
     });
+  },
+
+  /**
+   * Starts a product from the New product popup (specs/product-editor-on-page.md): a draft with the name, category
+   * and price, a slug made from the name (-2, -3… when taken), no description or photos, no shipping, origin China,
+   * and one variant (no size or colour, stock 0, made SKU) with its style number. The editor opens on it.
+   */
+  async createDraft(actorId: string, input: CreateDraftProductInput): Promise<{ id: string }> {
+    const saved = await catalogService.saveProduct(actorId, {
+      product: {
+        name: input.name,
+        slug: await freeSlug(slugFrom(input.name)),
+        description: "",
+        care: "",
+        benefits: [],
+        details: [],
+        countryOfOrigin: DEFAULT_COUNTRY_OF_ORIGIN,
+        seoDescription: "",
+        categoryId: input.categoryId,
+        sizeGuideId: "",
+        collectionIds: [],
+        isPublished: false,
+        images: [],
+        features: [],
+        styles: [],
+        shippingPaisa: 0,
+        variants: [{ sku: "", size: "", color: "", pricePaisa: input.pricePaisa, stock: 0, isActive: true }],
+      },
+    });
+    return { id: saved.id };
   },
 
   /** Hides a product for good (soft delete). Orders keep their snapshots. */

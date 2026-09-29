@@ -1,6 +1,7 @@
 import "server-only";
 import { db, type Prisma } from "@virzeen/db";
 import { parseSizeChart, sortSizes, type ShopFilters, type SizeChart } from "@virzeen/validators";
+import { stylesForShop } from "./product-styles";
 
 // Read models shared by web queries and /api/v1 (docs/backend/api-contract.md "Shapes").
 
@@ -185,24 +186,40 @@ export const catalogReads = {
           select: { id: true, sku: true, size: true, color: true, pricePaisa: true, stock: true },
           orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
         },
+        styles: { select: { color: true, code: true, colourShown: true } },
       },
     });
     if (!row || row.variants.length === 0) return null;
+    const colors = [...new Set(row.variants.flatMap((v) => (v.color ? [v.color] : [])))];
     return {
       ...row,
       sizeGuide: toProductSizeGuide(row.sizeGuide),
       inStock: row.variants.some((v) => v.stock > 0),
       sizes: sortSizes(row.variants.flatMap((v) => (v.size ? [v.size] : []))),
-      colors: [...new Set(row.variants.flatMap((v) => (v.color ? [v.color] : [])))],
+      colors,
+      /**
+       * Style numbers and "Colour shown" for the product's colours in style order, or the one style ("") of a
+       * product without colours (specs/product-editor-on-page.md). colourShown falls back to the colour.
+       */
+      styles: stylesForShop(colors, row.styles),
     };
   },
 
-  async listRelated(product: { id: string; categoryId: string }, limit = 4): Promise<ProductSummary[]> {
+  /** "You may also like": published products of a category (newest first), without `excludeId`. */
+  async listRelatedByCategory({
+    categoryId,
+    excludeId,
+    limit = 4,
+  }: {
+    categoryId: string;
+    excludeId?: string | undefined;
+    limit?: number;
+  }): Promise<ProductSummary[]> {
     const rows = await db.product.findMany({
       where: {
         ...publishedProductWhere,
-        categoryId: product.categoryId,
-        id: { not: product.id },
+        categoryId,
+        ...(excludeId ? { id: { not: excludeId } } : {}),
         variants: { some: { isActive: true } },
       },
       select: summarySelect,
@@ -210,6 +227,14 @@ export const catalogReads = {
       take: limit,
     });
     return rows.map(toSummary);
+  },
+
+  async listRelated(product: { id: string; categoryId: string }, limit = 4): Promise<ProductSummary[]> {
+    return catalogReads.listRelatedByCategory({
+      categoryId: product.categoryId,
+      excludeId: product.id,
+      limit,
+    });
   },
 
   async listCategories() {

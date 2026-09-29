@@ -1,10 +1,147 @@
 import "server-only";
-import { db } from "@virzeen/db";
-import { parseSizeChart, type AdminProductStatus, type SizeGuideInput } from "@virzeen/validators";
+import { db, type Prisma } from "@virzeen/db";
+import {
+  parseSizeChart,
+  type AdminProductStatus,
+  type ProductInput,
+  type SizeGuideInput,
+} from "@virzeen/validators";
 import { sizeGuideSelect, toProductSizeGuide, type ProductSizeGuide } from "../catalog/catalog.reads";
+import { styleColors } from "../catalog/product-styles";
 import { AppError } from "../errors";
 
 // Read models for admin screens (admin actions live in the domain services).
+
+/** New products (and copies without one) start with "China" (owner, 2026-09-29: specs/product-editor-on-page.md). */
+export const DEFAULT_COUNTRY_OF_ORIGIN = "China";
+
+/**
+ * A saved product as the product editor's values (a ProductInput with blanks for empty fields): variant ids and SKUs,
+ * the photo descriptions saved (made ones included), and each style's number (`code`) and colour shown ("" = its
+ * name). Sending these back to saveProduct changes nothing.
+ */
+export type ProductFormValues = {
+  name: string;
+  slug: string;
+  description: string;
+  care: string;
+  benefits: string[];
+  details: string[];
+  countryOfOrigin: string;
+  seoDescription: string;
+  categoryId: string;
+  sizeGuideId: string;
+  collectionIds: string[];
+  isPublished: boolean;
+  images: { url: string; alt: string; color: string }[];
+  features: { title: string; body: string; imageUrl: string; alt: string }[];
+  /** In style order: the variant colours in row order, or one style "" for a product without colours. */
+  styles: { color: string; colourShown: string; code: string }[];
+  shippingPaisa: number;
+  /** Every variant, for sale or not; `pricePaisa` is the product price before shipping. */
+  variants: {
+    id: string;
+    sku: string;
+    size: string;
+    color: string;
+    pricePaisa: number;
+    stock: number;
+    isActive: boolean;
+  }[];
+};
+
+/**
+ * The product editor's read of one product (adminReads.getProductForEdit); catalogService.saveProduct reads it
+ * inside its transaction to hand the editor what it saved.
+ */
+export async function readProductForEdit(client: Prisma.TransactionClient, id: string) {
+  const product = await client.product.findFirst({
+    where: { id, archivedAt: null },
+    select: {
+      id: true,
+      number: true,
+      name: true,
+      slug: true,
+      description: true,
+      care: true,
+      benefits: true,
+      details: true,
+      countryOfOrigin: true,
+      seoDescription: true,
+      categoryId: true,
+      sizeGuide: { select: { id: true, archivedAt: true } },
+      isPublished: true,
+      shippingPaisa: true,
+      // The editor reloads its fields when this changes (after a save).
+      updatedAt: true,
+      collections: { select: { id: true } },
+      images: { select: { url: true, alt: true, color: true }, orderBy: { sortOrder: "asc" } },
+      features: {
+        select: { title: true, body: true, imageUrl: true, imageAlt: true },
+        orderBy: { sortOrder: "asc" },
+      },
+      // Variants not for sale too, so For sale can be ticked again (variants are never deleted).
+      variants: {
+        select: {
+          id: true,
+          sku: true,
+          size: true,
+          color: true,
+          pricePaisa: true,
+          stock: true,
+          isActive: true,
+        },
+        orderBy: { sortOrder: "asc" },
+      },
+      styles: { select: { color: true, code: true, colourShown: true } },
+    },
+  });
+  if (!product) throw new AppError("NOT_FOUND", "Product not found.");
+  const { sizeGuide, features, styles: styleRows, ...rest } = product;
+  // What the shop shows: every product was set to China and new ones start with it, so a blank one was cleared on
+  // purpose (the editor must not show "China" where the product page shows no origin).
+  const countryOfOrigin = product.countryOfOrigin ?? "";
+  // An archived guide can't be picked again, so the select starts at "No size guide".
+  const sizeGuideId = sizeGuide && !sizeGuide.archivedAt ? sizeGuide.id : "";
+  const images = product.images.map((image) => ({ ...image, color: image.color ?? "" }));
+  const featureValues = features.map(({ imageAlt, ...feature }) => ({ ...feature, alt: imageAlt }));
+  // The form edits the product price before shipping (catalogService.saveProduct adds it back).
+  const variants = product.variants.map((v) => ({ ...v, pricePaisa: v.pricePaisa - product.shippingPaisa }));
+  const styles = styleColors(product.variants).map((color) => {
+    const row = styleRows.find((candidate) => candidate.color === color);
+    return { color, colourShown: row?.colourShown ?? "", code: row?.code ?? "" };
+  });
+  const values: ProductFormValues = {
+    name: product.name,
+    slug: product.slug,
+    description: product.description,
+    care: product.care ?? "",
+    benefits: product.benefits,
+    details: product.details,
+    countryOfOrigin,
+    seoDescription: product.seoDescription ?? "",
+    categoryId: product.categoryId,
+    sizeGuideId,
+    collectionIds: product.collections.map((collection) => collection.id),
+    isPublished: product.isPublished,
+    images,
+    features: featureValues,
+    styles,
+    shippingPaisa: product.shippingPaisa,
+    variants: variants.map((v) => ({ ...v, size: v.size ?? "", color: v.color ?? "" })),
+  };
+  return {
+    ...rest,
+    countryOfOrigin,
+    sizeGuideId,
+    images,
+    features: featureValues,
+    variants,
+    styles,
+    /** What the editor's form starts from (and what a save hands back). */
+    values: values satisfies ProductInput,
+  };
+}
 
 export const adminReads = {
   async listProducts(query?: string, status?: AdminProductStatus) {
@@ -49,58 +186,9 @@ export const adminReads = {
     return { all: published + draft, published, draft };
   },
 
+  /** One product for the editor: its fields, plus `values` (the form's values, ProductFormValues). */
   async getProductForEdit(id: string) {
-    const product = await db.product.findFirst({
-      where: { id, archivedAt: null },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        description: true,
-        care: true,
-        benefits: true,
-        details: true,
-        countryOfOrigin: true,
-        seoDescription: true,
-        categoryId: true,
-        sizeGuide: { select: { id: true, archivedAt: true } },
-        isPublished: true,
-        shippingPaisa: true,
-        // The editor reloads its fields when this changes (after a save).
-        updatedAt: true,
-        collections: { select: { id: true } },
-        images: { select: { url: true, alt: true, color: true }, orderBy: { sortOrder: "asc" } },
-        features: {
-          select: { title: true, body: true, imageUrl: true, imageAlt: true },
-          orderBy: { sortOrder: "asc" },
-        },
-        // Variants not for sale too, so For sale can be ticked again (variants are never deleted).
-        variants: {
-          select: {
-            id: true,
-            sku: true,
-            size: true,
-            color: true,
-            pricePaisa: true,
-            stock: true,
-            isActive: true,
-          },
-          orderBy: { sortOrder: "asc" },
-        },
-      },
-    });
-    if (!product) throw new AppError("NOT_FOUND", "Product not found.");
-    // The form edits the product price before shipping (catalogService.saveProduct adds it back).
-    const { sizeGuide, features, ...rest } = product;
-    return {
-      ...rest,
-      countryOfOrigin: product.countryOfOrigin ?? "",
-      // An archived guide can't be picked again, so the select starts at "No size guide".
-      sizeGuideId: sizeGuide && !sizeGuide.archivedAt ? sizeGuide.id : "",
-      images: product.images.map((image) => ({ ...image, color: image.color ?? "" })),
-      features: features.map(({ imageAlt, ...feature }) => ({ ...feature, alt: imageAlt })),
-      variants: product.variants.map((v) => ({ ...v, pricePaisa: v.pricePaisa - product.shippingPaisa })),
-    };
+    return readProductForEdit(db, id);
   },
 
   async listCategories() {

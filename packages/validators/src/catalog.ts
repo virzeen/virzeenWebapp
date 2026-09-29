@@ -120,6 +120,12 @@ const variantSkuSchema = z
     error: "Use the format VZ-PRODUCT-COLOUR-SIZE, or leave it blank to make one",
   });
 
+// Same limits as paisaSchema, with messages the admin can act on.
+const productPriceSchema = z
+  .int({ error: PRICE_ERROR })
+  .min(100, { error: "Enter a price of at least Rs 1" })
+  .max(1_000_000_000, { error: "Enter a price under Rs 1 crore" });
+
 export const variantSchema = z.strictObject({
   id: idSchema.optional(),
   sku: variantSkuSchema,
@@ -135,11 +141,7 @@ export const variantSchema = z.strictObject({
     .max(40, { error: "Keep the colour under 40 characters" })
     .optional()
     .or(z.literal("")),
-  // Same limits as paisaSchema, with messages the admin can act on.
-  pricePaisa: z
-    .int({ error: PRICE_ERROR })
-    .min(100, { error: "Enter a price of at least Rs 1" })
-    .max(1_000_000_000, { error: "Enter a price under Rs 1 crore" }),
+  pricePaisa: productPriceSchema,
   stock: z
     .int({ error: STOCK_ERROR })
     .min(0, { error: "Stock can't be negative" })
@@ -147,6 +149,35 @@ export const variantSchema = z.strictObject({
   isActive: z.boolean(),
 });
 export type VariantInput = z.input<typeof variantSchema>;
+
+/**
+ * A style's "Colour shown" and style number (specs/product-editor-on-page.md). `color` is the style's name (a variant
+ * colour; "" for a product without styles). `code` echoes the stored style number, so a renamed style keeps it; the
+ * server makes numbers and ignores a code that isn't one of this product's.
+ */
+export const productStyleSchema = z.strictObject({
+  color: z.string().trim().max(40, { error: "Keep the style name under 40 characters" }),
+  /** e.g. "Black/White"; blank = the style's name. */
+  colourShown: z
+    .string()
+    .trim()
+    .max(80, { error: "Keep the colour shown under 80 characters" })
+    .optional()
+    .or(z.literal("")),
+  code: z
+    .string()
+    .trim()
+    .max(20, { error: "Keep the style number under 20 characters" })
+    .optional()
+    .or(z.literal("")),
+});
+export type ProductStyleInput = z.input<typeof productStyleSchema>;
+
+const productNameSchema = z
+  .string()
+  .trim()
+  .min(1, { error: "Enter the product name" })
+  .max(120, { error: "Keep the name under 120 characters" });
 
 const DUPLICATE_SKU = "Another variant has the same SKU";
 const NO_VARIANT_FOR_SALE = "Tick For sale on at least one variant, or switch off Published";
@@ -158,17 +189,10 @@ const skuOf = (row: unknown) =>
 
 export const productSchema = z
   .strictObject({
-    name: z
-      .string()
-      .trim()
-      .min(1, { error: "Enter the product name" })
-      .max(120, { error: "Keep the name under 120 characters" }),
+    name: productNameSchema,
     slug: slugSchema,
-    description: z
-      .string()
-      .trim()
-      .min(1, { error: "Enter a description" })
-      .max(5000, { error: "Keep the description under 5,000 characters" }),
+    /** May be blank on a draft; publishing needs it (below). */
+    description: z.string().trim().max(5000, { error: "Keep the description under 5,000 characters" }),
     care: z
       .string()
       .trim()
@@ -197,6 +221,8 @@ export const productSchema = z
     isPublished: z.boolean(),
     images: z.array(productImageSchema).max(60, { error: "Add up to 60 photos" }),
     features: z.array(productFeatureSchema).max(6, { error: "Add up to 6 features" }),
+    /** Colour shown and style numbers (specs/product-editor-on-page.md); styles are the variant colours. */
+    styles: z.array(productStyleSchema).max(20, { error: "Add up to 20 styles" }),
     /** Delivery charge added to every variant's price; customers see one price and free shipping. */
     shippingPaisa: z
       .int({ error: "Enter a shipping price (0 for none)" })
@@ -233,7 +259,27 @@ export const productSchema = z
           });
         }
       });
+      const styleEntries: unknown[] = Array.isArray(product.styles) ? product.styles : [];
+      const styleKeys = styleEntries.map((entry) =>
+        isRecord(entry) && typeof entry.color === "string" ? entry.color.trim().toLowerCase() : null,
+      );
+      styleKeys.forEach((key, index) => {
+        if (key !== null && styleKeys.indexOf(key) !== styleKeys.lastIndexOf(key)) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["styles", index, "color"],
+            message: "Two styles have the same name",
+          });
+        }
+      });
       if (product.isPublished !== true) return;
+      if (typeof product.description === "string" && product.description.trim() === "") {
+        ctx.addIssue({
+          code: "custom",
+          path: ["description"],
+          message: "Add a description before publishing",
+        });
+      }
       if (Array.isArray(product.images) && product.images.length === 0) {
         ctx.addIssue({
           code: "custom",
@@ -253,6 +299,22 @@ export type ProductData = z.output<typeof productSchema>;
 
 export const saveProductSchema = z.strictObject({ id: idSchema.optional(), product: productSchema });
 export type SaveProductInput = z.input<typeof saveProductSchema>;
+
+/** The New product popup (specs/product-editor-on-page.md): a draft starts from a name, a category and a price. */
+export const createDraftProductSchema = z.strictObject({
+  name: productNameSchema,
+  categoryId: z.cuid2({ error: "Choose a category" }),
+  /** The product price before shipping, like a variant's. */
+  pricePaisa: productPriceSchema,
+});
+export type CreateDraftProductInput = z.infer<typeof createDraftProductSchema>;
+
+/** The related products the editor and Preview show under "You may also like". */
+export const relatedByCategorySchema = z.strictObject({
+  categoryId: idSchema,
+  excludeId: idSchema.optional(),
+});
+export type RelatedByCategoryInput = z.infer<typeof relatedByCategorySchema>;
 
 export const categorySchema = z.strictObject({
   id: idSchema.optional(),

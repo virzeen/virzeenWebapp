@@ -70,7 +70,13 @@ type ProductDetail = {
   images: { url: string; alt: string; color: string | null }[]; // color: the style (variant color) shown; null = every style
   features: { title: string; body: string; imageUrl: string; imageAlt: string }[]; // "Features that perform", in order
   sizeGuide: SizeGuide | null; // null when the product has none (specs/size-guides.md)
+  styles: Style[]; // in style order: one per colour for sale, or one with color "" when nothing for sale has a colour
   variants: Variant[];
+};
+type Style = {
+  color: string; // the style (a variant color); "" = a product without styles
+  code: string; // style number, e.g. "VZ0042-101": never changes, never reused (specs/product-editor-on-page.md)
+  colourShown: string | null; // "Colour shown", e.g. "Black/White"; falls back to color (null for the "" style)
 };
 type SizeGuide = {
   name: string;

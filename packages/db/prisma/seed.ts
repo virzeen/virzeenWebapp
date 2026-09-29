@@ -30,8 +30,9 @@ type SeedProduct = {
   // Product details popup and "Features that perform" (specs/product-page.md).
   benefits?: string[];
   details?: string[];
-  countryOfOrigin?: string;
   features?: SeedFeature[];
+  /** "Colour shown" per style (specs/product-editor-on-page.md); a style left out shows its name. */
+  colourShown?: Record<string, string>;
   sizeGuide?: "Tops"; // a SIZE_GUIDES name (specs/size-guides.md)
 };
 
@@ -99,7 +100,7 @@ const PRODUCTS: SeedProduct[] = [
       "Boxy cut to wear open over a tee or buttoned up as a shirt",
     ],
     details: ["100% linen", "Two patch chest pockets", "Horn-effect buttons", "Dropped shoulders"],
-    countryOfOrigin: "Nepal",
+    colourShown: { Black: "Black", Bone: "Bone/Natural" },
     features: [
       {
         title: "Breathes on warm days",
@@ -314,7 +315,8 @@ async function main() {
       care: product.care ?? null,
       benefits: product.benefits ?? [],
       details: product.details ?? [],
-      countryOfOrigin: product.countryOfOrigin ?? null,
+      // Every product's Country/Region of origin is China (owner, 2026-09-29).
+      countryOfOrigin: "China",
       seoDescription: `${product.name} by Virzeen. ${product.description}`.slice(0, 155),
       categoryId: categoryIds.get(product.category) as string,
       sizeGuideId: product.sizeGuide ? (sizeGuideIds.get(product.sizeGuide) as string) : null,
@@ -363,6 +365,24 @@ async function main() {
         create: { productId: row.id, sku: code, ...variant, pricePaisa: product.pricePaisa, sortOrder },
         update: { ...variant, pricePaisa: product.pricePaisa, isActive: true, sortOrder },
       });
+    }
+
+    // Style numbers like catalogService.saveProduct makes them: VZ + product number + -101, -102… in style order
+    // ("" for a product without colours). A style that's already there keeps its number.
+    const styles = await db.productStyle.findMany({
+      where: { productId: row.id },
+      select: { color: true, code: true },
+    });
+    let suffix = Math.max(100, ...styles.map((style) => Number(style.code.split("-").at(-1)) || 0)) + 1;
+    for (const color of new Set(product.colors.map((name) => name ?? ""))) {
+      const colourShown = product.colourShown?.[color] ?? null;
+      const existing = styles.find((style) => style.color === color);
+      if (existing) {
+        await db.productStyle.update({ where: { code: existing.code }, data: { colourShown } });
+      } else {
+        const code = `VZ${String(row.number).padStart(4, "0")}-${suffix++}`;
+        await db.productStyle.create({ data: { productId: row.id, color, code, colourShown } });
+      }
     }
   }
 
