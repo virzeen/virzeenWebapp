@@ -22,7 +22,8 @@
 ## 3. SEO (every public page)
 
 - `generateMetadata`: unique `title` ("Linen Overshirt — Virzeen"), `description` (≤ 155 chars), canonical URL, Open Graph image.
-- One `h1`, logical heading order.
+- One `h1`, logical heading order. A whole-page 404, error or offline screen makes its `EmptyState` title the h1 (`titleAs="h1"`).
+- Missing pages keep a real 404 title: `generateMetadata` calls `notFound()` for a missing item, so the tab reads "Page not found — Virzeen" ("Not found" in admin, "Order not found" in the account).
 - Product pages include JSON-LD `Product` with `offers` (price in NPR, availability).
 - `sitemap.ts` lists published products, collections, portfolio projects. `robots.ts` blocks `/admin`, `/account`, `/checkout`, `/api`.
 - Clean slugs: `/product/linen-overshirt`, never ids in public URLs.
@@ -31,4 +32,4 @@
 
 - `manifest.ts`: name, short_name "Virzeen", icons (192, 512, maskable), theme/background colors from tokens.
 - Service worker (Serwist): cache static assets and images; never cache `/api`, `/checkout`, `/account`, or HTML for authenticated pages.
-- Offline page: brand message + "Try again".
+- Offline page: brand message, "Try again" (a plain link to the same URL, so it reloads the page that was asked for even without cached scripts) and "Go to the home page".

@@ -6,48 +6,160 @@ Consistent words make the brand feel premium and reduce support questions. Use t
 
 Calm, warm, confident. Short sentences. Sentence case. No exclamation marks in errors, no blame ("You entered an invalid…" → "Enter a 10-digit mobile number").
 
+Errors say what to do next: "Choose your district", "Keep the name under 120 characters", "Tick For sale on at least one variant, or switch off Published". A disabled control says why nearby ("Choose a delivery address to continue.", "Limit 10 of each").
+
 ## Standard actions
 
-| Action              | Text                                   |
-| ------------------- | -------------------------------------- |
-| Add product to cart | Add to bag                             |
-| Open cart           | Bag (icon label: "Open bag")           |
-| Go to checkout      | Checkout                               |
-| Submit order        | Place order                            |
-| Online payment      | Continue to eSewa / Continue to Khalti |
-| Retry               | Try again                              |
-| Save form           | Save                                   |
-| Remove line         | Remove                                 |
-| Undo                | Undo                                   |
-| Sign in             | Sign in (not "Log in")                 |
+| Action                                | Text                                   |
+| ------------------------------------- | -------------------------------------- |
+| Add product to cart                   | Add to bag                             |
+| Open cart                             | Bag (icon label: "Open bag")           |
+| Go to checkout                        | Checkout                               |
+| Submit order                          | Place order                            |
+| Online payment                        | Continue to eSewa / Continue to Khalti |
+| Retry                                 | Try again                              |
+| Save form                             | Save                                   |
+| Remove line                           | Remove                                 |
+| Undo                                  | Undo                                   |
+| Sign in                               | Sign in (not "Log in")                 |
+| Leave a 404 or an empty bag           | Browse the collection                  |
+| Leave an error or the offline page    | Go to the home page                    |
+| Close a dialog with nothing to decide | OK                                     |
 
 ## Standard messages
 
-| Situation                  | Message                                                                                          |
-| -------------------------- | ------------------------------------------------------------------------------------------------ |
-| Added to bag (toast)       | Added to bag                                                                                     |
-| Removed (toast)            | Removed from bag — Undo                                                                          |
-| Empty bag                  | Your bag is empty. — [Browse the collection]                                                     |
-| No orders                  | You haven't placed any orders yet. — [Start shopping]                                            |
-| No search results          | Nothing matches "{query}". Try a different word or browse all products.                          |
-| Out of stock               | Out of stock                                                                                     |
-| Low stock                  | Only {n} left                                                                                    |
-| `OUT_OF_STOCK` at checkout | Some items just sold out. We've updated your bag.                                                |
-| `PRICE_CHANGED`            | A price changed since you added this item. Please review your bag.                               |
-| `PAYMENT_FAILED`           | Payment didn't go through. Your bag is saved — try again or choose another method.               |
-| `PAYMENT_PENDING`          | We're confirming your payment. This usually takes a minute — you'll get an email when it's done. |
-| `RATE_LIMITED`             | Too many attempts. Please wait a few minutes and try again.                                      |
-| `INTERNAL` / unknown       | Something went wrong on our side. Please try again.                                              |
-| Order confirmed            | Thank you — your order {orderNumber} is confirmed.                                               |
+| Situation                                                           | Message                                                                                          |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Added to bag (the bag drawer opens and says so; no toast)           | Added to bag · {n} item / Added to bag · {n} items                                               |
+| Removed a bag line (inline row where the line was; no toast)        | Removed {productName}. — [Undo]                                                                  |
+| Empty bag                                                           | Your bag is empty. — [Browse the collection]                                                     |
+| No orders                                                           | You haven't placed any orders yet. — [Start shopping]                                            |
+| No search results                                                   | Nothing matches "{query}". Try a different word or browse all products. — [Show all products]    |
+| Out of stock                                                        | Out of stock                                                                                     |
+| Low stock                                                           | Only {n} left                                                                                    |
+| `OUT_OF_STOCK` at checkout                                          | Some items just sold out. We've updated your bag.                                                |
+| `PRICE_CHANGED`                                                     | A price changed since you added this item. Please review your bag.                               |
+| `PAYMENT_FAILED`                                                    | Payment didn't go through. Your bag is saved — try again or choose another method.               |
+| `PAYMENT_PENDING`                                                   | We're confirming your payment. This usually takes a minute — you'll get an email when it's done. |
+| `RATE_LIMITED`                                                      | Too many attempts. Please wait a few minutes and try again.                                      |
+| `INTERNAL` / unknown (also a form error with no field to sit under) | Something went wrong on our side. Please try again.                                              |
+| Order confirmed                                                     | Thank you — your order {orderNumber} is confirmed.                                               |
 
 ## Field errors
 
-| Field    | Error                                                 |
-| -------- | ----------------------------------------------------- |
-| Required | Enter your {field}                                    |
-| Phone    | Enter a 10-digit mobile number starting with 97 or 98 |
-| Email    | Enter a valid email address                           |
-| OTP      | Enter the 6-digit code we sent to your email          |
+Inputs say "Enter", choices (Select, radios) say "Choose".
+
+| Field                          | Error                                                                                                            |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| Required                       | Enter your {field}                                                                                               |
+| Required choice (Select)       | Choose your {field} (e.g. Choose your province, Choose your district)                                            |
+| Too long                       | Keep your {field} under {n} characters (admin fields: Keep the {field} under {n} characters)                     |
+| Phone                          | Enter a 10-digit mobile number starting with 97 or 98 (spaces, brackets, hyphens and a +977 prefix are accepted) |
+| District not in the province   | Choose a district in this province                                                                               |
+| Email                          | Enter a valid email address                                                                                      |
+| OTP                            | Enter the 6-digit code we sent to your email                                                                     |
+| Size not chosen (product page) | Select a size                                                                                                    |
+
+## Bag and product page
+
+| Situation                                                       | Text                                                |
+| --------------------------------------------------------------- | --------------------------------------------------- |
+| Add to bag before a size is chosen (pressing it points to Size) | Select a size                                       |
+| Add to bag when the variant is sold out                         | Out of stock                                        |
+| Under Add to bag: the bag already holds the last piece          | The last one is already in your bag.                |
+| Under Add to bag: the bag already holds every piece left        | All {n} left are already in your bag.               |
+| Under Add to bag: the bag already holds the per-line cap        | Limit 10 of each — you already have 10 in your bag. |
+| Bag line, quantity over 1 (under the variant)                   | {Rs X} each                                         |
+| Bag line, "+" stopped by stock                                  | Only {n} left                                       |
+| Bag line, "+" stopped by the per-line cap                       | Limit 10 of each                                    |
+| Bag line, variant sold out since it was added                   | Out of stock                                        |
+| Bag line, product no longer sold                                | No longer available                                 |
+| Bag drawer description (otherwise)                              | {n} item / {n} items                                |
+| Bag drawer footer                                               | Free shipping across Nepal. Prices include VAT.     |
+| Undo failed (replaces "Removed {productName}.")                 | The error's standard message (above)                |
+
+## Shop listing
+
+| Situation                                 | Text                                                                                                 |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Result count                              | 1 product · {n} products · {n}+ products (while Load more has more) · No products                    |
+| Filters sheet, first Size / Colour option | Any (the default; removes that filter)                                                               |
+| Filters sheet buttons                     | Clear all (removes every filter and closes the sheet) · Show results                                 |
+| Nothing matches the filters               | Nothing matches these filters. Try removing a filter or browse all products. — [Browse all products] |
+| No products at all                        | New pieces are on their way. Check back soon — or explore our portfolio. — [View the portfolio]      |
+| Gallery list name (screen readers)        | {productName} images                                                                                 |
+
+## Checkout
+
+| Situation                                                      | Text                                                                      |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Delivery section before an address is chosen                   | Choose an address to see the delivery time.                               |
+| Delivery section with an address                               | Arrives in {estimate}.                                                    |
+| Shipping line before an address is chosen                      | — (unless shipping is free)                                               |
+| Under Place order: no saved address (the address form is open) | Add a delivery address to continue.                                       |
+| Under Place order: adding a new address while others are saved | Save the new address to continue.                                         |
+| Under Place order: saved addresses, none chosen                | Choose a delivery address to continue.                                    |
+| Under Place order: 2+ payment methods, none chosen             | Choose a payment method to continue.                                      |
+| The chosen address was deleted elsewhere (`NOT_FOUND`)         | That address is no longer saved. Choose another address or add a new one. |
+| Cash on delivery option                                        | Cash on delivery — Pay the courier when your order arrives                |
+| Cash on delivery over its limit                                | Cash on delivery is available for orders up to {Rs X}.                    |
+| Collapsed summary at the top (below `lg`)                      | Order summary · {total}                                                   |
+| Summary card heading                                           | Order summary (from `lg`) · Order total (below `lg`)                      |
+| Confirmation page tab title                                    | Order confirmed · Order cancelled · Confirming your payment               |
+
+## Addresses (account and checkout)
+
+The first address is the default. The default can't be switched off, only moved: saving another address with "Make this my default address" moves it. Removing the default makes the oldest remaining address the default.
+
+| Situation                                                    | Text                                                                            |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| Default checkbox (a new address, or one that isn't default)  | Make this my default address                                                    |
+| Editing the current default (replaces the checkbox)          | This is your default address                                                    |
+| Mobile number helper                                         | The courier will call this number                                               |
+| Landmark helper                                              | Optional — helps the courier find you                                           |
+| District before a province is chosen (placeholder, no error) | Choose a province first                                                         |
+| Landmark line (address card, order details)                  | Landmark: {landmark}                                                            |
+| Edit / Remove buttons (screen readers)                       | Edit address for {fullName}, {street} · Remove address for {fullName}, {street} |
+| Remove dialog                                                | Remove this address? — {street}, {city} — [Keep] [Remove]                       |
+| Saved / removed (toasts)                                     | Address saved · Address removed                                                 |
+| Address book full (`CONFLICT`)                               | You can save up to 10 addresses. Remove one to add another.                     |
+| No addresses                                                 | No saved addresses yet. — [Add an address]                                      |
+
+## Order and payment status
+
+The words on badges, in the order timeline and in the admin history (`client/lib/order-labels.ts`).
+
+| Status                                                             | Label                                               |
+| ------------------------------------------------------------------ | --------------------------------------------------- |
+| Order `PENDING` · `CONFIRMED` · `PROCESSING`                       | Awaiting payment · Confirmed · Being packed         |
+| Order `SHIPPED` · `DELIVERED` · `CANCELLED` · `RETURNED`           | Shipped · Delivered · Cancelled · Returned          |
+| First timeline event                                               | Order placed                                        |
+| Payment `UNPAID` · `PENDING` · `PAID`                              | Unpaid · Confirming payment · Paid                  |
+| Payment `FAILED` · `EXPIRED`                                       | Payment failed · Payment expired                    |
+| Payment `REFUNDED` · `PARTIALLY_REFUNDED`                          | Refunded · Partly refunded                          |
+| Payment `COD_DUE` · `COD_COLLECTED`                                | Pay on delivery · Paid on delivery                  |
+| Cash-on-delivery order cancelled or refused at the door (`FAILED`) | Not charged (neutral badge, never "Payment failed") |
+| Payment method                                                     | Cash on delivery · eSewa · Khalti                   |
+
+## Not found, errors and offline
+
+| Situation                              | Text                                                                                                                                       |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Page not found (h1; any unmatched URL) | We couldn't find that page. It may have moved, or the link might be wrong. — [Browse the collection]                                       |
+| Page not found, tab title              | Page not found                                                                                                                             |
+| Order not in this account              | We couldn't find that order in your account. If you ordered with a different email, sign in with that one. — [All orders]                  |
+| Something failed (h1)                  | Something went wrong on our side. Please try again. If it keeps happening, come back in a few minutes. — [Try again] [Go to the home page] |
+| Offline (h1)                           | You're offline. Check your connection and try again. Your bag is saved. — [Try again] [Go to the home page]                                |
+| Portfolio with no stories              | Our first stories are coming soon.                                                                                                         |
+
+## Contact and social
+
+| Where                                      | Text                                                               |
+| ------------------------------------------ | ------------------------------------------------------------------ |
+| `/contact`, under "Instagram"              | See new pieces and preorders first on Instagram: @virzeen.co.      |
+| Footer, Virzeen column                     | Instagram (links to instagram.com/virzeen.co)                      |
+| Footer, bottom row (each fact on one line) | Cash on delivery · Free shipping across Nepal · 7-day free returns |
+| Footer, legal line                         | © {year} Virzeen. Prices include 13% VAT.                          |
 
 ## Sign-in code (`/verify`)
 
@@ -66,6 +178,59 @@ The code is checked as soon as the sixth digit is in, so the page says so before
 
 Too many requests and anything unexpected use the standard `RATE_LIMITED` and `INTERNAL` messages, in an `Alert` with "Try again".
 
+## Admin
+
+### Frame, lists and dialogs
+
+| Situation                                      | Text                                                                                                                                     |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Admin page failed (h1, then a danger `Alert`)  | Something went wrong on our side. — Please try again. If it keeps happening, come back in a few minutes. [Try again]                     |
+| Missing item or mistyped `/admin` address (h1) | This page doesn't exist, or the item was archived. — [Back to dashboard] (tab title: Not found)                                          |
+| Dashboard tiles                                | Orders today · Sales today · To pack · To ship · Payments pending                                                                        |
+| Dashboard tile link (visible · screen readers) | View · View orders to pack / View orders to ship / View orders with payment pending                                                      |
+| Order history, "Change" column                 | Order placed · {from} → {to} (e.g. Confirmed → Being packed) · Payment: {from} → {to} (e.g. Payment: Unpaid → Pay on delivery)           |
+| Order page, actions group (screen readers)     | Order actions                                                                                                                            |
+| Customers, no name                             | —                                                                                                                                        |
+| Customers, orders link (screen readers)        | {n} order from {email} / {n} orders from {email}                                                                                         |
+| Products search                                | Search products (label) · Product name (placeholder) · [Search] · [Clear search]                                                         |
+| Products count                                 | 1 product · {n} products · 1 product matches "{q}" · {n} products match "{q}"                                                            |
+| Empty lists                                    | No products yet. — [Add your first product] · No orders yet. · No orders match. — [Clear filters] · No customers yet. · No projects yet. |
+| Empty categories / collections                 | No categories yet. Add Tops, Bottoms, Accessories… to organise the shop. · No collections yet. Group products for campaigns and seasons. |
+| Category and collection forms                  | Add a category · Add a collection · Edit {name} (heading and the Edit button's name) · field "URL slug"                                  |
+| Archive dialog                                 | Archive {name}? — It disappears from the shop. Past orders keep their details. [Keep] [Archive]                                          |
+| Archive blocked (`CONFLICT`, `NOT_FOUND`)      | {name} can't be archived yet — the reason in a danger `Alert` — [OK]                                                                     |
+| Category still has products                    | Move or archive the {n} product in this category first. / Move or archive the {n} products in this category first.                       |
+| Portfolio kind                                 | Campaign · Lookbook · Collaboration                                                                                                      |
+| Product variants intro (added sentence)        | To stop selling a variant, untick For sale: saved variants stay on the list because orders refer to them.                                |
+| Saved (toasts)                                 | Product saved · Project saved · Category saved · Collection saved · {name} archived                                                      |
+
+### Form errors
+
+Shown under the field (or under the list for list rules). After a failed save the first one is scrolled into view and focused.
+
+| Field or rule                        | Error                                                                                                                                                                                                                                                       |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Required                             | Enter the product name · Enter a description · Enter a name · Enter a title · Enter a short summary                                                                                                                                                         |
+| URL slug                             | Enter a URL slug · Keep the URL slug under 120 characters · Use lowercase letters, numbers and hyphens                                                                                                                                                      |
+| SKU                                  | Enter a SKU · Use the format VZ-PRODUCT-COLOUR-SIZE                                                                                                                                                                                                         |
+| SKU repeated in the form (each row)  | Another variant has the same SKU                                                                                                                                                                                                                            |
+| SKU taken (on save)                  | Another product already uses this SKU · Another variant of this product uses this SKU                                                                                                                                                                       |
+| SKU taken, form `Alert`              | One SKU is already used. Change it and save again. / Some SKUs are already used. Change them and save again.                                                                                                                                                |
+| SKU taken, under the variants list   | One of these SKUs is already used. Change it and save again.                                                                                                                                                                                                |
+| Category                             | Choose a category                                                                                                                                                                                                                                           |
+| Price                                | Enter a price in rupees, e.g. 1250 · Enter a price of at least Rs 1 · Enter a price under Rs 1 crore                                                                                                                                                        |
+| Stock                                | Enter the stock as a whole number (0 or more) · Stock can't be negative · Enter a stock of 100,000 or less                                                                                                                                                  |
+| Published without a variant for sale | Tick For sale on at least one variant, or switch off Published (form `Alert`: A published product needs at least one variant for sale.)                                                                                                                     |
+| Published without an image           | Add at least one image before publishing                                                                                                                                                                                                                    |
+| Image reference                      | Add an image · Use a Cloudinary public id or a /public path, not a web address                                                                                                                                                                              |
+| Alt text                             | Describe the image for screen readers · Keep the alt text under 200 characters                                                                                                                                                                              |
+| Portfolio cover                      | Add a cover image                                                                                                                                                                                                                                           |
+| List order (category, portfolio)     | Enter a whole number from 0 to 1,000                                                                                                                                                                                                                        |
+| Story text block                     | Write the text for this block · Keep this block under 4,000 characters                                                                                                                                                                                      |
+| Max length                           | Keep the {field} under {n} characters: name 120 (product) / 60 (category) / 80 (collection), description 5,000 (product) / 500 (collection), care notes 2,000, search description 155, size 20, colour 40, title 120, summary 300, heading 120, caption 200 |
+| List limits                          | Add at least one variant · Add up to 60 variants · Add up to 12 images · Add up to 40 blocks · Choose up to 20 collections · Choose up to 24 products                                                                                                       |
+| Order dialogs                        | Enter the courier name · Enter the tracking number · Add a short reason                                                                                                                                                                                     |
+
 ## Emails
 
 Frame and rules: backend-policies.md §9. The sign-in code email's heading is the owners' wording (2026-09-29), so it keeps its capitals.
@@ -82,6 +247,9 @@ Frame and rules: backend-policies.md §9. The sign-in code email's heading is th
 
 ## Formatting
 
-- Money: `Rs 1,250` (via `<Price>`), never "NPR 1250" or "Rs.1250".
+- Money: `Rs 1,250` (via `<Price>`, which keeps each amount on one line), never "NPR 1250" or "Rs.1250". Where only text fits (an accordion title, an aria-label), use `formatPaisa()`.
 - Dates: `28 Sep 2026`; with time `28 Sep 2026, 3:45 PM` (Asia/Kathmandu).
 - Order numbers shown exactly as stored: `VZ-260928-0042`.
+- Counts take the right plural: "1 product", "2 products". Never "product(s)".
+- Numbers from 1,000 up are grouped: "4,000 characters", "100,000 or less".
+- Phone numbers in order details are tap-to-call links.

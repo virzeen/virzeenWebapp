@@ -62,7 +62,7 @@ Pages compose feature components → feature components compose primitives → p
 - **Loading:** skeleton matching the final layout (`loading.tsx` or `Skeleton`). No full-page spinners.
 - **Empty:** `EmptyState` with message + one action (copy in `content-style.md`).
 - **Error:** `error.tsx` or inline `Alert` with retry. Never show raw error text or codes.
-- **Success:** `Toast` for background actions; confirmation page for orders.
+- **Success:** `Toast` for background actions; the opened bag drawer for add to bag; confirmation page for orders.
 - **Disabled/unavailable:** visible but clearly disabled with a reason ("Out of stock").
 
 ## 7. Accessibility (minimum bar — WCAG 2.2 AA)
@@ -73,7 +73,9 @@ Pages compose feature components → feature components compose primitives → p
 - Images: meaningful `alt`; decorative `alt=""`.
 - Contrast: 4.5:1 text, 3:1 large text and UI boundaries.
 - Touch targets ≥ 44×44px on mobile.
-- Dialog/Sheet focus trap, Escape to close, focus returns to trigger (primitives do this — don't re-implement).
+- Dialog/Sheet focus trap, Escape to close, focus returns to trigger (primitives do this — don't re-implement). A Sheet opened without a trigger (the bag drawer) sends focus back through `onCloseAutoFocus`.
+- When the focused control disappears (a removed line, a finished step, a moved list item), move focus to the next sensible control instead of letting it fall to the page.
+- Sticky bars mark themselves (`data-sticky-header`, `data-sticky-cta`) so `globals.css` scrolls focused elements clear of them (WCAG 2.4.11).
 - Live updates (cart count, toasts) announced via `aria-live` (built into `Toast`).
 - Respect `prefers-reduced-motion`.
 - Page has one `h1`, logical heading order, `<main>`, `<nav>`, skip-to-content link in the root layout.
