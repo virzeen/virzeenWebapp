@@ -14,10 +14,18 @@ import { authErrorMessage, codeCheckFailure, type AuthError } from "./auth-error
 const RESEND_SECONDS = 60;
 // A wrong code stays on screen (red, shaking) this long before the boxes empty: just past --animate-shake (400ms).
 const CLEAR_WRONG_CODE_MS = 500;
+// A check or resend with no answer by then fails like any unexpected error, so the page never hangs on it.
+const REQUEST_TIMEOUT_MS = 15_000;
 
 // checking → success (until the next page shows) or back to idle with an error. locked: too many wrong codes,
 // so the field stays shut until a new code is sent.
 type Phase = "idle" | "checking" | "success" | "locked";
+
+// Disabling a focused control drops focus to the page: move it to `target`, unless the person has gone elsewhere.
+function focusIfLost(target: HTMLElement | null) {
+  const current = document.activeElement;
+  if (!current || current === document.body || current.matches(":disabled")) target?.focus();
+}
 
 /**
  * Enter the 6-digit code. It's checked as soon as the last digit is in (docs/specs/sign-in-code.md).
@@ -32,6 +40,8 @@ export function VerifyForm({ email, next }: { email: string; next: string }) {
   const [resending, setResending] = useState(false);
   // Checking, accepted, or still showing a rejected code: ignore completes and Enter (no double submissions).
   const busy = useRef(false);
+  // A new code is being sent, which replaces the old one on the server: no code is checked meanwhile.
+  const sending = useRef(false);
   const clearTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const resendButton = useRef<HTMLButtonElement>(null);
   const form = useForm<VerifyOtpInput>({
@@ -53,8 +63,7 @@ export function VerifyForm({ email, next }: { email: string; next: string }) {
   // that button can't take focus: it gets it when the cooldown ends, unless the person has gone elsewhere.
   useEffect(() => {
     if (phase !== "locked" || cooldown > 0) return;
-    const current = document.activeElement;
-    if (!current || current === document.body || current.matches(":disabled")) resendButton.current?.focus();
+    focusIfLost(resendButton.current);
   }, [phase, cooldown]);
 
   // A rejected code stays on screen for a moment, then empties and a code can be submitted again.
@@ -82,9 +91,13 @@ export function VerifyForm({ email, next }: { email: string; next: string }) {
     setPhase("checking");
     let error: AuthError | null;
     try {
-      ({ error } = await authClient.signIn.emailOtp({ email, otp }));
+      ({ error } = await authClient.signIn.emailOtp({
+        email,
+        otp,
+        fetchOptions: { timeout: REQUEST_TIMEOUT_MS },
+      }));
     } catch {
-      error = {}; // offline or the request failed: handled like any unexpected error
+      error = {}; // offline, no answer in time or the request failed: handled like any unexpected error
     }
     if (!error) {
       setPhase("success"); // `busy` stays set
@@ -111,7 +124,7 @@ export function VerifyForm({ email, next }: { email: string; next: string }) {
   function submit(event?: React.BaseSyntheticEvent) {
     event?.preventDefault();
     // Checked first: handleSubmit would clear the field error (e.g. Enter while a wrong code is still showing).
-    if (busy.current) return;
+    if (busy.current || sending.current) return;
     void form.handleSubmit(check, () => setAttempt((n) => n + 1))(event);
   }
 
@@ -121,18 +134,32 @@ export function VerifyForm({ email, next }: { email: string; next: string }) {
   }
 
   async function resend() {
+    sending.current = true;
     setResending(true);
     let error: AuthError | null;
     try {
-      ({ error } = await authClient.emailOtp.sendVerificationOtp({ email, type: "sign-in" }));
+      ({ error } = await authClient.emailOtp.sendVerificationOtp({
+        email,
+        type: "sign-in",
+        fetchOptions: { timeout: REQUEST_TIMEOUT_MS },
+      }));
     } catch {
       error = {};
     }
-    setResending(false);
-    if (error) return setAlert({ message: authErrorMessage(error), retry: false });
+    sending.current = false;
+    if (error) {
+      // This button was disabled while sending, which dropped focus to the page: enable it and give focus back.
+      flushSync(() => setResending(false));
+      focusIfLost(resendButton.current);
+      return setAlert({ message: authErrorMessage(error), retry: false });
+    }
     // The old code no longer works: start again with an empty field, usable even after too many wrong codes.
     cancelClear();
-    flushSync(() => setPhase("idle")); // enable the field before focusing it
+    // Enable the field before focusing it.
+    flushSync(() => {
+      setResending(false);
+      setPhase("idle");
+    });
     form.resetField("otp");
     setAlert(null);
     setCooldown(RESEND_SECONDS);
@@ -147,10 +174,17 @@ export function VerifyForm({ email, next }: { email: string; next: string }) {
           {alert.message}
         </Alert>
       )}
-      {/* No submit button: the code is checked once the last digit is in (the page says so). Enter works too,
-          because the code is this form's only field (implicit submission). */}
+      {/* No submit button: the code is checked once the last digit is in. Enter works too, because the code is
+          this form's only field (implicit submission). */}
       <form onSubmit={submit} noValidate className="flex flex-col gap-2">
-        <FormField label="6-digit code" error={fieldError} required>
+        {/* The helper says so up front (WCAG 3.2.2). As the field's description it is read out when the field
+            takes focus, which it does on arrival. */}
+        <FormField
+          label="6-digit code"
+          helper="We'll sign you in as soon as all 6 digits are in."
+          error={fieldError}
+          required
+        >
           <Controller
             control={form.control}
             name="otp"
@@ -161,6 +195,8 @@ export function VerifyForm({ email, next }: { email: string; next: string }) {
                 // The only thing to do on this page.
                 autoFocus
                 status={phase === "checking" || phase === "success" ? phase : undefined}
+                // While a new code is sent the old one is being replaced: nothing can be completed or pasted.
+                readOnly={resending}
                 disabled={phase === "locked"}
                 errorKey={attempt}
                 onChange={(code) => {
@@ -194,7 +230,8 @@ type CheckStatusProps = { phase: Phase; error: string | undefined; attempt: numb
 
 /**
  * The polite live region for the check, right under the boxes. FormField's error text isn't a live region, so a
- * field error is repeated here for screen readers only (on screen it shows once); the danger Alert announces itself.
+ * field error is repeated here, visually hidden, to be announced (on screen it shows once; reading the page line by
+ * line passes it twice). The danger Alert announces itself.
  */
 function CheckStatus({ phase, error, attempt }: CheckStatusProps) {
   return (

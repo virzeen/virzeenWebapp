@@ -45,7 +45,8 @@ export default async function HomePage() {
           src="/brand/hero.jpg"
           alt=""
           ratio="hero"
-          sizes="100vw"
+          // Phones crop the 16:9 photo into a 4:5 frame, so it's drawn about 2.2× the screen width.
+          sizes="(min-width: 768px) 100vw, 223vw"
           priority
           className="min-h-128 md:min-h-0"
           imageClassName="object-cover"

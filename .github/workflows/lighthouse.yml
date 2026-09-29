@@ -1,0 +1,54 @@
+name: Lighthouse
+
+# Audits the live site every morning (and on demand) on a simulated mid-range phone. Fails when a page drops
+# below the budget, so GitHub emails the owner; the HTML reports are kept as an artifact for 14 days.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "15 1 * * *" # 07:00 in Nepal
+
+permissions:
+  contents: read
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      - name: Audit the live site (mobile)
+        run: |
+          mkdir -p reports
+          for path in / /shop /portfolio /about /contact; do
+            name=$(echo "$path" | tr '/' '-'); name="page${name%-}"
+            npx -y lighthouse@13.5.0 "https://virzeen.com$path" --quiet \
+              --chrome-flags="--headless=new --no-sandbox" \
+              --only-categories=performance,accessibility,best-practices,seo --form-factor=mobile \
+              --output=json --output=html --output-path="reports/$name"
+          done
+
+      - name: Check the budget
+        run: |
+          node -e '
+            const fs = require("fs");
+            // Performance varies between runner machines, so its floor is lower than the others.
+            const min = { performance: 0.8, accessibility: 0.95, "best-practices": 0.95, seo: 0.95 };
+            let failed = 0;
+            for (const file of fs.readdirSync("reports").filter((f) => f.endsWith(".report.json"))) {
+              const categories = JSON.parse(fs.readFileSync(`reports/${file}`, "utf8")).categories;
+              const scores = Object.keys(min).map((k) => `${k} ${Math.round(categories[k].score * 100)}`);
+              console.log(`${file.replace(".report.json", "")}: ${scores.join(", ")}`);
+              for (const k of Object.keys(min)) if (categories[k].score < min[k]) failed++;
+            }
+            if (failed) { console.error(`${failed} score(s) below the budget`); process.exit(1); }
+          '
+
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-reports
+          path: reports/*.report.html
+          retention-days: 14

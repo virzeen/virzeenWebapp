@@ -19,7 +19,7 @@ export type CloudImageProps = {
   ratio?: keyof typeof RATIOS;
   /** Rendered width per breakpoint, e.g. "(min-width: 1024px) 25vw, 50vw". Always set it. */
   sizes: string;
-  /** Only for the single LCP image on a page. */
+  /** Only for the single LCP image on a page: preloaded, fetched at high priority, never lazy. */
   priority?: boolean;
   className?: string;
   imageClassName?: string;
@@ -43,7 +43,8 @@ export function CloudImage({
           alt={alt}
           fill
           sizes={sizes}
-          priority={priority}
+          // Next 16 replaced `priority` with `preload`; fetchPriority is what browsers act on.
+          {...(priority ? { preload: true, fetchPriority: "high" as const, loading: "eager" as const } : {})}
           className={cn("object-cover", imageClassName)}
         />
       )}

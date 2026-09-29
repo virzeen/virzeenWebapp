@@ -147,7 +147,7 @@ export const SetByThePage: Story = {
 export const InFormField: Story = {
   args: { "aria-label": undefined },
   render: (args) => (
-    <FormField label="6-digit code" error="Enter the 6-digit code we sent to asha@example.com" required>
+    <FormField label="6-digit code" error="Enter the 6-digit code we sent to your email" required>
       <Controlled {...args} />
     </FormField>
   ),

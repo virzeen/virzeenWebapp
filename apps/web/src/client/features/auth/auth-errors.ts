@@ -21,6 +21,8 @@ export function authErrorMessage(error: AuthError): string {
   if (code === "TOO_MANY_ATTEMPTS") return "Too many wrong codes. Send a new code to try again.";
   if (isWrongCode(code)) return "That code isn't right. Check it and try again.";
   if (code === "OTP_EXPIRED") return "That code has expired. Send a new one.";
+  // The code email couldn't be sent (app/api/auth/[...all]/route.ts answers 503 DELIVERY_FAILED).
+  if (code === "DELIVERY_FAILED") return "We couldn't send your code. Please try again in a few minutes.";
   if (code.includes("EMAIL")) return "Enter a valid email address";
   return "Something went wrong on our side. Please try again.";
 }
