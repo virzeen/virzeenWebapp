@@ -32,6 +32,7 @@ export function AddStyleField({ first, onAdd }: { first: boolean; onAdd: (name: 
           autoComplete="off"
           enterKeyHint="done"
           placeholder="Style name"
+          data-add-style
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => {
             if (e.key !== "Enter") return;

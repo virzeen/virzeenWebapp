@@ -62,7 +62,7 @@ export function ProductPublishPanel({
   return (
     <section
       aria-labelledby="publish-heading"
-      className="flex flex-col gap-4 rounded-md border border-line bg-canvas p-4 lg:sticky lg:top-6 lg:z-10"
+      className="flex flex-col gap-4 rounded-md border border-line bg-canvas p-4"
     >
       <div className="flex items-center justify-between gap-2">
         <h2 id="publish-heading" className="font-display text-h3">

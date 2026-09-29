@@ -21,8 +21,8 @@ type ProductPhotosProps = {
   style: string;
   title: string;
   hint?: string;
-  /** 2 for the page section, 4 inside a style card (under its h3). */
-  headingLevel?: 2 | 4;
+  /** 2 for the page section, 3 in a style's popup (under its title). */
+  headingLevel?: 2 | 3;
   productId: string | undefined;
   uploadsEnabled: boolean;
   /** Re-runs the list checks after a change (see ProductForm). */
@@ -56,7 +56,7 @@ export function ProductPhotos({
   const listError = style === "" ? (errors?.root?.message ?? errors?.message) : undefined;
   const hasAltError = mine.some(({ index }) => errors?.[index]?.alt);
   const Heading = `h${headingLevel}` as const;
-  // Names the photo for screen readers: "photo 2", or "Mountain photo 2" in a style card.
+  // Names the photo for screen readers: "photo 2", or "Mountain photo 2" in a style's popup.
   const photoName = (position: number) => `${style ? `${style} photo` : "photo"} ${position + 1}`;
 
   // Positions are within this section; the move happens in the whole list. The moved photo keeps focus on the

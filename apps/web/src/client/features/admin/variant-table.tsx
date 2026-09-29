@@ -8,9 +8,12 @@ import { Controller, useFormContext, useWatch, type FieldArrayWithId } from "rea
 import { RupeesInput } from "./rupees-input";
 import { variantLabel } from "./variant-options";
 
+/** A row to show with its place in the whole `variants` list. */
+export type TableRow = { field: FieldArrayWithId<ProductInput, "variants", "fieldKey">; index: number };
+
 type VariantTableProps = {
-  /** The rows to show with their place in the whole `variants` list (a style card shows only its own). */
-  rows: { field: FieldArrayWithId<ProductInput, "variants", "fieldKey">; index: number }[];
+  /** The rows to show (a style's popup shows only its own). */
+  rows: TableRow[];
   showPrices: boolean;
   showSkus: boolean;
   onRemove: (index: number) => void;

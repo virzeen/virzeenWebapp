@@ -119,3 +119,21 @@ export function pricesDifferInAStyle(rows: readonly VariantRow[]) {
   }
   return [...byStyle.values()].some(pricesDiffer);
 }
+
+/**
+ * A style's line in the editor's list: its lowest and highest price (null before one is typed), the stock of its
+ * sizes for sale, and whether any size is for sale. Prices of switched-off sizes count only when none is for sale.
+ */
+export function styleSummary(rows: readonly VariantRow[], style: string) {
+  const own = rows.filter((row) => sameValue(row.color, style));
+  const forSale = own.filter((row) => row.isActive);
+  const prices = (forSale.length > 0 ? forSale : own)
+    .map((row) => row.pricePaisa)
+    .filter((paisa) => Number.isFinite(paisa));
+  return {
+    minPaisa: prices.length > 0 ? Math.min(...prices) : null,
+    maxPaisa: prices.length > 0 ? Math.max(...prices) : null,
+    stock: forSale.reduce((sum, row) => sum + (Number.isFinite(row.stock) ? row.stock : 0), 0),
+    forSale: forSale.length > 0,
+  };
+}

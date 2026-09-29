@@ -72,7 +72,7 @@ export function ProductForm({
     shouldFocusError: false,
   });
   const { errors, isDirty, submitCount } = form.formState;
-  // One photo list for the shared photos and every style card (specs/product-styles.md).
+  // One photo list for the shared photos and every style's popup (specs/product-styles.md).
   const images = useFieldArray({ control: form.control, name: "images", keyName: "fieldKey" });
   const hasStyles = useWatch({ control: form.control, name: "variants" }).some(
     (row) => row.isActive && (row.color ?? "").trim() !== "",
@@ -192,7 +192,7 @@ export function ProductForm({
             title={hasStyles ? "Photos for every style" : "Photos"}
             hint={
               hasStyles
-                ? "Optional: photos that fit every style, like a size chart. Each style's own photos are in its card under Price and stock."
+                ? "Optional: photos that fit every style, like a size chart. Add each style's own photos with Edit under Styles."
                 : undefined
             }
             productId={saved?.id}
@@ -222,8 +222,13 @@ export function ProductForm({
           />
         </div>
 
-        {/* The aside is as tall as the main column, so the Publish box can stay in view while scrolling. */}
-        <aside aria-label="Publish and organise" className="flex flex-col gap-6">
+        {/* From lg the whole sidebar stays in view while the page scrolls, and scrolls by itself when it's taller
+            than the screen, so Organise never slides under the Publish box. -mt-6 with py-6 keeps a gap above it
+            once it sticks (the gap is the page header's padding); px-1 leaves room for focus rings. */}
+        <aside
+          aria-label="Publish and organise"
+          className="flex flex-col gap-6 lg:sticky lg:top-0 lg:-mx-1 lg:-mt-6 lg:max-h-dvh lg:self-start lg:overflow-y-auto lg:px-1 lg:py-6"
+        >
           <ProductPublishPanel
             control={form.control}
             saved={saved ?? null}

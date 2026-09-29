@@ -1,7 +1,7 @@
 # Spec: Product styles (Nike-style designs on one product page)
 
 **Status:** Built (2026-09-29, branch `feat/product-styles`)
-**Owner approval:** owner, 2026-09-29 ("Styles inside one product", chosen over separate linked products)
+**Owner approval:** owner, 2026-09-29 ("Styles inside one product", chosen over separate linked products); style popup, owner 2026-09-29 ("List + popup", chosen over keeping each style on the page with only its photos in a popup)
 **Related docs:** `specs/admin-product-editor.md` · `database/data-rules.md` · `ui/patterns.md` §6 · `backend/api-contract.md`
 
 ## Goal
@@ -14,15 +14,17 @@ A style is the variant's existing `color` value (cart, checkout, orders and stoc
 
 ## User flow
 
-1. Editor → Price and stock → **Styles** → type a name ("Mountain print") → **Add style**. A card appears for it.
-2. In the card: add its photos (many at once), its **Price (Rs)** and the stock of each size. Repeat for each design.
+1. Editor → Price and stock → **Styles** → type a name ("Mountain print") → **Add style**. Its popup opens.
+2. In the popup: add its photos (many at once), its **Price (Rs)** and the stock of each size, then **Done**. The style is now a line in the list (main photo, name, price, stock, photos) with **Edit** to open the popup again. Repeat for each design.
 3. Publish. The product page shows the styles as picture swatches.
 
 ## Acceptance criteria
 
 Admin editor
 
-- [ ] "Colours" becomes **Styles** ("Colours or designs. Each can have its own photos and price."). Adding a style makes a card with: the name (rename in place), photos (choose or drop many, Make main, move, remove), **Price (Rs)**, the size stock table (For sale, Stock, optional Price per size, optional SKU) and **Remove style** (confirmed with a Dialog).
+- [ ] "Colours" becomes **Styles** ("Colours or designs. Each can have its own photos and price."). The main page shows the styles as a short list: each line has the style's main photo (a placeholder when it has none), its name, its price (a range with prices per size; "No price yet"), its stock for sale ("Not for sale" when no size is) and its photo count, with an **Edit** button. A style's photos never show on the main page, only in its popup.
+- [ ] Adding a style opens its popup (a large `Dialog`), and so does **Edit**. The popup, titled with the style's name, holds: **Rename** (in place), **Remove style** (confirmed with a second Dialog), photos (choose or drop many, Make main, move, remove), **Price (Rs)**, and the size stock table (For sale, Stock, optional Price per size, optional SKU). Its body scrolls; **Done** stays in view. Changes go straight into the form; saving the product saves them. Closing it returns focus to the style's Edit button, or to Add style when it opened from there or the style was removed.
+- [ ] After a failed save, a style with a problem says so in its line ("Something here needs fixing. Press Edit."), and focus goes there when it's the first problem on the page.
 - [ ] With styles, the product-level Price field goes; each style has its own (a new style starts with the last style's price). Without styles the editor works as today.
 - [ ] The main Photos section is "Photos for every style" when there are styles (optional), "Photos" otherwise.
 - [ ] Renaming a style renames its rows and photos. Removing one removes its photos and unsaved rows; saved rows are switched off (past orders use them).
@@ -43,6 +45,8 @@ Shop
 ## UI
 
 - New `RadioGroup` variant `swatch` (picture tile, ink border when picked, no fill) + story + catalog entry.
+- `Dialog size="lg"` (new variant + `footer` slot + story): a wider popup whose body scrolls between the title and the footer. Only used for the style popup, an owner-approved exception to "forms in pages" (patterns.md §10).
+- `ProductStyleList` (list, Add style, the popup) and `ProductStyleEditor` (the popup's body).
 - `SelectedStyleProvider` (client context) shares the picked style between the gallery and the purchase box; the rest of the page stays server-rendered.
 
 ## Data & API
@@ -53,4 +57,4 @@ Shop
 
 ## Tests
 
-- Validators: image style must exist. Core: style photos saved and read; cart line image follows the style. Web unit: rename/remove style rows and photos; preview carries photo styles. E2E: admin adds two styles with their own photos and prices; the shop page switches photo and price when the style changes.
+- Validators: image style must exist. Core: style photos saved and read; cart line image follows the style. Web unit: rename/remove style rows and photos; the list line's price range and stock (`styleSummary`); preview carries photo styles. Storybook: the large Dialog opens, and Done returns focus. E2E: admin adds two styles in their popups with their own photos and prices, the list lines sum them up, the style photo stays off the main photos; the shop page switches photo and price when the style changes.

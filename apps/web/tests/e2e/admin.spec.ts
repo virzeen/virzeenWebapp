@@ -69,13 +69,19 @@ test("admin sets up two-factor, creates a product and it appears in the shop", a
   await page.getByLabel(/^Price \(Rs\)/).fill("1350");
   await page.getByLabel(/^Shipping \(Rs\)/).fill("150");
   await expect(page.getByText(/Customers pay Rs 1,500/)).toBeVisible();
-  // A style (colour), then two sizes typed with commas: a stock row for each combination.
+  // A style (colour) opens its popup. After two sizes typed with commas, it has a stock row for each.
   await page.getByLabel(/^Add a style/).fill("Black");
   await page.getByLabel(/^Add a style/).press("Enter");
-  await expect(page.getByRole("region", { name: "Black" })).toBeVisible();
+  const black = page.getByRole("dialog", { name: "Black" });
+  await expect(black).toBeVisible();
+  await black.getByRole("button", { name: "Done" }).click();
   await page.getByLabel(/^Sizes/).fill("S, M,");
-  await page.getByLabel("Stock, Black, S").fill("5");
-  await page.getByLabel("Stock, Black, M").fill("7");
+  await page.getByRole("button", { name: "Edit Black" }).click();
+  await black.getByLabel("Stock, Black, S").fill("5");
+  await black.getByLabel("Stock, Black, M").fill("7");
+  await black.getByRole("button", { name: "Done" }).click();
+  await expect(page.getByRole("button", { name: "Edit Black" })).toBeFocused();
+  await expect(page.getByText(/Rs 1,350 · 12 in stock · No photos yet/)).toBeVisible();
   await page.getByRole("combobox", { name: /Category/ }).click();
   await page.getByRole("option", { name: "Accessories" }).click();
   // The slug fills itself from the name, under Search engines.
@@ -87,12 +93,16 @@ test("admin sets up two-factor, creates a product and it appears in the shop", a
 
   // SKUs were made on save; a second save keeps the same two rows instead of adding them again.
   await page.getByRole("checkbox", { name: /Edit SKU codes/ }).click();
-  await expect(page.getByLabel("SKU, Black, S")).toHaveValue("VZ-E2EMONOCHROM-BLACK-S");
-  await page.getByLabel("Stock, Black, M").fill("8");
+  await page.getByRole("button", { name: "Edit Black" }).click();
+  await expect(black.getByLabel("SKU, Black, S")).toHaveValue("VZ-E2EMONOCHROM-BLACK-S");
+  await black.getByLabel("Stock, Black, M").fill("8");
+  await black.getByRole("button", { name: "Done" }).click();
   await page.getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.getByText("Product saved")).toBeVisible();
-  await expect(page.getByLabel(/^Stock, /)).toHaveCount(2);
-  await expect(page.getByLabel("SKU, Black, M")).toHaveValue("VZ-E2EMONOCHROM-BLACK-M");
+  await page.getByRole("button", { name: "Edit Black" }).click();
+  await expect(black.getByLabel(/^Stock, /)).toHaveCount(2);
+  await expect(black.getByLabel("SKU, Black, M")).toHaveValue("VZ-E2EMONOCHROM-BLACK-M");
+  await black.getByRole("button", { name: "Done" }).click();
 
   // Preview: the product page in a new tab, following the editor as it changes (nothing saved).
   const [preview] = await Promise.all([
@@ -126,22 +136,27 @@ test("admin sets up two-factor, creates a product and it appears in the shop", a
   await page.getByRole("button", { name: "Duplicate E2E Monochrome Beanie" }).click();
   await expect(page.getByText("Copy saved as a draft")).toBeVisible();
   await expect(page.getByLabel(/^Product name/)).toHaveValue("E2E Monochrome Beanie (copy)");
-  await expect(page.getByLabel("Stock, Black, S")).toHaveValue("0");
+  await expect(page.getByText(/Rs 1,350 · 0 in stock/)).toBeVisible();
   await expect(page.getByRole("button", { name: "Publish", exact: true })).toBeVisible();
 
-  // Styles (specs/product-styles.md): a second design with its own photo and price on the same page.
+  // Styles (specs/product-styles.md): a second design with its own photo and price, edited in its popup.
   await page.getByLabel(/^Add another style/).fill("Mountain print");
   await page.getByLabel(/^Add another style/).press("Enter");
-  const mountain = page.getByRole("region", { name: "Mountain print" });
+  const mountain = page.getByRole("dialog", { name: "Mountain print" });
   await mountain.getByLabel(/^Image reference/).fill("/placeholder/product-02.jpg");
   await mountain.getByRole("button", { name: "Add photo" }).click();
   await mountain.getByLabel(/^Price \(Rs\)/).fill("1650");
   await expect(mountain.getByText(/Customers pay Rs 1,800/)).toBeVisible();
   await mountain.getByLabel("Stock, Mountain print, S").fill("3");
-  const black = page.getByRole("region", { name: "Black" });
+  await mountain.getByRole("button", { name: "Done" }).click();
+  // The main page lists the style; its photo isn't among the photos for every style.
+  await expect(page.getByText(/Rs 1,650 · 3 in stock · 1 photo/)).toBeVisible();
+  await expect(page.getByRole("region", { name: "Photos for every style" }).locator("img")).toHaveCount(1);
+  await page.getByRole("button", { name: "Edit Black" }).click();
   await black.getByLabel(/^Image reference/).fill("/placeholder/product-07.jpg");
   await black.getByRole("button", { name: "Add photo" }).click();
   await black.getByLabel("Stock, Black, S").fill("2");
+  await black.getByRole("button", { name: "Done" }).click();
   await page.getByRole("button", { name: "Publish", exact: true }).click();
   await expect(page.getByText("Product published")).toBeVisible();
   // The shop page: picture swatches; picking a style changes its photos and price.

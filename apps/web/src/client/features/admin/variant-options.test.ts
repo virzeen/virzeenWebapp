@@ -6,6 +6,7 @@ import {
   removeOption,
   renameOption,
   sortRows,
+  styleSummary,
   variantLabel,
   type VariantRow,
 } from "./variant-options";
@@ -97,5 +98,31 @@ describe("variant options", () => {
       "Mountain print, M",
       "River, S",
     ]);
+  });
+
+  it("sums a style's stock for sale and its price range for the style list", () => {
+    const rows = [
+      row("Mountain", "S", { stock: 3, pricePaisa: 165_000 }),
+      row("Mountain", "M", { stock: 2, pricePaisa: 175_000 }),
+      row("Mountain", "L", { stock: 9, pricePaisa: 99_000, isActive: false }),
+      row("River", "S", { stock: 5 }),
+    ];
+    expect(styleSummary(rows, "mountain")).toEqual({
+      minPaisa: 165_000,
+      maxPaisa: 175_000,
+      stock: 5,
+      forSale: true,
+    });
+    expect(styleSummary([row("New", "S", { pricePaisa: Number.NaN })], "New")).toEqual({
+      minPaisa: null,
+      maxPaisa: null,
+      stock: 0,
+      forSale: true,
+    });
+    expect(styleSummary([row("Old", "S", { isActive: false, stock: 4 })], "Old")).toMatchObject({
+      minPaisa: 135_000,
+      stock: 0,
+      forSale: false,
+    });
   });
 });

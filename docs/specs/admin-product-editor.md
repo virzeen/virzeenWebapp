@@ -22,7 +22,7 @@ We keep our own admin (not WordPress): orders, stock, cash on delivery and the a
 
 Editor layout
 
-- [ ] At 1024px and wider the editor has two columns: main (name, photos, description, price, sizes & stock) and a sidebar (Publish box, category, collections, search engines). The sidebar stays in view while scrolling. On phones it's one column and the Publish buttons sit in a bar fixed to the bottom.
+- [ ] At 1024px and wider the editor has two columns: main (name, photos, description, price, sizes & stock) and a sidebar (Publish box, category, collections, search engines). The whole sidebar stays in view while the page scrolls; when it's taller than the screen it scrolls by itself, so Organise and Search engines never hide under the Publish box (owner report, 2026-09-29). On phones it's one column and the Publish buttons sit in a bar fixed to the bottom.
 - [ ] The URL slug and search description sit in a collapsed "Search engines" section. The slug still fills itself from the name until edited.
 - [ ] Publish box, draft: status "Draft", buttons **Publish** (primary) and **Save draft**. Published: status "Published", **Save** (primary), **Unpublish**, and a "View in shop" link. Toasts: "Product published", "Draft saved", "Product saved", "Product unpublished".
 - [ ] Publish box checklist, live: name, at least one photo, price, category, description, at least one size/colour for sale. A warning (not a blocker) when every variant has stock 0.
