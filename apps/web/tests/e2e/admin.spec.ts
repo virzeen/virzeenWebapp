@@ -50,31 +50,64 @@ test("admin sets up two-factor, creates a product and it appears in the shop", a
   await page.getByRole("button", { name: "Verify" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Dashboard" })).toBeVisible();
 
-  // Create a product.
+  // Create a product with the editor (specs/admin-product-editor.md).
   await page.getByRole("link", { name: "Products" }).click();
   await page.getByRole("link", { name: "New product" }).click();
-  await page.getByLabel(/^Name/).fill("E2E Monochrome Beanie");
-  await expect(page.getByLabel(/URL slug/)).toHaveValue("e2e-monochrome-beanie");
+  await page.getByLabel(/^Product name/).fill("E2E Monochrome Beanie");
+  // Unsaved changes: leaving by a link asks first; cancelling stays.
+  page.once("dialog", (dialog) => void dialog.dismiss());
+  await page.getByRole("link", { name: "← Products" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "New product" })).toBeVisible();
+
+  await page.getByLabel(/^Image reference/).fill("/placeholder/product-06.jpg");
+  await page.getByRole("button", { name: "Add photo" }).click();
+  await expect(page.getByText("Main photo", { exact: true })).toBeVisible();
+  await page
+    .getByRole("textbox", { name: "Description" })
+    .fill("A ribbed beanie for cold Kathmandu mornings.");
+  // One price for every size, plus shipping; customers see the sum (Rs 1,500) with free shipping.
+  await page.getByLabel(/^Price \(Rs\)/).fill("1350");
+  await page.getByLabel(/^Shipping \(Rs\)/).fill("150");
+  await expect(page.getByText(/Customers pay Rs 1,500/)).toBeVisible();
+  // A colour, then two sizes typed with commas: a stock row for each combination.
+  await page.getByLabel(/^Colours/).fill("Black");
+  await page.getByLabel(/^Colours/).press("Enter");
+  await page.getByLabel(/^Sizes/).fill("S, M,");
+  await page.getByLabel("Stock, Black, S").fill("5");
+  await page.getByLabel("Stock, Black, M").fill("7");
   await page.getByRole("combobox", { name: /Category/ }).click();
   await page.getByRole("option", { name: "Accessories" }).click();
-  await page.getByLabel(/^Description/).fill("A ribbed beanie for cold Kathmandu mornings.");
-  await page.getByLabel(/Image reference/).fill("/placeholder/product-06.jpg");
-  await page.getByRole("button", { name: "Add image" }).click();
-  await page.getByLabel(/^SKU/).fill("VZ-BEANIE-BLK-OS");
-  await page.getByLabel(/^Colour/).fill("Black");
-  // Product price + shipping; customers see the sum (Rs 1,500) with free shipping.
-  await page.getByLabel(/^Shipping price \(Rs\)/).fill("150");
-  await page.getByLabel(/^Product price \(Rs\)/).fill("1350");
-  await expect(page.getByText(/Customers pay Rs 1,500/)).toBeVisible();
-  await page.getByLabel(/^Stock/).fill("12");
-  await page.getByRole("switch", { name: /Published/ }).click();
-  await page.getByRole("button", { name: "Save product" }).click();
+  // The slug fills itself from the name, under Search engines.
+  await page.getByRole("button", { name: "Search engines" }).click();
+  await expect(page.getByLabel(/URL slug/)).toHaveValue("e2e-monochrome-beanie");
+  await page.getByRole("button", { name: "Publish", exact: true }).click();
+  await expect(page.getByText("Product published")).toBeVisible();
+  await expect(page).toHaveURL(/\/admin\/products\/(?!new)[a-z0-9]+$/);
+
+  // SKUs were made on save; a second save keeps the same two rows instead of adding them again.
+  await page.getByRole("checkbox", { name: /Edit SKU codes/ }).click();
+  await expect(page.getByLabel("SKU, Black, S")).toHaveValue("VZ-E2EMONOCHROM-BLACK-S");
+  await page.getByLabel("Stock, Black, M").fill("8");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.getByText("Product saved")).toBeVisible();
+  await expect(page.getByLabel(/^Stock, /)).toHaveCount(2);
+  await expect(page.getByLabel("SKU, Black, M")).toHaveValue("VZ-E2EMONOCHROM-BLACK-M");
 
   await page.goto("/shop/accessories");
   await page.getByRole("link", { name: /E2E Monochrome Beanie/ }).click();
   await expect(page.getByRole("heading", { level: 1, name: "E2E Monochrome Beanie" })).toBeVisible();
   await expect(page.getByText("Rs 1,500").first()).toBeVisible();
+
+  // Products list: status filters, and Duplicate makes a draft copy (stock 0) that opens in the editor.
+  await page.goto("/admin/products");
+  await page.getByRole("link", { name: /^Drafts \(\d+\)$/ }).click();
+  await expect(page.getByRole("link", { name: /E2E Monochrome Beanie/ })).toBeHidden();
+  await page.getByRole("link", { name: /^All \(\d+\)$/ }).click();
+  await page.getByRole("button", { name: "Duplicate E2E Monochrome Beanie" }).click();
+  await expect(page.getByText("Copy saved as a draft")).toBeVisible();
+  await expect(page.getByLabel(/^Product name/)).toHaveValue("E2E Monochrome Beanie (copy)");
+  await expect(page.getByLabel("Stock, Black, S")).toHaveValue("0");
+  await expect(page.getByRole("button", { name: "Publish", exact: true })).toBeVisible();
 
   // A mistyped admin address stays inside the admin frame, with a way back.
   await page.goto("/admin/no-such-page");

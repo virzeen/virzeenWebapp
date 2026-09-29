@@ -18,7 +18,10 @@ export default async function NewProductPage() {
       >
         ← Products
       </Link>
-      <AdminPageHeader title="New product" description="Saved as a draft until you switch on Published." />
+      <AdminPageHeader
+        title="New product"
+        description="Fill in the details, then Publish. Or Save draft and finish later: drafts aren't in the shop."
+      />
       <ProductForm categories={categories} collections={collections} uploadsEnabled={uploadsEnabled()} />
     </Stack>
   );

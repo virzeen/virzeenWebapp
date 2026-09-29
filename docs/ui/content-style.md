@@ -185,31 +185,59 @@ Too many requests and anything unexpected use the standard `RATE_LIMITED` and `I
 
 ### Frame, lists and dialogs
 
-| Situation                                      | Text                                                                                                                                     |
-| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| Admin page failed (h1, then a danger `Alert`)  | Something went wrong on our side. — Please try again. If it keeps happening, come back in a few minutes. [Try again]                     |
-| Authenticator step (`/admin/verify`)           | Signed in as {email} (under the heading) · [Use a different email] under the form: signs out, back to Sign in                            |
-| Header (right side)                            | {email} (from `sm`) · [View shop] · [Sign out] (signs out on this device, then the home page)                                            |
-| Sign out failed (any Sign out button; toast)   | `RATE_LIMITED` or `INTERNAL` standard message. The person stays signed in on the same page and can press Sign out again.                 |
-| Nav                                            | Dashboard · Orders · Products · Categories · Collections · Portfolio · Customers · Settings                                              |
-| Missing item or mistyped `/admin` address (h1) | This page doesn't exist, or the item was archived. — [Back to dashboard] (tab title: Not found)                                          |
-| Dashboard tiles                                | Orders today · Sales today · To pack · To ship · Payments pending                                                                        |
-| Dashboard tile link (visible · screen readers) | View · View orders to pack / View orders to ship / View orders with payment pending                                                      |
-| Order history, "Change" column                 | Order placed · {from} → {to} (e.g. Confirmed → Being packed) · Payment: {from} → {to} (e.g. Payment: Unpaid → Pay on delivery)           |
-| Order page, actions group (screen readers)     | Order actions                                                                                                                            |
-| Customers, no name                             | —                                                                                                                                        |
-| Customers, orders link (screen readers)        | {n} order from {email} / {n} orders from {email}                                                                                         |
-| Products search                                | Search products (label) · Product name (placeholder) · [Search] · [Clear search]                                                         |
-| Products count                                 | 1 product · {n} products · 1 product matches "{q}" · {n} products match "{q}"                                                            |
-| Empty lists                                    | No products yet. — [Add your first product] · No orders yet. · No orders match. — [Clear filters] · No customers yet. · No projects yet. |
-| Empty categories / collections                 | No categories yet. Add Tops, Bottoms, Accessories… to organise the shop. · No collections yet. Group products for campaigns and seasons. |
-| Category and collection forms                  | Add a category · Add a collection · Edit {name} (heading and the Edit button's name) · field "URL slug"                                  |
-| Archive dialog                                 | Archive {name}? — It disappears from the shop. Past orders keep their details. [Keep] [Archive]                                          |
-| Archive blocked (`CONFLICT`, `NOT_FOUND`)      | {name} can't be archived yet — the reason in a danger `Alert` — [OK]                                                                     |
-| Category still has products                    | Move or archive the {n} product in this category first. / Move or archive the {n} products in this category first.                       |
-| Portfolio kind                                 | Campaign · Lookbook · Collaboration                                                                                                      |
-| Product variants intro (added sentence)        | To stop selling a variant, untick For sale: saved variants stay on the list because orders refer to them.                                |
-| Saved (toasts)                                 | Product saved · Project saved · Category saved · Collection saved · {name} archived                                                      |
+| Situation                                      | Text                                                                                                                                                                                 |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Admin page failed (h1, then a danger `Alert`)  | Something went wrong on our side. — Please try again. If it keeps happening, come back in a few minutes. [Try again]                                                                 |
+| Authenticator step (`/admin/verify`)           | Signed in as {email} (under the heading) · [Use a different email] under the form: signs out, back to Sign in                                                                        |
+| Header (right side)                            | {email} (from `sm`) · [View shop] · [Sign out] (signs out on this device, then the home page)                                                                                        |
+| Sign out failed (any Sign out button; toast)   | `RATE_LIMITED` or `INTERNAL` standard message. The person stays signed in on the same page and can press Sign out again.                                                             |
+| Nav                                            | Dashboard · Orders · Products · Categories · Collections · Portfolio · Customers · Settings                                                                                          |
+| Missing item or mistyped `/admin` address (h1) | This page doesn't exist, or the item was archived. — [Back to dashboard] (tab title: Not found)                                                                                      |
+| Dashboard tiles                                | Orders today · Sales today · To pack · To ship · Payments pending                                                                                                                    |
+| Dashboard tile link (visible · screen readers) | View · View orders to pack / View orders to ship / View orders with payment pending                                                                                                  |
+| Order history, "Change" column                 | Order placed · {from} → {to} (e.g. Confirmed → Being packed) · Payment: {from} → {to} (e.g. Payment: Unpaid → Pay on delivery)                                                       |
+| Order page, actions group (screen readers)     | Order actions                                                                                                                                                                        |
+| Customers, no name                             | —                                                                                                                                                                                    |
+| Customers, orders link (screen readers)        | {n} order from {email} / {n} orders from {email}                                                                                                                                     |
+| Products search                                | Search products (label) · Product name (placeholder) · [Search] · [Clear search]                                                                                                     |
+| Products count                                 | 1 product · {n} products · 1 product matches "{q}" · {n} products match "{q}"                                                                                                        |
+| Empty lists                                    | No products yet. — [Add your first product] · No orders yet. · No orders match. — [Clear filters] · No customers yet. · No projects yet.                                             |
+| Empty categories / collections                 | No categories yet. Add Tops, Bottoms, Accessories… to organise the shop. · No collections yet. Group products for campaigns and seasons.                                             |
+| Category and collection forms                  | Add a category · Add a collection · Edit {name} (heading and the Edit button's name) · field "URL slug"                                                                              |
+| Archive dialog                                 | Archive {name}? — It disappears from the shop. Past orders keep their details. [Keep] [Archive]                                                                                      |
+| Archive blocked (`CONFLICT`, `NOT_FOUND`)      | {name} can't be archived yet — the reason in a danger `Alert` — [OK]                                                                                                                 |
+| Category still has products                    | Move or archive the {n} product in this category first. / Move or archive the {n} products in this category first.                                                                   |
+| Portfolio kind                                 | Campaign · Lookbook · Collaboration                                                                                                                                                  |
+| Saved (toasts)                                 | Product published · Draft saved · Product saved · Product unpublished · Copy saved as a draft · Category added · Project saved · Category saved · Collection saved · {name} archived |
+
+### Product editor (`/admin/products/new`, `/admin/products/{id}`)
+
+| Where                             | Text                                                                                                                                                                                 |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| New product (description)         | Fill in the details, then Publish. Or Save draft and finish later: drafts aren't in the shop.                                                                                        |
+| Sections                          | Photos · Description and care · Price and stock · sidebar: Publish · Organise · Search engines                                                                                       |
+| Publish box                       | Draft / Published badge · "Only admins can see this product until you publish it." / "Customers can see this product."                                                               |
+| Publish box, unsaved              | (added) You have unsaved changes.                                                                                                                                                    |
+| Checklist ("Before publishing")   | Name · At least one photo · Description · Price · Shipping (0 for none) · Category · Something ticked For sale                                                                       |
+| Checklist warning (all else done) | Stock is 0, so it will show as sold out.                                                                                                                                             |
+| Buttons                           | Draft: [Publish] [Save draft] · Published: [Save] [Unpublish] · [View in shop] · [Duplicate] (list: icon, "Duplicate {name}")                                                        |
+| Leaving with unsaved changes      | Leave without saving? Your changes will be lost.                                                                                                                                     |
+| Duplicate with unsaved changes    | Duplicate the saved version? Your unsaved changes here will be lost.                                                                                                                 |
+| Photos                            | {n} of 12 · the first is the main photo · Main photo (badge) · [Make main] · Move photo {n} earlier/later · Remove photo {n}                                                         |
+| Photo drop area                   | Drag photos here, or choose them. JPG, PNG, WebP or AVIF, up to 10 MB each. [Choose photos] · tiles "Uploading {file}"                                                               |
+| Photo problems                    | {file}: choose a JPG, PNG, WebP or AVIF image. · {file} is over 10 MB. Compress it to about 2500px first. · {file} didn't upload. Please try again.                                  |
+| Too many photos                   | Photos are full (12 at most). Remove one to add another. · Only {n} more photos fit (12 at most), so the rest weren't added.                                                         |
+| Photo descriptions (accordion)    | Photo descriptions (optional) — Read out by screen readers and used by search engines. Leave blank to use the product name.                                                          |
+| Price and shipping                | Price (Rs), helper "Includes VAT" · Shipping (Rs) · Customers pay {Rs X} with free shipping.                                                                                         |
+| Per-row prices                    | Different prices for some sizes or colours — (ticked) Untick to use the first row's price for all.                                                                                   |
+| Sizes / colours                   | Sizes · Colours — Type one and press Enter, or separate several with commas. · [+ S, M, L, XL] [+ Free size] · Remove size {value}                                                   |
+| Stock grid                        | For sale · Stock · Price (Rs) · SKU · row name "Black, M" ("Standard" with neither) · Saved rows can't be deleted because past orders use them. Untick For sale to stop selling one. |
+| No sizes or colours               | Stock — How many you have. Add sizes or colours above to count each one.                                                                                                             |
+| SKU codes                         | Edit SKU codes — Stock codes are made when you save (VZ-PRODUCT-COLOUR-SIZE). Tick to type your own. · placeholder "Made on save"                                                    |
+| SKU format error                  | Use the format VZ-PRODUCT-COLOUR-SIZE, or leave it blank to make one                                                                                                                 |
+| New category (Organise)           | [+ New category] → New category name · [Add category] [Cancel] · A category with this name already exists. Choose it in the list.                                                    |
+| Search engines                    | URL slug — The end of the address: /product/your-slug. Made from the name. · Search description — Optional, up to 155 characters. Shown under the name in Google.                    |
+| Products list filters             | All ({n}) · Published ({n}) · Drafts ({n}) · badges No photos / Out of stock · empty: No drafts. / Nothing published yet.                                                            |
 
 ### Settings (`/admin/settings`)
 

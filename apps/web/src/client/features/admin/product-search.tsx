@@ -9,7 +9,7 @@ import { useRef, useState } from "react";
  * The box follows the URL: "Clear search" or "Show all products" empties it (the page isn't remounted on the
  * same route, so an uncontrolled box would keep the old words).
  */
-export function ProductSearch({ q }: { q: string | undefined }) {
+export function ProductSearch({ q, status }: { q: string | undefined; status: string | undefined }) {
   const [value, setValue] = useState(q ?? "");
   const [shownQuery, setShownQuery] = useState(q);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -22,6 +22,8 @@ export function ProductSearch({ q }: { q: string | undefined }) {
 
   return (
     <Form action="/admin/products" role="search" className="flex flex-col gap-3 sm:flex-row sm:items-end">
+      {/* Searching keeps the All / Published / Drafts filter. */}
+      {status && <input type="hidden" name="status" value={status} />}
       <FormField label="Search products" className="flex-1">
         <Input
           ref={inputRef}
@@ -40,7 +42,7 @@ export function ProductSearch({ q }: { q: string | undefined }) {
         {q && (
           // The link goes away with the search, so focus moves to the box, ready for the next one.
           <ButtonLink
-            href="/admin/products"
+            href={status ? `/admin/products?status=${status}` : "/admin/products"}
             variant="ghost"
             shape="pill"
             onClick={() => inputRef.current?.focus()}

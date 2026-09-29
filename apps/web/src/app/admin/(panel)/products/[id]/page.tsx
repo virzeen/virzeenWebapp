@@ -1,4 +1,4 @@
-import { ButtonLink, Link, Stack } from "@virzeen/ui";
+import { Link, Stack } from "@virzeen/ui";
 import { notFound } from "next/navigation";
 import { AdminPageHeader } from "@/client/features/admin/admin-page-header";
 import { ArchiveButton } from "@/client/features/admin/archive-button";
@@ -35,18 +35,16 @@ export default async function EditProductPage({ params }: Props) {
       <AdminPageHeader
         title={product.name}
         actions={
-          <>
-            {product.isPublished && (
-              <ButtonLink href={`/product/${product.slug}`} variant="secondary" size="sm" shape="pill">
-                View in shop
-              </ButtonLink>
-            )}
-            <ArchiveButton kind="product" id={product.id} name={product.name} redirectTo="/admin/products" />
-          </>
+          <ArchiveButton kind="product" id={product.id} name={product.name} redirectTo="/admin/products" />
         }
       />
       <ProductForm
-        productId={product.id}
+        saved={{
+          id: product.id,
+          slug: product.slug,
+          isPublished: product.isPublished,
+          savedAt: product.updatedAt.toISOString(),
+        }}
         categories={options.categories}
         collections={options.collections}
         uploadsEnabled={uploadsEnabled()}
