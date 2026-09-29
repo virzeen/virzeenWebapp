@@ -8,12 +8,18 @@ export default async function AdminPanelLayout({ children }: { children: React.R
   const admin = await requireAdminPage();
   return (
     <>
+      <a
+        href="#main"
+        className="sr-only z-60 rounded-sm bg-ink text-canvas focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:px-4 focus:py-3"
+      >
+        Skip to content
+      </a>
       <header className="border-b border-line">
         <Container width="full" className="flex h-14 items-center justify-between gap-4">
           <Link
             href="/admin"
             variant="subtle"
-            className="flex items-center gap-3 text-ink"
+            className="inline-flex min-h-11 items-center gap-3 text-ink"
             aria-label="Admin home"
           >
             <Wordmark className="h-4 w-auto" />

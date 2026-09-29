@@ -8,7 +8,12 @@ import { getPortfolioProjectForEdit, listProductOptions, uploadsEnabled } from "
 
 type Props = { params: Promise<{ id: string }> };
 
-export const metadata = { title: "Edit project" };
+// A missing project gets the admin not-found page's title instead of "Edit project".
+export async function generateMetadata({ params }: Props) {
+  await requireAdminPage();
+  if (!(await getPortfolioProjectForEdit((await params).id))) notFound();
+  return { title: "Edit project" };
+}
 
 export default async function EditPortfolioProjectPage({ params }: Props) {
   await requireAdminPage();
@@ -19,7 +24,11 @@ export default async function EditPortfolioProjectPage({ params }: Props) {
   if (!project) notFound();
   return (
     <Stack gap={6}>
-      <Link href="/admin/portfolio" variant="subtle" className="text-small">
+      <Link
+        href="/admin/portfolio"
+        variant="subtle"
+        className="inline-flex min-h-11 items-center self-start text-small"
+      >
         ← Portfolio
       </Link>
       <AdminPageHeader

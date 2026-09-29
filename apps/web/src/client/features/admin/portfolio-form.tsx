@@ -15,14 +15,20 @@ import {
   Textarea,
   toast,
 } from "@virzeen/ui";
-import { portfolioProjectSchema, type PortfolioProjectInput } from "@virzeen/validators";
+import {
+  PORTFOLIO_KIND_LABELS,
+  PORTFOLIO_KINDS,
+  portfolioProjectSchema,
+  type PortfolioProjectInput,
+} from "@virzeen/validators";
 import { ArrowDown, ArrowUp, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 import { CloudImage } from "@/client/components/shared/cloud-image";
 import { messageFor } from "@/client/lib/error-messages";
 import { savePortfolioProjectAction } from "@/server/actions/admin/portfolio";
+import { itemButton, keepFocusOnPress, refocusAfterListChange, useRevealFirstError } from "./form-focus";
 import { ImageUploader } from "./image-uploader";
 
 type PortfolioFormProps = {
@@ -64,10 +70,37 @@ export function PortfolioForm({
     resolver: zodResolver(portfolioProjectSchema),
     mode: "onBlur",
     defaultValues: defaultValues ?? EMPTY,
+    // useRevealFirstError focuses the first problem in page order instead.
+    shouldFocusError: false,
   });
-  const { errors, isSubmitting } = form.formState;
+  const { errors, isSubmitting, submitCount } = form.formState;
+  const formRef = useRevealFirstError(submitCount);
+  // Story blocks are a union (text | image), so read their errors by path.
+  const blockError = (path: `body.${number}.${"heading" | "text" | "url" | "alt" | "caption"}`) =>
+    form.getFieldState(path, form.formState).error?.message;
   const blocks = useFieldArray({ control: form.control, name: "body", keyName: "fieldKey" });
   const coverUrl = useWatch({ control: form.control, name: "coverUrl" });
+  const blocksRef = useRef<HTMLOListElement>(null);
+  const addTextRef = useRef<HTMLButtonElement>(null);
+
+  // The moved block keeps focus on the same arrow, or on the other one once that arrow is disabled.
+  function moveBlock(index: number, to: number, action: "up" | "down") {
+    blocks.move(index, to);
+    refocusAfterListChange(
+      () => itemButton(blocksRef.current, to, action),
+      () => itemButton(blocksRef.current, to, action === "up" ? "down" : "up"),
+    );
+  }
+
+  // Focus goes to the next block's Remove, else the previous one's, else "Add text".
+  function removeBlock(index: number) {
+    blocks.remove(index);
+    refocusAfterListChange(
+      () => itemButton(blocksRef.current, index, "remove"),
+      () => itemButton(blocksRef.current, index - 1, "remove"),
+      () => addTextRef.current,
+    );
+  }
 
   async function onSubmit(values: PortfolioProjectInput) {
     setFormError(null);
@@ -80,13 +113,26 @@ export function PortfolioForm({
       router.refresh();
       return;
     }
-    if (result.error.fields?.slug) form.setError("slug", { message: result.error.fields.slug });
+    if (result.error.code === "VALIDATION_FAILED" && result.error.fields) {
+      for (const [field, message] of Object.entries(result.error.fields)) {
+        form.setError(field.replace(/^project\./, "") as keyof PortfolioProjectInput, { message });
+      }
+    }
     setFormError(messageFor(result.error));
   }
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="flex max-w-3xl flex-col gap-10">
-      {formError && <Alert variant="danger">{formError}</Alert>}
+    <form
+      ref={formRef}
+      onSubmit={form.handleSubmit(onSubmit, () => setFormError(null))}
+      noValidate
+      className="flex max-w-3xl flex-col gap-10"
+    >
+      {formError && (
+        <Alert variant="danger" tabIndex={-1} data-error-summary className="outline-none">
+          {formError}
+        </Alert>
+      )}
 
       <section className="flex flex-col gap-4" aria-labelledby="story-details">
         <h2 id="story-details" className="font-display text-h3">
@@ -113,11 +159,11 @@ export function PortfolioForm({
                 variant="card"
                 value={field.value}
                 onValueChange={field.onChange}
-                className="grid-cols-3"
+                className="grid-cols-1 sm:grid-cols-3"
               >
-                <RadioGroupItem value="CAMPAIGN" label="Campaign" />
-                <RadioGroupItem value="LOOKBOOK" label="Lookbook" />
-                <RadioGroupItem value="COLLABORATION" label="Collab" />
+                {PORTFOLIO_KINDS.map((kind) => (
+                  <RadioGroupItem key={kind} value={kind} label={PORTFOLIO_KIND_LABELS[kind]} />
+                ))}
               </RadioGroup>
             )}
           />
@@ -138,12 +184,15 @@ export function PortfolioForm({
         <h2 id="cover-heading" className="font-display text-h3">
           Cover image
         </h2>
-        {coverUrl ? (
+        {coverUrl && (
           <div className="max-w-sm">
             <CloudImage src={coverUrl} alt="" ratio="landscape" sizes="384px" />
           </div>
-        ) : (
-          errors.coverUrl && <p className="text-small text-danger">Add a cover image</p>
+        )}
+        {errors.coverUrl && (
+          <p tabIndex={-1} data-field-error className="text-small text-danger outline-none">
+            {coverUrl ? errors.coverUrl.message : "Add a cover image"}
+          </p>
         )}
         <ImageUploader
           folder="portfolio"
@@ -163,7 +212,7 @@ export function PortfolioForm({
         <h2 id="blocks-heading" className="font-display text-h3">
           Story blocks
         </h2>
-        <ol className="flex flex-col gap-4">
+        <ol ref={blocksRef} className="flex flex-col gap-4">
           {blocks.fields.map((block, index) => (
             <li key={block.fieldKey} className="flex flex-col gap-3 rounded-md border border-line p-4">
               <div className="flex items-center justify-between">
@@ -175,8 +224,9 @@ export function PortfolioForm({
                     variant="ghost"
                     size="icon"
                     aria-label="Move block up"
+                    data-action="up"
                     disabled={index === 0}
-                    onClick={() => blocks.move(index, index - 1)}
+                    onClick={() => moveBlock(index, index - 1, "up")}
                   >
                     <ArrowUp className="size-4" strokeWidth={1.5} aria-hidden />
                   </Button>
@@ -184,8 +234,9 @@ export function PortfolioForm({
                     variant="ghost"
                     size="icon"
                     aria-label="Move block down"
+                    data-action="down"
                     disabled={index === blocks.fields.length - 1}
-                    onClick={() => blocks.move(index, index + 1)}
+                    onClick={() => moveBlock(index, index + 1, "down")}
                   >
                     <ArrowDown className="size-4" strokeWidth={1.5} aria-hidden />
                   </Button>
@@ -193,7 +244,8 @@ export function PortfolioForm({
                     variant="ghost"
                     size="icon"
                     aria-label="Remove block"
-                    onClick={() => blocks.remove(index)}
+                    data-action="remove"
+                    onClick={() => removeBlock(index)}
                   >
                     <Trash2 className="size-4" strokeWidth={1.5} aria-hidden />
                   </Button>
@@ -201,10 +253,10 @@ export function PortfolioForm({
               </div>
               {block.type === "text" ? (
                 <>
-                  <FormField label="Heading" helper="Optional">
+                  <FormField label="Heading" helper="Optional" error={blockError(`body.${index}.heading`)}>
                     <Input {...form.register(`body.${index}.heading` as const)} />
                   </FormField>
-                  <FormField label="Text" required>
+                  <FormField label="Text" required error={blockError(`body.${index}.text`)}>
                     <Textarea rows={4} {...form.register(`body.${index}.text` as const)} />
                   </FormField>
                 </>
@@ -213,10 +265,15 @@ export function PortfolioForm({
                   <div className="max-w-xs">
                     <CloudImage src={block.url} alt="" ratio="landscape" sizes="320px" />
                   </div>
-                  <FormField label="Alt text" required>
+                  {blockError(`body.${index}.url`) && (
+                    <p tabIndex={-1} data-field-error className="text-small text-danger outline-none">
+                      {blockError(`body.${index}.url`)}
+                    </p>
+                  )}
+                  <FormField label="Alt text" required error={blockError(`body.${index}.alt`)}>
                     <Input {...form.register(`body.${index}.alt` as const)} />
                   </FormField>
-                  <FormField label="Caption" helper="Optional">
+                  <FormField label="Caption" helper="Optional" error={blockError(`body.${index}.caption`)}>
                     <Input {...form.register(`body.${index}.caption` as const)} />
                   </FormField>
                   <Controller
@@ -237,8 +294,10 @@ export function PortfolioForm({
         </ol>
         <div className="flex flex-wrap items-start gap-3">
           <Button
+            ref={addTextRef}
             variant="secondary"
             shape="pill"
+            onMouseDown={keepFocusOnPress}
             onClick={() => blocks.append({ type: "text", heading: "", text: "" })}
           >
             Add text
@@ -311,7 +370,14 @@ export function PortfolioForm({
             />
           )}
         />
-        <Button type="submit" size="lg" shape="pill" loading={isSubmitting} className="self-start">
+        <Button
+          type="submit"
+          size="lg"
+          shape="pill"
+          loading={isSubmitting}
+          onMouseDown={keepFocusOnPress}
+          className="self-start"
+        >
           Save project
         </Button>
       </Stack>

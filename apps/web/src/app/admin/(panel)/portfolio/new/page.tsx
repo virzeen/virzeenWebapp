@@ -11,7 +11,11 @@ export default async function NewPortfolioProjectPage() {
   const productOptions = await listProductOptions();
   return (
     <Stack gap={6}>
-      <Link href="/admin/portfolio" variant="subtle" className="text-small">
+      <Link
+        href="/admin/portfolio"
+        variant="subtle"
+        className="inline-flex min-h-11 items-center self-start text-small"
+      >
         ← Portfolio
       </Link>
       <AdminPageHeader title="New project" />

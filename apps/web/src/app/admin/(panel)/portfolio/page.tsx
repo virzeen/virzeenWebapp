@@ -1,4 +1,5 @@
 import { Badge, ButtonLink, DataTable, EmptyState, Link } from "@virzeen/ui";
+import { PORTFOLIO_KIND_LABELS } from "@virzeen/validators";
 import { AdminPageHeader } from "@/client/features/admin/admin-page-header";
 import { formatDate } from "@/client/lib/format";
 import { requireAdminPage } from "@/server/auth/session";
@@ -29,9 +30,13 @@ export default async function AdminPortfolioPage() {
           {
             key: "title",
             header: "Project",
-            cell: (row) => <Link href={`/admin/portfolio/${row.id}`}>{row.title}</Link>,
+            cell: (row) => (
+              <Link href={`/admin/portfolio/${row.id}`} className="inline-flex min-h-11 items-center">
+                {row.title}
+              </Link>
+            ),
           },
-          { key: "kind", header: "Type", hideOnMobile: true, cell: (row) => row.kind.toLowerCase() },
+          { key: "kind", header: "Type", hideOnMobile: true, cell: (row) => PORTFOLIO_KIND_LABELS[row.kind] },
           { key: "order", header: "Order", align: "right", hideOnMobile: true, cell: (row) => row.sortOrder },
           { key: "updated", header: "Updated", hideOnMobile: true, cell: (row) => formatDate(row.updatedAt) },
           {

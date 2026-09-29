@@ -1,4 +1,5 @@
-import { ButtonLink, DataTable, EmptyState } from "@virzeen/ui";
+import { ButtonLink, DataTable, EmptyState, Link } from "@virzeen/ui";
+import { adminPageSchema } from "@virzeen/validators";
 import { AdminPageHeader } from "@/client/features/admin/admin-page-header";
 import { formatDate } from "@/client/lib/format";
 import { requireAdminPage } from "@/server/auth/session";
@@ -7,10 +8,13 @@ import { flattenSearchParams, type SearchParams } from "@/server/queries/params"
 
 export const metadata = { title: "Customers" };
 
+// The orders list searched by this email. Its search box takes up to 60 characters (adminOrderFiltersSchema).
+const ordersHref = (email: string) => `/admin/orders?q=${encodeURIComponent(email.slice(0, 60))}`;
+
 /** Read-only in phase 1 (project-brief.md §3). */
 export default async function AdminCustomersPage({ searchParams }: { searchParams: SearchParams }) {
   await requireAdminPage();
-  const page = Math.max(1, Number.parseInt(flattenSearchParams(await searchParams).page ?? "1", 10) || 1);
+  const page = adminPageSchema.parse(flattenSearchParams(await searchParams).page);
   const { rows, total, pageCount } = await listAdminCustomers(page);
 
   return (
@@ -22,10 +26,41 @@ export default async function AdminCustomersPage({ searchParams }: { searchParam
         getRowId={(row) => row.id}
         empty={<EmptyState title="No customers yet." />}
         columns={[
-          { key: "name", header: "Name", cell: (row) => row.name },
-          { key: "email", header: "Email", cell: (row) => row.email },
+          // Email-code sign-up doesn't ask for a name, so most rows have none.
+          { key: "name", header: "Name", hideOnMobile: true, cell: (row) => row.name || "—" },
+          {
+            key: "email",
+            header: "Email",
+            cell: (row) =>
+              row._count.orders > 0 ? (
+                <Link
+                  href={ordersHref(row.email)}
+                  className="inline-flex min-h-11 items-center wrap-anywhere"
+                >
+                  {row.email}
+                </Link>
+              ) : (
+                <span className="wrap-anywhere">{row.email}</span>
+              ),
+          },
           { key: "since", header: "Joined", hideOnMobile: true, cell: (row) => formatDate(row.createdAt) },
-          { key: "orders", header: "Orders", align: "right", cell: (row) => row._count.orders },
+          {
+            key: "orders",
+            header: "Orders",
+            align: "right",
+            cell: (row) =>
+              row._count.orders > 0 ? (
+                <Link
+                  href={ordersHref(row.email)}
+                  aria-label={`${row._count.orders} ${row._count.orders === 1 ? "order" : "orders"} from ${row.email}`}
+                  className="inline-flex min-h-11 min-w-11 items-center justify-end"
+                >
+                  {row._count.orders}
+                </Link>
+              ) : (
+                0
+              ),
+          },
         ]}
       />
       {pageCount > 1 && (

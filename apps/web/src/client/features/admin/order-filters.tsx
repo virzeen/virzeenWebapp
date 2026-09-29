@@ -15,6 +15,16 @@ export function OrderFilters({ q, status, statusOptions }: OrderFiltersProps) {
   const router = useRouter();
   const [query, setQuery] = useState(q);
   const [selected, setSelected] = useState(status || "ALL");
+  const [shown, setShown] = useState({ q, status });
+
+  // The controls follow the URL: "Orders" in the nav, a dashboard tile or "Clear filters" navigate on the same
+  // route, which doesn't remount this form, so its state would keep (and Filter re-apply) the old filters.
+  // Adjusting state here instead of remounting keeps keyboard focus on the Filter button.
+  if (shown.q !== q || shown.status !== status) {
+    setShown({ q, status });
+    setQuery(q);
+    setSelected(status || "ALL");
+  }
 
   function apply(event: React.FormEvent) {
     event.preventDefault();

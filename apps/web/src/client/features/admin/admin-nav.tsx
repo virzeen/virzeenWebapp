@@ -13,13 +13,11 @@ const ITEMS = [
   { href: "/admin/customers", label: "Customers" },
 ] as const;
 
+/** Section links: a wrapping row on phones and tablets (every section stays in view), a column from lg. */
 export function AdminNav() {
   const pathname = usePathname();
   return (
-    <nav
-      aria-label="Admin"
-      className="-mx-4 flex gap-5 overflow-x-auto px-4 lg:mx-0 lg:flex-col lg:gap-0 lg:px-0"
-    >
+    <nav aria-label="Admin" className="flex flex-wrap gap-x-4 md:gap-x-6 lg:flex-col lg:flex-nowrap lg:gap-0">
       {ITEMS.map((item) => {
         const active = "exact" in item ? pathname === item.href : pathname.startsWith(item.href);
         return (
