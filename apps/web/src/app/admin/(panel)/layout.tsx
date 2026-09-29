@@ -1,5 +1,6 @@
 import { ButtonLink, Container, Link } from "@virzeen/ui";
 import { Wordmark } from "@/client/components/layout/wordmark";
+import { SignOutButton } from "@/client/components/shared/sign-out-button";
 import { AdminNav } from "@/client/features/admin/admin-nav";
 import { requireAdminPage } from "@/server/auth/session";
 
@@ -15,21 +16,23 @@ export default async function AdminPanelLayout({ children }: { children: React.R
         Skip to content
       </a>
       <header className="border-b border-line">
+        {/* Fits a 320px phone: there "Admin" sits under the wordmark and Sign out is a text button. */}
         <Container width="full" className="flex h-14 items-center justify-between gap-4">
           <Link
             href="/admin"
             variant="subtle"
-            className="inline-flex min-h-11 items-center gap-3 text-ink"
+            className="inline-flex min-h-11 shrink-0 flex-col items-start justify-center gap-1 text-ink sm:flex-row sm:items-center sm:gap-3"
             aria-label="Admin home"
           >
             <Wordmark className="h-4 w-auto" />
             <span className="text-caption text-ink-muted uppercase">Admin</span>
           </Link>
-          <div className="flex items-center gap-4">
-            <span className="hidden text-small text-ink-muted sm:inline">{admin.email}</span>
+          <div className="flex min-w-0 items-center gap-4">
+            <span className="hidden min-w-0 truncate text-small text-ink-muted sm:block">{admin.email}</span>
             <ButtonLink href="/" variant="secondary" size="sm" shape="pill">
               View shop
             </ButtonLink>
+            <SignOutButton variant="link" size="sm" />
           </div>
         </Container>
       </header>

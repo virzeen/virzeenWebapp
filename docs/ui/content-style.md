@@ -22,6 +22,7 @@ Errors say what to do next: "Choose your district", "Keep the name under 120 cha
 | Remove line                           | Remove                                 |
 | Undo                                  | Undo                                   |
 | Sign in                               | Sign in (not "Log in")                 |
+| Sign out                              | Sign out (not "Log out")               |
 | Leave a 404 or an empty bag           | Browse the collection                  |
 | Leave an error or the offline page    | Go to the home page                    |
 | Close a dialog with nothing to decide | OK                                     |
@@ -186,6 +187,9 @@ Too many requests and anything unexpected use the standard `RATE_LIMITED` and `I
 | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | Admin page failed (h1, then a danger `Alert`)  | Something went wrong on our side. — Please try again. If it keeps happening, come back in a few minutes. [Try again]                     |
 | Authenticator step (`/admin/verify`)           | Signed in as {email} (under the heading) · [Use a different email] under the form: signs out, back to Sign in                            |
+| Header (right side)                            | {email} (from `sm`) · [View shop] · [Sign out] (signs out on this device, then the home page)                                            |
+| Sign out failed (any Sign out button; toast)   | `RATE_LIMITED` or `INTERNAL` standard message. The person stays signed in on the same page and can press Sign out again.                 |
+| Nav                                            | Dashboard · Orders · Products · Categories · Collections · Portfolio · Customers · Settings                                              |
 | Missing item or mistyped `/admin` address (h1) | This page doesn't exist, or the item was archived. — [Back to dashboard] (tab title: Not found)                                          |
 | Dashboard tiles                                | Orders today · Sales today · To pack · To ship · Payments pending                                                                        |
 | Dashboard tile link (visible · screen readers) | View · View orders to pack / View orders to ship / View orders with payment pending                                                      |
@@ -204,6 +208,20 @@ Too many requests and anything unexpected use the standard `RATE_LIMITED` and `I
 | Portfolio kind                                 | Campaign · Lookbook · Collaboration                                                                                                      |
 | Product variants intro (added sentence)        | To stop selling a variant, untick For sale: saved variants stay on the list because orders refer to them.                                |
 | Saved (toasts)                                 | Product saved · Project saved · Category saved · Collection saved · {name} archived                                                      |
+
+### Settings (`/admin/settings`)
+
+The admin's own account. Nothing here changes admin rights or the authenticator: that is `pnpm admin` only (security-policy.md §2).
+
+| Where                                           | Text                                                                                                                                                                                                                                                                                                                                                                                                |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Page (h1, description)                          | Settings — Your account and how you sign in.                                                                                                                                                                                                                                                                                                                                                        |
+| Section headings (h2)                           | Your account · Sign-in security · Sign out                                                                                                                                                                                                                                                                                                                                                          |
+| Your account (same form as `/account/settings`) | Name · Email, helper "You sign in with this email." (read-only) · [Save] · toast "Saved"                                                                                                                                                                                                                                                                                                            |
+| Authenticator status                            | Authenticator app [On] (success badge)                                                                                                                                                                                                                                                                                                                                                              |
+| When the next code is asked for                 | The admin area asks for a code from your authenticator app each time you sign in, and again every 12 hours. On this device, you'll be asked for the next one after {date, time}. (the date as `28 Sep 2026, 3:45 PM`; the hours come from `ADMIN_VERIFICATION_HOURS`)                                                                                                                               |
+| Lost phone (h3, then the note)                  | Lost or replaced your phone? — The authenticator can't be reset or switched off on the website, so nobody can remove it from here. Ask your developer to reset it. They'll call you first to check it's really you. Then sign in again and scan the new QR code with your new phone. — Still have the old phone? Most authenticator apps can move your codes to a new phone, so no reset is needed. |
+| Sign out section                                | Signs you out on this device and takes you to the home page. [Sign out]                                                                                                                                                                                                                                                                                                                             |
 
 ### Form errors
 

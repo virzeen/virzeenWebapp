@@ -1,9 +1,7 @@
 "use client";
 
 import { Button } from "@virzeen/ui";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { authClient } from "@/client/lib/auth-client";
+import { useSignOut } from "@/client/components/shared/sign-out-button";
 
 /**
  * "Use a different email" on the admin authenticator step: someone signed in with the wrong account (or one
@@ -11,22 +9,13 @@ import { authClient } from "@/client/lib/auth-client";
  * the sign-in code page.
  */
 export function SwitchAccountButton() {
-  const router = useRouter();
-  const [leaving, setLeaving] = useState(false);
-
-  async function signOutAndSwitch() {
-    setLeaving(true);
-    await authClient.signOut();
-    router.replace("/login?next=%2Fadmin");
-    router.refresh();
-  }
-
+  const { signOut, signingOut } = useSignOut("/login?next=%2Fadmin", { replace: true });
   return (
     <Button
       variant="link"
       size="sm"
-      onClick={signOutAndSwitch}
-      loading={leaving}
+      onClick={signOut}
+      loading={signingOut}
       className="self-center font-normal text-ink-muted hover:text-ink hover:no-underline"
     >
       Use a different email

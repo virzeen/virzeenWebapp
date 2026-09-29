@@ -8,7 +8,9 @@ import { auth } from "@/server/auth/auth";
 import { env } from "@/server/env";
 
 export const GUEST_CART_COOKIE = "vz_cart";
-const ADMIN_VERIFICATION_HOURS = 12;
+/** How long an authenticator code keeps the admin area open for a session (security-policy.md §2). */
+export const ADMIN_VERIFICATION_HOURS = 12;
+const ADMIN_VERIFICATION_MS = ADMIN_VERIFICATION_HOURS * 3_600_000;
 
 /** The signed-in session for this request (memoised per request). */
 export const getSession = cache(async () => auth.api.getSession({ headers: await headers() }));
@@ -53,6 +55,15 @@ export async function requireUser(): Promise<SessionUser> {
 
 export type AdminState = "ok" | "not-admin" | "needs-enrollment" | "needs-verification";
 
+/** Until when a session's last accepted authenticator code keeps the admin area open (null: none yet). */
+async function adminVerifiedUntil(sessionToken: string): Promise<Date | null> {
+  const row = await db.session.findUnique({
+    where: { token: sessionToken },
+    select: { adminVerifiedAt: true },
+  });
+  return row?.adminVerifiedAt ? new Date(row.adminVerifiedAt.getTime() + ADMIN_VERIFICATION_MS) : null;
+}
+
 /** Where an admin stands: role, TOTP enrolled, and TOTP verified in this session (security-policy.md §2). */
 export async function getAdminState(): Promise<{ state: AdminState; user: SessionUser | null }> {
   const session = await getSession();
@@ -60,13 +71,18 @@ export async function getAdminState(): Promise<{ state: AdminState; user: Sessio
   const user = toUser(session);
   if (user.role !== "ADMIN") return { state: "not-admin", user };
   if (!user.twoFactorEnabled) return { state: "needs-enrollment", user };
-  const row = await db.session.findUnique({
-    where: { token: session.session.token },
-    select: { adminVerifiedAt: true },
-  });
-  const fresh =
-    row?.adminVerifiedAt && Date.now() - row.adminVerifiedAt.getTime() < ADMIN_VERIFICATION_HOURS * 3_600_000;
+  const until = await adminVerifiedUntil(session.session.token);
+  const fresh = until !== null && until.getTime() > Date.now();
   return { state: fresh ? "ok" : "needs-verification", user };
+}
+
+/**
+ * When the admin area next asks the current session for an authenticator code (admin settings). Null when
+ * there is no session or it hasn't passed the code step yet.
+ */
+export async function getAdminVerifiedUntil(): Promise<Date | null> {
+  const session = await getSession();
+  return session ? adminVerifiedUntil(session.session.token) : null;
 }
 
 /** Admin pages: non-admins see 404 (don't reveal the admin area); admins without a fresh TOTP go verify. */

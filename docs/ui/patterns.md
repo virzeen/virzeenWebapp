@@ -86,11 +86,13 @@ Full-bleed hero image (priority load), large display headline, generous whitespa
 
 Function over form: `DataTable` with search, filters, status `Badge`s; forms in pages (not dialogs) for create/edit; every destructive action confirmed with `Dialog`; every successful mutation shows a toast.
 
-**Frame** (`admin/(panel)/layout.tsx`): skip link, header, `AdminNav` and `<main id="main">`. The nav wraps onto extra rows on phones and tablets (every section stays in view, no sideways scroll) and becomes a column from `lg`. Shared boundaries cover every admin page, so the nav stays usable:
+**Frame** (`admin/(panel)/layout.tsx`): skip link, header, `AdminNav` and `<main id="main">`. The header holds the wordmark with "Admin" (stacked under it below `sm`), then the admin's email (from `sm`), "View shop" and "Sign out" (`SignOutButton`, a text button so the row fits a 320px phone). The nav wraps onto extra rows on phones and tablets (every section stays in view, no sideways scroll) and becomes a column from `lg`. Shared boundaries cover every admin page, so the nav stays usable:
 
 - `loading.tsx`: a title row and a 6-row table skeleton.
 - `error.tsx`: an h1 "Something went wrong on our side.", then a danger `Alert` with "Try again" (`retry()`).
 - `not-found.tsx`: missing items and mistyped `/admin` addresses (`[...missing]`), with "Back to dashboard". Non-admins get the root 404 instead.
+
+**Settings** (`/admin/settings`, the last nav item): three sections, each a `<section aria-labelledby>` with an h2. "Your account" is the same `ProfileForm` as `/account/settings`. "Sign-in security" only reads: the authenticator status, when the next code is asked for (`getAdminVerifiedUntil()`), and how a lost phone is handled. It has no reset, disable or new-QR buttons, because admin rights and authenticator resets happen only with `pnpm admin` (security-policy.md §2). "Sign out" ends this device's session.
 
 **Order tables on phones**: the Order cell holds the number link (`font-mono whitespace-nowrap`, `after:absolute after:inset-0` so the whole cell is the tap target), the date under it, and a `md:hidden` status badge. The Status and Payment columns use `hideOnMobile` and Customer uses `hideBelow="xl"`, so Total stays on screen.
 

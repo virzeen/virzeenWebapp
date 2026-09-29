@@ -11,6 +11,7 @@ const ITEMS = [
   { href: "/admin/collections", label: "Collections" },
   { href: "/admin/portfolio", label: "Portfolio" },
   { href: "/admin/customers", label: "Customers" },
+  { href: "/admin/settings", label: "Settings" },
 ] as const;
 
 /** Section links: a wrapping row on phones and tablets (every section stays in view), a column from lg. */
