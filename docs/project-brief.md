@@ -159,7 +159,7 @@ Reviews, wishlist, coupons/discounts, gift cards, staff role, SMS notifications,
 
 | Service                     | Job                                                             | Plan                                 |
 | --------------------------- | --------------------------------------------------------------- | ------------------------------------ |
-| **Railway**                 | Hosts the app, Postgres, and a cron service                     | Hobby (~$5/month)                    |
+| **Railway**                 | Hosts the app, Postgres, and cron services (payments, backups)  | Hobby (~$5/month)                    |
 | **Cloudflare**              | DNS, SSL, firewall (WAF), DDoS protection, web analytics        | Free                                 |
 | **Cloudinary**              | Product and portfolio image storage, optimization, delivery     | Free (25 credits/month)              |
 | **Resend** (+ React Email)  | Transactional email: OTP, order confirmations, shipping updates | Free (3,000/month, 100/day)          |
@@ -168,7 +168,7 @@ Reviews, wishlist, coupons/discounts, gift cards, staff role, SMS notifications,
 | **Cloudflare R2**           | Nightly database backups                                        | Free tier                            |
 | **Google Cloud (OAuth)**    | "Sign in with Google"                                           | Free                                 |
 | **eSewa, Khalti**           | Online payments                                                 | Per-transaction fees, no monthly fee |
-| **GitHub + GitHub Actions** | Code, reviews, CI, backup jobs                                  | Free (private repo)                  |
+| **GitHub + GitHub Actions** | Code, reviews, CI                                               | Free (private repo)                  |
 
 ### 6.5 Quality & tooling
 
@@ -304,7 +304,7 @@ The Capacitor app loads the same site; for native screens later it calls `/api/v
 
 ### 9.4 Backups and recovery
 
-- Nightly `pg_dump` via GitHub Actions → Cloudflare R2, 30-day retention.
+- Nightly `pg_dump` by a Railway cron service (`db-backup`) → Cloudflare R2, 30-day retention. It runs inside Railway because the database has no public address.
 - Monthly restore test. Steps in `docs/runbooks/restore-backup.md`.
 
 ### 9.5 Upgrade path

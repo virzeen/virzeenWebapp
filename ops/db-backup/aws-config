@@ -1,0 +1,9 @@
+# AWS CLI settings for the backup's S3-compatible storage (backup.sh), installed as AWS_CONFIG_FILE.
+[default]
+# Path-style URLs (<endpoint>/<bucket>/<file>): every S3-compatible store accepts them, some require them.
+s3 =
+  addressing_style = path
+# Checksums only where the S3 API requires them: Cloudflare R2 and other S3-compatible stores have
+# rejected the CRC checksums that recent AWS CLI versions send by default.
+request_checksum_calculation = when_required
+response_checksum_validation = when_required

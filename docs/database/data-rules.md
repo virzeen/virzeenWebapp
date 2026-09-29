@@ -51,4 +51,4 @@ Update this table whenever the schema changes.
 
 ## 5. Backups
 
-Nightly `pg_dump` via GitHub Actions to Cloudflare R2, 30-day retention. Restore steps: `docs/runbooks/restore-backup.md`. Test a restore monthly.
+Nightly `pg_dump` by the Railway cron service `db-backup` (`ops/db-backup/`) to Cloudflare R2, 30-day retention by an R2 lifecycle rule. Setup: `docs/runbooks/database-backups.md`. Restore steps: `docs/runbooks/restore-backup.md`. Test a restore monthly.
