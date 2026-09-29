@@ -247,7 +247,7 @@ describe("catalogService.saveProduct", () => {
       }),
     ).rejects.toMatchObject({
       code: "VALIDATION_FAILED",
-      fields: { variants: "Tick For sale on at least one variant, or switch off Published" },
+      fields: { variants: "Add a size or style for sale before publishing" },
     });
   });
 });

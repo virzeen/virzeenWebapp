@@ -21,7 +21,7 @@ export default async function AdminSizeGuidesPage() {
     <div className="flex flex-col gap-6">
       <AdminPageHeader
         title="Size guides"
-        description="Size charts customers open from Size guide on the product page. Pick one on each product under Organise."
+        description="Size charts customers open from Size guide on the product page. Pick one on each product under Size and fit."
         actions={guides.length > 0 ? newGuide : undefined}
       />
       <DataTable

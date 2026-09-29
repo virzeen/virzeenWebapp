@@ -153,7 +153,7 @@ export const catalogService = {
     const fromPricePaisa = activePrices.length > 0 ? Math.min(...activePrices) : 0;
     if (product.isPublished && activePrices.length === 0) {
       throw new AppError("VALIDATION_FAILED", "A published product needs at least one variant for sale.", {
-        fields: { variants: "Tick For sale on at least one variant, or switch off Published" },
+        fields: { variants: "Add a size or style for sale before publishing" },
       });
     }
     // Drafts may have no description yet (specs/product-editor-on-page.md); productSchema says the same.

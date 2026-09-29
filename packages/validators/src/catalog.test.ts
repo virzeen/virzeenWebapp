@@ -121,7 +121,7 @@ describe("productSchema messages", () => {
       "variants.0.stock": "Enter the stock as a whole number (0 or more)",
       "variants.1.sku": "Another variant has the same SKU",
       images: "Add at least one image before publishing",
-      variants: "Tick For sale on at least one variant, or switch off Published",
+      variants: "Add a size or style for sale before publishing",
     });
   });
 

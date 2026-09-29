@@ -180,7 +180,7 @@ const productNameSchema = z
   .max(120, { error: "Keep the name under 120 characters" });
 
 const DUPLICATE_SKU = "Another variant has the same SKU";
-const NO_VARIANT_FOR_SALE = "Tick For sale on at least one variant, or switch off Published";
+const NO_VARIANT_FOR_SALE = "Add a size or style for sale before publishing";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
