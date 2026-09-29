@@ -9,7 +9,10 @@ export const uniqueEmail = (prefix: string) =>
 
 type MailpitSummary = { ID: string; Subject: string };
 
-/** Waits for an email to `to` whose subject matches, and returns its plain text. */
+// Each email is read once, so a second sign-in never picks up the previous (already used) code.
+const readMessageIds = new Set<string>();
+
+/** Waits for an unread email to `to` whose subject matches, and returns its plain text. */
 export async function readEmail(to: string, subject: RegExp): Promise<string> {
   let text = "";
   await expect
@@ -18,11 +21,12 @@ export async function readEmail(to: string, subject: RegExp): Promise<string> {
         const list = (await (
           await fetch(`${MAILPIT_URL}/api/v1/search?query=${encodeURIComponent(`to:"${to}"`)}`)
         ).json()) as { messages?: MailpitSummary[] };
-        const message = list.messages?.find((m) => subject.test(m.Subject));
+        const message = list.messages?.find((m) => subject.test(m.Subject) && !readMessageIds.has(m.ID));
         if (!message) return false;
         text = (
           (await (await fetch(`${MAILPIT_URL}/api/v1/message/${message.ID}`)).json()) as { Text: string }
         ).Text;
+        readMessageIds.add(message.ID);
         return true;
       },
       { timeout: 30_000 },

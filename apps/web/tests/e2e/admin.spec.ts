@@ -74,3 +74,17 @@ test("admin sets up two-factor, creates a product and it appears in the shop", a
   ).toBeVisible();
   await expect(page.getByRole("link", { name: "Back to dashboard" })).toBeVisible();
 });
+
+test("an admin on the authenticator step can sign out and use a different email", async ({ page }) => {
+  await page.goto("/login?next=/admin");
+  await completeEmailSignIn(page, E2E_ADMIN_EMAIL);
+  await expect(page).toHaveURL(/\/admin\/verify/);
+  await expect(page.getByText(`Signed in as ${E2E_ADMIN_EMAIL}`)).toBeVisible();
+
+  await page.getByRole("button", { name: "Use a different email" }).click();
+  await expect(page).toHaveURL(/\/login\?next=%2Fadmin/);
+  await expect(page.getByRole("heading", { level: 1, name: "Sign in" })).toBeVisible();
+  // Signed out: the admin area asks for an email again.
+  await page.goto("/admin");
+  await expect(page).toHaveURL(/\/login\?next=%2Fadmin/);
+});

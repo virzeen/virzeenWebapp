@@ -185,6 +185,7 @@ Too many requests and anything unexpected use the standard `RATE_LIMITED` and `I
 | Situation                                      | Text                                                                                                                                     |
 | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | Admin page failed (h1, then a danger `Alert`)  | Something went wrong on our side. — Please try again. If it keeps happening, come back in a few minutes. [Try again]                     |
+| Authenticator step (`/admin/verify`)           | Signed in as {email} (under the heading) · [Use a different email] under the form: signs out, back to Sign in                            |
 | Missing item or mistyped `/admin` address (h1) | This page doesn't exist, or the item was archived. — [Back to dashboard] (tab title: Not found)                                          |
 | Dashboard tiles                                | Orders today · Sales today · To pack · To ship · Payments pending                                                                        |
 | Dashboard tile link (visible · screen readers) | View · View orders to pack / View orders to ship / View orders with payment pending                                                      |
