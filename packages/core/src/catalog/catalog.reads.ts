@@ -1,21 +1,10 @@
 import "server-only";
 import { db, type Prisma } from "@virzeen/db";
-import type { ShopFilters } from "@virzeen/validators";
+import { sortSizes, type ShopFilters } from "@virzeen/validators";
 
 // Read models shared by web queries and /api/v1 (docs/backend/api-contract.md "Shapes").
 
 export const PAGE_SIZE = 12;
-
-const SIZE_ORDER = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL", "FREE", "ONE SIZE"];
-export function sortSizes(sizes: readonly string[]): string[] {
-  const rank = (size: string) => {
-    const index = SIZE_ORDER.indexOf(size.toUpperCase());
-    if (index >= 0) return index;
-    const numeric = Number.parseFloat(size);
-    return Number.isNaN(numeric) ? 1000 : 100 + numeric;
-  };
-  return [...new Set(sizes)].sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
-}
 
 export const publishedProductWhere = {
   isPublished: true,

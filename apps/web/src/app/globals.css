@@ -34,3 +34,19 @@ html:has([data-sticky-cta]) [data-sonner-toaster][data-y-position="bottom"] {
     bottom: calc(--spacing(24) + env(safe-area-inset-bottom, 0px));
   }
 }
+
+/*
+ * Admin product editor below lg: Publish / Save draft sit in a bar fixed to the bottom (`data-admin-save-bar`,
+ * product-publish-panel.tsx). Same two fixes: focused fields scroll clear of it, toasts sit above it.
+ */
+html:has([data-admin-save-bar]) {
+  @variant max-lg {
+    scroll-padding-bottom: --spacing(24);
+  }
+}
+
+html:has([data-admin-save-bar]) [data-sonner-toaster][data-y-position="bottom"] {
+  @variant max-lg {
+    bottom: calc(--spacing(24) + env(safe-area-inset-bottom, 0px));
+  }
+}

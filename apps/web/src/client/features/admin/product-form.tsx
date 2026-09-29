@@ -4,11 +4,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Accordion, AccordionItem, Alert, FormField, Input, Textarea, toast } from "@virzeen/ui";
 import { productSchema, type ProductInput } from "@virzeen/validators";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { messageFor } from "@/client/lib/error-messages";
 import { saveProductAction } from "@/server/actions/admin/catalog";
 import { useRevealFirstError } from "./form-focus";
+import { previewUrl, writePreviewDraft } from "./preview-draft";
 import { ProductOrganize } from "./product-organize";
 import { ProductPhotos } from "./product-photos";
 import { ProductPublishPanel, type SaveAction } from "./product-publish-panel";
@@ -20,7 +21,7 @@ type ProductFormProps = {
   /** The saved product; absent on the New product page. `savedAt` changes after each save (the form reloads). */
   saved?: { id: string; slug: string; isPublished: boolean; savedAt: string };
   defaultValues?: ProductInput;
-  categories: { value: string; label: string }[];
+  categories: { value: string; label: string; slug?: string }[];
   collections: { id: string; name: string }[];
   uploadsEnabled: boolean;
 };
@@ -82,6 +83,40 @@ export function ProductForm({
     loadedAt.current = saved?.savedAt;
     form.reset(initial);
   }, [saved?.savedAt, initial, form]);
+
+  // Preview (specs/admin-product-editor.md): the draft goes to the preview tab through localStorage, again after
+  // every change once Preview has been opened, so the tab follows the editor.
+  const previewKey = saved?.id ?? "new";
+  const previewing = useRef(false);
+  const handOverDraft = useCallback(() => {
+    const values = form.getValues();
+    const category = categories.find((option) => option.value === values.categoryId);
+    writePreviewDraft(previewKey, {
+      values,
+      category: category ? { name: category.label, slug: category.slug ?? slugify(category.label) } : null,
+    });
+  }, [form, categories, previewKey]);
+  useEffect(() => {
+    let timer: number | undefined;
+    const unsubscribe = form.subscribe({
+      formState: { values: true },
+      callback: () => {
+        if (!previewing.current) return;
+        window.clearTimeout(timer);
+        timer = window.setTimeout(handOverDraft, 250);
+      },
+    });
+    return () => {
+      unsubscribe();
+      window.clearTimeout(timer);
+    };
+  }, [form, handOverDraft]);
+
+  function openPreview() {
+    previewing.current = true;
+    handOverDraft();
+    window.open(previewUrl(previewKey), `virzeen-preview-${previewKey}`);
+  }
 
   // Checks across rows and lists (duplicate SKUs, For sale, photos before publishing) only re-run when asked.
   function recheckLists() {
@@ -175,6 +210,7 @@ export function ProductForm({
             unsaved={isDirty}
             pending={pending}
             onSave={save}
+            onPreview={openPreview}
           />
           <ProductOrganize categories={categories} collections={collections} />
           <Accordion

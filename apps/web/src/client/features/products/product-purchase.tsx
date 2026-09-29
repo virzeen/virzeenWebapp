@@ -15,6 +15,8 @@ type ProductPurchaseProps = {
   variants: Variant[];
   sizes: string[];
   colors: string[];
+  /** Admin preview of an unsaved product: Add to bag only says so (its variants may not exist yet). */
+  preview?: boolean;
 };
 
 /** Why Add to bag stops: the bag already holds every piece left, or the per-line cap. */
@@ -28,7 +30,7 @@ function allInBagMessage(limit: number): string {
  * On phones the button sits in a sticky bottom bar (`data-sticky-cta`: globals.css keeps focus and the footer
  * clear of it). Pressed before a size is chosen, it points to the sizes instead of doing nothing.
  */
-export function ProductPurchase({ variants, sizes, colors }: ProductPurchaseProps) {
+export function ProductPurchase({ variants, sizes, colors, preview = false }: ProductPurchaseProps) {
   const { cart, setCart, open } = useCart();
   const [isPending, startTransition] = useTransition();
   // A sold-out product starts with no colour picked, so no chip looks both selected and crossed out.
@@ -71,6 +73,7 @@ export function ProductPurchase({ variants, sizes, colors }: ProductPurchaseProp
     if (!selected) return;
     // The server would refuse with "Only N left", which reads like the stock label: say what's going on instead.
     if (inBag >= limit) return setAllInBagId(selected.id);
+    if (preview) return void toast.message("This is a preview. Nothing was added to your bag.");
     startTransition(async () => {
       const result = await addToCartAction({ variantId: selected.id, quantity: 1 });
       if (result.ok) {

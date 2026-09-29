@@ -49,6 +49,14 @@ Products list
 - [ ] Rows show "No photos" / "Out of stock" badges where they apply, and a **Duplicate** button.
 - [ ] **Duplicate** (list and editor) makes a draft named "{name} (copy)", slug "{slug}-copy" (then "-copy-2"…), same photos, description, care, category, collections, shipping and variant prices, stock 0, made SKUs, then opens it. Audited as `product.create` with `duplicatedFrom`.
 
+Preview (owner request, approved and built 2026-09-29: new tab that updates as you edit)
+
+- [ ] The editor has a **Preview** button (Publish box on desktop; an eye button in the bottom bar on phones). It opens the product page in a new tab, exactly as customers will see it: the shop header and footer, gallery, name, size and colour pickers with prices (product price + shipping), stock, description, care and the shipping and returns sections.
+- [ ] The preview shows what's in the editor now, saved or not, and updates by itself as the admin types, adds photos or changes stock (the editor hands the draft to the preview tab in the browser; nothing is saved or sent).
+- [ ] A bar across the top says "Preview: only you can see this. It updates as you edit." with **Phone size** (opens the same preview in a phone-width window) and **Close preview**. The page isn't indexed and needs the admin sign-in and two-factor step, like `/admin`.
+- [ ] In the preview, Add to bag doesn't add anything; it says "This is a preview. Nothing was added to your bag."
+- [ ] The shop's product page and the preview are built from one shared component, so they can't drift apart. Sizes are ordered the same way (`sortSizes` moves to `@virzeen/validators`, so the browser can use it).
+
 ## Out of scope
 
 - Rich-text (bold/lists) descriptions, bulk edit, CSV import, scheduled publishing, per-variant photos.

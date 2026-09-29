@@ -1,10 +1,9 @@
-import { Accordion, AccordionItem, Container, Grid, Link } from "@virzeen/ui";
+import { Container, Grid } from "@virzeen/ui";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { JsonLd } from "@/client/components/shared/json-ld";
 import { ProductCard } from "@/client/features/products/product-card";
-import { ProductGallery } from "@/client/features/products/product-gallery";
-import { ProductPurchase } from "@/client/features/products/product-purchase";
+import { ProductDetails } from "@/client/features/products/product-details";
 import { getProductBySlug, listRelatedProducts } from "@/server/queries/catalog";
 import { siteUrl } from "@/server/env";
 
@@ -31,55 +30,7 @@ export default async function ProductPage({ params }: Props) {
 
   return (
     <>
-      <Container className="py-6 pb-28 md:pb-16 lg:py-12">
-        {/* 44px-tall links; the negative top margin keeps the text where the shorter links had it. */}
-        <nav aria-label="Breadcrumb" className="-mt-3 pb-3">
-          <ol className="flex items-center gap-2 text-small text-ink-muted">
-            <li>
-              <Link href="/shop" variant="subtle" className="inline-flex min-h-11 items-center">
-                Shop
-              </Link>
-            </li>
-            <li aria-hidden>/</li>
-            <li>
-              <Link
-                href={`/shop/${product.category.slug}`}
-                variant="subtle"
-                className="inline-flex min-h-11 items-center"
-              >
-                {product.category.name}
-              </Link>
-            </li>
-          </ol>
-        </nav>
-        <div className="grid gap-8 lg:grid-cols-[3fr_2fr] lg:gap-16">
-          <ProductGallery images={product.images} productName={product.name} />
-          <div className="flex flex-col gap-8 lg:sticky lg:top-24 lg:self-start">
-            <h1 className="font-display text-h1">{product.name}</h1>
-            <ProductPurchase variants={product.variants} sizes={product.sizes} colors={product.colors} />
-            <p className="text-small text-ink-muted">
-              Prices include 13% VAT. Free shipping across Nepal and 7-day free returns. Pay in cash when it
-              arrives.
-            </p>
-            <Accordion type="multiple" defaultValue={["description"]}>
-              <AccordionItem value="description" title="Description">
-                <p className="whitespace-pre-line">{product.description}</p>
-              </AccordionItem>
-              {product.care && (
-                <AccordionItem value="care" title="Care">
-                  <p className="whitespace-pre-line">{product.care}</p>
-                </AccordionItem>
-              )}
-              <AccordionItem value="shipping" title="Shipping & returns">
-                <p>
-                  Free delivery in 1–3 days inside Kathmandu Valley and 3–7 days elsewhere in Nepal. Free
-                  returns within 7 days of delivery. <Link href="/returns">Read our returns policy</Link>.
-                </p>
-              </AccordionItem>
-            </Accordion>
-          </div>
-        </div>
-      </Container>
+      <ProductDetails product={product} />
 
       {related.length > 0 && (
         <Container as="section" className="flex flex-col gap-8 py-16" aria-labelledby="related-heading">

@@ -93,6 +93,25 @@ test("admin sets up two-factor, creates a product and it appears in the shop", a
   await expect(page.getByLabel(/^Stock, /)).toHaveCount(2);
   await expect(page.getByLabel("SKU, Black, M")).toHaveValue("VZ-E2EMONOCHROM-BLACK-M");
 
+  // Preview: the product page in a new tab, following the editor as it changes (nothing saved).
+  const [preview] = await Promise.all([
+    page.waitForEvent("popup"),
+    page.getByRole("button", { name: "Preview", exact: true }).click(),
+  ]);
+  await expect(preview.getByText("Preview: only you can see this.", { exact: false })).toBeVisible();
+  await expect(preview.getByRole("heading", { level: 1, name: "E2E Monochrome Beanie" })).toBeVisible();
+  await expect(preview.getByText("Rs 1,500").first()).toBeVisible();
+  await page.getByLabel(/^Product name/).fill("E2E Monochrome Beanie, ribbed");
+  await expect(
+    preview.getByRole("heading", { level: 1, name: "E2E Monochrome Beanie, ribbed" }),
+  ).toBeVisible();
+  await preview.getByRole("radio", { name: "S", exact: true }).click();
+  await preview.getByRole("button", { name: "Add to bag" }).click();
+  await expect(preview.getByText("This is a preview. Nothing was added to your bag.")).toBeVisible();
+  await preview.close();
+  // Back to the saved name, so the editor has no unsaved changes when the test moves on.
+  await page.getByLabel(/^Product name/).fill("E2E Monochrome Beanie");
+
   await page.goto("/shop/accessories");
   await page.getByRole("link", { name: /E2E Monochrome Beanie/ }).click();
   await expect(page.getByRole("heading", { level: 1, name: "E2E Monochrome Beanie" })).toBeVisible();

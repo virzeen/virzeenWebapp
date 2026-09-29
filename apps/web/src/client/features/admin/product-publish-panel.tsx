@@ -2,7 +2,7 @@
 
 import { Badge, Button, ButtonLink } from "@virzeen/ui";
 import type { ProductInput } from "@virzeen/validators";
-import { Check, Circle, TriangleAlert } from "lucide-react";
+import { Check, Circle, Eye, TriangleAlert } from "lucide-react";
 import { useWatch, type Control } from "react-hook-form";
 import { DuplicateProductButton } from "./duplicate-product-button";
 import { keepFocusOnPress } from "./form-focus";
@@ -16,10 +16,19 @@ type ProductPublishPanelProps = {
   unsaved: boolean;
   pending: SaveAction | null;
   onSave: (action: SaveAction) => void;
+  /** Opens the product page as customers would see it, unsaved changes included, in a new tab. */
+  onPreview: () => void;
 };
 
 /** WordPress-style Publish box: status, what's still missing, and the save buttons. */
-export function ProductPublishPanel({ control, saved, unsaved, pending, onSave }: ProductPublishPanelProps) {
+export function ProductPublishPanel({
+  control,
+  saved,
+  unsaved,
+  pending,
+  onSave,
+  onPreview,
+}: ProductPublishPanelProps) {
   const [name, images, description, categoryId, shipping, variants] = useWatch({
     control,
     name: ["name", "images", "description", "categoryId", "shippingPaisa", "variants"],
@@ -93,8 +102,24 @@ export function ProductPublishPanel({ control, saved, unsaved, pending, onSave }
         )}
       </div>
 
-      {/* Phones: the buttons sit in a bar fixed to the bottom of the screen, always in reach. */}
-      <div className="flex gap-2 max-lg:fixed max-lg:inset-x-0 max-lg:bottom-0 max-lg:z-10 max-lg:border-t max-lg:border-line max-lg:bg-canvas max-lg:p-4 lg:flex-col">
+      {/* Phones: the buttons sit in a bar fixed to the bottom of the screen, always in reach (globals.css keeps
+          focus and toasts clear of it). */}
+      <div
+        data-admin-save-bar
+        className="flex gap-2 max-lg:fixed max-lg:inset-x-0 max-lg:bottom-0 max-lg:z-10 max-lg:border-t max-lg:border-line max-lg:bg-canvas max-lg:p-4 lg:flex-col"
+      >
+        {/* Phones: an eye button keeps three actions on one row. Desktop: a full Preview button below. */}
+        <Button
+          type="button"
+          variant="secondary"
+          size="icon"
+          shape="pill"
+          aria-label="Preview"
+          className="lg:hidden"
+          onClick={onPreview}
+        >
+          <Eye className="size-4" strokeWidth={1.5} aria-hidden />
+        </Button>
         {[primary, secondary].map((action) => (
           <Button
             key={action}
@@ -110,6 +135,16 @@ export function ProductPublishPanel({ control, saved, unsaved, pending, onSave }
             {labels[action]}
           </Button>
         ))}
+        <Button
+          type="button"
+          variant="ghost"
+          shape="pill"
+          className="max-lg:hidden lg:w-full"
+          onClick={onPreview}
+        >
+          <Eye className="size-4" strokeWidth={1.5} aria-hidden />
+          Preview
+        </Button>
       </div>
 
       {saved && (

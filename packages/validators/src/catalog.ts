@@ -22,6 +22,22 @@ export const shopFiltersSchema = z.object({
 });
 export type ShopFilters = z.output<typeof shopFiltersSchema>;
 
+const SIZE_ORDER = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL", "FREE", "ONE SIZE"];
+
+/**
+ * Sizes in shop order: letter sizes S → XXXL, then Free/One size, then numbers, then anything else A–Z.
+ * Here (not in core) so the product page and the admin preview in the browser order them the same way.
+ */
+export function sortSizes(sizes: readonly string[]): string[] {
+  const rank = (size: string) => {
+    const index = SIZE_ORDER.indexOf(size.toUpperCase());
+    if (index >= 0) return index;
+    const numeric = Number.parseFloat(size);
+    return Number.isNaN(numeric) ? 1000 : 100 + numeric;
+  };
+  return [...new Set(sizes)].sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
+}
+
 export const skuSchema = z
   .string()
   .trim()

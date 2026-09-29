@@ -50,7 +50,8 @@ export async function getProductFormOptions() {
     adminReads.listCollections(),
   ]);
   return {
-    categories: categories.map((c) => ({ value: c.id, label: c.name })),
+    // slug: the editor's preview links the breadcrumb to the category's shop page.
+    categories: categories.map((c) => ({ value: c.id, label: c.name, slug: c.slug })),
     collections: collections.map((c) => ({ id: c.id, name: c.name })),
   };
 }
