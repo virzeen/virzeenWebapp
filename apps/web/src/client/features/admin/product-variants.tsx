@@ -4,10 +4,11 @@ import { Checkbox, FormField, Input } from "@virzeen/ui";
 import type { ProductInput } from "@virzeen/validators";
 import { Controller, useFormContext, useWatch } from "react-hook-form";
 import { Price } from "@/client/components/shared/price";
+import { AddStyleField } from "./add-style-field";
 import { ListError } from "./list-error";
 import { OptionChips } from "./option-chips";
 import type { ImagesArray } from "./product-photos";
-import { ProductStyleList } from "./product-style-list";
+import { ProductStyleCard } from "./product-style-card";
 import { RupeesInput } from "./rupees-input";
 import { useVariantOptions } from "./use-variant-options";
 import { sameValue, type VariantRow } from "./variant-options";
@@ -30,8 +31,8 @@ const SIZE_PRESETS = [
 
 /**
  * Price, shipping, sizes and styles with their stock (specs/admin-product-editor.md, specs/product-styles.md).
- * Without styles: one price and one stock table. With styles: a list of them; each one's photos, price and stock
- * open in a popup.
+ * Without styles: one price and one stock table. With styles: an inline card per style with its photos, price and
+ * stock. Shipping is one value for the whole product, entered once at the top.
  */
 export function ProductVariants({
   initialRows,
@@ -161,23 +162,25 @@ export function ProductVariants({
           <p className="text-body font-medium">Styles</p>
           <p className="text-small text-ink-muted">
             Colours or designs shown on one product page, like Nike&apos;s colourways. Each style has its own
-            photos, price and stock (press Edit); customers switch between them with picture swatches.
+            photos, price and stock; customers switch between them with picture swatches.
           </p>
         </div>
-        <ProductStyleList
-          styles={styles}
-          rowsOf={rowsOf}
-          images={images}
-          perRowPrices={o.perRowPrices}
-          showSkus={showSkus}
-          productId={productId}
-          uploadsEnabled={uploadsEnabled}
-          onListChange={onListChange}
-          onAdd={o.addStyle}
-          onRename={o.renameStyle}
-          onRemove={o.removeStyle}
-          onRemoveRow={removeRow}
-        />
+        {styles.map((style) => (
+          <ProductStyleCard
+            key={style}
+            style={style}
+            rows={rowsOf(style)}
+            images={images}
+            perRowPrices={o.perRowPrices}
+            showSkus={showSkus}
+            productId={productId}
+            uploadsEnabled={uploadsEnabled}
+            onListChange={onListChange}
+            onRename={(to) => o.renameStyle(style, to)}
+            onRemove={() => o.removeStyle(style)}
+            onRemoveRow={removeRow}
+          />
+        ))}
         {leftovers.length > 0 && (
           <div className="flex flex-col gap-2">
             <p className="text-small font-medium">Earlier styles and sizes (not for sale)</p>
@@ -190,6 +193,7 @@ export function ProductVariants({
             />
           </div>
         )}
+        <AddStyleField first={styles.length === 0} onAdd={o.addStyle} />
       </div>
 
       {rows.some(({ field }) => field.id) && !simple && (

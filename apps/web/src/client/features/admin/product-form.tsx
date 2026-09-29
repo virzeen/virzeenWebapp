@@ -11,6 +11,8 @@ import { messageFor } from "@/client/lib/error-messages";
 import { saveProductAction } from "@/server/actions/admin/catalog";
 import { useRevealFirstError } from "./form-focus";
 import { previewUrl, writePreviewDraft } from "./preview-draft";
+import { ProductDescription } from "./product-description";
+import { ProductFeaturesEditor } from "./product-features-editor";
 import { ProductOrganize } from "./product-organize";
 import { ProductPhotos } from "./product-photos";
 import { ProductPublishPanel, type SaveAction } from "./product-publish-panel";
@@ -81,7 +83,7 @@ export function ProductForm({
     shouldFocusError: false,
   });
   const { errors, isDirty, submitCount } = form.formState;
-  // One photo list for the shared photos and every style's popup (specs/product-styles.md).
+  // One photo list for the shared photos and every style card (specs/product-styles.md).
   const images = useFieldArray({ control: form.control, name: "images", keyName: "fieldKey" });
   const hasStyles = useWatch({ control: form.control, name: "variants" }).some(
     (row) => row.isActive && (row.color ?? "").trim() !== "",
@@ -203,7 +205,7 @@ export function ProductForm({
             title={hasStyles ? "Photos for every style" : "Photos"}
             hint={
               hasStyles
-                ? "Optional: photos that fit every style, like a size chart. Add each style's own photos with Edit under Styles."
+                ? "Optional: photos that fit every style, like a size chart. Each style's own photos are in its card under Price and stock."
                 : undefined
             }
             productId={saved?.id}
@@ -211,17 +213,9 @@ export function ProductForm({
             onListChange={recheckLists}
           />
 
-          <section aria-labelledby="description-heading" className="flex flex-col gap-4">
-            <h2 id="description-heading" className="font-display text-h3">
-              Description and care
-            </h2>
-            <FormField label="Description" error={errors.description?.message} required>
-              <Textarea rows={6} {...form.register("description")} />
-            </FormField>
-            <FormField label="Care" helper="Optional: washing and care notes" error={errors.care?.message}>
-              <Textarea rows={3} {...form.register("care")} />
-            </FormField>
-          </section>
+          <ProductDescription />
+
+          <ProductFeaturesEditor productId={saved?.id} uploadsEnabled={uploadsEnabled} />
 
           <ProductVariants
             initialRows={initial.variants}
@@ -248,7 +242,7 @@ export function ProductForm({
             onSave={save}
             onPreview={openPreview}
           />
-          <ProductOrganize categories={categories} collections={collections} />
+          <ProductOrganize categories={categories} collections={collections} sizeGuides={sizeGuides} />
           <Accordion
             type="single"
             collapsible

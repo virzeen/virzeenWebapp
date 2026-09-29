@@ -12,7 +12,7 @@ import { variantLabel } from "./variant-options";
 export type TableRow = { field: FieldArrayWithId<ProductInput, "variants", "fieldKey">; index: number };
 
 type VariantTableProps = {
-  /** The rows to show (a style's popup shows only its own). */
+  /** The rows to show (a style card shows only its own). */
   rows: TableRow[];
   showPrices: boolean;
   showSkus: boolean;

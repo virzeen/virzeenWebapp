@@ -76,12 +76,13 @@ export function ProductPreview({ previewKey }: { previewKey: string }) {
         </Container>
       </div>
       {product === undefined ? (
-        <Container className="grid gap-8 py-12 lg:grid-cols-[3fr_2fr] lg:gap-16">
-          <Skeleton shape="image" />
-          <div className="flex flex-col gap-4">
+        // The product page's layout (product-details.tsx): name and price on the right from lg, gallery left.
+        <Container className="grid gap-6 py-12 lg:grid-cols-[3fr_2fr] lg:grid-rows-[auto_1fr] lg:gap-x-16">
+          <div className="flex flex-col gap-4 lg:col-start-2 lg:row-start-1 lg:max-w-md">
             <Skeleton shape="text" className="w-2/3" />
             <Skeleton shape="text" className="w-1/3" />
           </div>
+          <Skeleton shape="image" className="lg:col-start-1 lg:row-span-2 lg:row-start-1" />
         </Container>
       ) : product === null ? (
         <Container className="py-16">

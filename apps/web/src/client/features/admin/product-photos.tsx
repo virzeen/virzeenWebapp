@@ -1,14 +1,14 @@
 "use client";
 
-import { Accordion, AccordionItem, Badge, Button, cn, FormField, Input } from "@virzeen/ui";
+import { cn } from "@virzeen/ui";
 import type { ProductInput } from "@virzeen/validators";
-import { ArrowLeft, ArrowRight, Trash2 } from "lucide-react";
 import { useId, useRef, useState } from "react";
-import { useFormContext, useWatch, type UseFieldArrayReturn } from "react-hook-form";
-import { CloudImage } from "@/client/components/shared/cloud-image";
+import { useFormContext, type UseFieldArrayReturn } from "react-hook-form";
 import { itemButton, refocusAfterListChange } from "./form-focus";
 import { ImageUploader } from "./image-uploader";
 import { ListError } from "./list-error";
+import { PhotoDescriptions } from "./photo-descriptions";
+import { PhotoTile, type PhotoDrag, type PhotoMove } from "./photo-tile";
 
 const MAX_PHOTOS = 12; // per style (and for the shared photos); productSchema allows 60 in all
 
@@ -21,8 +21,13 @@ type ProductPhotosProps = {
   style: string;
   title: string;
   hint?: string;
-  /** 2 for the page section, 3 in a style's popup (under its title). */
-  headingLevel?: 2 | 3;
+  /** 2 for the page section, 4 inside a style card (under its h3). */
+  headingLevel?: 2 | 4;
+  /**
+   * "grid": tiles in 2 to 4 columns (the page section). "stacked": for a style card's narrow photo column, the
+   * main photo large across the top, the others as 2-column tiles under it and a compact drop area.
+   */
+  layout?: "grid" | "stacked";
   productId: string | undefined;
   uploadsEnabled: boolean;
   /** Re-runs the list checks after a change (see ProductForm). */
@@ -36,32 +41,37 @@ export function ProductPhotos({
   title,
   hint,
   headingLevel = 2,
+  layout = "grid",
   productId,
   uploadsEnabled,
   onListChange,
 }: ProductPhotosProps) {
   const form = useFormContext<ProductInput>();
-  const name = useWatch({ control: form.control, name: "name" });
   const errors = form.formState.errors.images;
   const headingId = useId();
   const sectionRef = useRef<HTMLElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
   const [dragFrom, setDragFrom] = useState<number | null>(null);
   const [dropAt, setDropAt] = useState<number | null>(null);
-  const [descriptionsOpen, setDescriptionsOpen] = useState("");
   // This section's photos with their place in the whole list (the form's index).
   const mine = images.fields
     .map((field, index) => ({ field, index }))
     .filter(({ field }) => (field.color ?? "") === style);
   const listError = style === "" ? (errors?.root?.message ?? errors?.message) : undefined;
-  const hasAltError = mine.some(({ index }) => errors?.[index]?.alt);
   const Heading = `h${headingLevel}` as const;
-  // Names the photo for screen readers: "photo 2", or "Mountain photo 2" in a style's popup.
+  const stacked = layout === "stacked";
+  // Names the photo for screen readers: "photo 2", or "Mountain photo 2" in a style card.
   const photoName = (position: number) => `${style ? `${style} photo` : "photo"} ${position + 1}`;
+  const sizesOf = (position: number) =>
+    !stacked
+      ? "(min-width: 1280px) 200px, 45vw"
+      : position === 0
+        ? "(min-width: 1024px) 320px, (min-width: 640px) 384px, 90vw"
+        : "(min-width: 1024px) 160px, (min-width: 640px) 192px, 45vw";
 
   // Positions are within this section; the move happens in the whole list. The moved photo keeps focus on the
   // same control, or on the other arrow once that one is disabled.
-  function move(from: number, to: number, action: "earlier" | "later" | "main") {
+  function move(from: number, to: number, action: PhotoMove) {
     const source = mine[from];
     const target = mine[to];
     if (!source || !target) return;
@@ -90,9 +100,20 @@ export function ProductPhotos({
     setDragFrom(null);
     setDropAt(null);
   };
+  const drag: PhotoDrag = {
+    from: dragFrom,
+    at: dropAt,
+    start: setDragFrom,
+    over: setDropAt,
+    drop: (position) => {
+      if (dragFrom !== null && dragFrom !== position) move(dragFrom, position, "earlier");
+      endDrag();
+    },
+    end: endDrag,
+  };
 
   return (
-    <section ref={sectionRef} aria-labelledby={headingId} className="flex flex-col gap-4">
+    <section ref={sectionRef} aria-labelledby={headingId} className="flex min-w-0 flex-col gap-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <Heading id={headingId} className={cn("font-display", headingLevel === 2 ? "text-h3" : "text-body")}>
           {title}
@@ -104,82 +125,28 @@ export function ProductPhotos({
       {hint && <p className="-mt-2 text-small text-ink-muted">{hint}</p>}
       {listError && <ListError>{listError}</ListError>}
       {mine.length > 0 && (
-        <ul ref={listRef} className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4">
+        // One list in both layouts, so a tile's place in the list is its position (itemButton relies on it).
+        <ul
+          ref={listRef}
+          className={cn(
+            "grid",
+            stacked ? "grid-cols-2 gap-3" : "grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4",
+          )}
+        >
           {mine.map(({ field, index }, position) => (
-            <li
+            <PhotoTile
               key={field.fieldKey}
-              draggable
-              onDragStart={(e) => {
-                setDragFrom(position);
-                e.dataTransfer.effectAllowed = "move";
-              }}
-              onDragOver={(e) => {
-                if (dragFrom === null) return;
-                e.preventDefault();
-                setDropAt(position);
-              }}
-              onDrop={(e) => {
-                if (dragFrom === null) return;
-                e.preventDefault();
-                if (dragFrom !== position) move(dragFrom, position, "earlier");
-                endDrag();
-              }}
-              onDragEnd={endDrag}
-              className={cn(
-                "flex cursor-grab flex-col gap-2 rounded-md",
-                dragFrom === position && "opacity-50",
-                dropAt === position && dragFrom !== position && "ring-2 ring-focus ring-offset-2",
-              )}
-            >
-              <div className="relative">
-                <CloudImage src={field.url} alt="" sizes="(min-width: 1280px) 200px, 45vw" />
-                {position === 0 && <Badge className="absolute top-2 left-2">Main photo</Badge>}
-              </div>
-              {errors?.[index]?.url && <ListError>{errors[index].url.message}</ListError>}
-              {errors?.[index]?.color && <ListError>{errors[index].color.message}</ListError>}
-              <div className="flex flex-wrap items-center gap-1">
-                {position > 0 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    shape="pill"
-                    data-action="main"
-                    onClick={() => move(position, 0, "later")}
-                  >
-                    Make main
-                  </Button>
-                )}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label={`Move ${photoName(position)} earlier`}
-                  data-action="earlier"
-                  disabled={position === 0}
-                  onClick={() => move(position, position - 1, "earlier")}
-                >
-                  <ArrowLeft className="size-4" strokeWidth={1.5} aria-hidden />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label={`Move ${photoName(position)} later`}
-                  data-action="later"
-                  disabled={position === mine.length - 1}
-                  onClick={() => move(position, position + 1, "later")}
-                >
-                  <ArrowRight className="size-4" strokeWidth={1.5} aria-hidden />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label={`Remove ${photoName(position)}`}
-                  data-action="remove"
-                  onClick={() => remove(position)}
-                >
-                  <Trash2 className="size-4" strokeWidth={1.5} aria-hidden />
-                </Button>
-              </div>
-            </li>
+              url={field.url}
+              position={position}
+              count={mine.length}
+              name={photoName(position)}
+              errors={[errors?.[index]?.url?.message, errors?.[index]?.color?.message]}
+              sizes={sizesOf(position)}
+              className={cn(stacked && position === 0 && "col-span-2")}
+              drag={drag}
+              onMove={move}
+              onRemove={remove}
+            />
           ))}
         </ul>
       )}
@@ -189,44 +156,18 @@ export function ProductPhotos({
         uploadsEnabled={uploadsEnabled}
         label={uploadsEnabled ? "Choose photos" : "Add photo"}
         multiple={{ count: mine.length, limit: MAX_PHOTOS }}
+        compact={stacked}
         onUploaded={(url) => {
           images.append({ url, alt: "", color: style });
           onListChange();
         }}
       />
       {mine.length > 0 && (
-        <Accordion
-          type="single"
-          collapsible
-          value={hasAltError ? "descriptions" : descriptionsOpen}
-          onValueChange={setDescriptionsOpen}
-        >
-          <AccordionItem
-            value="descriptions"
-            title="Photo descriptions (optional)"
-            headingLevel={headingLevel === 2 ? 3 : 4}
-          >
-            <div className="flex flex-col gap-4">
-              <p className="text-small">
-                Read out by screen readers and used by search engines. Leave blank to use the product
-                {style ? " and style" : ""} name.
-              </p>
-              {mine.map(({ field, index }, position) => (
-                <FormField
-                  key={field.fieldKey}
-                  label={position === 0 ? "Photo 1 (main)" : `Photo ${position + 1}`}
-                  error={errors?.[index]?.alt?.message}
-                >
-                  <Input
-                    maxLength={200}
-                    placeholder={[name.trim() || "The product name", style].filter(Boolean).join(", ")}
-                    {...form.register(`images.${index}.alt`)}
-                  />
-                </FormField>
-              ))}
-            </div>
-          </AccordionItem>
-        </Accordion>
+        <PhotoDescriptions
+          photos={mine.map(({ field, index }) => ({ key: field.fieldKey, index }))}
+          style={style}
+          headingLevel={headingLevel === 2 ? 3 : 4}
+        />
       )}
     </section>
   );

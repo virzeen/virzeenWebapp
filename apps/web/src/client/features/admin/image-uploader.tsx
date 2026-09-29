@@ -15,6 +15,8 @@ type ImageUploaderProps = {
   label?: string;
   /** Product photos: several files at once, chosen or dragged onto the area; `count` of `limit` already added. */
   multiple?: { count: number; limit: number };
+  /** A narrow column (a style card's photos): a smaller drop area and 2-column upload tiles. */
+  compact?: boolean;
 };
 
 const hasFiles = (event: React.DragEvent) => event.dataTransfer.types.includes("Files");
@@ -32,6 +34,7 @@ export function ImageUploader({
   onUploaded,
   label = "Add image",
   multiple,
+  compact = false,
 }: ImageUploaderProps) {
   const fileInput = useRef<HTMLInputElement>(null);
   const [manualRef, setManualRef] = useState("");
@@ -115,7 +118,7 @@ export function ImageUploader({
   return (
     <div data-image-uploader className="flex flex-col gap-3">
       {multiple && pending.length > 0 && (
-        <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4">
+        <ul className={cn("grid grid-cols-2", compact ? "gap-3" : "gap-4 sm:grid-cols-3 xl:grid-cols-4")}>
           {pending.map((file) => (
             <li key={file.key} className="flex flex-col gap-2">
               <Skeleton shape="image" />
@@ -141,7 +144,8 @@ export function ImageUploader({
             add(Array.from(e.dataTransfer.files));
           }}
           className={cn(
-            "flex flex-col items-center gap-3 rounded-md border border-dashed border-line-strong px-4 py-8 text-center transition-colors duration-150 ease-standard",
+            "flex flex-col items-center gap-3 rounded-md border border-dashed border-line-strong text-center transition-colors duration-150 ease-standard",
+            compact ? "px-3 py-4" : "px-4 py-8",
             dragging && "border-ink bg-surface",
           )}
         >

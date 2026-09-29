@@ -8,15 +8,17 @@ import { Controller, useFormContext } from "react-hook-form";
 import { messageFor } from "@/client/lib/error-messages";
 import { saveCategoryAction } from "@/server/actions/admin/catalog";
 import { keepFocusOnPress } from "./form-focus";
+import { SizeGuideSelect } from "./size-guide-select";
 import { slugify } from "./slugify";
 
 type ProductOrganizeProps = {
   categories: { value: string; label: string }[];
   collections: { id: string; name: string }[];
+  sizeGuides: { id: string; name: string }[];
 };
 
-/** Sidebar box: category (with "New category" right here, as in WordPress) and collections. */
-export function ProductOrganize({ categories, collections }: ProductOrganizeProps) {
+/** Sidebar box: category (with "New category" right here, as in WordPress), size guide and collections. */
+export function ProductOrganize({ categories, collections, sizeGuides }: ProductOrganizeProps) {
   const form = useFormContext<ProductInput>();
   const router = useRouter();
   const [added, setAdded] = useState<{ value: string; label: string }[]>([]);
@@ -116,6 +118,8 @@ export function ProductOrganize({ categories, collections }: ProductOrganizeProp
           + New category
         </Button>
       )}
+
+      <SizeGuideSelect sizeGuides={sizeGuides} />
 
       {collections.length > 0 && (
         <fieldset className="flex flex-col gap-1">
