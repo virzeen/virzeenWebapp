@@ -46,22 +46,28 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams: 
           {
             key: "order",
             header: "Order",
+            // The number never breaks and the date sits under it; on phones the status moves in here too, so
+            // Total stays on screen. The link covers the whole cell, so it is easy to tap.
             cell: (row) => (
-              <Link href={`/admin/orders/${row.orderNumber}`} className="font-mono">
-                {row.orderNumber}
-              </Link>
+              <span className="relative flex flex-col items-start gap-1">
+                <Link
+                  href={`/admin/orders/${row.orderNumber}`}
+                  className="font-mono whitespace-nowrap after:absolute after:inset-0"
+                >
+                  {row.orderNumber}
+                </Link>
+                <span className="text-ink-muted">{formatDateTime(row.createdAt)}</span>
+                <span className="md:hidden">
+                  <Badge variant={orderStatus(row.status).variant}>{orderStatus(row.status).label}</Badge>
+                </span>
+              </span>
             ),
           },
-          { key: "customer", header: "Customer", hideOnMobile: true, cell: (row) => row.customerEmail },
-          {
-            key: "placed",
-            header: "Placed",
-            hideOnMobile: true,
-            cell: (row) => formatDateTime(row.createdAt),
-          },
+          { key: "customer", header: "Customer", hideBelow: "xl", cell: (row) => row.customerEmail },
           {
             key: "status",
             header: "Status",
+            hideOnMobile: true,
             cell: (row) => (
               <Badge variant={orderStatus(row.status).variant}>{orderStatus(row.status).label}</Badge>
             ),
@@ -72,10 +78,15 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams: 
             hideOnMobile: true,
             cell: (row) => (
               <span className="flex flex-col items-start gap-1">
-                <Badge variant={paymentStatus(row.paymentStatus).variant}>
-                  {paymentStatus(row.paymentStatus).label}
+                <Badge variant={paymentStatus(row.paymentStatus, row.paymentMethod).variant}>
+                  {paymentStatus(row.paymentStatus, row.paymentMethod).label}
                 </Badge>
-                <span className="text-small text-ink-muted">{PAYMENT_METHOD_LABELS[row.paymentMethod]}</span>
+                {/* Cash-on-delivery badges already say "on delivery". */}
+                {row.paymentMethod !== "COD" && (
+                  <span className="text-small text-ink-muted">
+                    {PAYMENT_METHOD_LABELS[row.paymentMethod]}
+                  </span>
+                )}
               </span>
             ),
           },

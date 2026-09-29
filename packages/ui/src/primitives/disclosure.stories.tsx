@@ -47,6 +47,20 @@ export const ProductAccordion: Story = {
   },
 };
 
+/** Right under the page's h1 (the checkout's collapsed summary on phones): `headingLevel={2}`. */
+export const SectionHeading: Story = {
+  render: () => (
+    <Accordion type="single" collapsible className="max-w-md">
+      <AccordionItem value="summary" title="Order summary · Rs 6,550" headingLevel={2}>
+        Linen Overshirt · M · Rs 4,500
+      </AccordionItem>
+    </Accordion>
+  ),
+  play: async ({ canvas }) => {
+    await expect(canvas.getByRole("heading", { level: 2 })).toHaveTextContent("Order summary");
+  },
+};
+
 export const ProductTabs: Story = {
   render: () => (
     <Tabs defaultValue="details" className="max-w-md">
@@ -113,4 +127,77 @@ export const AdminTable: Story = {
       ]}
     />
   ),
+};
+
+type PlacedOrderRow = {
+  id: string;
+  number: string;
+  placed: string;
+  customer: string;
+  status: string;
+  items: number;
+};
+const placedOrders: PlacedOrderRow[] = [
+  {
+    id: "1",
+    number: "VZ-260928-0041",
+    placed: "28 Sep 2026, 11:48 AM",
+    customer: "sita@example.com",
+    status: "Confirmed",
+    items: 2,
+  },
+  {
+    id: "2",
+    number: "VZ-260928-0042",
+    placed: "28 Sep 2026, 3:05 PM",
+    customer: "ram@example.com",
+    status: "Being packed",
+    items: 5,
+  },
+];
+
+/**
+ * Secondary columns step aside on smaller screens so Order and Items stay in view: Customer below `xl`
+ * (`hideBelow="xl"`) and Status below `md` (`hideOnMobile`, the same as `hideBelow="md"`). On phones the status
+ * moves into the Order cell under the date (patterns.md §10).
+ */
+export const AdminTableResponsiveColumns: Story = {
+  globals: { viewport: { value: "mobile1" } },
+  render: () => (
+    <DataTable
+      caption="Orders"
+      rows={placedOrders}
+      getRowId={(row) => row.id}
+      columns={[
+        {
+          key: "order",
+          header: "Order",
+          cell: (row) => (
+            <span className="flex flex-col items-start gap-1">
+              <span className="font-mono whitespace-nowrap">{row.number}</span>
+              <span className="text-ink-muted">{row.placed}</span>
+              <span className="md:hidden">
+                <Badge variant="accent">{row.status}</Badge>
+              </span>
+            </span>
+          ),
+        },
+        { key: "customer", header: "Customer", hideBelow: "xl", cell: (row) => row.customer },
+        {
+          key: "status",
+          header: "Status",
+          hideOnMobile: true,
+          cell: (row) => <Badge variant="accent">{row.status}</Badge>,
+        },
+        { key: "items", header: "Items", align: "right", cell: (row) => row.items },
+      ]}
+    />
+  ),
+  play: async ({ canvas }) => {
+    await expect(canvas.getByRole("columnheader", { name: "Order" })).toBeVisible();
+    await expect(canvas.getByRole("columnheader", { name: "Items" })).toBeVisible();
+    // Hidden columns are display: none on a phone, so they also leave the accessibility tree.
+    await expect(canvas.queryByRole("columnheader", { name: "Customer" })).toBeNull();
+    await expect(canvas.queryByRole("columnheader", { name: "Status" })).toBeNull();
+  },
 };

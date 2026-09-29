@@ -8,7 +8,12 @@ import { getProductForEdit, getProductFormOptions, uploadsEnabled } from "@/serv
 
 type Props = { params: Promise<{ id: string }> };
 
-export const metadata = { title: "Edit product" };
+// A missing product gets the admin not-found page's title instead of "Edit product".
+export async function generateMetadata({ params }: Props) {
+  await requireAdminPage();
+  if (!(await getProductForEdit((await params).id))) notFound();
+  return { title: "Edit product" };
+}
 
 export default async function EditProductPage({ params }: Props) {
   await requireAdminPage();
@@ -20,7 +25,11 @@ export default async function EditProductPage({ params }: Props) {
 
   return (
     <Stack gap={6}>
-      <Link href="/admin/products" variant="subtle" className="text-small">
+      <Link
+        href="/admin/products"
+        variant="subtle"
+        className="inline-flex min-h-11 items-center self-start text-small"
+      >
         ← Products
       </Link>
       <AdminPageHeader

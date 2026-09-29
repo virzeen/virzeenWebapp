@@ -11,7 +11,11 @@ export default async function NewProductPage() {
   const { categories, collections } = await getProductFormOptions();
   return (
     <Stack gap={6}>
-      <Link href="/admin/products" variant="subtle" className="text-small">
+      <Link
+        href="/admin/products"
+        variant="subtle"
+        className="inline-flex min-h-11 items-center self-start text-small"
+      >
         ← Products
       </Link>
       <AdminPageHeader title="New product" description="Saved as a draft until you switch on Published." />

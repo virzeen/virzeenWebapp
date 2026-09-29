@@ -9,7 +9,7 @@ type Props = { params: Promise<{ category: string }>; searchParams: SearchParams
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const category = await getCategoryBySlug((await params).category);
-  if (!category) return {};
+  if (!category) notFound();
   return {
     title: category.name,
     description: `Shop ${category.name.toLowerCase()} from Virzeen. Prices include VAT.`,

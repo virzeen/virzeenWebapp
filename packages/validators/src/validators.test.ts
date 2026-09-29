@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   addressSchema,
   addToCartSchema,
+  adminPageSchema,
   ALL_DISTRICTS,
   emailSchema,
   parsePortfolioBody,
@@ -99,6 +100,15 @@ describe("shopFiltersSchema", () => {
   it("ignores malformed values instead of throwing", () => {
     const filters = shopFiltersSchema.parse({ category: "Bad Slug!", sort: "cheapest", inStock: "yes" });
     expect(filters).toMatchObject({ category: undefined, sort: "newest", inStock: false });
+  });
+});
+
+describe("adminPageSchema", () => {
+  it("falls back to page 1 for anything the database can't page to", () => {
+    expect(adminPageSchema.parse("3")).toBe(3);
+    for (const value of [undefined, "0", "-2", "1.5", "abc", "99999999999999999999999"]) {
+      expect(adminPageSchema.parse(value)).toBe(1);
+    }
   });
 });
 

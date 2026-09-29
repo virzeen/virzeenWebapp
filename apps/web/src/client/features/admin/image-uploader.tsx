@@ -5,6 +5,7 @@ import { ImagePlus } from "lucide-react";
 import { useId, useRef, useState } from "react";
 import { messageFor } from "@/client/lib/error-messages";
 import { getUploadSignatureAction } from "@/server/actions/admin/catalog";
+import { keepFocusOnPress } from "./form-focus";
 
 const ACCEPT = "image/jpeg,image/png,image/webp,image/avif";
 const MAX_BYTES = 10 * 1024 * 1024;
@@ -58,9 +59,14 @@ export function ImageUploader({
     }
   }
 
+  // data-image-uploader: the product form sends focus here once the last image is removed.
+  // keepFocusOnPress: pressing the button mustn't blur a form field first (its error line would move the button).
   if (!uploadsEnabled) {
     return (
-      <div className="flex flex-col gap-2 rounded-md border border-dashed border-line-strong p-4">
+      <div
+        data-image-uploader
+        className="flex flex-col gap-2 rounded-md border border-dashed border-line-strong p-4"
+      >
         <FormField
           label="Image reference"
           helper="Uploads switch on when Cloudinary keys are set. For now, enter a Cloudinary public id or a /public path."
@@ -78,6 +84,7 @@ export function ImageUploader({
           shape="pill"
           className="self-start"
           disabled={manualRef.trim().length === 0}
+          onMouseDown={keepFocusOnPress}
           onClick={() => {
             onUploaded(manualRef.trim());
             setManualRef("");
@@ -90,7 +97,7 @@ export function ImageUploader({
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div data-image-uploader className="flex flex-col gap-2">
       <input
         ref={fileInput}
         id={inputId}
@@ -107,6 +114,7 @@ export function ImageUploader({
         shape="pill"
         loading={busy}
         className="self-start"
+        onMouseDown={keepFocusOnPress}
         onClick={() => fileInput.current?.click()}
       >
         <ImagePlus className="size-4" strokeWidth={1.5} aria-hidden />

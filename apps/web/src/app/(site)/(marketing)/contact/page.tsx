@@ -25,6 +25,11 @@ export default function ContactPage() {
         <Link href={`mailto:${SITE.infoEmail}`}>{SITE.infoEmail}</Link>.
       </p>
       <p>We reply within one working day.</p>
+      <ContentHeading>Instagram</ContentHeading>
+      <p>
+        See new pieces and preorders first on Instagram:{" "}
+        <Link href={SITE.instagram}>{SITE.instagramHandle}</Link>.
+      </p>
       <ContentHeading>Your orders</ContentHeading>
       <p>
         Track an order and see its status any time in <Link href="/account/orders">your account</Link>. Please

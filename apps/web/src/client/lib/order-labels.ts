@@ -32,8 +32,11 @@ export const PAYMENT_METHOD_LABELS: Record<string, string> = {
 
 export const orderStatus = (status: string) =>
   ORDER_STATUS_LABELS[status] ?? { label: status, variant: "neutral" as const };
-export const paymentStatus = (status: string) =>
-  PAYMENT_STATUS_LABELS[status] ?? { label: status, variant: "neutral" as const };
+// A cancelled cash-on-delivery order was never charged, so it isn't a red "Payment failed" (owner decision 2026-09-29).
+export const paymentStatus = (status: string, method?: string) =>
+  status === "FAILED" && method === "COD"
+    ? { label: "Not charged", variant: "neutral" as const }
+    : (PAYMENT_STATUS_LABELS[status] ?? { label: status, variant: "neutral" as const });
 
 /** Timeline wording: the first event is the order being placed, whatever the payment method. */
 export const timelineLabel = (status: string) =>

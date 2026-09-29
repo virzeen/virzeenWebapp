@@ -1,4 +1,5 @@
-import { ButtonLink, Container, Grid } from "@virzeen/ui";
+import { Container, Grid, Link } from "@virzeen/ui";
+import { PORTFOLIO_KIND_LABELS } from "@virzeen/validators";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { CloudImage } from "@/client/components/shared/cloud-image";
@@ -9,7 +10,7 @@ type Props = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const project = await getPortfolioProject((await params).slug);
-  if (!project) return {};
+  if (!project) notFound();
   return {
     title: project.title,
     description: project.summary.slice(0, 155),
@@ -27,11 +28,19 @@ export default async function PortfolioProjectPage({ params }: Props) {
     <article>
       <header className="relative isolate bg-ink text-canvas">
         <CloudImage src={project.coverUrl} alt={project.coverAlt} ratio="hero" sizes="100vw" priority />
-        <div className="absolute inset-0 bg-ink/35" aria-hidden />
-        <Container className="absolute inset-x-0 bottom-0 flex flex-col gap-4 pb-12">
-          <p className="text-caption text-canvas/80 uppercase">{project.kind.toLowerCase()}</p>
-          <h1 className="max-w-3xl font-display text-display motion-safe:animate-reveal">{project.title}</h1>
-        </Container>
+        {/* Scrim: a steady band behind the text (however long the title) under a soft fade, so white
+            text stays at AA contrast on any cover while the top of the image stays untouched */}
+        <div className="absolute inset-x-0 bottom-0">
+          <div aria-hidden className="h-48 bg-linear-to-t from-ink/65 via-ink/25 to-transparent" />
+          <div className="bg-linear-to-t from-ink/80 to-ink/65">
+            <Container className="flex flex-col gap-4 pb-12">
+              <p className="text-caption uppercase">{PORTFOLIO_KIND_LABELS[project.kind]}</p>
+              <h1 className="max-w-3xl font-display text-display motion-safe:animate-reveal">
+                {project.title}
+              </h1>
+            </Container>
+          </div>
+        </div>
       </header>
 
       <Container width="narrow" className="py-16 lg:py-24">
@@ -80,9 +89,14 @@ export default async function PortfolioProjectPage({ params }: Props) {
             <h2 id="shop-the-story" className="font-display text-h2">
               Shop the story
             </h2>
-            <ButtonLink href="/shop" variant="link">
+            {/* Same "Shop all" as the home page's latest pieces. */}
+            <Link
+              href="/shop"
+              variant="default"
+              className="-mb-3 inline-flex min-h-11 shrink-0 items-center text-small"
+            >
               Shop all
-            </ButtonLink>
+            </Link>
           </div>
           <Grid columns="products" gap={4}>
             {project.products.map((product) => (

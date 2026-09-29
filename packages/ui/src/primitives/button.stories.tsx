@@ -31,6 +31,8 @@ export const Secondary: Story = { args: { variant: "secondary" } };
 export const Ghost: Story = { args: { variant: "ghost" } };
 export const Destructive: Story = { args: { variant: "destructive", children: "Remove" } };
 export const LinkStyle: Story = { args: { variant: "link", children: "Size guide" } };
+/** Secondary actions in a row (Edit, Archive, Filters): 44px tall on phones and tablets, 36px from `lg`. */
+export const Small: Story = { args: { variant: "secondary", size: "sm", shape: "pill", children: "Edit" } };
 export const Pill: Story = { args: { shape: "pill", size: "lg", children: "Shop the collection" } };
 export const Inverse: Story = {
   args: { variant: "inverse", shape: "pill", children: "Explore" },
@@ -80,4 +82,29 @@ export const AllVariants: Story = {
 export const Mobile: Story = {
   args: { className: "w-full", size: "lg" },
   globals: { viewport: { value: "mobile1" } },
+};
+
+/** On a phone the small and text-style buttons still give a 44px-tall touch target. */
+export const SmallAndLinkMobile: Story = {
+  globals: { viewport: { value: "mobile1" } },
+  render: () => (
+    <div className="flex flex-wrap items-center gap-4">
+      <Button variant="secondary" size="sm" shape="pill">
+        Edit
+      </Button>
+      <Button variant="ghost" size="sm" shape="pill">
+        Archive
+      </Button>
+      <Button variant="link" size="sm">
+        Remove
+      </Button>
+      <Button variant="link">Continue shopping</Button>
+    </div>
+  ),
+  play: async ({ canvas }) => {
+    for (const name of ["Edit", "Archive", "Remove", "Continue shopping"]) {
+      const height = canvas.getByRole("button", { name }).getBoundingClientRect().height;
+      await expect(height).toBeGreaterThanOrEqual(44);
+    }
+  },
 };

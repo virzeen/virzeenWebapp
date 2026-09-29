@@ -3,7 +3,11 @@ import type { Metadata } from "next";
 import { AccountNav } from "@/client/features/account/account-nav";
 import { requireUserPage } from "@/server/auth/session";
 
-export const metadata: Metadata = { title: "Account", robots: { index: false } };
+// A plain string title here would drop the root "%s — Virzeen" template for every account page.
+export const metadata: Metadata = {
+  title: { default: "Account", template: "%s — Virzeen" },
+  robots: { index: false },
+};
 
 export default async function AccountLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUserPage("/account");

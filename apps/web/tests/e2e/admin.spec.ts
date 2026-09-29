@@ -4,13 +4,22 @@ import { completeEmailSignIn, signIn, totp, uniqueEmail } from "./helpers";
 
 // Journeys 6–7 (testing-strategy.md §2) plus the admin TOTP step-up (security-policy.md §2).
 
-test("guests are sent to sign in and customers get a 404 for /admin", async ({ page }) => {
+test("guests are sent to sign in, customers get a 404 for /admin, and Sign out ends the session", async ({
+  page,
+}) => {
   await page.goto("/admin");
   await expect(page).toHaveURL(/\/login\?next=%2Fadmin/);
 
   await signIn(page, uniqueEmail("customer"));
   const response = await page.goto("/admin/orders");
   expect(response?.status()).toBe(404);
+
+  // Sign out from the account settings page (the same button as the admin header and admin settings).
+  await page.goto("/account/settings");
+  await page.getByRole("button", { name: "Sign out" }).click();
+  await expect(page).toHaveURL((url) => url.pathname === "/");
+  await page.goto("/account");
+  await expect(page).toHaveURL(/\/login\?next=%2Faccount/);
 });
 
 test("admin sets up two-factor, creates a product and it appears in the shop", async ({ page }) => {
@@ -66,4 +75,48 @@ test("admin sets up two-factor, creates a product and it appears in the shop", a
   await page.getByRole("link", { name: /E2E Monochrome Beanie/ }).click();
   await expect(page.getByRole("heading", { level: 1, name: "E2E Monochrome Beanie" })).toBeVisible();
   await expect(page.getByText("Rs 1,500").first()).toBeVisible();
+
+  // A mistyped admin address stays inside the admin frame, with a way back.
+  await page.goto("/admin/no-such-page");
+  await expect(
+    page.getByRole("heading", { level: 1, name: "This page doesn't exist, or the item was archived." }),
+  ).toBeVisible();
+  await expect(page.getByRole("link", { name: "Back to dashboard" })).toBeVisible();
+
+  // Settings, the last nav item: the admin's own account, sign-in security and Sign out.
+  await page.getByRole("navigation", { name: "Admin" }).getByRole("link", { name: "Settings" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Settings" })).toBeVisible();
+  await expect(page.getByLabel("Email", { exact: true })).toHaveValue(E2E_ADMIN_EMAIL);
+  await page.getByLabel(/^Name/).fill("E2E Admin");
+  await page.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+  const security = page.getByRole("region", { name: "Sign-in security" });
+  await expect(security.getByText("On", { exact: true })).toBeVisible();
+  await expect(
+    security.getByText(
+      /On this device, you'll be asked for the next one after \d{1,2} [A-Z][a-z]{2} \d{4}, \d{1,2}:\d{2} [AP]M\./,
+    ),
+  ).toBeVisible();
+  // The authenticator is never reset or switched off from the website (security-policy.md §2).
+  await expect(security.getByRole("button")).toHaveCount(0);
+
+  // Sign out from the admin header: back to the home page, and /admin asks to sign in again.
+  await page.getByRole("banner").getByRole("button", { name: "Sign out" }).click();
+  await expect(page).toHaveURL((url) => url.pathname === "/");
+  await page.goto("/admin");
+  await expect(page).toHaveURL(/\/login\?next=%2Fadmin/);
+});
+
+test("an admin on the authenticator step can sign out and use a different email", async ({ page }) => {
+  await page.goto("/login?next=/admin");
+  await completeEmailSignIn(page, E2E_ADMIN_EMAIL);
+  await expect(page).toHaveURL(/\/admin\/verify/);
+  await expect(page.getByText(`Signed in as ${E2E_ADMIN_EMAIL}`)).toBeVisible();
+
+  await page.getByRole("button", { name: "Use a different email" }).click();
+  await expect(page).toHaveURL(/\/login\?next=%2Fadmin/);
+  await expect(page.getByRole("heading", { level: 1, name: "Sign in" })).toBeVisible();
+  // Signed out: the admin area asks for an email again.
+  await page.goto("/admin");
+  await expect(page).toHaveURL(/\/login\?next=%2Fadmin/);
 });

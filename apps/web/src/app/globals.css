@@ -3,3 +3,34 @@
 
 /* Tailwind v4 only scans this app by default; primitives live in packages/ui (docs/ai/common-mistakes.md). */
 @source "../../../../packages/ui/src";
+
+/*
+ * Storefront: the sticky site header (`data-sticky-header`, site-header.tsx, 64px) covers the top of the screen.
+ * Anything scrolled into view (Tab, Shift+Tab, the skip link) stops below it (WCAG 2.4.11).
+ */
+html:has([data-sticky-header]) {
+  scroll-padding-top: --spacing(20);
+}
+
+/*
+ * Product page on phones: the sticky "Add to bag" bar (`data-sticky-cta`, product-purchase.tsx, `md:static`)
+ * covers the bottom of the screen. Keep keyboard focus and the footer's last links above it (WCAG 2.4.11).
+ */
+html:has([data-sticky-cta]) {
+  @variant max-md {
+    scroll-padding-bottom: --spacing(24);
+  }
+}
+
+html:has([data-sticky-cta]) main ~ footer {
+  @variant max-md {
+    padding-bottom: calc(--spacing(20) + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* Toasts (bottom-center) sit above that bar instead of covering its price and button. Beats Sonner's own rule. */
+html:has([data-sticky-cta]) [data-sonner-toaster][data-y-position="bottom"] {
+  @variant max-md {
+    bottom: calc(--spacing(24) + env(safe-area-inset-bottom, 0px));
+  }
+}

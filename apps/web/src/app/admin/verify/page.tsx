@@ -1,12 +1,16 @@
 import { Container, Link } from "@virzeen/ui";
 import { notFound, redirect } from "next/navigation";
 import { Wordmark } from "@/client/components/layout/wordmark";
+import { SwitchAccountButton } from "@/client/features/admin/switch-account";
 import { TotpEnrollment, TotpVerify } from "@/client/features/admin/totp-setup";
 import { getAdminState } from "@/server/auth/session";
 
 export const metadata = { title: "Verify" };
 
-/** Admin two-factor: first-time enrolment, then a TOTP step-up every 12 hours. */
+/**
+ * Admin two-factor: first-time enrolment, then a TOTP step-up every 12 hours. Shows which account is signed
+ * in, with a way back to the email form.
+ */
 export default async function AdminVerifyPage() {
   const { state, user } = await getAdminState();
   if (!user) redirect("/login?next=%2Fadmin");
@@ -25,8 +29,12 @@ export default async function AdminVerifyPage() {
         {state !== "needs-enrollment" && (
           <p className="text-body text-ink-muted">Enter the code from your authenticator app.</p>
         )}
+        <p className="text-small text-ink-muted">
+          Signed in as <span className="break-all text-ink">{user.email}</span>
+        </p>
       </header>
       {state === "needs-enrollment" ? <TotpEnrollment /> : <TotpVerify />}
+      <SwitchAccountButton />
     </Container>
   );
 }

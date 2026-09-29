@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { ShoppingBag } from "lucide-react";
+import { expect } from "storybook/test";
 import { Alert } from "./alert";
 import { Badge } from "./badge";
 import { Button } from "./button";
@@ -76,16 +77,39 @@ export const Empty: Story = {
   ),
 };
 
+/** When the empty state is the whole page (404, error, offline), its title is the page's h1. */
+export const EmptyAsPage: Story = {
+  render: () => (
+    <EmptyState
+      titleAs="h1"
+      title="We couldn't find that page."
+      description="It may have moved, or the link might be wrong."
+      action={
+        <ButtonLink href="/shop" shape="pill">
+          Browse the collection
+        </ButtonLink>
+      }
+    />
+  ),
+  play: async ({ canvas }) => {
+    await expect(canvas.getByRole("heading", { level: 1 })).toHaveTextContent("We couldn't find that page.");
+  },
+};
+
+/**
+ * Default and success toasts are ink; error toasts are danger. Add to bag and bag Undo don't use toasts: the
+ * drawer says "Added to bag" and Undo sits inline where the line was (patterns.md §7).
+ */
 export const Toasts: Story = {
   render: () => (
     <div className="flex flex-wrap gap-4">
       <Toaster />
-      <Button onClick={() => toast.success("Added to bag")}>Success toast</Button>
+      <Button onClick={() => toast.success("Address saved")}>Success toast</Button>
       <Button
         variant="secondary"
-        onClick={() => toast.message("Removed from bag", { action: { label: "Undo", onClick: () => {} } })}
+        onClick={() => toast.message("We sent a new code", { description: "It expires in 10 minutes." })}
       >
-        Toast with undo
+        Default toast with description
       </Button>
       <Button
         variant="destructive"

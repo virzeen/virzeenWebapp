@@ -310,7 +310,7 @@ async function main() {
         },
         {
           type: "text",
-          text: "Preorders will be paid online with eSewa or Khalti, or on delivery with cash.",
+          text: "Pay in cash when your order arrives.",
         },
       ],
     },

@@ -20,17 +20,21 @@ type PriceProps = {
   className?: string;
 };
 
-/** The only way to show money in the UI (docs/ui/components-catalog.md §2). */
+/**
+ * The only way to show money in the UI (docs/ui/components-catalog.md §2).
+ * Each amount stays on one line ("Rs" never ends a line); a narrow slot can still wrap between
+ * "From", the price and the old price.
+ */
 export function Price({ paisa, compareAtPaisa, from = false, className }: PriceProps) {
   const onSale = compareAtPaisa != null && compareAtPaisa > paisa;
   return (
     <span className={cn("tabular-nums", className)}>
       {from && <span className="text-ink-muted">From </span>}
-      <span>{formatPaisa(paisa)}</span>
+      <span className="whitespace-nowrap">{formatPaisa(paisa)}</span>
       {onSale && (
         <>
           {" "}
-          <s className="text-ink-muted">
+          <s className="whitespace-nowrap text-ink-muted">
             <span className="sr-only">was </span>
             {formatPaisa(compareAtPaisa)}
           </s>

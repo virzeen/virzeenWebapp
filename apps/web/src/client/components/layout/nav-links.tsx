@@ -9,6 +9,11 @@ export const PRIMARY_NAV = [
   { href: "/about", label: "About" },
 ] as const;
 
+/** True on the link's own page and the pages under it (/portfolio marks /portfolio/light-studies too). */
+export function isCurrent(pathname: string, href: string) {
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
 /** Desktop header navigation with the current page marked (aria-current). */
 export function NavLinks() {
   const pathname = usePathname();
@@ -19,7 +24,7 @@ export function NavLinks() {
           key={item.href}
           href={item.href}
           variant="nav"
-          aria-current={pathname === item.href || pathname.startsWith(`${item.href}/`) ? "page" : undefined}
+          aria-current={isCurrent(pathname, item.href) ? "page" : undefined}
         >
           {item.label}
         </Link>

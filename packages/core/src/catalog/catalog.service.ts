@@ -11,17 +11,20 @@ function conflictFrom(error: unknown, what: string): never {
     throw new AppError("VALIDATION_FAILED", `This ${what} is already used.`, {
       fields:
         what === "SKU"
-          ? { variants: "Each variant needs a unique SKU" }
+          ? { variants: "One of these SKUs is already used. Change it and save again." }
           : { slug: "This slug is already used" },
     });
   }
   throw error;
 }
 
+const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
+
 export const catalogService = {
   /**
    * Creates or updates a product with its images, variants and collections in one transaction.
-   * Variants missing from the input are deactivated (never deleted: orders reference them).
+   * Variants missing from the input are deactivated (never deleted: orders reference them); a new row with one
+   * of their SKUs brings that variant back.
    */
   async saveProduct(actorId: string, input: { id?: string | undefined; product: ProductData }) {
     const { product } = input;
@@ -30,8 +33,8 @@ export const catalogService = {
     const activePrices = product.variants.filter((v) => v.isActive).map((v) => customerPrice(v.pricePaisa));
     const fromPricePaisa = activePrices.length > 0 ? Math.min(...activePrices) : 0;
     if (product.isPublished && activePrices.length === 0) {
-      throw new AppError("VALIDATION_FAILED", "A published product needs at least one active variant.", {
-        fields: { variants: "Turn on at least one variant before publishing" },
+      throw new AppError("VALIDATION_FAILED", "A published product needs at least one variant for sale.", {
+        fields: { variants: "Tick For sale on at least one variant, or switch off Published" },
       });
     }
 
@@ -54,6 +57,39 @@ export const catalogService = {
           : null;
         if (input.id && (!existing || existing.archivedAt))
           throw new AppError("NOT_FOUND", "Product not found.");
+
+        // SKUs are unique across the shop. A new row with the SKU of one of this product's own variants that
+        // isn't in the form (a page opened before a save, or a variant added again) takes that variant over, so
+        // its orders keep pointing at it. A SKU another product uses is named on its row instead of failing on
+        // the constraint.
+        const keptIds = product.variants.flatMap((variant) => (variant.id ? [variant.id] : []));
+        const clashes = await tx.productVariant.findMany({
+          where: { sku: { in: product.variants.map((variant) => variant.sku) }, id: { notIn: keptIds } },
+          select: { id: true, sku: true, productId: true },
+        });
+        const isOwn = (row: { productId: string }) => existing !== null && row.productId === existing.id;
+        const variants = product.variants.map((variant) => {
+          const revived = variant.id
+            ? undefined
+            : clashes.find((row) => isOwn(row) && row.sku === variant.sku);
+          return revived ? { ...variant, id: revived.id } : variant;
+        });
+        const taken = clashes.filter((row) => !variants.some((variant) => variant.id === row.id));
+        if (taken.length > 0) {
+          const fields: Record<string, string> = {};
+          for (const [index, variant] of variants.entries()) {
+            const owner = taken.find((row) => row.sku === variant.sku);
+            if (!owner) continue;
+            fields[`variants.${index}.sku`] = isOwn(owner)
+              ? "Another variant of this product uses this SKU"
+              : "Another product already uses this SKU";
+          }
+          const message =
+            Object.keys(fields).length === 1
+              ? "One SKU is already used. Change it and save again."
+              : "Some SKUs are already used. Change them and save again.";
+          throw new AppError("VALIDATION_FAILED", message, { fields });
+        }
 
         const data = {
           name: product.name,
@@ -90,8 +126,21 @@ export const catalogService = {
           });
         }
 
-        const keptIds: string[] = [];
-        for (const [index, variant] of product.variants.entries()) {
+        // Kept variants whose SKU changes first move to a placeholder SKU, so two of them can swap SKUs without
+        // either one hitting the unique constraint halfway through.
+        const current = await tx.productVariant.findMany({
+          where: { productId: saved.id },
+          select: { id: true, sku: true },
+        });
+        for (const variant of variants) {
+          const before = current.find((row) => row.id === variant.id);
+          if (before && before.sku !== variant.sku) {
+            await tx.productVariant.update({ where: { id: before.id }, data: { sku: `${before.id}~` } });
+          }
+        }
+
+        const savedIds: string[] = [];
+        for (const [index, variant] of variants.entries()) {
           const variantData = {
             sku: variant.sku,
             size: emptyToNull(variant.size),
@@ -107,17 +156,17 @@ export const catalogService = {
               data: variantData,
             });
             if (owned.count === 0) throw new AppError("NOT_FOUND", "Variant not found.");
-            keptIds.push(variant.id);
+            savedIds.push(variant.id);
           } else {
             const created = await tx.productVariant.create({
               data: { ...variantData, productId: saved.id },
               select: { id: true },
             });
-            keptIds.push(created.id);
+            savedIds.push(created.id);
           }
         }
         await tx.productVariant.updateMany({
-          where: { productId: saved.id, id: { notIn: keptIds } },
+          where: { productId: saved.id, id: { notIn: savedIds } },
           data: { isActive: false },
         });
 
@@ -182,7 +231,10 @@ export const catalogService = {
     return db.$transaction(async (tx) => {
       const inUse = await tx.product.count({ where: { categoryId: id, archivedAt: null } });
       if (inUse > 0) {
-        throw new AppError("CONFLICT", `Move or archive the ${inUse} product(s) in this category first.`);
+        throw new AppError(
+          "CONFLICT",
+          `Move or archive the ${plural(inUse, "product", "products")} in this category first.`,
+        );
       }
       const updated = await tx.category.updateMany({
         where: { id, archivedAt: null },

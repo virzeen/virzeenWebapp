@@ -6,14 +6,30 @@ import { AdminPageHeader } from "@/client/features/admin/admin-page-header";
 import { OrderActions } from "@/client/features/admin/order-actions";
 import { OrderDetail } from "@/client/features/orders/order-detail";
 import { formatDateTime } from "@/client/lib/format";
-import { paymentStatus } from "@/client/lib/order-labels";
+import { PAYMENT_METHOD_LABELS, paymentStatus, timelineLabel } from "@/client/lib/order-labels";
 import { requireAdminPage } from "@/server/auth/session";
 import { getAdminOrder } from "@/server/queries/admin";
 
 type Props = { params: Promise<{ orderNumber: string }> };
 
+/**
+ * "Confirmed → Being packed" or "Payment: Unpaid → Pay on delivery", in the words the badges and the
+ * timeline above use (never the raw status codes).
+ */
+function changeLabel(event: { type: string; from: string | null; to: string }, paymentMethod: string) {
+  const isPayment = event.type === "PAYMENT_STATUS";
+  const label = (status: string) =>
+    isPayment ? paymentStatus(status, paymentMethod).label : timelineLabel(status);
+  const change = event.from ? `${label(event.from)} → ${label(event.to)}` : label(event.to);
+  return isPayment ? `Payment: ${change}` : change;
+}
+
+// A missing order gets the admin not-found page's title instead of the number typed in the address.
 export async function generateMetadata({ params }: Props) {
-  return { title: (await params).orderNumber };
+  await requireAdminPage();
+  const { orderNumber } = await params;
+  if (!orderNumberSchema.safeParse(orderNumber).success || !(await getAdminOrder(orderNumber))) notFound();
+  return { title: orderNumber };
 }
 
 export default async function AdminOrderPage({ params }: Props) {
@@ -25,7 +41,11 @@ export default async function AdminOrderPage({ params }: Props) {
 
   return (
     <Stack gap={8}>
-      <Link href="/admin/orders" variant="subtle" className="text-small">
+      <Link
+        href="/admin/orders"
+        variant="subtle"
+        className="inline-flex min-h-11 items-center self-start text-small"
+      >
         ← Orders
       </Link>
       <AdminPageHeader
@@ -56,11 +76,17 @@ export default async function AdminOrderPage({ params }: Props) {
           rows={order.payments}
           getRowId={(row) => row.id}
           columns={[
-            { key: "provider", header: "Provider", cell: (row) => row.provider },
+            {
+              key: "provider",
+              header: "Provider",
+              hideOnMobile: true,
+              cell: (row) => PAYMENT_METHOD_LABELS[row.provider] ?? row.provider,
+            },
             {
               key: "ref",
               header: "Reference",
-              cell: (row) => <span className="font-mono">{row.providerRef}</span>,
+              hideOnMobile: true,
+              cell: (row) => <span className="font-mono whitespace-nowrap">{row.providerRef}</span>,
             },
             {
               key: "status",
@@ -99,8 +125,7 @@ export default async function AdminOrderPage({ params }: Props) {
             {
               key: "what",
               header: "Change",
-              cell: (row) =>
-                `${row.type === "PAYMENT_STATUS" ? "Payment" : "Order"}: ${row.from ?? "—"} → ${row.to}`,
+              cell: (row) => changeLabel(row, order.paymentMethod),
             },
             { key: "actor", header: "By", hideOnMobile: true, cell: (row) => row.actor.split(":")[0] },
             { key: "reason", header: "Note", hideOnMobile: true, cell: (row) => row.reason ?? "" },

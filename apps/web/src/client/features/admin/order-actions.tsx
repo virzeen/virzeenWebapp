@@ -1,5 +1,6 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Alert,
   Button,
@@ -14,8 +15,11 @@ import {
   Textarea,
   toast,
 } from "@virzeen/ui";
+import { advanceOrderSchema, orderWithReasonSchema } from "@virzeen/validators";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 import { messageFor } from "@/client/lib/error-messages";
 import {
   advanceOrderAction,
@@ -55,7 +59,22 @@ function useRunner(): [boolean, Run] {
   return [isPending, run];
 }
 
-/** A dialog that collects one or two text fields before running an action. */
+type ReasonField = {
+  name: string;
+  label: string;
+  multiline?: boolean;
+  /** The server's rule for this field (from `@virzeen/validators`), so its message shows under the field. */
+  schema: z.ZodString;
+};
+
+// The rules the server actions parse with (packages/validators/src/orders.ts).
+const reasonSchema = orderWithReasonSchema.shape.reason;
+const shippedSchema = advanceOrderSchema.options[1].shape; // the SHIPPED step
+
+/**
+ * A dialog that collects one or two text fields before running an action. The confirm button stays
+ * enabled: pressing it shows what's missing under each field (docs/ui/patterns.md §4). It opens empty every time.
+ */
 function ReasonDialog({
   trigger,
   title,
@@ -69,78 +88,109 @@ function ReasonDialog({
   trigger: React.ReactNode;
   title: string;
   description?: string;
-  fields: { name: string; label: string; multiline?: boolean }[];
+  fields: ReasonField[];
   confirmLabel: string;
   destructive?: boolean;
   warning?: string;
   onConfirm: (values: Record<string, string>) => Promise<boolean>;
 }) {
   const [open, setOpen] = useState(false);
-  const [values, setValues] = useState<Record<string, string>>({});
-  const [busy, setBusy] = useState(false);
-  const complete = fields.every((f) => (values[f.name] ?? "").trim().length >= 2);
+  const form = useForm<Record<string, string>>({
+    resolver: zodResolver(z.object(Object.fromEntries(fields.map((field) => [field.name, field.schema])))),
+    mode: "onTouched",
+    defaultValues: Object.fromEntries(fields.map((field) => [field.name, ""])),
+  });
+  const { errors, isSubmitting } = form.formState;
 
-  async function confirm() {
-    setBusy(true);
-    const ok = await onConfirm(values);
-    setBusy(false);
-    if (ok) {
-      setOpen(false);
-      setValues({});
-    }
+  function changeOpen(next: boolean) {
+    if (!next && isSubmitting) return; // stay open until the action answers
+    if (next) form.reset(); // every opening starts empty, whatever was typed last time
+    setOpen(next);
+  }
+
+  async function confirm(values: Record<string, string>) {
+    if (await onConfirm(values)) setOpen(false);
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={changeOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent title={title} description={description} hideClose={busy}>
-        <Stack gap={4}>
-          {warning && <Alert variant="warning">{warning}</Alert>}
-          {fields.map((field) => (
-            <FormField key={field.name} label={field.label} required>
-              {field.multiline ? (
-                <Textarea
-                  rows={3}
-                  value={values[field.name] ?? ""}
-                  onChange={(e) => setValues((v) => ({ ...v, [field.name]: e.target.value }))}
-                />
-              ) : (
-                <Input
-                  value={values[field.name] ?? ""}
-                  onChange={(e) => setValues((v) => ({ ...v, [field.name]: e.target.value }))}
-                />
-              )}
-            </FormField>
-          ))}
-        </Stack>
-        <DialogFooter>
-          <DialogClose asChild>
-            <Button variant="secondary" disabled={busy}>
-              Back
+      <DialogContent title={title} description={description} hideClose={isSubmitting}>
+        <form onSubmit={form.handleSubmit(confirm)} noValidate className="flex flex-col gap-6">
+          <Stack gap={4}>
+            {warning && <Alert variant="warning">{warning}</Alert>}
+            {fields.map((field) => (
+              <FormField key={field.name} label={field.label} error={errors[field.name]?.message} required>
+                {field.multiline ? (
+                  <Textarea
+                    rows={3}
+                    maxLength={field.schema.maxLength ?? undefined}
+                    {...form.register(field.name)}
+                  />
+                ) : (
+                  <Input
+                    autoComplete="off"
+                    maxLength={field.schema.maxLength ?? undefined}
+                    {...form.register(field.name)}
+                  />
+                )}
+              </FormField>
+            ))}
+          </Stack>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="secondary" disabled={isSubmitting}>
+                Back
+              </Button>
+            </DialogClose>
+            <Button type="submit" variant={destructive ? "destructive" : "primary"} loading={isSubmitting}>
+              {confirmLabel}
             </Button>
-          </DialogClose>
-          <Button
-            variant={destructive ? "destructive" : "primary"}
-            loading={busy}
-            disabled={!complete}
-            onClick={confirm}
-          >
-            {confirmLabel}
-          </Button>
-        </DialogFooter>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );
 }
 
+/**
+ * A finished step swaps its button (or the dialog's trigger, where Radix sends focus back) for the next step's,
+ * which drops keyboard focus to the page and the next Tab to "Skip to content". When the order's state changes
+ * and focus was lost, this puts it on the first action now on offer, or on the group when none is left.
+ */
+function useKeepFocusInGroup(state: string) {
+  const groupRef = useRef<HTMLDivElement>(null);
+  const shownState = useRef(state);
+  useEffect(() => {
+    if (shownState.current === state) return; // first render: leave focus where the page put it
+    shownState.current = state;
+    // A timeout runs after Radix's own return-focus attempt for a closing dialog.
+    const timer = setTimeout(() => {
+      const group = groupRef.current;
+      const active = document.activeElement;
+      if (!group || (active !== null && active !== document.body && active.isConnected)) return;
+      (group.querySelector<HTMLElement>("button:not(:disabled)") ?? group).focus();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [state]);
+  return groupRef;
+}
+
 /** The fulfilment and payment steps available for this order's current state (payment-policy.md §3). */
 export function OrderActions({ orderNumber, status, paymentStatus, paymentMethod }: OrderActionsProps) {
   const [isPending, run] = useRunner();
+  const groupRef = useKeepFocusInGroup(`${status}|${paymentStatus}`);
   const canCancel = ["PENDING", "CONFIRMED", "PROCESSING"].includes(status) && paymentStatus !== "PENDING";
   const isOnline = paymentMethod !== "COD";
 
   return (
-    <div className="flex flex-wrap gap-3">
+    <div
+      ref={groupRef}
+      role="group"
+      aria-label="Order actions"
+      tabIndex={-1}
+      className="flex flex-wrap gap-3 focus:outline-none"
+    >
       {status === "CONFIRMED" && (
         <Button
           shape="pill"
@@ -158,8 +208,8 @@ export function OrderActions({ orderNumber, status, paymentStatus, paymentMethod
           title="Mark as shipped"
           description="The customer gets an email with the courier and tracking number."
           fields={[
-            { name: "courierName", label: "Courier" },
-            { name: "trackingNumber", label: "Tracking number" },
+            { name: "courierName", label: "Courier", schema: shippedSchema.courierName },
+            { name: "trackingNumber", label: "Tracking number", schema: shippedSchema.trackingNumber },
           ]}
           confirmLabel="Mark shipped"
           onConfirm={(v) =>
@@ -206,7 +256,14 @@ export function OrderActions({ orderNumber, status, paymentStatus, paymentMethod
           }
           title="Customer refused the parcel?"
           description="The order is cancelled and its items go back into stock. The customer isn't emailed. This can't be undone."
-          fields={[{ name: "reason", label: "What happened (for your records)", multiline: true }]}
+          fields={[
+            {
+              name: "reason",
+              label: "What happened (for your records)",
+              multiline: true,
+              schema: reasonSchema,
+            },
+          ]}
           confirmLabel="Mark refused"
           destructive
           onConfirm={(v) =>
@@ -237,7 +294,9 @@ export function OrderActions({ orderNumber, status, paymentStatus, paymentMethod
             }
             title="Mark paid manually?"
             warning="Only do this after confirming the exact amount arrived in the eSewa/Khalti merchant dashboard (runbook: payment-stuck-pending)."
-            fields={[{ name: "reason", label: "Provider reference and note", multiline: true }]}
+            fields={[
+              { name: "reason", label: "Provider reference and note", multiline: true, schema: reasonSchema },
+            ]}
             confirmLabel="Mark paid"
             onConfirm={(v) =>
               run(() => markPaidManuallyAction({ orderNumber, reason: v.reason ?? "" }), "Marked as paid")
@@ -254,7 +313,14 @@ export function OrderActions({ orderNumber, status, paymentStatus, paymentMethod
           }
           title="Record a refund"
           description="Refund first in the provider's merchant dashboard, then record it here."
-          fields={[{ name: "reason", label: "Reason and provider refund reference", multiline: true }]}
+          fields={[
+            {
+              name: "reason",
+              label: "Reason and provider refund reference",
+              multiline: true,
+              schema: reasonSchema,
+            },
+          ]}
           confirmLabel="Record refund"
           onConfirm={(v) =>
             run(() => recordRefundAction({ orderNumber, reason: v.reason ?? "" }), "Refund recorded")
@@ -269,7 +335,7 @@ export function OrderActions({ orderNumber, status, paymentStatus, paymentMethod
             </Button>
           }
           title="Mark as returned"
-          fields={[{ name: "reason", label: "Reason", multiline: true }]}
+          fields={[{ name: "reason", label: "Reason", multiline: true, schema: reasonSchema }]}
           confirmLabel="Mark returned"
           onConfirm={(v) =>
             run(
@@ -288,7 +354,14 @@ export function OrderActions({ orderNumber, status, paymentStatus, paymentMethod
           }
           title="Cancel this order?"
           description="Stock goes back to the shop and the customer is emailed. This can't be undone."
-          fields={[{ name: "reason", label: "Reason (shown to the customer)", multiline: true }]}
+          fields={[
+            {
+              name: "reason",
+              label: "Reason (shown to the customer)",
+              multiline: true,
+              schema: reasonSchema,
+            },
+          ]}
           confirmLabel="Cancel order"
           destructive
           onConfirm={(v) =>

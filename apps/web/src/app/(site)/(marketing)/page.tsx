@@ -1,4 +1,5 @@
 import { ButtonLink, Container, Grid, Link } from "@virzeen/ui";
+import { PORTFOLIO_KIND_LABELS } from "@virzeen/validators";
 import { Banknote, RotateCcw, ShieldCheck, Truck } from "lucide-react";
 import type { Metadata } from "next";
 import { CloudImage } from "@/client/components/shared/cloud-image";
@@ -50,6 +51,11 @@ export default async function HomePage() {
           className="min-h-128 md:min-h-0"
           imageClassName="object-cover"
         />
+        {/* Scrim: keeps the white text at AA contrast on light parts of the image (bottom on phones, right from md) */}
+        <span
+          aria-hidden
+          className="absolute inset-0 bg-linear-to-t from-ink/70 via-ink/30 to-transparent md:bg-linear-to-l md:from-ink/60 md:via-ink/30"
+        />
         <Container className="absolute inset-0 flex flex-col justify-end gap-8 pb-12 md:items-end md:justify-center md:pb-0 md:text-right">
           <h1 className="max-w-xl font-display text-display motion-safe:animate-reveal">
             timeless monochromium experience.
@@ -85,7 +91,11 @@ export default async function HomePage() {
                 The latest pieces
               </h2>
             </div>
-            <Link href="/shop" variant="default" className="shrink-0 text-small">
+            <Link
+              href="/shop"
+              variant="default"
+              className="-mb-3 inline-flex min-h-11 shrink-0 items-center text-small"
+            >
               Shop all
             </Link>
           </div>
@@ -108,7 +118,7 @@ export default async function HomePage() {
               sizes="(min-width: 768px) 50vw, 100vw"
             />
             <div className="flex flex-col gap-4">
-              <p className="text-caption text-ink-muted uppercase">{story.kind.toLowerCase()}</p>
+              <p className="text-caption text-ink-muted uppercase">{PORTFOLIO_KIND_LABELS[story.kind]}</p>
               <h2 id="story-heading" className="font-display text-h1">
                 {story.title}
               </h2>
@@ -147,7 +157,11 @@ export default async function HomePage() {
                     ratio="landscape"
                     sizes="(min-width: 1024px) 33vw, 100vw"
                   />
-                  <span className="absolute inset-0 bg-ink/30 transition-colors duration-250 ease-standard group-hover:bg-ink/45" />
+                  {/* Bottom scrim keeps the name at AA contrast on light images; darkens on hover */}
+                  <span
+                    aria-hidden
+                    className="absolute inset-0 bg-linear-to-t from-ink/70 via-ink/20 to-transparent transition-colors duration-250 ease-standard group-hover:from-ink/80 group-hover:via-ink/40"
+                  />
                   <span className="absolute bottom-4 left-4 font-display text-h3">{collection.name}</span>
                 </Link>
               );

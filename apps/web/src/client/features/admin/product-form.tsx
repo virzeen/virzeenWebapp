@@ -17,12 +17,13 @@ import {
 import { productSchema, type ProductInput } from "@virzeen/validators";
 import { ArrowDown, ArrowUp, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Controller, useFieldArray, useForm, useWatch, type Control } from "react-hook-form";
 import { CloudImage } from "@/client/components/shared/cloud-image";
 import { Price } from "@/client/components/shared/price";
 import { messageFor } from "@/client/lib/error-messages";
 import { saveProductAction } from "@/server/actions/admin/catalog";
+import { itemButton, keepFocusOnPress, refocusAfterListChange, useRevealFirstError } from "./form-focus";
 import { ImageUploader } from "./image-uploader";
 
 type ProductFormProps = {
@@ -61,6 +62,15 @@ const EMPTY: ProductInput = {
   variants: [{ sku: "", size: "", color: "", pricePaisa: Number.NaN, stock: 0, isActive: true }],
 };
 
+/** An error about a whole list (or an image with no input of its own); focusable so a failed save can reveal it. */
+function ListError({ children }: { children: React.ReactNode }) {
+  return (
+    <p tabIndex={-1} data-field-error className="text-small text-danger outline-none">
+      {children}
+    </p>
+  );
+}
+
 /** What the shop shows for one variant: product price + shipping (customers see free shipping). */
 function CustomerPrice({ control, index }: { control: Control<ProductInput>; index: number }) {
   const [productPrice, shipping] = useWatch({
@@ -69,7 +79,7 @@ function CustomerPrice({ control, index }: { control: Control<ProductInput>; ind
   });
   if (!Number.isFinite(productPrice)) return null;
   return (
-    <p className="text-small text-ink-muted sm:col-span-6">
+    <p className="text-small text-ink-muted sm:col-span-3 xl:col-span-6">
       Customers pay <Price paisa={productPrice + (Number.isFinite(shipping) ? shipping : 0)} />, shown with
       free shipping.
     </p>
@@ -91,10 +101,57 @@ export function ProductForm({
     resolver: zodResolver(productSchema),
     mode: "onBlur",
     defaultValues: defaultValues ?? EMPTY,
+    // useRevealFirstError focuses the first problem in page order instead.
+    shouldFocusError: false,
   });
-  const { errors, isSubmitting } = form.formState;
+  const { errors, isSubmitting, submitCount } = form.formState;
+  const formRef = useRevealFirstError(submitCount);
   const variants = useFieldArray({ control: form.control, name: "variants", keyName: "fieldKey" });
   const images = useFieldArray({ control: form.control, name: "images", keyName: "fieldKey" });
+  const imagesRef = useRef<HTMLUListElement>(null);
+  const variantsRef = useRef<HTMLUListElement>(null);
+  const addVariantRef = useRef<HTMLButtonElement>(null);
+
+  // After a failed save, re-validating one field doesn't re-run the checks across rows and lists (duplicate SKUs,
+  // "Tick For sale…", "Add at least one image…"), so their messages would stay after the fix. Re-check both
+  // lists whenever something those checks read changes.
+  function recheckLists() {
+    if (form.formState.isSubmitted) void form.trigger(["variants", "images"]);
+  }
+
+  // The moved image keeps focus on the same arrow, or on the other one once that arrow is disabled.
+  function moveImage(index: number, to: number, action: "earlier" | "later") {
+    images.move(index, to);
+    recheckLists();
+    refocusAfterListChange(
+      () => itemButton(imagesRef.current, to, action),
+      () => itemButton(imagesRef.current, to, action === "earlier" ? "later" : "earlier"),
+    );
+  }
+
+  // Focus goes to the next item's Remove, else the previous one's, else the add control after the list.
+  function removeImage(index: number) {
+    images.remove(index);
+    recheckLists();
+    refocusAfterListChange(
+      () => itemButton(imagesRef.current, index, "remove"),
+      () => itemButton(imagesRef.current, index - 1, "remove"),
+      () =>
+        formRef.current?.querySelector<HTMLElement>(
+          "[data-image-uploader] button:not(:disabled), [data-image-uploader] input:not([type=file])",
+        ),
+    );
+  }
+
+  function removeVariant(index: number) {
+    variants.remove(index);
+    recheckLists();
+    refocusAfterListChange(
+      () => itemButton(variantsRef.current, index, "remove"),
+      () => itemButton(variantsRef.current, index - 1, "remove"),
+      () => addVariantRef.current,
+    );
+  }
 
   async function onSubmit(values: ProductInput) {
     setFormError(null);
@@ -115,9 +172,22 @@ export function ProductForm({
     setFormError(messageFor(result.error));
   }
 
+  // Errors on the images and variants lists as a whole (zodResolver puts list-level errors under `root`).
+  const imagesError = errors.images?.root?.message ?? errors.images?.message;
+  const variantsError = errors.variants?.root?.message ?? errors.variants?.message;
+
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="flex max-w-4xl flex-col gap-10">
-      {formError && <Alert variant="danger">{formError}</Alert>}
+    <form
+      ref={formRef}
+      onSubmit={form.handleSubmit(onSubmit, () => setFormError(null))}
+      noValidate
+      className="flex max-w-4xl flex-col gap-10"
+    >
+      {formError && (
+        <Alert variant="danger" tabIndex={-1} data-error-summary className="outline-none">
+          {formError}
+        </Alert>
+      )}
 
       <section aria-labelledby="details" className="flex flex-col gap-4">
         <h2 id="details" className="font-display text-h3">
@@ -146,8 +216,10 @@ export function ProductForm({
             name="categoryId"
             render={({ field }) => (
               <Select
+                ref={field.ref}
                 value={field.value}
                 onValueChange={field.onChange}
+                onBlur={field.onBlur}
                 options={categories}
                 placeholder="Choose a category"
               />
@@ -202,12 +274,13 @@ export function ProductForm({
         <h2 id="images-heading" className="font-display text-h3">
           Images
         </h2>
-        {errors.images?.message && <p className="text-small text-danger">{errors.images.message}</p>}
+        {imagesError && <ListError>{imagesError}</ListError>}
         {images.fields.length > 0 && (
-          <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+          <ul ref={imagesRef} className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             {images.fields.map((image, index) => (
               <li key={image.fieldKey} className="flex flex-col gap-2">
                 <CloudImage src={image.url} alt="" sizes="200px" />
+                {errors.images?.[index]?.url && <ListError>{errors.images[index].url.message}</ListError>}
                 <FormField
                   label={`Alt text ${index + 1}`}
                   error={errors.images?.[index]?.alt?.message}
@@ -220,8 +293,9 @@ export function ProductForm({
                     variant="ghost"
                     size="icon"
                     aria-label="Move image earlier"
+                    data-action="earlier"
                     disabled={index === 0}
-                    onClick={() => images.move(index, index - 1)}
+                    onClick={() => moveImage(index, index - 1, "earlier")}
                   >
                     <ArrowUp className="size-4" strokeWidth={1.5} aria-hidden />
                   </Button>
@@ -229,8 +303,9 @@ export function ProductForm({
                     variant="ghost"
                     size="icon"
                     aria-label="Move image later"
+                    data-action="later"
                     disabled={index === images.fields.length - 1}
-                    onClick={() => images.move(index, index + 1)}
+                    onClick={() => moveImage(index, index + 1, "later")}
                   >
                     <ArrowDown className="size-4" strokeWidth={1.5} aria-hidden />
                   </Button>
@@ -238,7 +313,8 @@ export function ProductForm({
                     variant="ghost"
                     size="icon"
                     aria-label="Remove image"
-                    onClick={() => images.remove(index)}
+                    data-action="remove"
+                    onClick={() => removeImage(index)}
                   >
                     <Trash2 className="size-4" strokeWidth={1.5} aria-hidden />
                   </Button>
@@ -251,7 +327,10 @@ export function ProductForm({
           folder="products"
           entityId={productId ?? "new"}
           uploadsEnabled={uploadsEnabled}
-          onUploaded={(url) => images.append({ url, alt: form.getValues("name") })}
+          onUploaded={(url) => {
+            images.append({ url, alt: form.getValues("name") });
+            recheckLists();
+          }}
         />
       </section>
 
@@ -262,7 +341,8 @@ export function ProductForm({
           Variants
         </h2>
         <p className="text-small text-ink-muted">
-          One row per colour and size. SKU format: VZ-PRODUCT-COLOUR-SIZE. Prices include VAT.
+          One row per colour and size. SKU format: VZ-PRODUCT-COLOUR-SIZE. Prices include VAT. To stop selling
+          a variant, untick For sale: saved variants stay on the list because orders refer to them.
         </p>
         <FormField
           label="Shipping price (Rs)"
@@ -284,17 +364,21 @@ export function ProductForm({
             )}
           />
         </FormField>
-        {errors.variants?.message && <p className="text-small text-danger">{errors.variants.message}</p>}
-        <ul className="flex flex-col gap-4">
+        {variantsError && <ListError>{variantsError}</ListError>}
+        {/* Three columns up to xl: in six, "Product price (Rs)" wraps and drops its box below the others. */}
+        <ul ref={variantsRef} className="flex flex-col gap-4">
           {variants.fields.map((variant, index) => {
             const rowErrors = errors.variants?.[index];
             return (
               <li
                 key={variant.fieldKey}
-                className="grid gap-3 rounded-md border border-line p-4 sm:grid-cols-6"
+                className="grid gap-3 rounded-md border border-line p-4 sm:grid-cols-3 xl:grid-cols-6"
               >
-                <FormField label="SKU" error={rowErrors?.sku?.message} required className="sm:col-span-2">
-                  <Input className="uppercase" {...form.register(`variants.${index}.sku`)} />
+                <FormField label="SKU" error={rowErrors?.sku?.message} required className="xl:col-span-2">
+                  <Input
+                    className="uppercase"
+                    {...form.register(`variants.${index}.sku`, { onChange: recheckLists })}
+                  />
                 </FormField>
                 <FormField label="Colour" error={rowErrors?.color?.message}>
                   <Input {...form.register(`variants.${index}.color`)} />
@@ -325,7 +409,7 @@ export function ProductForm({
                   />
                 </FormField>
                 <CustomerPrice control={form.control} index={index} />
-                <div className="flex items-center justify-between gap-4 sm:col-span-6">
+                <div className="flex items-center justify-between gap-4 sm:col-span-3 xl:col-span-6">
                   <Controller
                     control={form.control}
                     name={`variants.${index}.isActive`}
@@ -333,28 +417,37 @@ export function ProductForm({
                       <Checkbox
                         label="For sale"
                         checked={field.value}
-                        onCheckedChange={(checked) => field.onChange(checked === true)}
+                        onCheckedChange={(checked) => {
+                          field.onChange(checked === true);
+                          recheckLists();
+                        }}
                       />
                     )}
                   />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    shape="pill"
-                    disabled={variants.fields.length === 1}
-                    onClick={() => variants.remove(index)}
-                  >
-                    Remove variant
-                  </Button>
+                  {/* Only a row that isn't saved yet can go: a saved one is switched off with For sale. */}
+                  {!variant.id && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      shape="pill"
+                      data-action="remove"
+                      disabled={variants.fields.length === 1}
+                      onClick={() => removeVariant(index)}
+                    >
+                      Remove variant
+                    </Button>
+                  )}
                 </div>
               </li>
             );
           })}
         </ul>
         <Button
+          ref={addVariantRef}
           variant="secondary"
           shape="pill"
           className="self-start"
+          onMouseDown={keepFocusOnPress}
           onClick={() => {
             const last = form.getValues(`variants.${variants.fields.length - 1}`);
             variants.append({
@@ -382,11 +475,21 @@ export function ProductForm({
               label="Published"
               description="Visible in the shop. Needs at least one image and one variant for sale."
               checked={field.value}
-              onCheckedChange={field.onChange}
+              onCheckedChange={(checked) => {
+                field.onChange(checked);
+                recheckLists();
+              }}
             />
           )}
         />
-        <Button type="submit" size="lg" shape="pill" loading={isSubmitting} className="self-start">
+        <Button
+          type="submit"
+          size="lg"
+          shape="pill"
+          loading={isSubmitting}
+          onMouseDown={keepFocusOnPress}
+          className="self-start"
+        >
           Save product
         </Button>
       </Stack>

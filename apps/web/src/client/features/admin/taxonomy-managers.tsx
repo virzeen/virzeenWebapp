@@ -20,7 +20,7 @@ import {
   type CollectionInput,
 } from "@virzeen/validators";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { messageFor } from "@/client/lib/error-messages";
 import { saveCategoryAction, saveCollectionAction } from "@/server/actions/admin/catalog";
@@ -32,10 +32,33 @@ const slugify = (text: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 
+const productCount = (count: number) => `${count} ${count === 1 ? "product" : "products"}`;
+
+/**
+ * Which row is in the form. Editing moves focus to the form's Name field and scrolls the form into view;
+ * Save or Cancel returns focus to that row's Edit button.
+ */
+function useEditing<Row extends { id: string }>() {
+  const [editing, setEditing] = useState<Row | null>(null);
+  const listRef = useRef<HTMLUListElement>(null);
+  const returnTo = useRef<string | null>(null);
+  useEffect(() => {
+    if (editing || !returnTo.current) return;
+    listRef.current?.querySelector<HTMLElement>(`[data-edit-id="${returnTo.current}"]`)?.focus();
+    returnTo.current = null;
+  }, [editing]);
+  function stopEditing() {
+    returnTo.current = editing?.id ?? null;
+    setEditing(null);
+  }
+  return { editing, startEditing: setEditing, stopEditing, listRef };
+}
+
 type Category = { id: string; name: string; slug: string; sortOrder: number; _count: { products: number } };
 
 function CategoryForm({ initial, onDone }: { initial?: Category; onDone: () => void }) {
   const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const form = useForm<CategoryInput>({
     resolver: zodResolver(categorySchema),
@@ -44,6 +67,14 @@ function CategoryForm({ initial, onDone }: { initial?: Category; onDone: () => v
       : { name: "", slug: "", sortOrder: 0 },
   });
   const { errors, isSubmitting } = form.formState;
+  const { setFocus } = form;
+
+  // The form sits above the list: bring it into view when a row's Edit is chosen (it remounts per row).
+  useEffect(() => {
+    if (!initial) return;
+    formRef.current?.scrollIntoView({ block: "start" });
+    setFocus("name");
+  }, [initial, setFocus]);
 
   async function onSubmit(values: CategoryInput) {
     setFormError(null);
@@ -61,10 +92,15 @@ function CategoryForm({ initial, onDone }: { initial?: Category; onDone: () => v
 
   return (
     <form
+      ref={formRef}
       onSubmit={form.handleSubmit(onSubmit)}
       noValidate
-      className="grid gap-4 rounded-md border border-line p-5 sm:grid-cols-4"
+      aria-labelledby="category-form-heading"
+      className="grid scroll-mt-4 gap-4 rounded-md border border-line p-5 sm:grid-cols-4"
     >
+      <h2 id="category-form-heading" className="font-display text-h3 sm:col-span-4">
+        {initial ? `Edit ${initial.name}` : "Add a category"}
+      </h2>
       {formError && (
         <Alert variant="danger" className="sm:col-span-4">
           {formError}
@@ -79,7 +115,7 @@ function CategoryForm({ initial, onDone }: { initial?: Category; onDone: () => v
           })}
         />
       </FormField>
-      <FormField label="Slug" error={errors.slug?.message} required>
+      <FormField label="URL slug" error={errors.slug?.message} required>
         <Input {...form.register("slug")} />
       </FormField>
       <FormField label="Order" error={errors.sortOrder?.message}>
@@ -105,31 +141,35 @@ function CategoryForm({ initial, onDone }: { initial?: Category; onDone: () => v
 }
 
 export function CategoryManager({ categories }: { categories: Category[] }) {
-  const [editing, setEditing] = useState<Category | null>(null);
+  const { editing, startEditing, stopEditing, listRef } = useEditing<Category>();
   return (
     <Stack gap={6}>
-      <CategoryForm
-        key={editing?.id ?? "new"}
-        initial={editing ?? undefined}
-        onDone={() => setEditing(null)}
-      />
+      <CategoryForm key={editing?.id ?? "new"} initial={editing ?? undefined} onDone={stopEditing} />
       {categories.length === 0 ? (
         <EmptyState
           title="No categories yet."
           description="Add Tops, Bottoms, Accessories… to organise the shop."
         />
       ) : (
-        <ul className="divide-y divide-line border-y border-line">
+        <ul ref={listRef} className="divide-y divide-line border-y border-line">
           {categories.map((category) => (
             <li key={category.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
               <span className="flex flex-col">
                 <span className="text-body">{category.name}</span>
                 <span className="text-small text-ink-muted">
-                  /shop/{category.slug} · {category._count.products} products · order {category.sortOrder}
+                  /shop/{category.slug} · {productCount(category._count.products)} · order{" "}
+                  {category.sortOrder}
                 </span>
               </span>
               <span className="flex gap-2">
-                <Button variant="secondary" size="sm" shape="pill" onClick={() => setEditing(category)}>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  shape="pill"
+                  data-edit-id={category.id}
+                  aria-label={`Edit ${category.name}`}
+                  onClick={() => startEditing(category)}
+                >
                   Edit
                 </Button>
                 <ArchiveButton kind="category" id={category.id} name={category.name} />
@@ -153,6 +193,7 @@ type Collection = {
 
 function CollectionForm({ initial, onDone }: { initial?: Collection; onDone: () => void }) {
   const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const empty: CollectionInput = { name: "", slug: "", description: "", isFeatured: false };
   const form = useForm<CollectionInput>({
@@ -168,6 +209,14 @@ function CollectionForm({ initial, onDone }: { initial?: Collection; onDone: () 
       : empty,
   });
   const { errors, isSubmitting } = form.formState;
+  const { setFocus } = form;
+
+  // The form sits above the list: bring it into view when a row's Edit is chosen (it remounts per row).
+  useEffect(() => {
+    if (!initial) return;
+    formRef.current?.scrollIntoView({ block: "start" });
+    setFocus("name");
+  }, [initial, setFocus]);
 
   async function onSubmit(values: CollectionInput) {
     setFormError(null);
@@ -185,10 +234,15 @@ function CollectionForm({ initial, onDone }: { initial?: Collection; onDone: () 
 
   return (
     <form
+      ref={formRef}
       onSubmit={form.handleSubmit(onSubmit)}
       noValidate
-      className="grid gap-4 rounded-md border border-line p-5 sm:grid-cols-2"
+      aria-labelledby="collection-form-heading"
+      className="grid scroll-mt-4 gap-4 rounded-md border border-line p-5 sm:grid-cols-2"
     >
+      <h2 id="collection-form-heading" className="font-display text-h3 sm:col-span-2">
+        {initial ? `Edit ${initial.name}` : "Add a collection"}
+      </h2>
       {formError && (
         <Alert variant="danger" className="sm:col-span-2">
           {formError}
@@ -203,7 +257,7 @@ function CollectionForm({ initial, onDone }: { initial?: Collection; onDone: () 
           })}
         />
       </FormField>
-      <FormField label="Slug" error={errors.slug?.message} required>
+      <FormField label="URL slug" error={errors.slug?.message} required>
         <Input {...form.register("slug")} />
       </FormField>
       <FormField
@@ -236,18 +290,14 @@ function CollectionForm({ initial, onDone }: { initial?: Collection; onDone: () 
 }
 
 export function CollectionManager({ collections }: { collections: Collection[] }) {
-  const [editing, setEditing] = useState<Collection | null>(null);
+  const { editing, startEditing, stopEditing, listRef } = useEditing<Collection>();
   return (
     <Stack gap={6}>
-      <CollectionForm
-        key={editing?.id ?? "new"}
-        initial={editing ?? undefined}
-        onDone={() => setEditing(null)}
-      />
+      <CollectionForm key={editing?.id ?? "new"} initial={editing ?? undefined} onDone={stopEditing} />
       {collections.length === 0 ? (
         <EmptyState title="No collections yet." description="Group products for campaigns and seasons." />
       ) : (
-        <ul className="divide-y divide-line border-y border-line">
+        <ul ref={listRef} className="divide-y divide-line border-y border-line">
           {collections.map((collection) => (
             <li key={collection.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
               <span className="flex flex-col gap-1">
@@ -256,12 +306,19 @@ export function CollectionManager({ collections }: { collections: Collection[] }
                   {collection.isFeatured && <Badge variant="accent">Featured</Badge>}
                 </span>
                 <span className="text-small text-ink-muted">
-                  /collections/{collection.slug} · {collection._count.products} products · add products from
-                  each product&apos;s page
+                  /collections/{collection.slug} · {productCount(collection._count.products)} · add products
+                  from each product&apos;s page
                 </span>
               </span>
               <span className="flex gap-2">
-                <Button variant="secondary" size="sm" shape="pill" onClick={() => setEditing(collection)}>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  shape="pill"
+                  data-edit-id={collection.id}
+                  aria-label={`Edit ${collection.name}`}
+                  onClick={() => startEditing(collection)}
+                >
                   Edit
                 </Button>
                 <ArchiveButton kind="collection" id={collection.id} name={collection.name} />

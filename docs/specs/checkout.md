@@ -31,6 +31,20 @@ A signed-in customer in Nepal can buy the items in their bag and pay with Cash o
 - [ ] Refreshing the success page or a duplicate callback never double-processes.
 - [ ] Pending payments are resolved by reconciliation within 10 minutes.
 - [ ] "Place order" is disabled while submitting; double-clicks create one order.
+- [ ] Given only one payment method is offered (cash on delivery at launch), when opening `/checkout`, then it is already chosen and "Place order" only needs an address.
+- [ ] Given the customer has a default address, when opening `/checkout`, then it is already chosen and shipping, total and "Arrives in {estimate}." show for it.
+- [ ] Given no address or no method is chosen, then "Place order" is disabled and the reason shows under it ("Add a delivery address to continue.", "Save the new address to continue.", "Choose a delivery address to continue.", "Choose a payment method to continue.").
+- [ ] Given placing the order fails with a message for the form, then it shows in a danger `Alert` at the top of the form from `lg` and just above "Place order" below `lg`, scrolled into view and focused.
+- [ ] Given the chosen address was deleted elsewhere (another tab), when choosing it or placing the order, then it is unselected, the saved addresses reload, "That address is no longer saved. Choose another address or add a new one." shows (a toast on choosing, the form `Alert` on placing) and no order is created.
+- [ ] Below `lg`, the page opens with a collapsed "Order summary · {total}" (an h2); the card by "Place order" holds only the totals and is headed "Order total".
+
+### Addresses (checkout and account)
+
+- [ ] The first saved address becomes the default. Up to 10 addresses can be saved ("You can save up to 10 addresses. Remove one to add another.").
+- [ ] The default only moves: saving another address with "Make this my default address" makes it the default. Saving the default without that box never unsets it, and its form shows "This is your default address" instead of the box.
+- [ ] Removing the default makes the oldest remaining address the default.
+- [ ] Given a failed save, the first field with an error (in screen order, Selects included) is focused; an error with no field shows in the form's `Alert`.
+- [ ] The mobile number accepts spaces, brackets, hyphens and a +977 / 00977 prefix, and is stored as 10 digits.
 
 ## Out of scope (phase 1)
 
@@ -39,9 +53,11 @@ Coupons, gift cards, saved payment methods, international addresses, split shipm
 ## UI
 
 - Screens: `/checkout`, `/checkout/success`, `/checkout/failed`
-- Feature components: `AddressPicker`, `AddressForm`, `OrderSummary`, `PaymentPicker`
-- Primitives: RadioGroup, Button, Input, Select, Alert, Skeleton, Toast
-- Copy: "Place order", "Continue to eSewa", "Continue to Khalti", "Payment didn't go through. Your bag is saved — try again or choose another method."
+- Feature components: `CheckoutForm` (address and payment `RadioGroup`s, hints, errors), `AddressForm`, `OrderSummaryLines`, `OrderSummaryTotals`
+- Primitives: RadioGroup, Button, Input, Select, Alert, Accordion, Skeleton, Toast
+- Loading: `checkout/loading.tsx` (sections, then the summary card)
+- Copy: "Place order", "Continue to eSewa", "Continue to Khalti", "Payment didn't go through. Your bag is saved — try again or choose another method.", and the Checkout and Addresses tables in `docs/ui/content-style.md`
+- Layout and focus: `docs/ui/patterns.md` §8
 
 ## Data & API
 

@@ -1,4 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { useRef } from "react";
+import { expect, fn, screen, waitFor } from "storybook/test";
+import { Button } from "./button";
+import { FormField } from "./form-field";
 import { Select } from "./select";
 
 const meta = {
@@ -36,3 +40,47 @@ export const WithDisabledOption: Story = {
   },
 };
 export const Disabled: Story = { args: { disabled: true } };
+
+export const InFormFieldWithError: Story = {
+  args: { "aria-label": undefined },
+  render: (args) => (
+    <FormField label="District" error="Choose your district" required>
+      <Select {...args} />
+    </FormField>
+  ),
+};
+
+/**
+ * With react-hook-form: `ref` lets a failed submit focus the select, and `onBlur` runs when focus leaves it,
+ * not when its list opens.
+ */
+export const FocusAndBlur: Story = {
+  args: { "aria-label": undefined, onBlur: fn() },
+  render: function FocusAndBlurStory(args) {
+    const ref = useRef<HTMLButtonElement>(null);
+    return (
+      <div className="flex flex-col gap-4">
+        <FormField label="District" error="Choose your district" required>
+          <Select {...args} ref={ref} />
+        </FormField>
+        <Button variant="secondary" onClick={() => ref.current?.focus()}>
+          Focus the district
+        </Button>
+      </div>
+    );
+  },
+  play: async ({ args, canvas, userEvent }) => {
+    await userEvent.click(canvas.getByRole("button", { name: "Focus the district" }));
+    const trigger = canvas.getByRole("combobox", { name: /District/ });
+    await expect(trigger).toHaveFocus();
+    await userEvent.keyboard("{Enter}");
+    // The list fades in from transparent, so wait for it (as the Dialog story does).
+    const listbox = await screen.findByRole("listbox");
+    await waitFor(() => expect(listbox).toBeVisible());
+    await expect(args.onBlur).not.toHaveBeenCalled();
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() => expect(trigger).toHaveFocus());
+    await userEvent.tab();
+    await expect(args.onBlur).toHaveBeenCalledOnce();
+  },
+};

@@ -17,6 +17,10 @@ export type SelectProps = {
   name?: string;
   className?: string;
   "aria-label"?: string;
+  /** Called when focus leaves the select, but not when its list opens, so validate-on-blur waits for a choice. */
+  onBlur?: React.FocusEventHandler<HTMLButtonElement>;
+  /** Reaches the trigger button: pass react-hook-form's `field.ref` so a failed submit can focus the select. */
+  ref?: React.Ref<HTMLButtonElement>;
 };
 
 const normalise = (option: SelectOption) =>
@@ -24,7 +28,7 @@ const normalise = (option: SelectOption) =>
 
 /**
  * Choose one option from a list of 5+ (province, district, category). For 2–4 options use `RadioGroup`.
- * Place inside `FormField`; with react-hook-form use a `Controller`.
+ * Place inside `FormField`; with react-hook-form use a `Controller` and pass `field.ref` and `field.onBlur`.
  */
 export function Select({
   options,
@@ -36,6 +40,8 @@ export function Select({
   name,
   className,
   "aria-label": ariaLabel,
+  onBlur,
+  ref,
 }: SelectProps) {
   const { labelId: _labelId, ...field } = useFormFieldControl();
   return (
@@ -49,7 +55,12 @@ export function Select({
     >
       <SelectPrimitive.Trigger
         {...field}
+        ref={ref}
         aria-label={ariaLabel}
+        onBlur={(event) => {
+          // Opening the list moves focus into it: that isn't leaving the field.
+          if (event.currentTarget.dataset.state !== "open") onBlur?.(event);
+        }}
         className={cn(
           "flex h-11 w-full items-center justify-between gap-2 rounded-sm border border-line-strong bg-canvas px-3 text-left font-text text-body text-ink transition-colors duration-150 ease-standard focus-visible:border-ink focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1 focus-visible:outline-none disabled:cursor-not-allowed disabled:bg-surface disabled:opacity-60 aria-invalid:border-danger data-placeholder:text-ink-muted",
           className,

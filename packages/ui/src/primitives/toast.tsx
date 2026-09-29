@@ -13,11 +13,14 @@ export function Toaster() {
       visibleToasts={3}
       toastOptions={{
         unstyled: true,
+        // The background is set per type, not on `toast`: two bg utilities on one element would leave the
+        // winner to stylesheet order, and errors came out in ink.
         classNames: {
           toast:
-            "z-60 flex w-full items-center gap-3 rounded-md bg-ink px-4 py-3 font-text text-small text-canvas shadow-md sm:w-96",
+            "z-60 flex w-full items-center gap-3 rounded-md px-4 py-3 font-text text-small text-canvas shadow-md sm:w-96",
           title: "font-medium",
           description: "text-canvas/80",
+          default: "bg-ink",
           success: "bg-ink",
           error: "bg-danger",
           actionButton:
