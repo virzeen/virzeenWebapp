@@ -6,9 +6,19 @@ export type DataTableColumn<Row> = {
   cell: (row: Row) => React.ReactNode;
   /** Right-align numbers and money. */
   align?: "left" | "right";
-  /** Hide on small screens (keeps the table readable on phones). */
+  /** Hide on small screens (keeps the table readable on phones). Same as `hideBelow="md"`. */
   hideOnMobile?: boolean;
+  /** Hide below this breakpoint: for secondary columns that would push key ones off tablet and laptop screens. */
+  hideBelow?: "md" | "lg" | "xl";
 };
+
+// Whole class names, so Tailwind finds them in the source.
+const HIDE_BELOW = { md: "max-md:hidden", lg: "max-lg:hidden", xl: "max-xl:hidden" } as const;
+
+function hideClass<Row>(column: DataTableColumn<Row>) {
+  if (column.hideBelow) return HIDE_BELOW[column.hideBelow];
+  return column.hideOnMobile ? HIDE_BELOW.md : undefined;
+}
 
 export type DataTableProps<Row> = {
   columns: readonly DataTableColumn<Row>[];
@@ -40,7 +50,7 @@ export function DataTable<Row>({ columns, rows, getRowId, caption, empty, classN
                 className={cn(
                   "px-4 py-3 text-caption font-medium text-ink-muted uppercase",
                   column.align === "right" && "text-right",
-                  column.hideOnMobile && "max-md:hidden",
+                  hideClass(column),
                 )}
               >
                 {column.header}
@@ -57,7 +67,7 @@ export function DataTable<Row>({ columns, rows, getRowId, caption, empty, classN
                   className={cn(
                     "px-4 py-3 align-middle text-ink",
                     column.align === "right" && "text-right tabular-nums",
-                    column.hideOnMobile && "max-md:hidden",
+                    hideClass(column),
                   )}
                 >
                   {column.cell(row)}

@@ -61,20 +61,31 @@ export function Accordion({ className, ...props }: React.ComponentProps<typeof A
 
 export type AccordionItemProps = React.ComponentProps<typeof AccordionPrimitive.Item> & {
   title: React.ReactNode;
+  /** Level of the heading around the trigger: 3 by default, 2 when the accordion sits right under the h1. */
+  headingLevel?: 2 | 3 | 4;
 };
 
-export function AccordionItem({ className, title, children, ...props }: AccordionItemProps) {
+export function AccordionItem({
+  className,
+  title,
+  headingLevel = 3,
+  children,
+  ...props
+}: AccordionItemProps) {
+  const Heading = `h${headingLevel}` as const;
   return (
     <AccordionPrimitive.Item className={cn("border-b border-line", className)} {...props}>
-      <AccordionPrimitive.Header>
-        <AccordionPrimitive.Trigger className="group flex min-h-14 w-full items-center justify-between gap-4 py-4 text-left text-body font-medium text-ink focus-visible:ring-2 focus-visible:ring-focus focus-visible:outline-none">
-          {title}
-          <ChevronDown
-            className="size-5 shrink-0 text-ink-muted transition-transform duration-250 ease-standard group-aria-expanded:rotate-180"
-            strokeWidth={1.5}
-            aria-hidden
-          />
-        </AccordionPrimitive.Trigger>
+      <AccordionPrimitive.Header asChild>
+        <Heading>
+          <AccordionPrimitive.Trigger className="group flex min-h-14 w-full items-center justify-between gap-4 py-4 text-left text-body font-medium text-ink focus-visible:ring-2 focus-visible:ring-focus focus-visible:outline-none">
+            {title}
+            <ChevronDown
+              className="size-5 shrink-0 text-ink-muted transition-transform duration-250 ease-standard group-aria-expanded:rotate-180"
+              strokeWidth={1.5}
+              aria-hidden
+            />
+          </AccordionPrimitive.Trigger>
+        </Heading>
       </AccordionPrimitive.Header>
       <AccordionPrimitive.Content className="pb-4 text-body text-ink-muted">
         {children}
