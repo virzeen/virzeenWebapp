@@ -1,14 +1,15 @@
-import { Link, Stack } from "@virzeen/ui";
+import { ButtonLink, Link, Stack } from "@virzeen/ui";
 import { AdminPageHeader } from "@/client/features/admin/admin-page-header";
-import { ProductForm } from "@/client/features/admin/product-form";
+import { NewProductForm } from "@/client/features/admin/editor/new-product-form";
 import { requireAdminPage } from "@/server/auth/session";
-import { getProductFormOptions, uploadsEnabled } from "@/server/queries/admin";
+import { listAdminCategories } from "@/server/queries/admin";
 
 export const metadata = { title: "New product" };
 
+/** The New product popup's form as a page, for direct links (specs/product-editor-on-page.md "User flow"). */
 export default async function NewProductPage() {
   await requireAdminPage();
-  const { categories, collections, sizeGuides } = await getProductFormOptions();
+  const categories = await listAdminCategories();
   return (
     <Stack gap={6}>
       <Link
@@ -20,14 +21,18 @@ export default async function NewProductPage() {
       </Link>
       <AdminPageHeader
         title="New product"
-        description="Fill in the details, then Publish. Or Save draft and finish later: drafts aren't in the shop."
+        description="Start with the name, category and price. You add the rest on the product page."
       />
-      <ProductForm
-        categories={categories}
-        collections={collections}
-        sizeGuides={sizeGuides}
-        uploadsEnabled={uploadsEnabled()}
-      />
+      <div className="w-full max-w-md">
+        <NewProductForm
+          categories={categories.map((category) => ({ value: category.id, label: category.name }))}
+          cancel={
+            <ButtonLink href="/admin/products" variant="secondary" shape="pill">
+              Cancel
+            </ButtonLink>
+          }
+        />
+      </div>
     </Stack>
   );
 }

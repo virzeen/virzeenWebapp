@@ -131,8 +131,8 @@ export function ProductPreview({ previewKey }: { previewKey: string }) {
         <Container className="py-16">
           <EmptyState
             titleAs="h1"
-            title="Nothing is ticked For sale."
-            description="Customers can't open a product page with nothing for sale. Tick For sale on a size or colour in the editor to see it here."
+            title="Nothing is for sale."
+            description="Customers can't open a product page with nothing for sale. Add a size or a style in the editor to see it here."
           />
         </Container>
       ) : (

@@ -56,17 +56,13 @@ html:has([data-sticky-cta]) [data-sonner-toaster][data-y-position="bottom"] {
 }
 
 /*
- * Admin product editor below lg: Publish / Save draft sit in a bar fixed to the bottom (`data-admin-save-bar`,
- * product-publish-panel.tsx). Same two fixes: focused fields scroll clear of it, toasts sit above it.
+ * Admin product editor on the page: its top bar (`data-editor-bar`, editor-top-bar.tsx) sticks to the top, two rows
+ * below md and one from md. Anything scrolled into view stops below it (WCAG 2.4.11).
  */
-html:has([data-admin-save-bar]) {
-  @variant max-lg {
-    scroll-padding-bottom: --spacing(24);
-  }
-}
+html:has([data-editor-bar]) {
+  scroll-padding-top: --spacing(32);
 
-html:has([data-admin-save-bar]) [data-sonner-toaster][data-y-position="bottom"] {
-  @variant max-lg {
-    bottom: calc(--spacing(24) + env(safe-area-inset-bottom, 0px));
+  @variant md {
+    scroll-padding-top: --spacing(20);
   }
 }

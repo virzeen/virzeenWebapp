@@ -2,8 +2,7 @@
 
 import type { ProductInput } from "@virzeen/validators";
 import { useState } from "react";
-import { useFieldArray, useFormContext } from "react-hook-form";
-import type { ImagesArray } from "./product-photos";
+import { useFieldArray, useFormContext, type UseFieldArrayReturn } from "react-hook-form";
 import {
   addOption,
   optionsFromRows,
@@ -16,6 +15,9 @@ import {
   type Options,
   type VariantRow,
 } from "./variant-options";
+
+/** The product editor's one `images` field array (every style's photos and the shared ones). */
+export type ImagesArray = UseFieldArrayReturn<ProductInput, "images", "fieldKey">;
 
 type UseVariantOptions = {
   initialRows: readonly VariantRow[];
@@ -55,17 +57,21 @@ export function useVariantOptions({ initialRows, savedAt, images, onListChange }
   function change(kind: OptionKind, values: string[], add: boolean) {
     let rows = form.getValues("variants");
     let next = options;
-    // A new style starts at the last style's price; new sizes at the first row's.
+    // A new style starts at the last style's price; a new size at its style's price (styles differ), else the
+    // first row's.
     const lastStyle = next.colors.at(-1);
-    const price =
-      (kind === "color" && lastStyle
-        ? rows.find((row) => sameValue(row.color, lastStyle))?.pricePaisa
-        : undefined) ?? form.getValues("variants.0.pricePaisa");
+    const priceOf = (style: string) =>
+      (
+        rows.find((row) => row.isActive && sameValue(row.color, style)) ??
+        rows.find((row) => sameValue(row.color, style))
+      )?.pricePaisa;
     const newRow = (size: string, color: string): VariantRow => ({
       sku: "",
       size,
       color,
-      pricePaisa: price,
+      pricePaisa:
+        (kind === "size" ? priceOf(color) : lastStyle === undefined ? undefined : priceOf(lastStyle)) ??
+        form.getValues("variants.0.pricePaisa"),
       stock: 0,
       isActive: true,
     });

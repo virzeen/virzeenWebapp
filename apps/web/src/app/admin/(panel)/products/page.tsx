@@ -4,9 +4,10 @@ import { CloudImage } from "@/client/components/shared/cloud-image";
 import { Price } from "@/client/components/shared/price";
 import { AdminPageHeader } from "@/client/features/admin/admin-page-header";
 import { DuplicateProductButton } from "@/client/features/admin/duplicate-product-button";
+import { NewProductDialog } from "@/client/features/admin/editor/new-product-dialog";
 import { ProductSearch } from "@/client/features/admin/product-search";
 import { requireAdminPage } from "@/server/auth/session";
-import { getProductStatusCounts, listAdminProducts } from "@/server/queries/admin";
+import { getProductStatusCounts, listAdminCategories, listAdminProducts } from "@/server/queries/admin";
 import { flattenSearchParams, type SearchParams } from "@/server/queries/params";
 
 export const metadata = { title: "Products" };
@@ -56,7 +57,11 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
   await requireAdminPage();
   const filters = adminProductFiltersSchema.parse(flattenSearchParams(await searchParams));
   const { q, status } = filters;
-  const [products, counts] = await Promise.all([listAdminProducts(filters), getProductStatusCounts()]);
+  const [products, counts, categories] = await Promise.all([
+    listAdminProducts(filters),
+    getProductStatusCounts(),
+    listAdminCategories(),
+  ]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -64,9 +69,9 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
         title="Products"
         description={countLabel(products.length, q)}
         actions={
-          <ButtonLink href="/admin/products/new" shape="pill">
-            New product
-          </ButtonLink>
+          <NewProductDialog
+            categories={categories.map((category) => ({ value: category.id, label: category.name }))}
+          />
         }
       />
       <nav aria-label="Product status" className="flex flex-wrap gap-6 border-b border-line">
