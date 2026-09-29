@@ -1,6 +1,5 @@
 "use client";
 
-import { Alert, Button } from "@virzeen/ui";
 import type { FavouriteKey } from "@virzeen/validators";
 import { useEffect, useState } from "react";
 import { messageFor } from "@/client/lib/error-messages";
@@ -68,25 +67,11 @@ export function GuestFavourites() {
     <FavouritesList
       items={waiting ? null : items}
       expected={ready ? keys.length : undefined}
-      alert={
-        error && (
-          <Alert
-            variant="danger"
-            action={
-              <Button
-                onClick={() => {
-                  setError(null);
-                  setAttempt((n) => n + 1);
-                }}
-              >
-                Try again
-              </Button>
-            }
-          >
-            {error}
-          </Alert>
-        )
-      }
+      error={error}
+      onRetry={() => {
+        setError(null);
+        setAttempt((n) => n + 1);
+      }}
     />
   );
 }

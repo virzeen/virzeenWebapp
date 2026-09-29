@@ -10,6 +10,7 @@ import type {
 import { DEFAULT_COUNTRY_OF_ORIGIN, readProductForEdit, type ProductFormValues } from "../admin/admin-reads";
 import { recordAudit } from "../audit/audit";
 import { AppError, isUniqueViolation } from "../errors";
+import { moveFavouritesToRenamedStyles } from "../favourites/favourite.service";
 import { saveStyles, styleColors } from "./product-styles";
 
 const emptyToNull = (value: string | undefined) => (value && value.length > 0 ? value : null);
@@ -339,7 +340,9 @@ export const catalogService = {
 
         // Style numbers and colour shown: one per variant colour (or one for a product without colours).
         const styles = styleColors(product.variants);
-        await saveStyles(tx, saved, styles, product.styles);
+        const renamed = await saveStyles(tx, saved, styles, product.styles);
+        // Customers' favourites keep pointing at the same style under its new name.
+        await moveFavouritesToRenamedStyles(tx, saved.id, renamed);
 
         await recordAudit(tx, {
           actorId,

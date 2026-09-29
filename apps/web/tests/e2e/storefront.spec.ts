@@ -87,6 +87,14 @@ test.describe("Product page", () => {
     await expect(page.getByText("Colour shown: Bone/Natural")).toBeVisible();
     await expect(page.getByText(/^Style: VZ\d{4,}-102$/)).toBeVisible();
 
+    // Back from another product shows the style the address names, not the one the page first opened with.
+    await page.getByRole("region", { name: "You may also like" }).getByRole("link").first().click();
+    await expect(page).not.toHaveURL(/linen-overshirt/);
+    await page.goBack();
+    await expect(page).toHaveURL(/\/product\/linen-overshirt\?style=Bone$/);
+    await expect(page.getByRole("radio", { name: "Bone", exact: true })).toBeChecked();
+    await expect(page.getByText("Colour shown: Bone/Natural")).toBeVisible();
+
     await page.goto("/product/linen-overshirt?style=Bone");
     await expect(page.getByRole("radio", { name: "Bone", exact: true })).toBeChecked();
     // An unknown style falls back to the first style with stock.
@@ -121,6 +129,8 @@ test.describe("Product page", () => {
     await open.click();
     const details = page.getByRole("dialog", { name: "Linen Overshirt" });
     await expect(details).toBeVisible();
+    // Nothing inside takes focus, so the scrolling body does: keyboard users can scroll it.
+    await expect(details.getByRole("region", { name: "Linen Overshirt" })).toBeFocused();
     await expect(details.getByRole("heading", { name: "Benefits" })).toBeVisible();
     await expect(details.getByText("100% linen")).toBeVisible();
     await expect(details.getByText("Country/Region of origin: China")).toBeVisible();

@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@virzeen/ui";
+import { useEffect, useRef } from "react";
 import { CloudImage } from "@/client/components/shared/cloud-image";
 
 export type GalleryImage = { id: string; url: string; alt: string };
@@ -19,7 +20,8 @@ type GalleryCarouselProps = {
 
 /**
  * The gallery below lg: one photo per screen width, edge to edge, swiped with CSS scroll-snap. Small dots show the
- * position (hidden from screen readers: ProductGallery's live region says "Photo n of total").
+ * position (hidden from screen readers: ProductGallery's live region says "Photo n of total"). With many photos the
+ * dots are cut off at the screen edges rather than making the page scroll sideways.
  */
 export function GalleryCarousel({
   images,
@@ -28,6 +30,27 @@ export function GalleryCarousel({
   onIndexChange,
   className,
 }: GalleryCarouselProps) {
+  const rowRef = useRef<HTMLUListElement>(null);
+  const indexRef = useRef(index);
+  useEffect(() => {
+    indexRef.current = index;
+  });
+
+  // The photo picked while the row was hidden (a thumbnail on a wider screen, then the tablet turned) comes into
+  // view when the row shows or changes width, so the dots and "Photo n of total" match the photo on screen.
+  useEffect(() => {
+    const row = rowRef.current;
+    if (!row) return;
+    const observer = new ResizeObserver(() => {
+      const width = row.clientWidth;
+      if (width > 0 && Math.round(row.scrollLeft / width) !== indexRef.current) {
+        row.scrollLeft = indexRef.current * width;
+      }
+    });
+    observer.observe(row);
+    return () => observer.disconnect();
+  }, []);
+
   function onScroll(event: React.UIEvent<HTMLUListElement>) {
     const row = event.currentTarget;
     const shown = Math.round(row.scrollLeft / Math.max(row.clientWidth, 1));
@@ -35,9 +58,10 @@ export function GalleryCarousel({
   }
 
   return (
-    <div className={cn("relative -mx-4 sm:-mx-6", className)}>
+    <div className={cn("relative -mx-4 overflow-x-clip sm:-mx-6", className)}>
       {/* The row scrolls sideways, so it takes keyboard focus (arrow keys scroll it) and shows the focus ring. */}
       <ul
+        ref={rowRef}
         tabIndex={0}
         aria-label={`${productName} images`}
         onScroll={onScroll}

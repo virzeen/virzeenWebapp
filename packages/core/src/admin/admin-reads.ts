@@ -71,6 +71,8 @@ export async function readProductForEdit(client: Prisma.TransactionClient, id: s
       categoryId: true,
       sizeGuide: { select: { id: true, archivedAt: true } },
       isPublished: true,
+      // Kept after Unpublish: the editor stops making the slug from the name once a product has been published.
+      publishedAt: true,
       shippingPaisa: true,
       // The editor reloads its fields when this changes (after a save).
       updatedAt: true,

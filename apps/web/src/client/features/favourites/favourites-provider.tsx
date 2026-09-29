@@ -34,9 +34,11 @@ type FavouritesContextValue = {
   signedIn: boolean;
   /** The account's favourites, newest first (signed in only). */
   accountKeys: FavouriteKey[];
+  /** Favourites removed with a press here that a server list still has (signed in only; `keyOf`). */
+  accountRemoved: ReadonlySet<string>;
   /** Signed in, and this browser's favourites are still moving to the account (the page will refresh). */
   merging: boolean;
-  toggleAccount: (key: FavouriteKey) => Promise<boolean | null>;
+  toggleAccount: (key: FavouriteKey, save?: boolean) => Promise<boolean | null>;
 };
 
 export type FavouritesView = {
@@ -49,10 +51,17 @@ export type FavouritesView = {
   merging: boolean;
   isSaved: (productId: string, color: string) => boolean;
   /**
+   * True once "Remove" (or Favourite) took it away here. Not the same as `!isSaved`: signed in, a favourite saved on
+   * another device since the site layout was rendered is saved, though the layout's list doesn't have it yet.
+   */
+  isRemoved: (productId: string, color: string) => boolean;
+  /**
    * Saves the product and style, or removes it when it's saved. Resolves to the new state, or null when it didn't
    * work (a toast has said why and the button shows the old state again).
    */
   toggle: (productId: string, color: string) => Promise<boolean | null>;
+  /** Removes the product and style (the Favourites page's "Remove"); resolves like toggle. */
+  remove: (productId: string, color: string) => Promise<boolean | null>;
 };
 
 const FavouritesContext = createContext<FavouritesContextValue | null>(null);
@@ -131,10 +140,11 @@ export function FavouritesProvider({
     () => ({
       signedIn,
       accountKeys: account.keys,
+      accountRemoved: account.removed,
       merging,
-      toggleAccount: (key) => toggleRef.current(key),
+      toggleAccount: (key, save) => toggleRef.current(key, save),
     }),
-    [signedIn, account.keys, merging],
+    [signedIn, account.keys, account.removed, merging],
   );
 
   return <FavouritesContext value={value}>{children}</FavouritesContext>;
@@ -151,12 +161,15 @@ function useStoredFavourites() {
   return { stored, ready: raw !== undefined };
 }
 
-function toggleGuest(key: FavouriteKey) {
+/** Saves (`save`, else when it isn't saved yet) or removes in this browser's list. */
+function setGuest(key: FavouriteKey, save?: boolean) {
   const list = parseFavourites(readStoredFavourites());
-  if (hasFavourite(list, key)) {
-    writeStoredFavourites(removeFavourite(list, key));
+  const has = hasFavourite(list, key);
+  if (!(save ?? !has)) {
+    if (has) writeStoredFavourites(removeFavourite(list, key));
     return false;
   }
+  if (has) return true;
   const next = addFavourite(list, key, new Date().toISOString());
   if (!next) {
     toast.error(FAVOURITES_FULL_MESSAGE);
@@ -173,6 +186,8 @@ export function useFavourites(): FavouritesView {
   const guestKeys = useMemo(() => stored.map(toKey), [stored]);
   const keys = ctx.signedIn ? ctx.accountKeys : guestKeys;
   const saved = useMemo(() => new Set(keys.map(keyOf)), [keys]);
+  const set = (key: FavouriteKey, save?: boolean) =>
+    ctx.signedIn ? ctx.toggleAccount(key, save) : Promise.resolve(setGuest(key, save));
   return {
     signedIn: ctx.signedIn,
     keys,
@@ -180,9 +195,12 @@ export function useFavourites(): FavouritesView {
     ready: ctx.signedIn || ready,
     merging: ctx.merging,
     isSaved: (productId, color) => saved.has(keyOf({ productId, color })),
-    toggle: (productId, color) =>
+    // A guest's list is this browser's, so anything not in it has been removed (here or in another tab).
+    isRemoved: (productId, color) =>
       ctx.signedIn
-        ? ctx.toggleAccount({ productId, color })
-        : Promise.resolve(toggleGuest({ productId, color })),
+        ? ctx.accountRemoved.has(keyOf({ productId, color }))
+        : !saved.has(keyOf({ productId, color })),
+    toggle: (productId, color) => set({ productId, color }),
+    remove: (productId, color) => set({ productId, color }, false),
   };
 }

@@ -504,3 +504,112 @@ describe("catalogReads.listRelatedByCategory (You may also like)", () => {
     );
   });
 });
+
+describe("favourites follow renamed styles (saveProduct)", () => {
+  beforeEach(resetDatabase);
+
+  /** Each customer's favourites of the product, as "name: style" (sorted). */
+  async function favouritesOf(productId: string, names: Record<string, string>) {
+    const rows = await db.favourite.findMany({ where: { productId }, select: { userId: true, color: true } });
+    return rows.map((row) => `${names[row.userId]}: ${row.color}`).sort();
+  }
+
+  it("moves favourites to the new name, also when two styles swap names, keeping one per customer", async () => {
+    const admin = await createUser({ role: "ADMIN" });
+    const [asha, bina, chandra] = [await createUser(), await createUser(), await createUser()];
+    const names = { [asha.id]: "asha", [bina.id]: "bina", [chandra.id]: "chandra" };
+    const input = await productInput({ variants: [row("Black"), row("White")] });
+    const created = await catalogService.saveProduct(admin.id, { product: input });
+    const other = await catalogService.saveProduct(admin.id, {
+      product: await productInput({ slug: "other-tee", variants: [row("Black")] }),
+    });
+    const prefix = await prefixOf(created.id);
+    const [black, white] = created.values.variants;
+    await db.favourite.createMany({
+      data: [
+        { userId: asha.id, productId: created.id, color: "Black" },
+        // Bina has the old name and, from an older list, the new one: she keeps one.
+        { userId: bina.id, productId: created.id, color: "Black" },
+        { userId: bina.id, productId: created.id, color: "Noir" },
+        { userId: chandra.id, productId: created.id, color: "White" },
+        // Another product's Black stays as it is.
+        { userId: asha.id, productId: other.id, color: "Black" },
+      ],
+    });
+
+    await catalogService.saveProduct(admin.id, {
+      id: created.id,
+      product: {
+        ...input,
+        variants: [
+          { ...black!, color: "Noir" },
+          { ...white!, color: "White" },
+        ],
+        styles: [
+          { color: "Noir", code: `${prefix}-101` },
+          { color: "White", code: `${prefix}-102` },
+        ],
+      },
+    });
+    expect(await favouritesOf(created.id, names)).toEqual(["asha: Noir", "bina: Noir", "chandra: White"]);
+
+    // Swap the names: each favourite stays with its style.
+    await catalogService.saveProduct(admin.id, {
+      id: created.id,
+      product: {
+        ...input,
+        variants: [
+          { ...black!, color: "White" },
+          { ...white!, color: "Noir" },
+        ],
+        styles: [
+          { color: "White", code: `${prefix}-101` },
+          { color: "Noir", code: `${prefix}-102` },
+        ],
+      },
+    });
+    expect(await favouritesOf(created.id, names)).toEqual(["asha: White", "bina: White", "chandra: Noir"]);
+    expect(await favouritesOf(other.id, names)).toEqual(["asha: Black"]);
+  });
+
+  it("leaves a removed style's favourites on its old row when a rename takes its name", async () => {
+    const admin = await createUser({ role: "ADMIN" });
+    const asha = await createUser();
+    const input = await productInput({ variants: [row("Black"), row("White")] });
+    const created = await catalogService.saveProduct(admin.id, { product: input });
+    const prefix = await prefixOf(created.id);
+    const [black] = created.values.variants;
+    await catalogService.saveProduct(admin.id, {
+      id: created.id,
+      product: { ...input, variants: [black!], styles: [] },
+    });
+    const [savedWhite, savedBlack] = [new Date("2026-09-01T00:00:00Z"), new Date("2026-09-02T00:00:00Z")];
+    await db.favourite.createMany({
+      data: [
+        { userId: asha.id, productId: created.id, color: "White", createdAt: savedWhite },
+        { userId: asha.id, productId: created.id, color: "Black", createdAt: savedBlack },
+      ],
+    });
+
+    // White was removed; Black is renamed White.
+    await catalogService.saveProduct(admin.id, {
+      id: created.id,
+      product: {
+        ...input,
+        variants: [{ ...black!, color: "White" }],
+        styles: [{ color: "White", code: `${prefix}-101` }],
+      },
+    });
+
+    // The old Black's favourite is now White's; the removed White's follows its row, so it names no style for sale.
+    const rows = await db.favourite.findMany({
+      where: { productId: created.id },
+      select: { color: true, createdAt: true },
+      orderBy: { createdAt: "asc" },
+    });
+    expect(rows).toEqual([
+      { color: `White (${prefix}-102)`, createdAt: savedWhite },
+      { color: "White", createdAt: savedBlack },
+    ]);
+  });
+});

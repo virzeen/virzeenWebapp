@@ -1,8 +1,9 @@
 "use client";
 
-import { ButtonLink, EmptyState, Grid, Skeleton } from "@virzeen/ui";
+import { Alert, Button, ButtonLink, EmptyState, Grid, Skeleton } from "@virzeen/ui";
 import { Heart } from "lucide-react";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { FavouriteView } from "@/server/actions/favourites";
 import { FavouriteCard, favouriteName } from "./favourite-card";
 import { useFavourites } from "./favourites-provider";
@@ -14,8 +15,9 @@ type FavouritesListProps = {
   items: FavouriteView[] | null;
   /** How many cards are on their way, for the skeleton. */
   expected?: number;
-  /** Why a guest's list didn't load, with "Try again". */
-  alert?: React.ReactNode;
+  /** Why a guest's list didn't load; shown with "Try again", which calls onRetry. */
+  error?: string | null;
+  onRetry?: () => void;
 };
 
 const itemCount = (n: number) => `${n} ${n === 1 ? "item" : "items"}`;
@@ -25,18 +27,32 @@ const itemCount = (n: number) => `${n} ${n === 1 ? "item" : "items"}`;
  * away at once (the provider saves it and puts it back if that fails); keyboard focus then moves to the next
  * card's Remove, else the previous one's, else the heading, and a screen reader hears "Removed {name}.".
  */
-export function FavouritesList({ items, expected, alert }: FavouritesListProps) {
-  const { isSaved, toggle, merging } = useFavourites();
+export function FavouritesList({ items, expected, error, onRetry }: FavouritesListProps) {
+  const { signedIn, isSaved, isRemoved, remove: removeFavourite, merging } = useFavourites();
+  const router = useRouter();
+  const checked = useRef(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   // The card just removed and where it was, until it has left the page.
   const removing = useRef<{ key: string; index: number } | null>(null);
   const [announcement, setAnnouncement] = useState("");
 
-  // Also follows presses elsewhere in this tab, and a guest's other tabs.
-  const visible = items?.filter((item) => isSaved(item.productId, item.color)) ?? null;
+  // Signed in, which favourites are saved comes from the site layout, which moving here from another page doesn't
+  // render again. A favourite saved since on another device or tab is on this page but not in that list yet: the
+  // page shows it anyway, and once, when the page arrives, the layout is fetched again (the header and every
+  // Favourite button then know it too).
+  useEffect(() => {
+    if (checked.current || !items) return;
+    checked.current = true;
+    const unknown = (item: FavouriteView) =>
+      !isSaved(item.productId, item.color) && !isRemoved(item.productId, item.color);
+    if (signedIn && items.some(unknown)) router.refresh();
+  }, [items, signedIn, isSaved, isRemoved, router]);
+
+  // A removed card goes at once (it comes back if that fails); a guest's list also follows their other tabs.
+  const visible = items?.filter((item) => !isRemoved(item.productId, item.color)) ?? null;
   // Right after sign-in an empty account list may be about to get the browser's favourites.
-  const loading = !alert && (visible === null || (merging && visible.length === 0));
+  const loading = !error && (visible === null || (merging && visible.length === 0));
   const cards = !loading && visible && visible.length > 0 ? visible : null;
 
   useLayoutEffect(() => {
@@ -50,10 +66,16 @@ export function FavouritesList({ items, expected, alert }: FavouritesListProps) 
   async function remove(item: FavouriteView, index: number) {
     removing.current = { key: keyOf(item), index };
     setAnnouncement(`Removed ${favouriteName(item)}.`);
-    if ((await toggle(item.productId, item.color)) !== null) return;
+    if ((await removeFavourite(item.productId, item.color)) !== null) return;
     // Not saved: the card is back and a toast says why.
     removing.current = null;
     setAnnouncement("");
+  }
+
+  function retry() {
+    // "Try again" goes away while the list loads, so focus waits on the heading instead of falling to the page.
+    headingRef.current?.focus();
+    onRetry?.();
   }
 
   return (
@@ -71,7 +93,11 @@ export function FavouritesList({ items, expected, alert }: FavouritesListProps) 
       <p role="status" className="sr-only">
         {announcement}
       </p>
-      {alert}
+      {error && (
+        <Alert variant="danger" action={<Button onClick={retry}>Try again</Button>}>
+          {error}
+        </Alert>
+      )}
       {loading ? (
         <FavouritesGridSkeleton count={expected} />
       ) : cards ? (
@@ -86,7 +112,7 @@ export function FavouritesList({ items, expected, alert }: FavouritesListProps) 
           ))}
         </Grid>
       ) : (
-        !alert && (
+        !error && (
           <EmptyState
             icon={<Heart className="size-5" strokeWidth={1.5} aria-hidden />}
             title="No favourites yet"

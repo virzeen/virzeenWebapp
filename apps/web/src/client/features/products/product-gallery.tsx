@@ -20,13 +20,14 @@ export function ProductGallery({ images, productName }: { images: GalleryImage[]
   const index = Math.min(picked, Math.max(images.length - 1, 0));
 
   if (images.length <= 1) {
+    // Capped like the main photo below, so the whole photo stays in view beside the scrolling details.
     return (
       <CloudImage
         src={first?.url ?? null}
         alt={first?.alt ?? productName}
         sizes={GALLERY_SIZES}
         priority={Boolean(first)}
-        className="-mx-4 sm:-mx-6 lg:mx-0 lg:rounded-md"
+        className="lg:max-w-gallery-photo -mx-4 sm:-mx-6 lg:mx-0 lg:ml-auto lg:rounded-md"
       />
     );
   }

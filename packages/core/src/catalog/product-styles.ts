@@ -48,13 +48,14 @@ const sameName = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
  * ever had.
  * `colourShown` comes from the entry (blank = none); a style whose entry leaves it out (or has no entry) keeps it.
  * Rows are never deleted; a row that no style uses any more keeps its name, unless a renamed style takes that name.
+ * Returns the rows whose name changed, old name to new, so the product's favourites can follow them.
  */
 export async function saveStyles(
   tx: Tx,
   product: { id: string; number: number },
   colors: readonly string[],
   entries: readonly StyleEntry[],
-) {
+): Promise<{ from: string; to: string }[]> {
   const rows = await tx.productStyle.findMany({
     where: { productId: product.id },
     select: { id: true, color: true, code: true, colourShown: true },
@@ -128,6 +129,7 @@ export async function saveStyles(
       });
     }
   }
+  return renames.map(({ row, color }) => ({ from: row.color, to: color }));
 }
 
 /**

@@ -15,15 +15,25 @@ type Edges = { start: boolean; end: boolean };
  */
 export function ProductFeatures({ features }: { features: ProductFeatureView[] }) {
   const rowRef = useRef<HTMLUListElement>(null);
+  const previousRef = useRef<HTMLButtonElement>(null);
+  const nextRef = useRef<HTMLButtonElement>(null);
   // Both ends reached = everything fits: the buttons stay hidden until the row is measured.
   const [edges, setEdges] = useState<Edges>({ start: true, end: true });
 
+  // Measured again when cards come or go (the admin preview follows the editor), since the row's own size stays.
   useEffect(() => {
     const row = rowRef.current;
     if (!row) return;
     const measure = () => {
       const start = row.scrollLeft <= 1;
       const end = row.scrollLeft + row.clientWidth >= row.scrollWidth - 1;
+      // A focused button that is about to be switched off (or hidden) would drop focus to the page: it moves to the
+      // other button first, or to the row when every card fits.
+      const focused = document.activeElement;
+      if ((end && focused === nextRef.current) || (start && focused === previousRef.current)) {
+        const other = focused === nextRef.current ? previousRef.current : nextRef.current;
+        (start && end ? row : other)?.focus();
+      }
       setEdges((was) => (was.start === start && was.end === end ? was : { start, end }));
     };
     // ResizeObserver calls back once when it starts watching, which gives the first measurement.
@@ -34,7 +44,7 @@ export function ProductFeatures({ features }: { features: ProductFeatureView[] }
       observer.disconnect();
       row.removeEventListener("scroll", measure);
     };
-  }, []);
+  }, [features.length]);
 
   function scrollByCard(direction: 1 | -1) {
     const row = rowRef.current;
@@ -55,6 +65,7 @@ export function ProductFeatures({ features }: { features: ProductFeatureView[] }
         {!fits && (
           <div className="flex gap-2 max-md:hidden">
             <Button
+              ref={previousRef}
               variant="secondary"
               size="icon"
               shape="pill"
@@ -65,6 +76,7 @@ export function ProductFeatures({ features }: { features: ProductFeatureView[] }
               <ChevronLeft className="size-5" strokeWidth={1.5} aria-hidden />
             </Button>
             <Button
+              ref={nextRef}
               variant="secondary"
               size="icon"
               shape="pill"

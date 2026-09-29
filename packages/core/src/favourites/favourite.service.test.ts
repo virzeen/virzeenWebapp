@@ -7,7 +7,10 @@ import { favouriteService } from "./favourite.service";
 /** Rows saved in separate requests get separate times (createdAt has millisecond precision). */
 const tick = () => new Promise((resolve) => setTimeout(resolve, 5));
 
-/** A published product with a photo for White, one for Black (two) and one shared by every style. */
+/**
+ * A published product with a photo for White, one for Black (two) and one shared by every style. White costs
+ * Rs 2,500 and is in stock; Black costs Rs 3,500 or Rs 3,800 (by size) and is sold out.
+ */
 async function productWithStyles(name = "Oversized Tee") {
   const product = await createProduct({ name });
   await db.productImage.deleteMany({ where: { productId: product.id } });
@@ -19,7 +22,23 @@ async function productWithStyles(name = "Oversized Tee") {
       { productId: product.id, url: "tee/chart", alt: "Tee", color: null, sortOrder: 3 },
     ],
   });
-  return product;
+  const variant = (color: string, size: string, pricePaisa: number, stock: number, sortOrder: number) => ({
+    productId: product.id,
+    sku: `${product.id}-${color}-${size}`,
+    size,
+    color,
+    pricePaisa,
+    stock,
+    sortOrder,
+  });
+  await db.productVariant.createMany({
+    data: [
+      variant("White", "M", 250_000, 4, 0),
+      variant("Black", "M", 380_000, 0, 1),
+      variant("Black", "L", 350_000, 0, 2),
+    ],
+  });
+  return db.product.update({ where: { id: product.id }, data: { fromPricePaisa: 250_000 } });
 }
 
 describe("favouriteService.set", () => {
@@ -154,17 +173,61 @@ describe("favouriteService.list", () => {
     const items = await favouriteService.list(user.id);
 
     expect(
-      items.map((item) => [item.color, item.product.name, item.product.imageUrl, item.product.hoverImageUrl]),
+      items.map((item) => [
+        item.color,
+        item.style,
+        item.product.name,
+        item.product.imageUrl,
+        item.product.hoverImageUrl,
+      ]),
     ).toEqual([
-      // A style without its own photos shows the card's usual photos.
-      ["Blue", "Oversized Tee", "tee/white", "tee/black-1"],
-      ["White", "Oversized Tee", "tee/white", null],
-      ["", "Linen Overshirt", "/placeholder/product-1.jpg", null],
-      ["Black", "Oversized Tee", "tee/black-1", "tee/black-2"],
+      // A style not sold (any more) shows the product's usual card, without the style.
+      ["Blue", "", "Oversized Tee", "tee/white", "tee/black-1"],
+      ["White", "White", "Oversized Tee", "tee/white", null],
+      ["", "", "Linen Overshirt", "/placeholder/product-1.jpg", null],
+      ["Black", "Black", "Oversized Tee", "tee/black-1", "tee/black-2"],
     ]);
     expect(items[1]).toMatchObject({ productId: tee.id, savedAt: expect.any(Date) });
     expect(items[1]?.product).toMatchObject({ id: tee.id, imageAlt: "Tee, White" });
     expect(await favouriteService.listKeys(user.id)).toHaveLength(5);
+  });
+
+  it("shows the saved style's price and stock, and the shared photo for a style without its own", async () => {
+    const user = await createUser();
+    const tee = await productWithStyles();
+    await db.productVariant.create({
+      data: {
+        productId: tee.id,
+        sku: `${tee.id}-Sand`,
+        size: "M",
+        color: "Sand",
+        pricePaisa: 270_000,
+        stock: 1,
+      },
+    });
+    for (const color of ["Sand", "Black", "White", "Blue"]) {
+      await favouriteService.set(user.id, { productId: tee.id, color, saved: true });
+      await tick();
+    }
+
+    const items = await favouriteService.list(user.id);
+
+    expect(
+      items.map(({ style, product }) => [style, product.fromPricePaisa, product.inStock, product.imageUrl]),
+    ).toEqual([
+      // A style no longer sold: the product's lowest price, and in stock when any style is.
+      ["", 250_000, true, "tee/white"],
+      ["White", 250_000, true, "tee/white"],
+      // The lowest of the style's sizes; sold out although White is in stock.
+      ["Black", 350_000, false, "tee/black-1"],
+      // No photos of its own: the photo shared by every style, as on the product page, not White's.
+      ["Sand", 270_000, true, "tee/chart"],
+    ]);
+    expect(items.at(-1)?.product).toMatchObject({ imageAlt: "Tee", hoverImageUrl: null });
+    expect((await favouriteService.summariesFor([{ productId: tee.id, color: "Black" }]))[0]).toMatchObject({
+      style: "Black",
+      product: { fromPricePaisa: 350_000, inStock: false, imageUrl: "tee/black-1" },
+    });
   });
 });
 
@@ -230,6 +293,32 @@ describe("favouriteService.merge", () => {
     const after = await favouriteService.merge(user.id, [{ productId: product.id, color: "New 4" }]);
     expect(after[0]).toEqual({ productId: product.id, color: "New 4" });
     expect(after).toHaveLength(MAX_FAVOURITES - 1);
+  });
+
+  it("keeps favourites of products taken off sale for a while when the new ones fit", async () => {
+    const user = await createUser();
+    const product = await createProduct();
+    const reshoot = await createProduct({ name: "Logo Cap" });
+    await db.favourite.createMany({
+      data: [
+        ...Array.from({ length: 70 }, (_, i) => ({
+          userId: user.id,
+          productId: product.id,
+          color: `Style ${i}`,
+        })),
+        ...["Black", "White", "Sand"].map((color) => ({ userId: user.id, productId: reshoot.id, color })),
+      ],
+    });
+    await db.product.update({ where: { id: reshoot.id }, data: { isPublished: false } });
+
+    // 40 from the browser, 35 of them already in the account: 73 + 40 is over the limit, but only 5 are new.
+    const keys = await favouriteService.merge(user.id, [
+      ...Array.from({ length: 5 }, (_, i) => ({ productId: product.id, color: `New ${i}` })),
+      ...Array.from({ length: 35 }, (_, i) => ({ productId: product.id, color: `Style ${i}` })),
+    ]);
+
+    expect(keys).toHaveLength(78);
+    expect(await db.favourite.count({ where: { userId: user.id, productId: reshoot.id } })).toBe(3);
   });
 });
 

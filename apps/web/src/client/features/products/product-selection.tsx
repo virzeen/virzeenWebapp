@@ -1,7 +1,9 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { createContext, useContext, useState } from "react";
 import { priceFor, variantFor, type Variant } from "./selection";
+import { styleFromParam } from "./style-photos";
 
 type Selection = {
   variants: Variant[];
@@ -39,7 +41,12 @@ export function ProductSelectionProvider({
   syncUrl,
   children,
 }: ProductSelectionProviderProps) {
-  const [pickedStyle, setStyle] = useState(initialStyle);
+  const params = useSearchParams();
+  // The shop page starts from the address: after Back, Next can restore the page rendered for an older `?style=`
+  // while the address keeps the style picked since. On the server and while hydrating this is initialStyle.
+  const [pickedStyle, setStyle] = useState(() =>
+    syncUrl ? styleFromParam(params.get("style") ?? undefined, variants, colors) : initialStyle,
+  );
   const [pickedSize, setSize] = useState<string | null>(null);
   // The admin preview follows the editor: a picked style or size renamed or removed there falls back to the usual.
   const style = pickedStyle !== null && colors.includes(pickedStyle) ? pickedStyle : initialStyle;

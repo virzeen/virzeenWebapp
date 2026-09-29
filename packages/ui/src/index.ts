@@ -31,6 +31,13 @@ export {
 } from "./primitives/layout";
 export { ButtonLink, Link, type ButtonLinkProps, type LinkProps } from "./primitives/link";
 export {
+  Popover,
+  PopoverClose,
+  PopoverContent,
+  PopoverTrigger,
+  type PopoverContentProps,
+} from "./primitives/popover";
+export {
   RadioGroup,
   RadioGroupItem,
   type RadioGroupItemProps,

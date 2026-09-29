@@ -7,7 +7,6 @@ import {
   toSummary,
   type ProductSummary,
 } from "../catalog/catalog.reads";
-import { imageForColor } from "../catalog/style-images";
 import { AppError, isUniqueViolation } from "../errors";
 
 // Favourites (specs/favourites.md): a product plus the style picked when saved (`color`, "" without styles).
@@ -16,29 +15,65 @@ import { AppError, isUniqueViolation } from "../errors";
 /** A saved favourite with the product card it shows. */
 export type FavouriteItem = {
   productId: string;
-  /** The saved style (variant colour); "" for a product without styles. */
+  /** The saved style (variant colour); "" for a product without styles. With productId, the favourite's key. */
   color: string;
+  /**
+   * The style the card names and opens: `color`, or "" when the product has no styles or that style isn't sold any
+   * more (removed since it was saved), so the card shows the product as a whole.
+   */
+  style: string;
   /** When the account saved it; null for a guest's browser favourites (summariesFor), which keep their own time. */
   savedAt: Date | null;
-  /** The card, showing the saved style's photos when that style has its own. */
+  /** The card: the saved style's photos, price (the lowest of its sizes) and stock. */
   product: ProductSummary;
 };
 
-/** The card fields plus every photo with its style, to show the saved style's photo. */
+/** The card fields plus every photo with its style, and every variant for sale with its price. */
 const favouriteProductSelect = {
   ...summarySelect,
   images: { select: { url: true, alt: true, color: true }, orderBy: { sortOrder: "asc" } },
+  variants: {
+    where: { isActive: true },
+    select: { stock: true, color: true, pricePaisa: true },
+    orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+  },
 } satisfies Prisma.ProductSelect;
 
 type FavouriteProductRow = Prisma.ProductGetPayload<{ select: typeof favouriteProductSelect }>;
 
-/** The product card, with the saved style's first photo (and its second on hover) when the style has its own. */
-function summaryForStyle(row: FavouriteProductRow, color: string): ProductSummary {
+/**
+ * The photos the product page's gallery shows for a style (galleryFor in the web app): its own; else the ones shared
+ * by every style (a photo of a style not sold any more counts as shared); else the first style's that has some.
+ */
+function photosForStyle(images: FavouriteProductRow["images"], style: string, styles: readonly string[]) {
+  const own = images.filter((image) => image.color === style);
+  if (own.length > 0) return own;
+  const shared = images.filter((image) => image.color === null || !styles.includes(image.color));
+  if (shared.length > 0) return shared;
+  const firstWithPhotos = styles.find((name) => images.some((image) => image.color === name));
+  return images.filter((image) => image.color === firstWithPhotos);
+}
+
+/**
+ * The card for a favourite, like the product page opened in the saved style: that style's first photo (its second on
+ * hover), the lowest price of its sizes, and in stock when any size is. A product without styles, or a style not sold
+ * any more, shows the product's usual card.
+ */
+function summaryForStyle(row: FavouriteProductRow, color: string): Pick<FavouriteItem, "style" | "product"> {
   const summary = toSummary(row);
-  const own = color ? row.images.filter((image) => image.color === color) : [];
-  const photo = own.length > 0 ? imageForColor(own, color) : undefined;
-  if (!photo) return summary;
-  return { ...summary, imageUrl: photo.url, imageAlt: photo.alt, hoverImageUrl: own[1]?.url ?? null };
+  const variants = color ? row.variants.filter((variant) => variant.color === color) : [];
+  if (variants.length === 0) return { style: "", product: summary };
+  const styles = [...new Set(row.variants.flatMap((variant) => (variant.color ? [variant.color] : [])))];
+  const [photo, hover] = photosForStyle(row.images, color, styles);
+  return {
+    style: color,
+    product: {
+      ...summary,
+      fromPricePaisa: Math.min(...variants.map((variant) => variant.pricePaisa)),
+      inStock: variants.some((variant) => variant.stock > 0),
+      ...(photo ? { imageUrl: photo.url, imageAlt: photo.alt, hoverImageUrl: hover?.url ?? null } : {}),
+    },
+  };
 }
 
 const keyOf = (key: FavouriteKey) => `${key.productId}:${key.color}`;
@@ -143,37 +178,38 @@ export const favouriteService = {
       productId: row.productId,
       color: row.color,
       savedAt: row.createdAt,
-      product: summaryForStyle(row.product, row.color),
+      ...summaryForStyle(row.product, row.color),
     }));
   },
 
   /**
    * Adds a guest's browser favourites to the account after sign-in, in one transaction. `keys` are newest first
    * and stay in that order above the account's own; ones the account has, repeats, and products not on sale are
-   * skipped, and the total never goes over MAX_FAVOURITES (the account's own ones are kept first, except those of
-   * products no longer on sale when room is short).
+   * skipped, and the total never goes over MAX_FAVOURITES. The account's own ones are kept first; favourites of
+   * products no longer on sale make room only when the new ones wouldn't all fit.
    * Returns the account's keys afterwards, like listKeys.
    */
   async merge(userId: string, keys: readonly FavouriteKey[]): Promise<FavouriteKey[]> {
     const wanted = uniqueKeys(keys);
     if (wanted.length > 0) {
       await db.$transaction(async (tx) => {
-        const own = { where: { userId }, select: { productId: true, color: true } } as const;
-        let existing = await tx.favourite.findMany(own);
-        if (existing.length + wanted.length > MAX_FAVOURITES && (await dropHidden(tx, userId)) > 0) {
-          existing = await tx.favourite.findMany(own);
-        }
-        const room = MAX_FAVOURITES - existing.length;
-        if (room <= 0) return;
+        const existing = await tx.favourite.findMany({
+          where: { userId },
+          select: { productId: true, color: true },
+        });
         const onSale = await tx.product.findMany({
           where: { ...publishedProductWhere, id: { in: [...new Set(wanted.map((key) => key.productId))] } },
           select: { id: true },
         });
         const onSaleIds = new Set(onSale.map((product) => product.id));
         const have = new Set(existing.map(keyOf));
-        const added = wanted
-          .filter((key) => onSaleIds.has(key.productId) && !have.has(keyOf(key)))
-          .slice(0, room);
+        // The ones really added. They're all on sale, so making room below can't change which.
+        const additions = wanted.filter((key) => onSaleIds.has(key.productId) && !have.has(keyOf(key)));
+        if (additions.length === 0) return;
+        let count = existing.length;
+        if (count + additions.length > MAX_FAVOURITES) count -= await dropHidden(tx, userId);
+        const added = additions.slice(0, Math.max(MAX_FAVOURITES - count, 0));
+        if (added.length === 0) return;
         // One millisecond apart, so the first key is the newest and the list keeps the browser's order.
         const now = Date.now();
         await tx.favourite.createMany({
@@ -210,10 +246,41 @@ export const favouriteService = {
               productId: key.productId,
               color: key.color,
               savedAt: null,
-              product: summaryForStyle(row, key.color),
+              ...summaryForStyle(row, key.color),
             },
           ]
         : [];
     });
   },
 };
+
+/** Longer than any style name (40 characters at most), so a favourite on its way to a new name clashes with none. */
+const movingColor = (index: number) => `${"~".repeat(41)}${index}`;
+
+/**
+ * Favourites follow a product's renamed styles (catalogService.saveProduct, in its transaction): `renames` are the
+ * style rows whose name changed, old name to new (saveStyles). A customer who already has the new name keeps that
+ * favourite instead. Each first moves to a placeholder, so two styles can swap names without a clash.
+ */
+export async function moveFavouritesToRenamedStyles(
+  tx: Prisma.TransactionClient,
+  productId: string,
+  renames: readonly { from: string; to: string }[],
+) {
+  const moves = renames.filter(({ from, to }) => from !== to);
+  for (const [index, { from }] of moves.entries()) {
+    await tx.favourite.updateMany({ where: { productId, color: from }, data: { color: movingColor(index) } });
+  }
+  for (const [index, { to }] of moves.entries()) {
+    const already = await tx.favourite.findMany({
+      where: { productId, color: to },
+      select: { userId: true },
+    });
+    if (already.length > 0) {
+      await tx.favourite.deleteMany({
+        where: { productId, color: movingColor(index), userId: { in: already.map((row) => row.userId) } },
+      });
+    }
+    await tx.favourite.updateMany({ where: { productId, color: movingColor(index) }, data: { color: to } });
+  }
+}

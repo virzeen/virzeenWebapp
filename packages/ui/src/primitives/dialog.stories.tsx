@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { expect, screen, waitFor } from "storybook/test";
+import { expect, screen, waitFor, within } from "storybook/test";
 import { Button } from "./button";
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogTrigger } from "./dialog";
 
@@ -57,7 +57,10 @@ export const OpenByDefault: Story = {
   ),
 };
 
-/** `size="lg"`: the product editor's style popup. The body scrolls; the title and Done stay in view. */
+/**
+ * `size="lg"`: a longer popup. The body scrolls; the title and Done stay in view. Focus starts on the body, so arrow
+ * keys and Page Down scroll it even with nothing to focus inside.
+ */
 export const Large: Story = {
   render: () => (
     <Dialog>
@@ -90,6 +93,15 @@ export const Large: Story = {
     await userEvent.click(canvas.getByRole("button", { name: "Edit Mountain print" }));
     const dialog = await screen.findByRole("dialog", { name: "Mountain print" });
     await waitFor(() => expect(dialog).toBeVisible());
+    // The scrolling body is a named, focusable region where focus starts; Tab and Shift+Tab reach it again.
+    const body = within(dialog).getByRole("region", { name: "Mountain print" });
+    await expect(body).toHaveAttribute("tabindex", "0");
+    await waitFor(() => expect(body).toHaveFocus());
+    await expect(body.scrollHeight).toBeGreaterThan(body.clientHeight);
+    await userEvent.tab();
+    await expect(screen.getByRole("button", { name: "Done" })).toHaveFocus();
+    await userEvent.tab({ shift: true });
+    await expect(body).toHaveFocus();
     await userEvent.click(screen.getByRole("button", { name: "Done" }));
     await waitFor(() => expect(canvas.getByRole("button", { name: "Edit Mountain print" })).toHaveFocus());
   },

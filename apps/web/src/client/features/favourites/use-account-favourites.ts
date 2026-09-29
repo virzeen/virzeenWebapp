@@ -26,13 +26,21 @@ export function useAccountFavourites(initialKeys: FavouriteKey[]) {
     setChanges((current) => settleChanges(current, initialKeys));
   }
   const keys = useMemo(() => applyChanges(serverKeys, changes), [serverKeys, changes]);
+  // Removed with a press here, until a server list no longer has them (or the removal failed).
+  const removed = useMemo(
+    () => new Set([...changes.values()].filter((change) => !change.save).map((change) => keyOf(change.key))),
+    [changes],
+  );
 
-  /** Saves or removes at once; resolves to the new state, or null when it failed (it goes back, with a toast). */
-  async function toggle(key: FavouriteKey): Promise<boolean | null> {
+  /**
+   * Saves or removes at once: `save`, or else the opposite of the current state (a Favourite button). Resolves to
+   * the new state, or null when it failed (it goes back, with a toast).
+   */
+  async function toggle(key: FavouriteKey, save?: boolean): Promise<boolean | null> {
     const id = keyOf(key);
     const change: FavouriteChange = {
       key: toKey(key),
-      save: !keys.some((item) => keyOf(item) === id),
+      save: save ?? !keys.some((item) => keyOf(item) === id),
       done: false,
     };
     setChanges((current) => new Map(current).set(id, change));
@@ -50,5 +58,5 @@ export function useAccountFavourites(initialKeys: FavouriteKey[]) {
     return null;
   }
 
-  return { keys, toggle };
+  return { keys, removed, toggle };
 }

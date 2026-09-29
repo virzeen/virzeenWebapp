@@ -21,8 +21,10 @@ import { clientIp, rateLimit } from "@/server/security/rate-limit";
 /** A favourite as client components get it: the saved style and its product card. `savedAt` is ISO or null. */
 export type FavouriteView = {
   productId: string;
-  /** The saved style (variant colour); "" for a product without styles. */
+  /** The saved style (variant colour); "" for a product without styles. With productId, the favourite's key. */
   color: string;
+  /** The style the card names and opens: `color`, or "" when there's none or it isn't sold any more. */
+  style: string;
   /** When the account saved it; null for a guest's (the browser keeps its own time). */
   savedAt: string | null;
   product: ProductSummary;
