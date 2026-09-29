@@ -18,7 +18,7 @@ Values below are the phase-1 defaults, set from the brand artwork (monochrome lo
 | `--color-success`         | `text-success`                 | `#2E7D4F` | In stock, payment success, accepted code boxes (`border-success`)    |
 | `--color-warning`         | `text-warning`                 | `#8A5A00` | Low stock, pending                                                   |
 | `--color-danger`          | `text-danger`, `border-danger` | `#B3261E` | Errors, out of stock, destructive actions                            |
-| `--color-focus`           | `ring-focus`                   | `#2F6FEB` | Focus rings only                                                     |
+| `--color-focus`           | `ring-focus`                   | `#2F6FEB` | Focus rings only (buttons, links, checkboxes; not text fields)       |
 
 Rules: text on `canvas`/`surface` uses `ink` or `ink-muted` only. On dark imagery and the ink footer, use `text-canvas` (and `/80`, `/70` opacity steps for secondary text). Status colors are for status, never decoration. Every pairing must meet WCAG AA (4.5:1 body, 3:1 large text/UI).
 

@@ -4,8 +4,10 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "../lib/cn";
 import { useFormFieldControl } from "./form-field";
 
+// Focus thickens the border to 2px in ink: an outline just inside the 1px border, so no blue ring, no layout
+// shift, and it stays visible in Windows contrast themes. `outline-solid` overrides the base `:focus-visible` reset.
 const fieldVariants = cva(
-  "w-full rounded-sm border bg-canvas px-3 font-text text-body text-ink transition-colors duration-150 ease-standard placeholder:text-ink-muted focus-visible:border-ink focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1 focus-visible:outline-none disabled:cursor-not-allowed disabled:bg-surface disabled:opacity-60",
+  "w-full rounded-sm border bg-canvas px-3 font-text text-body text-ink transition-colors duration-150 ease-standard placeholder:text-ink-muted focus-visible:border-ink focus-visible:outline-1 focus-visible:-outline-offset-2 focus-visible:outline-ink focus-visible:outline-solid disabled:cursor-not-allowed disabled:bg-surface disabled:opacity-60",
   {
     variants: {
       variant: {

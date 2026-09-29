@@ -88,7 +88,7 @@ export function CodeInput({
           "flex gap-2 rounded-sm",
           invalid && "motion-safe:animate-shake",
           // Nothing can be edited, so the whole code shows focus instead of one box.
-          showFocus && fixed && "outline-2 outline-offset-2 outline-focus",
+          showFocus && fixed && "outline-2 outline-offset-2 outline-ink",
         )}
       >
         {slots.map((slot, position) => {
@@ -101,8 +101,9 @@ export function CodeInput({
                 "flex h-14 min-w-0 flex-1 items-center justify-center rounded-sm border bg-canvas font-text text-h3 font-normal text-ink transition-colors duration-150 ease-standard",
                 statusBorder ?? (active ? "border-ink" : "border-line-strong"),
                 status === "checking" && "text-ink-muted",
-                // An outline (not a box-shadow ring) so focus stays visible in Windows contrast themes.
-                active && "outline-2 outline-offset-2 outline-focus",
+                // Like the text fields: a 2px ink border (an outline just inside the border, so it stays visible
+                // in Windows contrast themes).
+                active && "outline-1 -outline-offset-2 outline-ink",
               )}
             >
               {digit ??
