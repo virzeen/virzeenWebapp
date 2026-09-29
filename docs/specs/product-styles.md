@@ -20,9 +20,9 @@ A style is the variant's existing `color` value (cart, checkout, orders and stoc
 
 ## Acceptance criteria
 
-Admin editor
+Admin editor (as first built; since 2026-09-30 the on-page editor replaces the cards, see UI below. Renaming, removing, prices and photo limits work the same.)
 
-- [ ] "Colours" becomes **Styles** ("Colours or designs. Each can have its own photos and price."). Each style is an inline card (`<section>` named by its h3): header with the name, **Rename** (in place) and **Remove style** (confirmed with a Dialog); body in two columns from `md`: left, the style's photos (main photo large with "Main photo", the rest as tiles; choose or drop many, Make main, move, remove); right, **Price (Rs)**, the product's shipping shown read-only ("Shipping Rs 150, the same for every style") with "Customers pay Rs …", then the size stock table (For sale, Stock, optional Price per size, optional SKU). One column on phones (photos first).
+- [ ] "Colours" becomes **Styles** ("Colours or designs. Each can have its own photos and price."). Each style is an inline card (`<section>` named by its h3): header with the name, **Rename** (in place) and **Remove style** (confirmed with a Dialog); body in two columns once the card is 36rem wide (`@xl` container query, about 1280px screens; not from `md`, because at 1024px the editor's sidebar leaves the card too narrow. The on-page editor replaces these cards, `specs/product-editor-on-page.md`): left, the style's photos (main photo large with "Main photo", the rest as tiles; choose or drop many, Make main, move, remove); right, **Price (Rs)**, the product's shipping shown read-only ("Shipping Rs 150, the same for every style") with "Customers pay Rs …", then the size stock table (For sale, Stock, optional Price per size, optional SKU). One column on phones (photos first).
 - [ ] With styles, the product-level Price field goes; each style has its own (a new style starts with the last style's price). Without styles the editor works as today.
 - [ ] The main Photos section is "Photos for every style" when there are styles (optional), "Photos" otherwise.
 - [ ] Renaming a style renames its rows and photos. Removing one removes its photos and unsaved rows; saved rows are switched off (past orders use them).
@@ -31,7 +31,7 @@ Admin editor
 
 Shop
 
-- [ ] When any photo belongs to a style, the colour picker becomes picture swatches (the style's first photo and its name), labelled "Style: {name}". Otherwise it stays "Colour: {name}" chips.
+- [ ] When any photo belongs to a style, the colour picker becomes square picture tiles (the style's first photo, else the main photo; no caption: the name is the tile's accessible name and `title`), labelled "Style: {name}". Otherwise it stays "Colour: {name}" chips.
 - [ ] Picking a style shows only its photos (Nike-style, `specs/product-page.md`); a style without photos shows the shared ones; the price and sizes follow the style. With no style picked (all sold out) the gallery shows the shared photos, else the first style's.
 - [ ] The bag, checkout and order show the photo of the style bought.
 - [ ] Product cards say "{n} styles" instead of "{n} colours" when the product has style photos.
@@ -42,9 +42,9 @@ Shop
 
 ## UI
 
-- New `RadioGroup` variant `swatch` (picture tile, ink border when picked, no fill) + story + catalog entry.
-- `ProductStyleCard` (inline card: photos left, price/shipping/stock right) with `ProductPhotos layout="stacked"` for the narrow photo column.
-- `SelectedStyleProvider` (client context) shares the picked style between the gallery and the purchase box; the rest of the page stays server-rendered.
+- New `RadioGroup` variant `swatch` (picture tile, ink border when picked, no fill; since 2026-09-30 a 64px square without a caption, `specs/product-page.md`) + story + catalog entry.
+- Admin (since 2026-09-30): the on-page editor (`specs/product-editor-on-page.md`). The style tiles end with a + tile, the pencil beside "Style: {name}" opens "Edit style" (name, colour shown, style number, Remove style), and the gallery, price and stock boxes follow the picked style. The inline style cards (`ProductStyleCard`, `ProductPhotos`) are removed.
+- `ProductSelectionProvider` (client context; was `SelectedStyleProvider`) shares the picked style and size with the price, gallery, tiles, sizes, bullets, details popup and Favourite; the rest of the page stays server-rendered.
 
 ## Data & API
 

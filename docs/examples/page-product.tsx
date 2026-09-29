@@ -1,54 +1,57 @@
-// apps/web/src/app/(shop)/product/[slug]/page.tsx  — Server Component (no "use client")
+// apps/web/src/app/(site)/(shop)/product/[slug]/page.tsx  — Server Component (no "use client")
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Container } from "@virzeen/ui";
-import { getProductBySlug } from "@/server/queries/products";
-import { ProductGallery } from "@/client/features/products/product-gallery";
+import { getProductBySlug, listRelatedProducts } from "@/server/queries/catalog";
 import { ProductDetails } from "@/client/features/products/product-details";
+import { RelatedProducts } from "@/client/features/products/related-products";
 import { JsonLd } from "@/client/components/shared/json-ld";
 
-// Next.js 15+: params is a Promise and must be awaited.
-type Props = { params: Promise<{ slug: string }> };
+// Next.js 15+: params and searchParams are Promises and must be awaited.
+type Props = { params: Promise<{ slug: string }>; searchParams: Promise<{ style?: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const product = await getProductBySlug(slug);
-  if (!product) return {};
+  const product = await getProductBySlug(slug); // same cached loader as the page
+  if (!product) notFound();
   return {
-    title: `${product.name} — Virzeen`,
-    description: product.seoDescription,
+    title: product.name,
+    description: product.seoDescription ?? product.description.slice(0, 155),
     alternates: { canonical: `/product/${product.slug}` },
-    openGraph: { images: product.images.slice(0, 1).map((i) => i.url) },
   };
 }
 
-export default async function ProductPage({ params }: Props) {
+export default async function ProductPage({ params, searchParams }: Props) {
   const { slug } = await params;
   const product = await getProductBySlug(slug); // server/queries: select only needed fields
   if (!product) notFound();
+  // `?style=` from a shared link or a favourite picks that style; the canonical address stays /product/{slug}.
+  const { style } = await searchParams;
+  const related = await listRelatedProducts(product);
 
   return (
-    <Container className="py-8 lg:py-16">
-      <div className="gap-8 lg:grid-cols-[3fr_2fr] lg:gap-16 grid">
-        <ProductGallery images={product.images} productName={product.name} />
-        {/* Server component; renders the small client leaf <AddToBagButton /> inside */}
-        <ProductDetails product={product} />
-      </div>
+    <>
+      {/*
+        Gallery, pickers, buttons, description, popups and "Features that perform" (patterns.md §6). One shared
+        block, also used by the admin Preview, so it lays itself out (Container + grid) and imports no server code.
+        Only its small leaves are client components.
+      */}
+      <ProductDetails product={{ ...product, productId: product.id }} styleParam={style} />
+      <RelatedProducts items={related} />
       <JsonLd
         data={{
           "@context": "https://schema.org",
           "@type": "Product",
           name: product.name,
-          image: product.images.map((i) => i.url),
+          image: product.images[0]?.url, // the real page makes it an absolute address
           offers: {
-            "@type": "Offer",
+            "@type": "AggregateOffer",
             priceCurrency: "NPR",
-            price: (product.fromPricePaisa / 100).toFixed(2),
+            lowPrice: (product.fromPricePaisa / 100).toFixed(2),
             availability: product.inStock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
           },
         }}
       />
-    </Container>
+    </>
   );
 }
-// Siblings: loading.tsx (skeleton matching this grid), error.tsx ("use client", friendly message + retry).
+// Siblings: loading.tsx (skeleton matching this layout), error.tsx ("use client", friendly message + retry).

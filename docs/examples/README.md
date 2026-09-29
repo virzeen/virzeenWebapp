@@ -7,7 +7,7 @@ They are reference patterns (not wired into the app), so names like `openCartDra
 | ------------------------------ | ----------------------------------------------------------------------- |
 | `primitive-button.tsx`         | A `packages/ui` primitive with `cva` variants, loading state, a11y      |
 | `primitive-button.stories.tsx` | Storybook story covering every variant and state                        |
-| `page-product.tsx`             | Server Component page: metadata, `notFound`, layout, JSON-LD            |
+| `page-product.tsx`             | Server Component page: metadata, `notFound`, `?style=`, JSON-LD         |
 | `client-add-to-bag.tsx`        | Small client leaf calling a Server Action with pending + error handling |
 | `form-address.tsx`             | React Hook Form + shared Zod schema + server errors                     |
 | `service-cart.ts`              | Core service: validation of business rules, transaction, `AppError`     |

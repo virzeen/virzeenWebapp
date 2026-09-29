@@ -9,7 +9,7 @@ PostgreSQL on Railway, accessed only through Prisma (`packages/db`).
 - Timestamps: every model has `createdAt DateTime @default(now())` and `updatedAt DateTime @updatedAt`.
 - Soft delete for catalog data (`archivedAt DateTime?`). Orders are never deleted.
 - Order items and orders store **snapshots** (name, SKU, price, address) so later edits never change history.
-- Every relation declares `onDelete` explicitly. Every foreign key and every field used in `where`/`orderBy` is indexed.
+- Every relation declares `onDelete` explicitly. Every foreign key and every field used in `where`/`orderBy` is indexed. Known exception (2026-09-30, tiny table): `SizeGuide.name` is filtered and sorted without an index, as `Category.name` is as a second sort key.
 - Enums for closed sets (statuses, roles, payment methods).
 - No raw SQL except in reviewed migrations. Never `$queryRawUnsafe`.
 
@@ -51,7 +51,7 @@ Update this table whenever the schema changes.
 
 ## 4. Seeding
 
-`packages/db/prisma/seed.ts` creates local sample data only: categories, 10 products with variants, one admin (password from local env). Never run against production.
+`packages/db/prisma/seed.ts` creates local sample data only: 4 categories, 2 collections, the "Tops" size guide (on the linen overshirt and the oversized tee), 12 products with variants and style numbers (origin China), the linen overshirt's benefits, details, colour shown and 3 features, 3 portfolio projects, and an admin when `SEED_ADMIN_EMAIL` is set. Re-running updates the same rows (it overwrites local edits to the sample products). Never run against production.
 
 ## 5. Backups
 

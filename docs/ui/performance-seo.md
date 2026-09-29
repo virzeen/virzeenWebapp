@@ -24,8 +24,8 @@
 - `generateMetadata`: unique `title` ("Linen Overshirt — Virzeen"), `description` (≤ 155 chars), canonical URL, Open Graph image.
 - One `h1`, logical heading order. A whole-page 404, error or offline screen makes its `EmptyState` title the h1 (`titleAs="h1"`).
 - Missing pages keep a real 404 title: `generateMetadata` calls `notFound()` for a missing item, so the tab reads "Page not found — Virzeen" ("Not found" in admin, "Order not found" in the account).
-- Product pages include JSON-LD `Product` with `offers` (price in NPR, availability).
-- `sitemap.ts` lists published products, collections, portfolio projects. `robots.ts` blocks `/admin`, `/account`, `/checkout`, `/api`.
+- Product pages include JSON-LD `Product` with `image` (the first photo's absolute address) and `offers` (price in NPR, availability).
+- `sitemap.ts` lists published products, collections, portfolio projects. `robots.ts` blocks `/admin`, `/preview`, `/account`, `/checkout`, `/api`, `/cart`, `/favourites`, `/login`, `/verify`.
 - Clean slugs: `/product/linen-overshirt`, never ids in public URLs.
 
 ## 4. PWA

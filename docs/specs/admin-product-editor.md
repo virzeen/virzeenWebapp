@@ -1,6 +1,6 @@
 # Spec: Admin product editor (WordPress-style)
 
-**Status:** Built (2026-09-29, branch `feat/admin-product-editor`)
+**Status:** Built (2026-09-29, branch `feat/admin-product-editor`). **Layout replaced** (2026-09-30) by `specs/product-editor-on-page.md`: `/admin/products/new` and `/admin/products/[id]` no longer use `ProductForm`, which is removed. The rules below on SKUs, made photo descriptions, Duplicate, status filters, the products list and Preview still apply; the two-column form, Publish box, Save buttons and bottom bar are gone.
 **Owner approval:** owner, 2026-09-29 (chose this over switching to WordPress/WooCommerce)
 **Related docs:** `ui/patterns.md` §4, §10 · `database/data-rules.md` §1 (paisa) · `specs/checkout.md` (prices include shipping) · `project-brief.md` §5 (admin journey)
 
@@ -72,7 +72,8 @@ Preview (owner request, approved and built 2026-09-29: new tab that updates as y
 
 - Models: none changed (no migration).
 - Validators: variant `sku` may be blank; image `alt` may be blank; `adminProductFiltersSchema` gets `status` (`published` | `draft`); new `duplicateProductSchema` `{ id }`.
-- Core: `catalogService.saveProduct` makes blank SKUs and alt texts; new `catalogService.duplicateProduct`; `adminReads.listProducts(query, status)` + `productStatusCounts()`; `getProductForEdit` returns `updatedAt`.
+- Core: `catalogService.saveProduct` makes blank SKUs and alt texts; new `catalogService.duplicateProduct`; `adminReads.listProducts(query, status)` + `productStatusCounts()`; `getProductForEdit` returns `updatedAt`, and since 2026-09-30 also `values` (the editor's form values, the same shape a save returns) and `publishedAt`.
+- Since 2026-09-30: the description may be blank on drafts (publishing needs one: "Add a description before publishing").
 - Server: `duplicateProductAction`. No `/api/v1` changes.
 
 ## Edge cases

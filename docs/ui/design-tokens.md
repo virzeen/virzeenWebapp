@@ -82,7 +82,7 @@ Max content width `max-w-7xl` (1280px) via `Container`. Product grid: 2 cols bas
 
 ## 7. Z-index scale (use only these)
 
-`z-10` sticky header · `z-20` dropdowns/popovers · `z-40` drawers/sheets + overlay · `z-50` dialogs · `z-60` toasts. Never invent other values.
+`z-10` sticky header (and the product editor's top bar) · `z-20` dropdowns/popovers · `z-40` drawers/sheets + overlay · `z-50` dialogs, and the `Select` list (it also opens from inside a Dialog or Sheet, so it must sit above their overlay) · `z-60` toasts. Never invent other values.
 
 ## 8. Icons
 

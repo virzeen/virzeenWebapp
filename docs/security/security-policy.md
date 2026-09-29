@@ -29,7 +29,7 @@
 - Zod validation at every boundary with `.strict()`.
 - Prisma only; no unsafe raw SQL.
 - React escapes output by default; never use `dangerouslySetInnerHTML` except for sanitized admin rich text (DOMPurify).
-- File uploads go directly to Cloudinary via signed upload params; allow only image types, max 10 MB.
+- File uploads go directly to Cloudinary via signed upload params; allow only image types, max 10 MB. The signature is only made for the folders `products`, `portfolio` and `size-guides` (`uploadSignatureSchema`), as `virzeen/<folder>/<id>`.
 
 ## 5. HTTP security headers (set in `next.config.ts`)
 
