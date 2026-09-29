@@ -17,6 +17,11 @@ if [ -n "$missing" ]; then
   exit 1
 fi
 
+# Railway skips a scheduled run while the last one is still going, so nothing may hang: connections give up
+# after 10 seconds, and the dump and the upload after 20 minutes each (a dump takes seconds today).
+export PGCONNECT_TIMEOUT=10
+LIMIT=1200
+
 # The private network name (postgres.railway.internal) can take a few seconds to resolve after the
 # container starts. pg_isready's output names the host, so it is discarded.
 deadline=$(($(date +%s) + 60))
@@ -66,7 +71,10 @@ trap 'exit 143' TERM
 
 file="$(date -u +%Y-%m-%dT%H%MZ).dump"
 dump="$workdir/$file"
-pg_dump --format=custom --no-owner --no-privileges --file="$dump" --dbname="$DATABASE_URL"
+if ! timeout "$LIMIT" pg_dump --format=custom --no-owner --no-privileges --file="$dump" --dbname="$DATABASE_URL"; then
+  echo "pg_dump failed or took longer than $LIMIT seconds." >&2
+  exit 1
+fi
 
 if [ ! -s "$dump" ]; then
   echo "The dump is empty." >&2
@@ -80,6 +88,9 @@ fi
 export AWS_ACCESS_KEY_ID="$S3_ACCESS_KEY_ID"
 export AWS_SECRET_ACCESS_KEY="$S3_SECRET_ACCESS_KEY"
 export AWS_DEFAULT_REGION="$S3_REGION"
-aws s3 cp "$dump" "s3://$S3_BUCKET/$file" --endpoint-url "$S3_ENDPOINT" --only-show-errors --no-progress
+if ! timeout "$LIMIT" aws s3 cp "$dump" "s3://$S3_BUCKET/$file" --endpoint-url "$S3_ENDPOINT" --only-show-errors --no-progress; then
+  echo "The upload failed or took longer than $LIMIT seconds." >&2
+  exit 1
+fi
 
 echo "Uploaded $file ($(wc -c <"$dump" | tr -d ' ') bytes)"

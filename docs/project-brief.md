@@ -16,7 +16,7 @@
 7. Code structure
 8. How requests flow (with payment sequences)
 9. Hosting & infrastructure
-10. Third-party services in detail (Cloudinary, Resend, Upstash, Cloudflare, Sentry, R2, Google, eSewa, Khalti)
+10. Third-party services in detail (Cloudinary, Resend, Upstash, Cloudflare, Sentry, Backblaze B2, Google, eSewa, Khalti)
 11. Security model
 12. Data model overview
 13. Performance, SEO, PWA, and mobile apps
@@ -165,7 +165,7 @@ Reviews, wishlist, coupons/discounts, gift cards, staff role, SMS notifications,
 | **Resend** (+ React Email)  | Transactional email: OTP, order confirmations, shipping updates | Free (3,000/month, 100/day)          |
 | **Upstash Redis**           | Rate limiting (login, OTP, checkout, APIs)                      | Free (256 MB, 500K commands/month)   |
 | **Sentry**                  | Error tracking with PII scrubbing                               | Free developer plan                  |
-| **Cloudflare R2**           | Nightly database backups                                        | Free tier                            |
+| **Backblaze B2**            | Nightly database backups (US West, encrypted, private)          | Free (10 GB, no card)                |
 | **Google Cloud (OAuth)**    | "Sign in with Google"                                           | Free                                 |
 | **eSewa, Khalti**           | Online payments                                                 | Per-transaction fees, no monthly fee |
 | **GitHub + GitHub Actions** | Code, reviews, CI                                               | Free (private repo)                  |
@@ -304,7 +304,7 @@ The Capacitor app loads the same site; for native screens later it calls `/api/v
 
 ### 9.4 Backups and recovery
 
-- Nightly `pg_dump` by a Railway cron service (`db-backup`) → Cloudflare R2, 30-day retention. It runs inside Railway because the database has no public address.
+- Nightly `pg_dump` by a Railway cron service (`db-backup`) → Backblaze B2, about 30-day retention. It runs inside Railway because the database has no public address.
 - Monthly restore test. Steps in `docs/runbooks/restore-backup.md`.
 
 ### 9.5 Upgrade path
@@ -338,7 +338,7 @@ When revenue justifies it: Vercel Pro + Supabase Pro in Mumbai (~$45/month) for 
 
 ### Cloudflare
 
-DNS, SSL, WAF, DDoS protection, web analytics (privacy-friendly, free), R2 for backups. Our origin (Railway) sits behind it.
+DNS, SSL, WAF, DDoS protection, web analytics (privacy-friendly, free). Our origin (Railway) sits behind it.
 
 ### Sentry
 
@@ -389,7 +389,7 @@ Security is layered so that one mistake doesn't expose everything. Full rules: `
 | **Payments**       | Server-to-server verification, exact amount match, signature checks, reconciliation, never trust redirects, no card/wallet data stored                  |
 | **Abuse**          | Upstash rate limits on login, OTP, checkout, callbacks, API                                                                                             |
 | **Secrets**        | Only in Railway/GitHub secrets; validated env; gitleaks scanning; AI agents blocked from reading `.env`                                                 |
-| **Data**           | Nightly encrypted-at-rest backups (R2), audit log for admin actions, minimal personal data in logs                                                      |
+| **Data**           | Nightly encrypted-at-rest backups (B2), audit log for admin actions, minimal personal data in logs                                                      |
 | **Supply chain**   | Dependabot, `pnpm audit` in CI, locked dependencies, justified new packages                                                                             |
 | **Accounts**       | 2FA on GitHub, Railway, Cloudflare, domain registrar, eSewa/Khalti, Google, Cloudinary, Resend, Upstash, Sentry                                         |
 | **Process**        | PR required for `main`, CI must pass, security-reviewer agent on sensitive changes, owner reviews all payment changes                                   |
@@ -439,16 +439,17 @@ Virzeen is built with Claude Code. The setup makes the agent follow the docs ins
 
 ## 16. Costs
 
-| Item                                      | Building (month 0)                   | After launch (approx.)                                         |
-| ----------------------------------------- | ------------------------------------ | -------------------------------------------------------------- |
-| Railway (app + Postgres + cron)           | $0 (local dev)                       | ~$5–10                                                         |
-| Cloudflare (DNS, SSL, WAF, analytics, R2) | $0                                   | $0                                                             |
-| Cloudinary                                | $0                                   | $0 → ~$89+ when traffic outgrows 25 credits                    |
-| Resend                                    | $0                                   | $0 → ~$20 when >100 emails/day                                 |
-| Upstash, Sentry, GitHub                   | $0                                   | $0                                                             |
-| Domain                                    | `.com.np` free / `.com` ~$10–15/year | same                                                           |
-| eSewa / Khalti                            | $0 monthly                           | per-transaction fees                                           |
-| **Total**                                 | **~$0**                              | **~$5–10/month at launch**, rising only with real sales volume |
+| Item                                  | Building (month 0)                   | After launch (approx.)                                         |
+| ------------------------------------- | ------------------------------------ | -------------------------------------------------------------- |
+| Railway (app + Postgres + cron)       | $0 (local dev)                       | ~$5–10                                                         |
+| Cloudflare (DNS, SSL, WAF, analytics) | $0                                   | $0                                                             |
+| Backblaze B2 (backups)                | $0                                   | $0 up to 10 GB                                                 |
+| Cloudinary                            | $0                                   | $0 → ~$89+ when traffic outgrows 25 credits                    |
+| Resend                                | $0                                   | $0 → ~$20 when >100 emails/day                                 |
+| Upstash, Sentry, GitHub               | $0                                   | $0                                                             |
+| Domain                                | `.com.np` free / `.com` ~$10–15/year | same                                                           |
+| eSewa / Khalti                        | $0 monthly                           | per-transaction fees                                           |
+| **Total**                             | **~$0**                              | **~$5–10/month at launch**, rising only with real sales volume |
 
 Free-tier limits change; re-check each provider's pricing page before launch.
 
@@ -482,7 +483,7 @@ Free-tier limits change; re-check each provider's pricing page before launch.
 | Payment bugs (double-paid, unpaid shipped)                | Server verification, state machine, idempotency, reconciliation, mandatory tests, owner review |
 | Free tier exceeded (Cloudinary credits, Resend daily cap) | Image width limits, monthly usage checks, upgrade before campaigns                             |
 | Surprise hosting bill                                     | Railway usage limit + alerts                                                                   |
-| Data loss                                                 | Nightly R2 backups, monthly restore test                                                       |
+| Data loss                                                 | Nightly B2 backups, monthly restore test                                                       |
 | Leaked secrets                                            | gitleaks, env-only secrets, rotation runbook, AI blocked from `.env`                           |
 | AI agent inventing APIs or breaking rules                 | CLAUDE.md protocol, auto rules, hooks, UI guard, examples, reviewers, CI                       |
 | Account takeover of a service                             | 2FA on every account                                                                           |
