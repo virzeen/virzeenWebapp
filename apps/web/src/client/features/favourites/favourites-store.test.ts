@@ -2,11 +2,16 @@ import { MAX_FAVOURITES } from "@virzeen/validators";
 import { describe, expect, it } from "vitest";
 import {
   addFavourite,
+  applyChanges,
   hasFavourite,
   keyOf,
   parseFavourites,
   removeFavourite,
+  sameFavourites,
+  settleChanges,
   toKey,
+  withoutFavourites,
+  type FavouriteChange,
   type StoredFavourite,
 } from "./favourites-store";
 
@@ -59,6 +64,27 @@ describe("guest favourites list", () => {
     expect(removeFavourite(list, { productId: CAP, color: "Red" })).toEqual(list);
   });
 
+  it("leaves out every given favourite at once", () => {
+    const list = [stored(SHIRT, "White"), stored(SHIRT, "Black"), stored(CAP, "")];
+
+    expect(
+      withoutFavourites(list, [
+        { productId: CAP, color: "" },
+        { productId: SHIRT, color: "White" },
+      ]),
+    ).toEqual([stored(SHIRT, "Black")]);
+    expect(withoutFavourites(list, [])).toEqual(list);
+  });
+
+  it("compares two lists by product and style, not order", () => {
+    const white = { productId: SHIRT, color: "White" };
+    const cap = { productId: CAP, color: "" };
+
+    expect(sameFavourites([white, cap], [cap, white])).toBe(true);
+    expect(sameFavourites([white], [white, cap])).toBe(false);
+    expect(sameFavourites([white, cap], [white, { productId: SHIRT, color: "Black" }])).toBe(false);
+  });
+
   it("names a favourite by product and style", () => {
     expect(keyOf({ productId: SHIRT, color: "White" })).toBe(`${SHIRT}:White`);
     expect(keyOf({ productId: SHIRT, color: "" })).not.toBe(keyOf({ productId: SHIRT, color: "White" }));
@@ -100,5 +126,49 @@ describe("parseFavourites", () => {
     const tooMany = [...fullList(), stored(CAP, "")];
 
     expect(parseFavourites(JSON.stringify(tooMany))).toHaveLength(MAX_FAVOURITES);
+  });
+});
+
+describe("a signed-in customer's presses being saved", () => {
+  const white = { productId: SHIRT, color: "White" };
+  const black = { productId: SHIRT, color: "Black" };
+  const cap = { productId: CAP, color: "" };
+  const changes = (...list: FavouriteChange[]) => new Map(list.map((change) => [keyOf(change.key), change]));
+
+  it("shows new saves on top and leaves out removals", () => {
+    const pending = changes(
+      { key: cap, save: true, done: false },
+      { key: black, save: true, done: false },
+      { key: white, save: false, done: false },
+    );
+
+    expect(applyChanges([white], pending)).toEqual([black, cap]);
+    expect(applyChanges([white, cap], changes({ key: cap, save: true, done: false }))).toEqual([white, cap]);
+  });
+
+  it("keeps the same list when nothing is being saved", () => {
+    const keys = [white, cap];
+
+    expect(applyChanges(keys, new Map())).toBe(keys);
+  });
+
+  it("keeps a press a fresh server list doesn't show yet, so it can't be undone by an older save", () => {
+    const pending = changes({ key: white, save: false, done: false }, { key: cap, save: true, done: false });
+
+    // The server list from an earlier save still has White and not the cap.
+    expect(settleChanges(pending, [white])).toBe(pending);
+    expect(applyChanges([white], settleChanges(pending, [white]))).toEqual([cap]);
+  });
+
+  it("drops presses the server list shows, and ones already saved", () => {
+    const pending = changes(
+      { key: white, save: false, done: false },
+      { key: cap, save: true, done: true },
+      { key: black, save: true, done: false },
+    );
+
+    // Still lists White: that removal is open. Black shows; the cap is saved.
+    expect([...settleChanges(pending, [white, black]).keys()]).toEqual([keyOf(white)]);
+    expect(settleChanges(pending, [black]).size).toBe(0);
   });
 });

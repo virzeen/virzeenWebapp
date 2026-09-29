@@ -58,7 +58,10 @@ export const PaymentMethods: Story = {
   ),
 };
 
-/** Product styles: a picture per style (the app passes a CloudImage as `media`); sold-out styles are disabled. */
+/**
+ * Product styles: square picture tiles without a caption (the app passes a square CloudImage as `media`). The label is
+ * the accessible name and the tile's `title`; a sold-out style is disabled, dimmed and crossed out.
+ */
 export const StyleSwatches: Story = {
   render: () => (
     <RadioGroup aria-label="Style" variant="swatch" defaultValue="mountain" className="max-w-sm">
@@ -72,15 +75,23 @@ export const StyleSwatches: Story = {
           value={value as string}
           label={label}
           disabled={value === "city"}
-          media={<span className={cn("block aspect-4/5 rounded-sm", tone)} />}
+          media={<span className={cn("block aspect-square", tone)} />}
         />
       ))}
     </RadioGroup>
   ),
   play: async ({ canvas, userEvent }) => {
     await expect(canvas.getByRole("radio", { name: "Mountain print" })).toBeChecked();
+    await expect(canvas.getByRole("radio", { name: "Mountain print" })).toHaveAttribute(
+      "title",
+      "Mountain print",
+    );
     await expect(canvas.getByRole("radio", { name: "City print" })).toBeDisabled();
     await userEvent.click(canvas.getByRole("radio", { name: "River print" }));
     await expect(canvas.getByRole("radio", { name: "River print" })).toBeChecked();
+    // Square 64px tiles: a comfortable touch target.
+    const { width, height } = canvas.getByRole("radio", { name: "River print" }).getBoundingClientRect();
+    await expect(width).toBe(height);
+    await expect(height).toBeGreaterThanOrEqual(44);
   },
 };

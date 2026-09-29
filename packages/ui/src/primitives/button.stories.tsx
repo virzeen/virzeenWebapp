@@ -11,7 +11,7 @@ const meta = {
   argTypes: {
     variant: {
       control: "select",
-      options: ["primary", "secondary", "ghost", "inverse", "destructive", "link"],
+      options: ["primary", "secondary", "ghost", "inverse", "destructive", "link", "underline"],
     },
     size: { control: "select", options: ["sm", "md", "lg", "icon"] },
     shape: { control: "select", options: ["default", "pill"] },
@@ -31,6 +31,15 @@ export const Secondary: Story = { args: { variant: "secondary" } };
 export const Ghost: Story = { args: { variant: "ghost" } };
 export const Destructive: Story = { args: { variant: "destructive", children: "Remove" } };
 export const LinkStyle: Story = { args: { variant: "link", children: "Size guide" } };
+/** Always underlined: an action that reads like a link under a product's description. */
+export const Underline: Story = {
+  args: { variant: "underline", children: "View product details" },
+  play: async ({ canvas }) => {
+    const button = canvas.getByRole("button", { name: "View product details" });
+    await expect(getComputedStyle(button).textDecorationLine).toBe("underline");
+    await expect(button.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
+  },
+};
 /** Secondary actions in a row (Edit, Archive, Filters): 44px tall on phones and tablets, 36px from `lg`. */
 export const Small: Story = { args: { variant: "secondary", size: "sm", shape: "pill", children: "Edit" } };
 export const Pill: Story = { args: { shape: "pill", size: "lg", children: "Shop the collection" } };
@@ -70,6 +79,7 @@ export const AllVariants: Story = {
       <Button variant="ghost">Ghost</Button>
       <Button variant="destructive">Destructive</Button>
       <Button variant="link">Link</Button>
+      <Button variant="underline">Underline</Button>
       <Button shape="pill">Pill</Button>
       <Button size="sm">Small</Button>
       <Button size="lg">Large</Button>

@@ -8,8 +8,9 @@ import { cn } from "../lib/cn";
 /**
  * Short confirmation that needs a decision ("Remove item?", "Cancel order?").
  * Long content or forms belong in a `Sheet` or a page. Focus is trapped, Escape closes, focus returns to the trigger.
- * `size="lg"`: the one longer popup the owner chose, a product style's photos, price and stock
- * (specs/product-styles.md). Its body scrolls between the title and a `footer` that stays in view.
+ * `size="lg"`: the longer popups the owner chose: the product page's "View product details" and "Size guide"
+ * (specs/product-page.md, specs/size-guides.md). Its body scrolls between the title and a `footer` that stays in
+ * view; `media` puts a small picture (e.g. the product's photo) left of the title.
  *
  * ```tsx
  * <Dialog open={open} onOpenChange={setOpen}>
@@ -48,6 +49,8 @@ export type DialogContentProps = React.ComponentProps<typeof DialogPrimitive.Con
     footer?: React.ReactNode;
     /** Hide the corner close button (e.g. while a request is running). */
     hideClose?: boolean;
+    /** A small picture left of the title and description, e.g. the product's photo (decorative: give it alt=""). */
+    media?: React.ReactNode;
   };
 
 export function DialogContent({
@@ -57,10 +60,21 @@ export function DialogContent({
   description,
   footer,
   hideClose = false,
+  media,
   children,
   ...props
 }: DialogContentProps) {
   const large = size === "lg";
+  const heading = (
+    <>
+      <DialogPrimitive.Title className="font-display text-h3 text-ink">{title}</DialogPrimitive.Title>
+      {description && (
+        <DialogPrimitive.Description className="text-body text-ink-muted">
+          {description}
+        </DialogPrimitive.Description>
+      )}
+    </>
+  );
   return (
     <DialogPrimitive.Portal>
       <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-ink/50 data-[state=closed]:animate-fade-out data-[state=open]:animate-fade-in" />
@@ -69,12 +83,20 @@ export function DialogContent({
         {...(description ? {} : { "aria-describedby": undefined })}
         {...props}
       >
-        <div className={cn("flex flex-col gap-2 pr-8", large && "border-b border-line px-6 pt-6 pr-14 pb-4")}>
-          <DialogPrimitive.Title className="font-display text-h3 text-ink">{title}</DialogPrimitive.Title>
-          {description && (
-            <DialogPrimitive.Description className="text-body text-ink-muted">
-              {description}
-            </DialogPrimitive.Description>
+        <div
+          className={cn(
+            "flex flex-col gap-2 pr-8",
+            large && "border-b border-line px-6 pt-6 pr-14 pb-4",
+            media && "flex-row items-center gap-4",
+          )}
+        >
+          {media ? (
+            <>
+              <div className="w-16 shrink-0 overflow-hidden rounded-sm">{media}</div>
+              <div className="flex min-w-0 flex-col gap-1">{heading}</div>
+            </>
+          ) : (
+            heading
           )}
         </div>
         {large ? <div className="min-h-0 flex-1 overflow-y-auto p-6">{children}</div> : children}

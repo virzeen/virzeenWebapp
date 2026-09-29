@@ -61,6 +61,50 @@ export function addFavourite(
 export const removeFavourite = (list: readonly StoredFavourite[], key: FavouriteKey) =>
   list.filter((item) => keyOf(item) !== keyOf(key));
 
+/** The list without any of `keys` (a guest's favourites of products no longer on sale). */
+export function withoutFavourites(list: readonly StoredFavourite[], keys: readonly FavouriteKey[]) {
+  const gone = new Set(keys.map(keyOf));
+  return list.filter((item) => !gone.has(keyOf(item)));
+}
+
+/** True when both lists hold the same products and styles, in any order. */
+export function sameFavourites(a: readonly FavouriteKey[], b: readonly FavouriteKey[]) {
+  const ids = new Set(a.map(keyOf));
+  return ids.size === new Set(b.map(keyOf)).size && b.every((key) => ids.has(keyOf(key)));
+}
+
+// ── A signed-in customer's presses still being saved ──
+
+/** One press of Favourite: save or remove. `done` once the server has saved it. */
+export type FavouriteChange = { key: FavouriteKey; save: boolean; done: boolean };
+
+/** The account's list as the customer sees it: presses being saved applied on top (new saves first). */
+export function applyChanges(
+  keys: FavouriteKey[],
+  changes: ReadonlyMap<string, FavouriteChange>,
+): FavouriteKey[] {
+  if (changes.size === 0) return keys;
+  const listed = new Set(keys.map(keyOf));
+  const added = [...changes.values()]
+    .filter((change) => change.save && !listed.has(keyOf(change.key)))
+    .map((change) => change.key)
+    .reverse();
+  return [...added, ...keys.filter((key) => changes.get(keyOf(key))?.save !== false)];
+}
+
+/**
+ * The presses a fresh server list doesn't cover yet. Saved ones and ones it already shows are dropped; the rest
+ * stay, so a list rendered before a later press finished can't undo it. Unchanged → the same map.
+ */
+export function settleChanges(
+  changes: ReadonlyMap<string, FavouriteChange>,
+  serverKeys: readonly FavouriteKey[],
+): ReadonlyMap<string, FavouriteChange> {
+  const listed = new Set(serverKeys.map(keyOf));
+  const open = [...changes].filter(([id, change]) => !change.done && listed.has(id) !== change.save);
+  return open.length === changes.size ? changes : new Map(open);
+}
+
 // ── Browser storage ──
 // When the browser refuses to store the list (blocked or full), it lasts for this visit instead.
 
@@ -88,6 +132,13 @@ export function writeStoredFavourites(list: readonly StoredFavourite[] | null) {
     visitOnly = raw;
   }
   for (const listener of listeners) listener();
+}
+
+/** Takes `keys` out of the stored list; writes (and tells the tabs) only when one was there. */
+export function forgetStoredFavourites(keys: readonly FavouriteKey[]) {
+  const list = parseFavourites(readStoredFavourites());
+  const kept = withoutFavourites(list, keys);
+  if (kept.length !== list.length) writeStoredFavourites(kept);
 }
 
 /** Calls `onChange` when the list changes in this tab or another one. */

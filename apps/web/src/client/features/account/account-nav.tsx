@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 
 const ITEMS = [
   { href: "/account/orders", label: "Orders" },
+  // Its own page outside the account (guests have favourites too), listed here as well.
+  { href: "/favourites", label: "Favourites" },
   { href: "/account/addresses", label: "Addresses" },
   { href: "/account/settings", label: "Settings" },
 ] as const;

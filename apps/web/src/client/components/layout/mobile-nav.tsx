@@ -18,6 +18,7 @@ export function MobileNav({ categories, isSignedIn }: { categories: Category[]; 
   const current = [
     ...PRIMARY_NAV.map((item) => item.href),
     ...categories.map((c) => `/shop/${c.slug}`),
+    "/favourites",
     accountHref,
   ]
     .filter((href) => isCurrent(pathname, href))
@@ -62,6 +63,9 @@ export function MobileNav({ categories, isSignedIn }: { categories: Category[]; 
             </>
           )}
           <Separator className="my-4" />
+          <Link href="/favourites" variant="nav" aria-current={ariaCurrent("/favourites")} onClick={close}>
+            Favourites
+          </Link>
           <Link href={accountHref} variant="nav" aria-current={ariaCurrent(accountHref)} onClick={close}>
             {isSignedIn ? "Account" : "Sign in"}
           </Link>

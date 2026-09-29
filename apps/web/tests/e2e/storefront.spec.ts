@@ -12,7 +12,10 @@ test.describe("Add to bag", () => {
 
     // With no size chosen the button points at the size picker instead of adding.
     await page.getByRole("button", { name: "Select a size" }).click();
-    await expect(page.getByRole("radiogroup", { name: "Size" })).toHaveAttribute("aria-invalid", "true");
+    await expect(page.getByRole("radiogroup", { name: "Select size" })).toHaveAttribute(
+      "aria-invalid",
+      "true",
+    );
 
     await page.getByRole("radio", { name: "M", exact: true }).click();
     await page.getByRole("button", { name: "Add to bag" }).click();
@@ -47,6 +50,82 @@ test.describe("Add to bag", () => {
     await bag.getByRole("button", { name: "Undo" }).click();
     await expect(bag.getByText("Logo Cap")).toBeVisible();
     await expect(bag.getByTestId("cart-subtotal")).toContainText("Rs 3,600");
+  });
+});
+
+// The Nike-style product page (specs/product-page.md, specs/size-guides.md). The seeded Linen Overshirt has three
+// shared photos, the styles Black and Bone, the "Tops" size guide, details and three features.
+test.describe("Product page", () => {
+  test("thumbnails and the arrows switch the main photo", async ({ page }) => {
+    await page.goto("/product/linen-overshirt");
+    const main = page.getByTestId("gallery-main").getByRole("img");
+    await expect(main).toHaveAttribute("src", /product-03/);
+
+    const second = page.getByRole("button", { name: "Show photo 2", exact: true });
+    await second.click();
+    await expect(main).toHaveAttribute("src", /product-07/);
+    await expect(second).toHaveAttribute("aria-current", "true");
+    await expect(page.getByText("Photo 2 of 3")).toBeAttached();
+
+    await page.getByRole("button", { name: "Next photo" }).click();
+    await expect(main).toHaveAttribute("src", /product-11/);
+    // Wraps around to the first photo.
+    await page.getByRole("button", { name: "Next photo" }).click();
+    await expect(main).toHaveAttribute("src", /product-03/);
+  });
+
+  test("picking a style changes the address, and a ?style= link opens that style", async ({ page }) => {
+    await page.goto("/product/linen-overshirt");
+    await expect(page.getByRole("radio", { name: "Black", exact: true })).toBeChecked();
+    await expect(page.getByText("Colour shown: Black")).toBeVisible();
+
+    await page.getByRole("radio", { name: "Bone", exact: true }).click();
+    await expect(page).toHaveURL(/\/product\/linen-overshirt\?style=Bone$/);
+    await expect(page.getByText("Colour shown: Bone")).toBeVisible();
+
+    await page.goto("/product/linen-overshirt?style=Bone");
+    await expect(page.getByRole("radio", { name: "Bone", exact: true })).toBeChecked();
+    // An unknown style falls back to the first style with stock.
+    await page.goto("/product/linen-overshirt?style=Nope");
+    await expect(page.getByRole("radio", { name: "Black", exact: true })).toBeChecked();
+  });
+
+  test("the size guide opens, switches to inches and closes", async ({ page }) => {
+    await page.goto("/product/linen-overshirt");
+    const button = page.getByRole("button", { name: "Size guide" }).first();
+    await button.click();
+    const guide = page.getByRole("dialog", { name: "Size guide" });
+    await expect(guide).toBeVisible();
+    await expect(guide.getByRole("columnheader", { name: "Chest (cm)" })).toBeVisible();
+    const medium = guide
+      .getByRole("row")
+      .filter({ has: page.getByRole("rowheader", { name: "M", exact: true }) });
+    await expect(medium).toContainText("94-100");
+
+    await guide.getByRole("radio", { name: "in", exact: true }).click();
+    await expect(guide.getByRole("columnheader", { name: "Chest (in)" })).toBeVisible();
+    await expect(medium).toContainText("37 - 39.5");
+
+    await page.keyboard.press("Escape");
+    await expect(guide).toBeHidden();
+    await expect(button).toBeFocused();
+  });
+
+  test("the product details popup and the features row", async ({ page }) => {
+    await page.goto("/product/linen-overshirt");
+    const open = page.getByRole("button", { name: "View product details" });
+    await open.click();
+    const details = page.getByRole("dialog", { name: "Linen Overshirt" });
+    await expect(details).toBeVisible();
+    await expect(details.getByRole("heading", { name: "Benefits" })).toBeVisible();
+    await expect(details.getByText("100% linen")).toBeVisible();
+    await expect(details.getByText("Country/Region of origin: Nepal")).toBeVisible();
+    await details.getByRole("button", { name: "Close" }).click();
+    await expect(details).toBeHidden();
+    await expect(open).toBeFocused();
+
+    await expect(page.getByRole("heading", { level: 2, name: "Features that perform" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 3, name: "Breathes on warm days" })).toBeVisible();
   });
 });
 

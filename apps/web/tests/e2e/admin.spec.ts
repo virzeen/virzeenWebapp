@@ -50,6 +50,31 @@ test("admin sets up two-factor, creates a product and it appears in the shop", a
   await page.getByRole("button", { name: "Verify" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Dashboard" })).toBeVisible();
 
+  // A size guide (specs/size-guides.md): two measurements and two sizes in cm, picked on the product below.
+  await page.getByRole("navigation", { name: "Admin" }).getByRole("link", { name: "Size guides" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Size guides" })).toBeVisible();
+  await page.getByRole("link", { name: "New size guide" }).click();
+  await page.getByRole("textbox", { name: "Name", exact: true }).fill("E2E Tops");
+  await page.getByLabel("Measurement 1", { exact: true }).fill("Chest");
+  await page.getByRole("button", { name: "Add measurement" }).click();
+  await expect(page.getByLabel("Measurement 2", { exact: true })).toBeFocused();
+  await page.getByLabel("Measurement 2", { exact: true }).fill("Length");
+  await page.getByLabel("Size, row 1", { exact: true }).fill("M");
+  await page.getByLabel("Chest (cm), M", { exact: true }).fill("96-101");
+  await page.getByLabel("Length (cm), M", { exact: true }).fill("72");
+  await page.getByRole("button", { name: "Add size" }).click();
+  await page.getByLabel("Size, row 2", { exact: true }).fill("L");
+  await page.getByLabel("Chest (cm), L", { exact: true }).fill("102-107");
+  await page.getByLabel("Length (cm), L", { exact: true }).fill("74");
+  await page
+    .getByLabel(/^How to measure/)
+    .fill("Chest: around the fullest part.\nLength: from the shoulder down.");
+  await page.getByRole("button", { name: "Save size guide" }).click();
+  await expect(page.getByText("Size guide saved")).toBeVisible();
+  await expect(page).toHaveURL(/\/admin\/size-guides\/(?!new)[a-z0-9]+$/);
+  await expect(page.getByRole("heading", { level: 1, name: "E2E Tops" })).toBeVisible();
+  await expect(page.getByLabel("Length (cm), L", { exact: true })).toHaveValue("74");
+
   // Create a product with the editor (specs/admin-product-editor.md).
   await page.getByRole("link", { name: "Products" }).click();
   await page.getByRole("link", { name: "New product" }).click();
@@ -65,25 +90,39 @@ test("admin sets up two-factor, creates a product and it appears in the shop", a
   await page
     .getByRole("textbox", { name: "Description" })
     .fill("A ribbed beanie for cold Kathmandu mornings.");
+  // The product details popup's bullets, one per line (specs/product-page.md).
+  await page.getByLabel(/^Benefits/).fill("Keeps your ears warm\nSoft on the skin\n");
+  await page.getByLabel(/^Product details/).fill("100% merino wool\nHand wash cold");
+  await page.getByLabel(/^Country\/Region of origin/).fill("Nepal");
+  // Features that perform: one card with its picture, title and text.
+  const features = page.getByRole("region", { name: "Features that perform" });
+  await features.getByRole("button", { name: "Add feature" }).click();
+  await expect(features.getByLabel(/^Title/)).toBeFocused();
+  await features.getByLabel(/^Title/).fill("Ribbed for warmth");
+  await features.getByLabel(/^Text/).fill("A close rib knit that keeps the cold out.");
+  await features.getByLabel(/^Image reference/).fill("/placeholder/product-03.jpg");
+  await features.getByRole("button", { name: "Add picture" }).click();
+  await expect(features.getByRole("button", { name: "Replace picture" })).toBeVisible();
+  await expect(features.getByText("1 of 6")).toBeVisible();
   // One price for every size, plus shipping; customers see the sum (Rs 1,500) with free shipping.
   await page.getByLabel(/^Price \(Rs\)/).fill("1350");
   await page.getByLabel(/^Shipping \(Rs\)/).fill("150");
   await expect(page.getByText(/Customers pay Rs 1,500/)).toBeVisible();
-  // A style (colour) opens its popup. After two sizes typed with commas, it has a stock row for each.
+  // A style (colour) gets its own card, then two sizes typed with commas: a stock row for each combination.
   await page.getByLabel(/^Add a style/).fill("Black");
   await page.getByLabel(/^Add a style/).press("Enter");
-  const black = page.getByRole("dialog", { name: "Black" });
+  const black = page.getByRole("region", { name: "Black" });
   await expect(black).toBeVisible();
-  await black.getByRole("button", { name: "Done" }).click();
+  await expect(
+    black.getByText(/Shipping Rs 150, the same for every style\. Customers pay Rs 1,500/),
+  ).toBeVisible();
   await page.getByLabel(/^Sizes/).fill("S, M,");
-  await page.getByRole("button", { name: "Edit Black" }).click();
   await black.getByLabel("Stock, Black, S").fill("5");
   await black.getByLabel("Stock, Black, M").fill("7");
-  await black.getByRole("button", { name: "Done" }).click();
-  await expect(page.getByRole("button", { name: "Edit Black" })).toBeFocused();
-  await expect(page.getByText(/Rs 1,350 · 12 in stock · No photos yet/)).toBeVisible();
   await page.getByRole("combobox", { name: /Category/ }).click();
   await page.getByRole("option", { name: "Accessories" }).click();
+  await page.getByRole("combobox", { name: "Size guide" }).click();
+  await page.getByRole("option", { name: "E2E Tops" }).click();
   // The slug fills itself from the name, under Search engines.
   await page.getByRole("button", { name: "Search engines" }).click();
   await expect(page.getByLabel(/URL slug/)).toHaveValue("e2e-monochrome-beanie");
@@ -93,16 +132,15 @@ test("admin sets up two-factor, creates a product and it appears in the shop", a
 
   // SKUs were made on save; a second save keeps the same two rows instead of adding them again.
   await page.getByRole("checkbox", { name: /Edit SKU codes/ }).click();
-  await page.getByRole("button", { name: "Edit Black" }).click();
-  await expect(black.getByLabel("SKU, Black, S")).toHaveValue("VZ-E2EMONOCHROM-BLACK-S");
-  await black.getByLabel("Stock, Black, M").fill("8");
-  await black.getByRole("button", { name: "Done" }).click();
+  await expect(page.getByLabel("SKU, Black, S")).toHaveValue("VZ-E2EMONOCHROM-BLACK-S");
+  await page.getByLabel("Stock, Black, M").fill("8");
   await page.getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.getByText("Product saved")).toBeVisible();
-  await page.getByRole("button", { name: "Edit Black" }).click();
-  await expect(black.getByLabel(/^Stock, /)).toHaveCount(2);
-  await expect(black.getByLabel("SKU, Black, M")).toHaveValue("VZ-E2EMONOCHROM-BLACK-M");
-  await black.getByRole("button", { name: "Done" }).click();
+  await expect(page.getByLabel(/^Stock, /)).toHaveCount(2);
+  await expect(page.getByLabel("SKU, Black, M")).toHaveValue("VZ-E2EMONOCHROM-BLACK-M");
+  // The details and the feature were saved too.
+  await expect(page.getByLabel(/^Benefits/)).toHaveValue(/^Keeps your ears warm\nSoft on the skin\n?$/);
+  await expect(features.getByLabel(/^Title/)).toHaveValue("Ribbed for warmth");
 
   // Preview: the product page in a new tab, following the editor as it changes (nothing saved).
   const [preview] = await Promise.all([
@@ -127,6 +165,25 @@ test("admin sets up two-factor, creates a product and it appears in the shop", a
   await page.getByRole("link", { name: /E2E Monochrome Beanie/ }).click();
   await expect(page.getByRole("heading", { level: 1, name: "E2E Monochrome Beanie" })).toBeVisible();
   await expect(page.getByText("Rs 1,500").first()).toBeVisible();
+  // The picked size guide opens as a popup; inches are worked out from cm (72 cm is 28.5 in).
+  await page.getByRole("button", { name: "Size guide" }).first().click();
+  const sizeGuide = page.getByRole("dialog", { name: "Size guide" });
+  await expect(sizeGuide.getByRole("cell", { name: "72", exact: true })).toBeVisible();
+  await sizeGuide.getByRole("radio", { name: "in", exact: true }).click();
+  await expect(sizeGuide.getByRole("cell", { name: "28.5", exact: true })).toBeVisible();
+  await expect(sizeGuide.getByRole("cell", { name: "72", exact: true })).toBeHidden();
+  await page.keyboard.press("Escape");
+  await expect(sizeGuide).toBeHidden();
+  // View product details: everything in one popup, named after the product.
+  await page.getByRole("button", { name: "View product details" }).click();
+  const details = page.getByRole("dialog", { name: "E2E Monochrome Beanie" });
+  await expect(details.getByText("Keeps your ears warm")).toBeVisible();
+  await expect(details.getByText("100% merino wool")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(details).toBeHidden();
+  // Features that perform, under the product.
+  await expect(page.getByRole("heading", { level: 2, name: "Features that perform" })).toBeVisible();
+  await expect(page.getByText("Ribbed for warmth", { exact: true }).first()).toBeVisible();
 
   // Products list: status filters, and Duplicate makes a draft copy (stock 0) that opens in the editor.
   await page.goto("/admin/products");
@@ -136,35 +193,44 @@ test("admin sets up two-factor, creates a product and it appears in the shop", a
   await page.getByRole("button", { name: "Duplicate E2E Monochrome Beanie" }).click();
   await expect(page.getByText("Copy saved as a draft")).toBeVisible();
   await expect(page.getByLabel(/^Product name/)).toHaveValue("E2E Monochrome Beanie (copy)");
-  await expect(page.getByText(/Rs 1,350 · 0 in stock/)).toBeVisible();
+  await expect(page.getByLabel("Stock, Black, S")).toHaveValue("0");
   await expect(page.getByRole("button", { name: "Publish", exact: true })).toBeVisible();
 
-  // Styles (specs/product-styles.md): a second design with its own photo and price, edited in its popup.
+  // Styles (specs/product-styles.md): a second design in its own card, with its own photo and price.
   await page.getByLabel(/^Add another style/).fill("Mountain print");
   await page.getByLabel(/^Add another style/).press("Enter");
-  const mountain = page.getByRole("dialog", { name: "Mountain print" });
+  const mountain = page.getByRole("region", { name: "Mountain print" });
   await mountain.getByLabel(/^Image reference/).fill("/placeholder/product-02.jpg");
   await mountain.getByRole("button", { name: "Add photo" }).click();
+  await expect(mountain.getByText("Main photo", { exact: true })).toBeVisible();
   await mountain.getByLabel(/^Price \(Rs\)/).fill("1650");
   await expect(mountain.getByText(/Customers pay Rs 1,800/)).toBeVisible();
   await mountain.getByLabel("Stock, Mountain print, S").fill("3");
-  await mountain.getByRole("button", { name: "Done" }).click();
-  // The main page lists the style; its photo isn't among the photos for every style.
-  await expect(page.getByText(/Rs 1,650 · 3 in stock · 1 photo/)).toBeVisible();
+  // The style's photo stays in its card, not among the photos for every style.
   await expect(page.getByRole("region", { name: "Photos for every style" }).locator("img")).toHaveCount(1);
-  await page.getByRole("button", { name: "Edit Black" }).click();
   await black.getByLabel(/^Image reference/).fill("/placeholder/product-07.jpg");
   await black.getByRole("button", { name: "Add photo" }).click();
   await black.getByLabel("Stock, Black, S").fill("2");
-  await black.getByRole("button", { name: "Done" }).click();
   await page.getByRole("button", { name: "Publish", exact: true }).click();
   await expect(page.getByText("Product published")).toBeVisible();
-  // The shop page: picture swatches; picking a style changes its photos and price.
+  // The size guide can't be archived while products use it (this product and the first one).
+  await page.goto("/admin/size-guides");
+  const tops = page.getByRole("row", { name: /E2E Tops/ });
+  await expect(tops.getByText("2 products")).toBeVisible();
+  await tops.getByRole("button", { name: "Archive" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Archive" }).click();
+  await expect(page.getByRole("dialog", { name: "E2E Tops can't be archived yet" })).toBeVisible();
+  await expect(
+    page.getByText("2 products use this size guide. Pick another guide on them first."),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "OK" }).click();
+  // The shop page: style tiles; picking a style changes its photos, price, the colour shown and the address.
   await page.goto("/product/e2e-monochrome-beanie-copy");
-  await expect(page.getByText("Style: Black")).toBeVisible();
+  await expect(page.getByText("Colour shown: Black")).toBeVisible();
   await expect(page.locator('main img[src*="product-07"]').first()).toBeVisible();
   await page.getByRole("radio", { name: "Mountain print" }).click();
-  await expect(page.getByText("Style: Mountain print")).toBeVisible();
+  await expect(page).toHaveURL(/[?&]style=Mountain(%20|\+)print/);
+  await expect(page.getByText("Colour shown: Mountain print")).toBeVisible();
   await expect(page.locator('main img[src*="product-02"]').first()).toBeVisible();
   await expect(page.getByText("Rs 1,800").first()).toBeVisible();
   await expect(page.getByRole("radio", { name: "M", exact: true })).toBeDisabled();

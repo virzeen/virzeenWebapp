@@ -1,5 +1,5 @@
 import { ButtonLink, Container, Link } from "@virzeen/ui";
-import { UserRound } from "lucide-react";
+import { Heart, UserRound } from "lucide-react";
 import { BagButton } from "@/client/features/cart/bag-button";
 import { MobileNav } from "./mobile-nav";
 import { NavLinks } from "./nav-links";
@@ -8,7 +8,7 @@ import { Wordmark } from "./wordmark";
 type SiteHeaderProps = { isSignedIn: boolean; categories: { slug: string; name: string }[] };
 
 /**
- * Global header: navigation, wordmark, account and bag. Sticky, calm, translucent.
+ * Global header: navigation, wordmark, favourites, account and bag. Sticky, calm, translucent.
  * `data-sticky-header` lets globals.css keep focused elements scrolled clear of it.
  */
 export function SiteHeader({ isSignedIn, categories }: SiteHeaderProps) {
@@ -31,6 +31,9 @@ export function SiteHeader({ isSignedIn, categories }: SiteHeaderProps) {
           <Wordmark className="h-4 w-auto sm:h-5" title="Virzeen" />
         </Link>
         <div className="flex items-center justify-end gap-1">
+          <ButtonLink href="/favourites" variant="ghost" size="icon" shape="pill" aria-label="Favourites">
+            <Heart className="size-5" strokeWidth={1.5} aria-hidden />
+          </ButtonLink>
           <ButtonLink
             href={isSignedIn ? "/account" : "/login"}
             variant="ghost"

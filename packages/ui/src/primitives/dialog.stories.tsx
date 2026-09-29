@@ -94,3 +94,43 @@ export const Large: Story = {
     await waitFor(() => expect(canvas.getByRole("button", { name: "Edit Mountain print" })).toHaveFocus());
   },
 };
+
+/**
+ * `size="lg"` with `media`: the product page's "View product details". The header shows the photo, the name and,
+ * in the app, the price as the description.
+ */
+export const LargeWithMedia: Story = {
+  render: () => (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="underline">View product details</Button>
+      </DialogTrigger>
+      <DialogContent
+        size="lg"
+        title="Linen Overshirt"
+        description="Colour shown: Black"
+        media={<span className="block aspect-4/5 bg-ink-muted" />}
+      >
+        <div className="flex flex-col gap-6 text-body">
+          <p>A relaxed overshirt in washed linen with a boxy fit, patch pockets and horn-effect buttons.</p>
+          <section className="flex flex-col gap-2">
+            <h3 className="text-h3">Product details</h3>
+            <ul className="list-disc pl-6">
+              <li>100% linen</li>
+              <li>Colour shown: Black</li>
+              <li>Country/Region of origin: Nepal</li>
+            </ul>
+          </section>
+        </div>
+      </DialogContent>
+    </Dialog>
+  ),
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(canvas.getByRole("button", { name: "View product details" }));
+    const dialog = await screen.findByRole("dialog", { name: "Linen Overshirt" });
+    await waitFor(() => expect(dialog).toBeVisible());
+    await expect(dialog).toHaveAccessibleDescription("Colour shown: Black");
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    await waitFor(() => expect(canvas.getByRole("button", { name: "View product details" })).toHaveFocus());
+  },
+};

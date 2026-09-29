@@ -14,6 +14,7 @@ const buttonVariants = cva(
         inverse: "bg-canvas text-ink hover:bg-canvas/85",
         destructive: "bg-danger text-canvas hover:bg-danger/90",
         link: "text-ink underline-offset-4 hover:underline", // sized by the compound variant below
+        underline: "text-ink underline underline-offset-4 hover:text-ink-muted", // an always-underlined text button
       },
       size: {
         sm: "h-11 px-4 text-small lg:h-9 lg:px-3", // 44px on touch widths; 36px from lg for dense rows
@@ -28,7 +29,9 @@ const buttonVariants = cva(
     },
     // Compound classes come after the size classes, so they win: a text link has no padding and its own
     // height, but keeps a 44px tap area at every size (the lg: classes undo sm's desktop size).
-    compoundVariants: [{ variant: "link", className: "h-auto min-h-11 px-0 lg:h-auto lg:px-0" }],
+    compoundVariants: [
+      { variant: ["link", "underline"], className: "h-auto min-h-11 px-0 lg:h-auto lg:px-0" },
+    ],
     defaultVariants: { variant: "primary", size: "md", shape: "default" },
   },
 );
@@ -45,7 +48,8 @@ export type ButtonProps = React.ComponentProps<"button"> &
  * Icon-only buttons (`size="icon"`) must have an `aria-label`.
  * `shape="pill"` is the brand call-to-action shape; `variant="inverse"` sits on dark imagery.
  * `size="sm"` is for secondary actions in rows: 44px tall on phones and tablets, 36px from `lg` (desktop).
- * `variant="link"` keeps a 44px-tall tap area at every size.
+ * `variant="link"` keeps a 44px-tall tap area at every size; `variant="underline"` is the same text button, always
+ * underlined, for an action that reads like a link in running content ("View product details").
  */
 export function Button({
   className,
