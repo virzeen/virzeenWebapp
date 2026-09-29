@@ -37,6 +37,9 @@ describe("authErrorMessage", () => {
     expect(authErrorMessage({ code: "RATE_LIMITED", status: 429 })).toBe(
       "Too many attempts. Please wait a few minutes and try again.",
     );
+    expect(authErrorMessage({ code: "DELIVERY_FAILED", status: 503 })).toBe(
+      "We couldn't send your code. Please try again in a few minutes.",
+    );
   });
 
   it("never shows raw error text", () => {

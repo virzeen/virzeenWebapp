@@ -18,10 +18,9 @@ export default async function VerifyPage({ searchParams }: { searchParams: Searc
     <Container width="narrow" className="flex max-w-md flex-col gap-8 py-16 lg:py-24">
       <header className="flex flex-col gap-2">
         <h1 className="font-display text-h1">Check your email</h1>
-        {/* Says up front that the code is checked without a button (WCAG 3.2.2). */}
+        {/* That the code is checked without a button is the code field's helper text (WCAG 3.2.2). */}
         <p className="text-body text-ink-muted">
-          We sent a 6-digit code to <span className="text-ink">{email.data}</span>. Enter it and we&apos;ll
-          sign you in straight away. It expires in 10 minutes.
+          We sent a 6-digit code to <span className="text-ink">{email.data}</span>. It expires in 10 minutes.
         </p>
       </header>
       <VerifyForm email={email.data} next={next} />

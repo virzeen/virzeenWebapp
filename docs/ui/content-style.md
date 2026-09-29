@@ -37,6 +37,7 @@ Calm, warm, confident. Short sentences. Sentence case. No exclamation marks in e
 | `PAYMENT_FAILED`           | Payment didn't go through. Your bag is saved — try again or choose another method.               |
 | `PAYMENT_PENDING`          | We're confirming your payment. This usually takes a minute — you'll get an email when it's done. |
 | `RATE_LIMITED`             | Too many attempts. Please wait a few minutes and try again.                                      |
+| `DELIVERY_FAILED`          | We couldn't send your code. Please try again in a few minutes.                                   |
 | `INTERNAL` / unknown       | Something went wrong on our side. Please try again.                                              |
 | Order confirmed            | Thank you — your order {orderNumber} is confirmed.                                               |
 
@@ -51,18 +52,19 @@ Calm, warm, confident. Short sentences. Sentence case. No exclamation marks in e
 
 ## Sign-in code (`/verify`)
 
-The code is checked as soon as the sixth digit is in, so the page says so before the field (specs/sign-in-code.md).
+The code is checked as soon as the sixth digit is in, so the field's helper text says so; it is read out when the field takes focus (specs/sign-in-code.md).
 
-| Situation                                  | Text                                                                                                       |
-| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
-| Intro under "Check your email"             | We sent a 6-digit code to {email}. Enter it and we'll sign you in straight away. It expires in 10 minutes. |
-| Checking (status line under the boxes)     | Checking your code…                                                                                        |
-| Accepted (status line)                     | Code accepted. Signing you in…                                                                             |
-| Wrong code (`INVALID_OTP`)                 | That code isn't right. Check it and try again.                                                             |
-| Expired code (`OTP_EXPIRED`)               | That code has expired. Send a new one.                                                                     |
-| Too many wrong codes (`TOO_MANY_ATTEMPTS`) | Too many wrong codes. Send a new code to try again.                                                        |
-| Resend link                                | Send a new code · while it waits: Send a new code in {n}s                                                  |
-| New code sent (toast)                      | We sent a new code                                                                                         |
+| Situation                                  | Text                                                         |
+| ------------------------------------------ | ------------------------------------------------------------ |
+| Intro under "Check your email"             | We sent a 6-digit code to {email}. It expires in 10 minutes. |
+| Helper under the boxes                     | We'll sign you in as soon as all 6 digits are in.            |
+| Checking (status line under the boxes)     | Checking your code…                                          |
+| Accepted (status line)                     | Code accepted. Signing you in…                               |
+| Wrong code (`INVALID_OTP`)                 | That code isn't right. Check it and try again.               |
+| Expired code (`OTP_EXPIRED`)               | That code has expired. Send a new one.                       |
+| Too many wrong codes (`TOO_MANY_ATTEMPTS`) | Too many wrong codes. Send a new code to try again.          |
+| Resend link                                | Send a new code · while it waits: Send a new code in {n}s    |
+| New code sent (toast)                      | We sent a new code                                           |
 
 Too many requests and anything unexpected use the standard `RATE_LIMITED` and `INTERNAL` messages, in an `Alert` with "Try again".
 
