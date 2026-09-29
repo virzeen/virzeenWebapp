@@ -1,7 +1,7 @@
 # Nightly Postgres backup to S3-compatible object storage: the Railway cron service `db-backup`
 # (docs/runbooks/database-backups.md). Build context is the repo root, as on Railway.
 # pg_dump refuses to dump a newer server, so PG_MAJOR must be at least the database's major version.
-ARG PG_MAJOR=17
+ARG PG_MAJOR=18
 FROM postgres:${PG_MAJOR}-alpine
 
 RUN apk add --no-cache aws-cli
