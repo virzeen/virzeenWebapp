@@ -2,9 +2,11 @@ import "server-only";
 import "@/server/bootstrap";
 import { adminReads, catalogReads, orderService, portfolioService } from "@virzeen/core";
 import type { AdminOrderFilters } from "@virzeen/validators";
+import { cache } from "react";
 import { features } from "@/server/env";
 
-// Admin read models. Pages call requireAdminPage() before any of these.
+// Admin read models. Pages call requireAdminPage() before any of these. The single-item reads are memoised per
+// request with React cache(): generateMetadata and the page both read the item.
 
 export const getDashboardStats = () => orderService.dashboardStats();
 export const listAdminOrders = (filters: AdminOrderFilters) => orderService.listForAdmin(filters);
@@ -16,29 +18,29 @@ export const listAdminPortfolio = () => portfolioService.listForAdmin();
 export const listProductOptions = () => adminReads.listProductOptions();
 export const uploadsEnabled = () => features.cloudinary;
 
-export async function getAdminOrder(orderNumber: string) {
+export const getAdminOrder = cache(async (orderNumber: string) => {
   try {
     return await orderService.getForAdmin(orderNumber);
   } catch {
     return null;
   }
-}
+});
 
-export async function getProductForEdit(id: string) {
+export const getProductForEdit = cache(async (id: string) => {
   try {
     return await adminReads.getProductForEdit(id);
   } catch {
     return null;
   }
-}
+});
 
-export async function getPortfolioProjectForEdit(id: string) {
+export const getPortfolioProjectForEdit = cache(async (id: string) => {
   try {
     return await portfolioService.getForAdmin(id);
   } catch {
     return null;
   }
-}
+});
 
 /** Categories + collections for the product form. */
 export async function getProductFormOptions() {

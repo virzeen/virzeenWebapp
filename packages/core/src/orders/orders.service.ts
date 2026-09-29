@@ -397,18 +397,21 @@ export const orderService = {
     return { orderNumber };
   },
 
-  /** Numbers for the admin dashboard. */
+  /**
+   * Numbers for the admin dashboard. Each to-do tile links to the orders list filtered by that status, and
+   * counts with the same filter as listForAdmin, so the number matches the list it opens.
+   */
   async dashboardStats(now = new Date()) {
     const nepalOffset = 345 * 60_000; // Nepal is UTC+5:45
     const nepalMidnight = new Date(now.getTime() + nepalOffset);
     nepalMidnight.setUTCHours(0, 0, 0, 0);
     const startOfDay = new Date(nepalMidnight.getTime() - nepalOffset);
     const paidStatuses: PaymentStatus[] = ["PAID", "COD_DUE", "COD_COLLECTED"];
-    const openStatuses: OrderStatus[] = ["CONFIRMED", "PROCESSING"];
-    const [toFulfil, shipped, pendingPayments, today] = await Promise.all([
-      db.order.count({ where: { status: { in: openStatuses } } }),
-      db.order.count({ where: { status: "SHIPPED" } }),
-      db.payment.count({ where: { status: "PENDING" } }),
+    const countWithStatus = (status: OrderStatus) => db.order.count({ where: { status } });
+    const [toPack, toShip, awaitingPayment, today] = await Promise.all([
+      countWithStatus("CONFIRMED"),
+      countWithStatus("PROCESSING"),
+      countWithStatus("PENDING"),
       db.order.aggregate({
         where: { createdAt: { gte: startOfDay }, paymentStatus: { in: paidStatuses } },
         _sum: { totalPaisa: true },
@@ -416,9 +419,9 @@ export const orderService = {
       }),
     ]);
     return {
-      toFulfil,
-      shipped,
-      pendingPayments,
+      toPack,
+      toShip,
+      awaitingPayment,
       todayOrders: today._count._all,
       todayRevenuePaisa: today._sum.totalPaisa ?? 0,
     };

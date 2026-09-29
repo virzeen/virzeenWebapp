@@ -81,8 +81,16 @@ export const cartService = {
     return { cartId: cart.id, guestToken };
   },
 
-  /** Adds a variant or increases its quantity. Enforces stock and the per-line limit. */
-  async addItem(input: { cartId: string; variantId: string; quantity: number }): Promise<CartSummary> {
+  /**
+   * Adds a variant or increases its quantity. Enforces stock and the per-line limit.
+   * `addedAt` (Undo after a remove) puts a new line back in its old place: lines are listed oldest first.
+   */
+  async addItem(input: {
+    cartId: string;
+    variantId: string;
+    quantity: number;
+    addedAt?: Date | undefined;
+  }): Promise<CartSummary> {
     return db.$transaction(async (tx) => {
       const variant = await tx.productVariant.findFirst({
         where: { id: input.variantId, isActive: true, product: { isPublished: true, archivedAt: null } },
@@ -109,6 +117,7 @@ export const cartService = {
           variantId: input.variantId,
           quantity: input.quantity,
           unitPricePaisa: variant.pricePaisa,
+          ...(input.addedAt ? { createdAt: input.addedAt } : {}),
         },
         // Re-adding confirms the customer has seen the current price.
         update: { quantity: nextQuantity, unitPricePaisa: variant.pricePaisa },
@@ -138,16 +147,17 @@ export const cartService = {
     });
   },
 
-  /** Removes a line and returns what was removed so the UI can offer Undo. */
+  /** Removes a line and returns what was removed (with when it was added, for its place) so the UI can offer Undo. */
   async removeItem(input: { cartId: string; itemId: string }) {
     return db.$transaction(async (tx) => {
       const line = await tx.cartItem.findFirst({
         where: { id: input.itemId, cartId: input.cartId },
-        select: { variantId: true, quantity: true },
+        select: { variantId: true, quantity: true, createdAt: true },
       });
       if (!line) throw new AppError("NOT_FOUND", "This item is no longer in your bag.");
       await tx.cartItem.delete({ where: { id: input.itemId } });
-      return { removed: line, cart: await getCartSummary(tx, input.cartId) };
+      const removed = { variantId: line.variantId, quantity: line.quantity, addedAt: line.createdAt };
+      return { removed, cart: await getCartSummary(tx, input.cartId) };
     });
   },
 

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { orderNumberSchema } from "./common";
+import { adminPageSchema, orderNumberSchema } from "./common";
 
 const reason = z.string().trim().min(3, { error: "Add a short reason" }).max(300);
 
@@ -37,6 +37,6 @@ export const ORDER_STATUSES = [
 export const adminOrderFiltersSchema = z.object({
   status: z.enum(ORDER_STATUSES).optional().catch(undefined),
   q: z.string().trim().max(60).optional().catch(undefined),
-  page: z.coerce.number().int().min(1).max(10_000).catch(1),
+  page: adminPageSchema,
 });
 export type AdminOrderFilters = z.output<typeof adminOrderFiltersSchema>;

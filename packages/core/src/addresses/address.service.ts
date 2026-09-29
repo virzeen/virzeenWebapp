@@ -80,9 +80,10 @@ export const addressService = {
       const owned = await tx.address.findFirst({ where: { id, userId }, select: { isDefault: true } });
       if (!owned) throw new AppError("NOT_FOUND", "Address not found.");
       if (address.isDefault) await tx.address.updateMany({ where: { userId }, data: { isDefault: false } });
+      // The default only moves to another address; it is never switched off, so there is always one.
       return tx.address.update({
         where: { id },
-        data: { ...toData(address), isDefault: address.isDefault ?? owned.isDefault },
+        data: { ...toData(address), isDefault: owned.isDefault || address.isDefault === true },
         select: addressSelect,
       });
     });

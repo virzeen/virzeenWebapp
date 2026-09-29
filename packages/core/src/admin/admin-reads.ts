@@ -49,8 +49,8 @@ export const adminReads = {
         shippingPaisa: true,
         collections: { select: { id: true } },
         images: { select: { url: true, alt: true }, orderBy: { sortOrder: "asc" } },
+        // Variants not for sale too, so For sale can be ticked again (variants are never deleted).
         variants: {
-          where: { isActive: true },
           select: {
             id: true,
             sku: true,

@@ -85,8 +85,27 @@ describe("cartService.updateQuantity / removeItem", () => {
 
     const result = await cartService.removeItem({ cartId: cart.id, itemId: line.id });
 
-    expect(result.removed).toEqual({ variantId: variant.id, quantity: 2 });
+    expect(result.removed).toEqual({ variantId: variant.id, quantity: 2, addedAt: line.createdAt });
     expect(result.cart.items).toHaveLength(0);
+  });
+
+  it("puts a line back in its old place when Undo passes when it was added", async () => {
+    const cart = await createCart();
+    const variants = [await createVariant(), await createVariant(), await createVariant()];
+    for (const [index, variant] of variants.entries()) {
+      const line = await addToCart(cart.id, variant.id);
+      // Lines are listed oldest first; spread them out so the order doesn't hang on the clock.
+      await db.cartItem.update({
+        where: { id: line.id },
+        data: { createdAt: new Date(Date.UTC(2026, 8, 1, 10, index)) },
+      });
+    }
+    const middle = (await cartService.getSummary({ guestToken: cart.guestToken as string })).items[1]!;
+
+    const { removed } = await cartService.removeItem({ cartId: cart.id, itemId: middle.id });
+    const restored = await cartService.addItem({ cartId: cart.id, ...removed });
+
+    expect(restored.items.map((item) => item.variantId)).toEqual(variants.map((variant) => variant.id));
   });
 });
 

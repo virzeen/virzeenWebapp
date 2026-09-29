@@ -51,9 +51,14 @@ export async function removeCartItemAction(input: unknown) {
   });
 }
 
-const undoSchema = z.strictObject({ variantId: z.cuid2(), quantity: z.int().min(1).max(10) });
+// addedAt only orders the customer's own lines, so the value from the client is safe to keep.
+const undoSchema = z.strictObject({
+  variantId: z.cuid2(),
+  quantity: z.int().min(1).max(10),
+  addedAt: z.date().optional(),
+});
 
-/** "Removed from bag — Undo": puts the line back (stock is re-checked). */
+/** "Removed from bag — Undo": puts the line back where it was (stock is re-checked). */
 export async function undoRemoveAction(input: unknown) {
   return runAction("undoRemove", async () => {
     const actor = await ensureCart();
