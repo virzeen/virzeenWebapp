@@ -1,6 +1,6 @@
 import type { ProductInput } from "@virzeen/validators";
 import { describe, expect, it } from "vitest";
-import { toPreviewProduct } from "./preview-draft";
+import { relatedQueryFor, toPreviewProduct } from "./preview-draft";
 
 const values: ProductInput = {
   name: "Linen Shirt",
@@ -20,6 +20,7 @@ const values: ProductInput = {
     { url: "virzeen/products/new/back", alt: "Back view" },
   ],
   features: [],
+  styles: [{ color: "Black", colourShown: "Black/White", code: "VZ0042-101" }],
   shippingPaisa: 15_000,
   variants: [
     { sku: "", size: "XL", color: "Black", pricePaisa: 135_000, stock: 2, isActive: true },
@@ -108,7 +109,7 @@ describe("toPreviewProduct", () => {
 
   it("opens a draft saved by an older editor, before details, features and size guides", () => {
     const oldValues: Record<string, unknown> = { ...values };
-    for (const key of ["benefits", "details", "countryOfOrigin", "sizeGuideId", "features"])
+    for (const key of ["benefits", "details", "countryOfOrigin", "sizeGuideId", "features", "styles"])
       delete oldValues[key];
     const draft = JSON.parse(JSON.stringify({ values: oldValues, category: null }));
 
@@ -120,5 +121,63 @@ describe("toPreviewProduct", () => {
     expect(product.features).toEqual([]);
     expect(product.sizeGuide).toBeNull();
     expect(product.variants).toHaveLength(2);
+    expect(product.styles).toEqual([{ color: "Black", code: "", colourShown: "Black" }]);
+    expect(relatedQueryFor(draft)).toEqual({ categoryId: "tz4a98xxat96iws9zmbrgj3a" });
+  });
+
+  it("shows each style's number and colour shown; a new style has no number yet", () => {
+    const product = toPreviewProduct({
+      values: {
+        ...values,
+        variants: [
+          ...values.variants,
+          { sku: "", size: "M", color: "Sky blue", pricePaisa: 135_000, stock: 1, isActive: true },
+        ],
+        styles: [
+          { color: "black", colourShown: " Black/White ", code: "VZ0042-101" },
+          { color: "Sky blue", colourShown: "", code: "" },
+        ],
+      },
+      category: null,
+      sizeGuide: null,
+    });
+
+    expect(product.styles).toEqual([
+      { color: "Black", code: "VZ0042-101", colourShown: "Black/White" },
+      { color: "Sky blue", code: "", colourShown: "Sky blue" },
+    ]);
+  });
+
+  it("gives a product without colours its one style", () => {
+    const product = toPreviewProduct({
+      values: {
+        ...values,
+        variants: [{ sku: "", size: "M", color: "", pricePaisa: 135_000, stock: 1, isActive: true }],
+        styles: [{ color: "", colourShown: "", code: "VZ0007-101" }],
+      },
+      category: null,
+      sizeGuide: null,
+    });
+
+    expect(product.styles).toEqual([{ color: "", code: "VZ0007-101", colourShown: null }]);
+  });
+});
+
+describe("relatedQueryFor", () => {
+  const draft = { values, category: null, sizeGuide: null };
+
+  it("asks for the picked category, leaving out the product itself", () => {
+    expect(
+      relatedQueryFor({
+        ...draft,
+        category: { id: "k0kvxwv7jyowq6xrdk4qojeu", name: "Shirts", slug: "shirts" },
+        productId: "u9f2l9k1v3yq0b8m7c6x5z4a",
+      }),
+    ).toEqual({ categoryId: "k0kvxwv7jyowq6xrdk4qojeu", excludeId: "u9f2l9k1v3yq0b8m7c6x5z4a" });
+  });
+
+  it("falls back to the form's category, and asks nothing without one", () => {
+    expect(relatedQueryFor(draft)).toEqual({ categoryId: "tz4a98xxat96iws9zmbrgj3a" });
+    expect(relatedQueryFor({ ...draft, values: { ...values, categoryId: "" } })).toBeNull();
   });
 });

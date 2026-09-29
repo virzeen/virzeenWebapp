@@ -2,12 +2,16 @@
 
 import { Button, ButtonLink, Container, EmptyState, Skeleton } from "@virzeen/ui";
 import { Eye, Smartphone, X } from "lucide-react";
-import { useMemo, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import type { ProductCardData } from "@/client/features/products/product-card";
 import { ProductDetails } from "@/client/features/products/product-details";
+import { RelatedProducts } from "@/client/features/products/related-products";
+import { listRelatedByCategoryAction } from "@/server/actions/admin/catalog";
 import {
   previewStorageKey,
   previewUrl,
   readPreviewDraft,
+  relatedQueryFor,
   toPreviewProduct,
   type PreviewDraft,
 } from "./preview-draft";
@@ -29,16 +33,42 @@ function useDraft(key: string) {
   return useMemo(() => {
     if (raw === undefined || raw === null) return raw;
     try {
-      return toPreviewProduct(JSON.parse(raw) as PreviewDraft);
+      const draft = JSON.parse(raw) as PreviewDraft;
+      return { product: toPreviewProduct(draft), related: relatedQueryFor(draft) };
     } catch {
       return null; // left by an older version of the editor
     }
   }, [raw]);
 }
 
+/**
+ * "You may also like" under the preview, like the shop page: published products of the draft's category (read on
+ * the server). Nothing while loading, when there are none, or when the read fails.
+ */
+function PreviewRelated({ categoryId, excludeId }: { categoryId: string; excludeId?: string | undefined }) {
+  const key = `${categoryId}:${excludeId ?? ""}`;
+  const [loaded, setLoaded] = useState<{ key: string; items: ProductCardData[] } | null>(null);
+  useEffect(() => {
+    let current = true;
+    void listRelatedByCategoryAction(excludeId ? { categoryId, excludeId } : { categoryId })
+      .then((result) => {
+        if (current) setLoaded({ key, items: result.ok ? result.data : [] });
+      })
+      .catch(() => {
+        if (current) setLoaded({ key, items: [] });
+      });
+    return () => {
+      current = false;
+    };
+  }, [categoryId, excludeId, key]);
+  return <RelatedProducts items={loaded?.key === key ? loaded.items : []} />;
+}
+
 /** Admin preview of a product page from the editor's current values (specs/admin-product-editor.md "Preview"). */
 export function ProductPreview({ previewKey }: { previewKey: string }) {
-  const product = useDraft(previewKey);
+  const draft = useDraft(previewKey);
+  // undefined while rendering on the server, null when there's nothing to show.
+  const product = draft ? draft.product : draft;
 
   return (
     <>
@@ -106,7 +136,12 @@ export function ProductPreview({ previewKey }: { previewKey: string }) {
           />
         </Container>
       ) : (
-        <ProductDetails product={product} preview />
+        <>
+          <ProductDetails product={product} preview />
+          {draft?.related && (
+            <PreviewRelated categoryId={draft.related.categoryId} excludeId={draft.related.excludeId} />
+          )}
+        </>
       )}
     </>
   );

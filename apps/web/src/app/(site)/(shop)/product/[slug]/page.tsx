@@ -1,9 +1,8 @@
-import { Container, Grid } from "@virzeen/ui";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { JsonLd } from "@/client/components/shared/json-ld";
-import { ProductCard } from "@/client/features/products/product-card";
 import { ProductDetails } from "@/client/features/products/product-details";
+import { RelatedProducts } from "@/client/features/products/related-products";
 import { getProductBySlug, listRelatedProducts } from "@/server/queries/catalog";
 import { env, siteUrl } from "@/server/env";
 import { flattenSearchParams, type SearchParams } from "@/server/queries/params";
@@ -45,18 +44,7 @@ export default async function ProductPage({ params, searchParams }: Props) {
     <>
       <ProductDetails product={{ ...product, productId: product.id }} styleParam={style} />
 
-      {related.length > 0 && (
-        <Container as="section" className="flex flex-col gap-8 py-16" aria-labelledby="related-heading">
-          <h2 id="related-heading" className="font-display text-h2">
-            You may also like
-          </h2>
-          <Grid columns="products" gap={4}>
-            {related.map((item) => (
-              <ProductCard key={item.id} product={item} />
-            ))}
-          </Grid>
-        </Container>
-      )}
+      <RelatedProducts items={related} />
 
       <JsonLd
         data={{

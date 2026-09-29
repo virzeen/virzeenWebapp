@@ -43,4 +43,12 @@ export type ProductDetailsData = {
   variants: { id: string; size: string | null; color: string | null; pricePaisa: number; stock: number }[];
   sizes: string[];
   colors: string[];
+  /**
+   * Each style's number and "Colour shown" (specs/product-editor-on-page.md), in style order; one style with color ""
+   * for a product without styles. `code` is "" for a style not saved yet (preview); `colourShown` is null when there
+   * is nothing to show (the "" style without one).
+   */
+  styles: StyleView[];
 };
+
+export type StyleView = { color: string; code: string; colourShown: string | null };

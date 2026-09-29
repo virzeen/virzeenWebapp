@@ -38,7 +38,8 @@ const EMPTY: ProductInput = {
   care: "",
   benefits: [],
   details: [],
-  countryOfOrigin: "",
+  // Every product starts as made in China (owner, 2026-09-29: specs/product-editor-on-page.md).
+  countryOfOrigin: "China",
   seoDescription: "",
   categoryId: "",
   sizeGuideId: "",
@@ -46,6 +47,7 @@ const EMPTY: ProductInput = {
   isPublished: false,
   images: [],
   features: [],
+  styles: [],
   shippingPaisa: Number.NaN,
   variants: [{ sku: "", size: "", color: "", pricePaisa: Number.NaN, stock: 0, isActive: true }],
 };
@@ -110,10 +112,13 @@ export function ProductForm({
     const sizeGuide = sizeGuides.find((guide) => guide.id === values.sizeGuideId);
     writePreviewDraft(previewKey, {
       values,
-      category: category ? { name: category.label, slug: category.slug ?? slugify(category.label) } : null,
+      category: category
+        ? { id: category.value, name: category.label, slug: category.slug ?? slugify(category.label) }
+        : null,
       sizeGuide: sizeGuide ?? null,
+      productId: saved?.id ?? null,
     });
-  }, [form, categories, sizeGuides, previewKey]);
+  }, [form, categories, sizeGuides, previewKey, saved?.id]);
   useEffect(() => {
     let timer: number | undefined;
     const unsubscribe = form.subscribe({

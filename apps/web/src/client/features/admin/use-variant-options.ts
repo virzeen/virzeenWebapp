@@ -106,6 +106,16 @@ export function useVariantOptions({ initialRows, savedAt, images, onListChange }
         .getValues("images")
         .map((image) => (sameValue(image.color, from) ? { ...image, color: name } : image)),
     );
+    // The style's entry takes the new name with its style number, so the saved style keeps its number. An entry of a
+    // removed style (switched-off rows) with that name goes: two entries can't share a name.
+    form.setValue(
+      "styles",
+      (form.getValues("styles") ?? []).flatMap((entry) => {
+        if (sameValue(entry.color, from)) return [{ ...entry, color: name }];
+        return sameValue(entry.color, name) ? [] : [entry];
+      }),
+      { shouldDirty: true },
+    );
     setOptions({ ...options, colors: options.colors.map((style) => (style === from ? name : style)) });
     onListChange();
     return null;

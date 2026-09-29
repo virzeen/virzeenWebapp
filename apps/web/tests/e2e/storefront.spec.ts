@@ -78,10 +78,14 @@ test.describe("Product page", () => {
     await page.goto("/product/linen-overshirt");
     await expect(page.getByRole("radio", { name: "Black", exact: true })).toBeChecked();
     await expect(page.getByText("Colour shown: Black")).toBeVisible();
+    // Style numbers (specs/product-editor-on-page.md): the product number, then -101, -102… per style.
+    await expect(page.getByText(/^Style: VZ\d{4,}-101$/)).toBeVisible();
 
     await page.getByRole("radio", { name: "Bone", exact: true }).click();
     await expect(page).toHaveURL(/\/product\/linen-overshirt\?style=Bone$/);
-    await expect(page.getByText("Colour shown: Bone")).toBeVisible();
+    // The seed's colour shown for Bone.
+    await expect(page.getByText("Colour shown: Bone/Natural")).toBeVisible();
+    await expect(page.getByText(/^Style: VZ\d{4,}-102$/)).toBeVisible();
 
     await page.goto("/product/linen-overshirt?style=Bone");
     await expect(page.getByRole("radio", { name: "Bone", exact: true })).toBeChecked();
@@ -119,7 +123,8 @@ test.describe("Product page", () => {
     await expect(details).toBeVisible();
     await expect(details.getByRole("heading", { name: "Benefits" })).toBeVisible();
     await expect(details.getByText("100% linen")).toBeVisible();
-    await expect(details.getByText("Country/Region of origin: Nepal")).toBeVisible();
+    await expect(details.getByText("Country/Region of origin: China")).toBeVisible();
+    await expect(details.getByText(/^Style: VZ\d{4,}-101$/)).toBeVisible();
     await details.getByRole("button", { name: "Close" }).click();
     await expect(details).toBeHidden();
     await expect(open).toBeFocused();

@@ -9,8 +9,9 @@ import { cache } from "react";
 export const listCategories = cache(() => catalogReads.listCategories());
 export const listProducts = (filters: ShopFilters) => catalogReads.listProducts(filters);
 export const getProductBySlug = cache((slug: string) => catalogReads.getProductBySlug(slug));
+/** "You may also like": other published products of the product's category. */
 export const listRelatedProducts = (product: { id: string; categoryId: string }) =>
-  catalogReads.listRelated(product);
+  catalogReads.listRelatedByCategory({ categoryId: product.categoryId, excludeId: product.id });
 export const listNewArrivals = (limit?: number) => catalogReads.listNewArrivals(limit);
 export const getCategoryBySlug = cache((slug: string) => catalogReads.getCategoryBySlug(slug));
 export const getCollectionBySlug = cache((slug: string) => catalogReads.getCollectionBySlug(slug));

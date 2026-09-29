@@ -5,11 +5,12 @@ import { CloudImage } from "@/client/components/shared/cloud-image";
 import { Price } from "@/client/components/shared/price";
 import type { ProductDetailsData } from "./product-details-data";
 import { useProductSelection } from "./product-selection";
+import { styleLines } from "./style-number";
 import { galleryFor } from "./style-photos";
 
 export type ProductDetailsDialogData = Pick<
   ProductDetailsData,
-  "name" | "description" | "benefits" | "details" | "countryOfOrigin" | "care" | "images"
+  "name" | "description" | "benefits" | "details" | "countryOfOrigin" | "care" | "images" | "styles"
 >;
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -33,16 +34,18 @@ function Bullets({ items }: { items: string[] }) {
 
 /**
  * "View product details" and its popup (specs/product-page.md): the picked style's photo, the name and the price in
- * the header; the description, "Benefits", "Product details" (with the colour shown and the origin) and "Care".
+ * the header; the description, "Benefits", "Product details" (with the colour shown, the style number and the
+ * origin) and "Care".
  * Escape, the X and a click outside close it; focus returns to the button.
  */
 export function ProductDetailsDialog({ product }: { product: ProductDetailsDialogData }) {
   const { style, colors, price } = useProductSelection();
   const photo = galleryFor(product.images, style, colors)[0];
-  const colour = style ?? colors[0];
+  const { colourShown, code } = styleLines(product.styles, style, colors);
   const details = [
     ...product.details,
-    ...(colour ? [`Colour shown: ${colour}`] : []),
+    ...(colourShown ? [`Colour shown: ${colourShown}`] : []),
+    ...(code ? [`Style: ${code}`] : []),
     ...(product.countryOfOrigin ? [`Country/Region of origin: ${product.countryOfOrigin}`] : []),
   ];
 

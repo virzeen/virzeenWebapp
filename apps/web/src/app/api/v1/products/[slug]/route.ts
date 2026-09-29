@@ -31,6 +31,7 @@ export const GET = apiHandler<Context>("v1.products.detail", async (_request, { 
       imageAlt,
     })),
     sizeGuide: product.sizeGuide,
+    styles: product.styles,
     variants: product.variants,
   };
 });

@@ -1,12 +1,14 @@
 "use server";
 
 import "server-only";
-import { catalogService } from "@virzeen/core";
+import { catalogReads, catalogService } from "@virzeen/core";
 import {
   archiveSchema,
   categorySchema,
   collectionSchema,
+  createDraftProductSchema,
   duplicateProductSchema,
+  relatedByCategorySchema,
   saveProductSchema,
   saveSizeGuideSchema,
   uploadSignatureSchema,
@@ -20,12 +22,27 @@ const refreshCatalog = (slug?: string) => {
   if (slug) revalidatePath(`/product/${slug}`);
 };
 
+/**
+ * Creates or updates a product. Returns SavedProduct: { id, slug, savedAt, values }, where `values` is the product
+ * as the editor's form values after the save (variant ids, made SKUs, style numbers), so the next save updates the
+ * same rows (specs/product-editor-on-page.md).
+ */
 export async function saveProductAction(input: unknown) {
   return runAdminAction("saveProduct", async (admin) => {
     const { id, product } = saveProductSchema.parse(input);
     const saved = await catalogService.saveProduct(admin.id, { id, product });
     refreshCatalog(saved.slug);
     return saved;
+  });
+}
+
+/** New product popup: a draft from a name, category and price; the caller opens its editor. */
+export async function createDraftProductAction(input: unknown) {
+  return runAdminAction("createDraftProduct", async (admin) => {
+    const data = createDraftProductSchema.parse(input);
+    const draft = await catalogService.createDraft(admin.id, data);
+    refreshCatalog();
+    return draft;
   });
 }
 
@@ -36,7 +53,18 @@ export async function duplicateProductAction(input: unknown) {
     const copy = await catalogService.duplicateProduct(admin.id, id);
     // Drafts aren't in the shop, so only the admin pages need fresh data.
     revalidatePath("/admin/products");
-    return copy;
+    return { id: copy.id, slug: copy.slug };
+  });
+}
+
+/**
+ * "You may also like" in the product editor and its Preview: up to 4 published products of the category (newest
+ * first), without the product itself. Read-only; admin only because drafts' categories aren't public.
+ */
+export async function listRelatedByCategoryAction(input: unknown) {
+  return runAdminAction("listRelatedByCategory", async () => {
+    const { categoryId, excludeId } = relatedByCategorySchema.parse(input);
+    return catalogReads.listRelatedByCategory({ categoryId, excludeId });
   });
 }
 

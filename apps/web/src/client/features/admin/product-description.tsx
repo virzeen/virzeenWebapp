@@ -36,7 +36,7 @@ export function ProductDescription() {
       />
       <FormField
         label="Country/Region of origin"
-        helper="Optional, e.g. Nepal"
+        helper="Optional, e.g. China"
         error={errors.countryOfOrigin?.message}
         className="sm:max-w-sm"
       >

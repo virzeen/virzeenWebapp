@@ -93,7 +93,8 @@ test("admin sets up two-factor, creates a product and it appears in the shop", a
   // The product details popup's bullets, one per line (specs/product-page.md).
   await page.getByLabel(/^Benefits/).fill("Keeps your ears warm\nSoft on the skin\n");
   await page.getByLabel(/^Product details/).fill("100% merino wool\nHand wash cold");
-  await page.getByLabel(/^Country\/Region of origin/).fill("Nepal");
+  // Every product starts as made in China (specs/product-editor-on-page.md).
+  await expect(page.getByLabel(/^Country\/Region of origin/)).toHaveValue("China");
   // Features that perform: one card with its picture, title and text.
   const features = page.getByRole("region", { name: "Features that perform" });
   await features.getByRole("button", { name: "Add feature" }).click();

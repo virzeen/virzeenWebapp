@@ -49,24 +49,8 @@ export default async function EditProductPage({ params }: Props) {
         collections={options.collections}
         sizeGuides={options.sizeGuides}
         uploadsEnabled={uploadsEnabled()}
-        defaultValues={{
-          name: product.name,
-          slug: product.slug,
-          description: product.description,
-          care: product.care ?? "",
-          benefits: product.benefits,
-          details: product.details,
-          countryOfOrigin: product.countryOfOrigin,
-          seoDescription: product.seoDescription ?? "",
-          categoryId: product.categoryId,
-          sizeGuideId: product.sizeGuideId,
-          collectionIds: product.collections.map((c) => c.id),
-          isPublished: product.isPublished,
-          images: product.images,
-          features: product.features,
-          shippingPaisa: product.shippingPaisa,
-          variants: product.variants.map((v) => ({ ...v, size: v.size ?? "", color: v.color ?? "" })),
-        }}
+        // The form's values as core reads them (styles with their numbers too), the same shape a save returns.
+        defaultValues={product.values}
       />
     </Stack>
   );
