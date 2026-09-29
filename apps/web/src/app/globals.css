@@ -13,6 +13,26 @@ html:has([data-sticky-header]) {
 }
 
 /*
+ * Rows that scroll with their own controls (the product gallery's thumbnail strip and phone photos, "Features that
+ * perform"): no scrollbar. They still scroll with touch, the wheel, the keyboard and their buttons.
+ */
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/*
+ * Product gallery from lg (product-gallery.tsx): the 4:5 main photo is as wide as its column allows, but never
+ * taller than the screen under the sticky header (top-24 plus a gap below), so the whole photo and its previous/next
+ * buttons stay in view while the right column scrolls.
+ */
+@utility max-w-gallery-photo {
+  max-width: calc((100dvh - --spacing(32)) * 4 / 5);
+}
+
+/*
  * Product page on phones: the sticky "Add to bag" bar (`data-sticky-cta`, product-purchase.tsx, `md:static`)
  * covers the bottom of the screen. Keep keyboard focus and the footer's last links above it (WCAG 2.4.11).
  */
