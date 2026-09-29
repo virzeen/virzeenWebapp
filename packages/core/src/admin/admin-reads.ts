@@ -1,14 +1,16 @@
 import "server-only";
 import { db } from "@virzeen/db";
+import type { AdminProductStatus } from "@virzeen/validators";
 import { AppError } from "../errors";
 
 // Read models for admin screens (admin actions live in the domain services).
 
 export const adminReads = {
-  async listProducts(query?: string) {
+  async listProducts(query?: string, status?: AdminProductStatus) {
     return db.product.findMany({
       where: {
         archivedAt: null,
+        ...(status ? { isPublished: status === "published" } : {}),
         ...(query
           ? {
               OR: [
@@ -34,6 +36,18 @@ export const adminReads = {
     });
   },
 
+  /** Counts for the products list's All / Published / Drafts filters. */
+  async productStatusCounts() {
+    const groups = await db.product.groupBy({
+      by: ["isPublished"],
+      where: { archivedAt: null },
+      _count: { _all: true },
+    });
+    const published = groups.find((group) => group.isPublished)?._count._all ?? 0;
+    const draft = groups.find((group) => !group.isPublished)?._count._all ?? 0;
+    return { all: published + draft, published, draft };
+  },
+
   async getProductForEdit(id: string) {
     const product = await db.product.findFirst({
       where: { id, archivedAt: null },
@@ -47,6 +61,8 @@ export const adminReads = {
         categoryId: true,
         isPublished: true,
         shippingPaisa: true,
+        // The editor reloads its fields when this changes (after a save).
+        updatedAt: true,
         collections: { select: { id: true } },
         images: { select: { url: true, alt: true }, orderBy: { sortOrder: "asc" } },
         // Variants not for sale too, so For sale can be ticked again (variants are never deleted).

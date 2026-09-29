@@ -1,7 +1,7 @@
 import "server-only";
 import "@/server/bootstrap";
 import { adminReads, catalogReads, orderService, portfolioService } from "@virzeen/core";
-import type { AdminOrderFilters } from "@virzeen/validators";
+import type { AdminOrderFilters, AdminProductFilters } from "@virzeen/validators";
 import { cache } from "react";
 import { features } from "@/server/env";
 
@@ -10,7 +10,8 @@ import { features } from "@/server/env";
 
 export const getDashboardStats = () => orderService.dashboardStats();
 export const listAdminOrders = (filters: AdminOrderFilters) => orderService.listForAdmin(filters);
-export const listAdminProducts = (query?: string) => adminReads.listProducts(query);
+export const listAdminProducts = ({ q, status }: AdminProductFilters) => adminReads.listProducts(q, status);
+export const getProductStatusCounts = () => adminReads.productStatusCounts();
 export const listAdminCategories = () => adminReads.listCategories();
 export const listAdminCollections = () => adminReads.listCollections();
 export const listAdminCustomers = (page: number) => adminReads.listCustomers(page);

@@ -270,3 +270,181 @@ describe("catalogService.archiveCategory", () => {
     });
   });
 });
+
+describe("catalogService.saveProduct: made SKUs and photo descriptions", () => {
+  beforeEach(resetDatabase);
+
+  const blank = (size: string, color: string) => ({
+    sku: "",
+    size,
+    color,
+    pricePaisa: 135_000,
+    stock: 2,
+    isActive: true,
+  });
+  const skusOf = async (productId: string) =>
+    (await db.productVariant.findMany({ where: { productId }, orderBy: { sortOrder: "asc" } })).map(
+      (v) => v.sku,
+    );
+
+  it("makes VZ-PRODUCT-COLOUR-SIZE from the slug for blank SKUs, and STD with no size or colour", async () => {
+    const admin = await createUser({ role: "ADMIN" });
+    const shirt = await catalogService.saveProduct(admin.id, {
+      product: await productInput({
+        variants: [blank("M", "Black"), blank("Free size", "Sky blue"), blank("XL", "")],
+      }),
+    });
+    expect(await skusOf(shirt.id)).toEqual([
+      "VZ-LINENOVERSHI-BLACK-M",
+      "VZ-LINENOVERSHI-SKYBLUE-FREESIZE",
+      "VZ-LINENOVERSHI-XL",
+    ]);
+
+    const tote = await catalogService.saveProduct(admin.id, {
+      product: await productInput({ slug: "tote", variants: [blank("", "")] }),
+    });
+    expect(await skusOf(tote.id)).toEqual(["VZ-TOTE-STD"]);
+  });
+
+  it("adds -2, -3… when another product or row already has the made SKU", async () => {
+    const admin = await createUser({ role: "ADMIN" });
+    await catalogService.saveProduct(admin.id, {
+      product: await productInput({ slug: "linen-overshirt-white", variants: [blank("M", "Black")] }),
+    });
+
+    const saved = await catalogService.saveProduct(admin.id, {
+      product: await productInput({
+        slug: "linen-overshirt-black",
+        variants: [blank("M", "Black"), blank("M", "Black")],
+      }),
+    });
+
+    expect(await skusOf(saved.id)).toEqual(["VZ-LINENOVERSHI-BLACK-M-2", "VZ-LINENOVERSHI-BLACK-M-3"]);
+  });
+
+  it("brings back this product's switched-off variant when a blank row makes its SKU", async () => {
+    const admin = await createUser({ role: "ADMIN" });
+    const input = await productInput({ variants: [blank("M", "Black"), blank("L", "Black")] });
+    const saved = await catalogService.saveProduct(admin.id, { product: input });
+    const [medium] = await db.productVariant.findMany({ where: { productId: saved.id, size: "M" } });
+    // Size M removed and saved: switched off, kept for past orders.
+    const forEdit = await adminReads.getProductForEdit(saved.id);
+    const large = forEdit.variants.find((v) => v.size === "L");
+    await catalogService.saveProduct(admin.id, {
+      id: saved.id,
+      product: { ...input, variants: [{ ...blank("L", "Black"), id: large?.id, sku: large?.sku ?? "" }] },
+    });
+
+    // Size M added again as a new blank row.
+    await catalogService.saveProduct(admin.id, {
+      id: saved.id,
+      product: {
+        ...input,
+        variants: [{ ...blank("L", "Black"), id: large?.id, sku: large?.sku ?? "" }, blank("M", "Black")],
+      },
+    });
+
+    const variants = await db.productVariant.findMany({ where: { productId: saved.id } });
+    expect(variants).toHaveLength(2);
+    expect(variants.find((v) => v.size === "M")).toMatchObject({ id: medium?.id, isActive: true });
+  });
+
+  it("describes photos with the product name when their description is blank", async () => {
+    const admin = await createUser({ role: "ADMIN" });
+    const saved = await catalogService.saveProduct(admin.id, {
+      product: await productInput({
+        images: [
+          { url: "virzeen/products/linen/front", alt: "" },
+          { url: "virzeen/products/linen/back", alt: "" },
+          { url: "virzeen/products/linen/detail", alt: "Stitching on the cuff" },
+        ],
+      }),
+    });
+
+    const images = await db.productImage.findMany({
+      where: { productId: saved.id },
+      orderBy: { sortOrder: "asc" },
+    });
+    expect(images.map((image) => image.alt)).toEqual([
+      "Linen Overshirt",
+      "Linen Overshirt, photo 2",
+      "Stitching on the cuff",
+    ]);
+  });
+});
+
+describe("catalogService.duplicateProduct", () => {
+  beforeEach(resetDatabase);
+
+  it("copies a product as a draft with stock 0, new SKUs and the same prices, photos and text", async () => {
+    const admin = await createUser({ role: "ADMIN" });
+    const source = await catalogService.saveProduct(admin.id, {
+      product: await productInput({
+        shippingPaisa: 15_000,
+        images: [
+          { url: "virzeen/products/linen/front", alt: "" },
+          { url: "virzeen/products/linen/back", alt: "Back view" },
+        ],
+      }),
+    });
+
+    const copy = await catalogService.duplicateProduct(admin.id, source.id);
+    const again = await catalogService.duplicateProduct(admin.id, source.id);
+
+    expect(copy.slug).toBe("linen-overshirt-copy");
+    expect(again.slug).toBe("linen-overshirt-copy-2");
+    const forEdit = await adminReads.getProductForEdit(copy.id);
+    expect(forEdit).toMatchObject({
+      name: "Linen Overshirt (copy)",
+      description: "Relaxed overshirt in washed linen.",
+      isPublished: false,
+      shippingPaisa: 15_000,
+      images: [
+        { url: "virzeen/products/linen/front", alt: "Linen Overshirt (copy)" },
+        { url: "virzeen/products/linen/back", alt: "Back view" },
+      ],
+    });
+    expect(
+      forEdit.variants.map(({ sku, size, pricePaisa, stock }) => ({ sku, size, pricePaisa, stock })),
+    ).toEqual([
+      { sku: "VZ-LINENOVERSHI-BLACK-M", size: "M", pricePaisa: 450_000, stock: 0 },
+      { sku: "VZ-LINENOVERSHI-BLACK-L", size: "L", pricePaisa: 480_000, stock: 0 },
+    ]);
+    const audit = await db.auditLog.findFirst({ where: { entityId: copy.id } });
+    expect(audit).toMatchObject({ action: "product.create", diff: { duplicatedFrom: source.id } });
+  });
+
+  it("answers not found for an archived product", async () => {
+    const admin = await createUser({ role: "ADMIN" });
+    const saved = await catalogService.saveProduct(admin.id, { product: await productInput() });
+    await catalogService.archiveProduct(admin.id, saved.id);
+
+    await expect(catalogService.duplicateProduct(admin.id, saved.id)).rejects.toMatchObject({
+      code: "NOT_FOUND",
+    });
+  });
+});
+
+describe("adminReads products status", () => {
+  beforeEach(resetDatabase);
+
+  it("filters the list by status and counts each one", async () => {
+    const admin = await createUser({ role: "ADMIN" });
+    await catalogService.saveProduct(admin.id, { product: await productInput() });
+    await catalogService.saveProduct(admin.id, {
+      product: await productInput({
+        slug: "draft-tee",
+        name: "Draft tee",
+        isPublished: false,
+        variants: [{ sku: "", size: "M", color: "", pricePaisa: 100_000, stock: 1, isActive: true }],
+      }),
+    });
+
+    expect((await adminReads.listProducts(undefined, "draft")).map((p) => p.slug)).toEqual(["draft-tee"]);
+    expect((await adminReads.listProducts(undefined, "published")).map((p) => p.slug)).toEqual([
+      "linen-overshirt",
+    ]);
+    expect(await adminReads.listProducts()).toHaveLength(2);
+    expect(await adminReads.productStatusCounts()).toEqual({ all: 2, published: 1, draft: 1 });
+  });
+});

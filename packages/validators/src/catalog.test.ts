@@ -50,7 +50,6 @@ describe("productSchema messages", () => {
       description: "Enter a description",
       categoryId: "Choose a category",
       shippingPaisa: "Enter a shipping price (0 for none)",
-      "variants.0.sku": "Enter a SKU",
       "variants.0.pricePaisa": "Enter a price in rupees, e.g. 1250",
       "variants.0.stock": "Enter the stock as a whole number (0 or more)",
     });
@@ -58,8 +57,22 @@ describe("productSchema messages", () => {
 
   it("spells the SKU format the way the form's helper does", () => {
     expect(errorsOf({ ...product, variants: [{ ...variant, sku: "LINEN-M" }] })).toEqual({
-      "variants.0.sku": "Use the format VZ-PRODUCT-COLOUR-SIZE",
+      "variants.0.sku": "Use the format VZ-PRODUCT-COLOUR-SIZE, or leave it blank to make one",
     });
+  });
+
+  it("accepts blank SKUs and photo descriptions (made from the product when saving), even on several rows", () => {
+    const result = productSchema.safeParse({
+      ...product,
+      images: [{ url: "virzeen/products/abc/front", alt: "  " }],
+      variants: [
+        { ...variant, sku: "" },
+        { ...variant, sku: "  ", size: "L" },
+      ],
+    });
+    expect(result.success).toBe(true);
+    expect(result.data?.variants.map((v) => v.sku)).toEqual(["", ""]);
+    expect(result.data?.images[0]?.alt).toBe("");
   });
 
   it("asks for whole-number stock", () => {
@@ -121,5 +134,10 @@ describe("adminProductFiltersSchema", () => {
     expect(adminProductFiltersSchema.parse({ q: "  socks " })).toEqual({ q: "socks" });
     expect(adminProductFiltersSchema.parse({ q: "   " })).toEqual({ q: undefined });
     expect(adminProductFiltersSchema.parse({})).toEqual({});
+  });
+
+  it("keeps a known status and ignores anything else", () => {
+    expect(adminProductFiltersSchema.parse({ status: "draft" })).toEqual({ status: "draft" });
+    expect(adminProductFiltersSchema.parse({ status: "deleted" })).toEqual({ status: undefined });
   });
 });

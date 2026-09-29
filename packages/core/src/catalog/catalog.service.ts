@@ -20,13 +20,59 @@ function conflictFrom(error: unknown, what: string): never {
 
 const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
 
+type Tx = Prisma.TransactionClient;
+type VariantData = ProductData["variants"][number];
+
+/** Letters and digits only, upper case, cut to `max` (SKU parts must match [A-Z0-9]+). */
+const skuPart = (text: string | undefined, max: number) =>
+  (text ?? "")
+    .normalize("NFKD")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "")
+    .slice(0, max);
+
+/**
+ * Blank SKUs become VZ-<PRODUCT>-<COLOUR>-<SIZE> (VZ-<PRODUCT>-STD with neither), with -2, -3… when another
+ * variant already has it. A SKU of this product's own variant that isn't in the form doesn't count as taken, so the
+ * made SKU brings that variant back (see saveProduct) instead of leaving it switched off next to a copy.
+ */
+async function fillBlankSkus(tx: Tx, productId: string | null, slug: string, variants: VariantData[]) {
+  if (variants.every((variant) => variant.sku)) return variants;
+  const prefix = `VZ-${skuPart(slug, 12)}`;
+  const keptIds = new Set(variants.flatMap((variant) => (variant.id ? [variant.id] : [])));
+  const inUse = await tx.productVariant.findMany({
+    where: { sku: { startsWith: prefix } },
+    select: { id: true, sku: true, productId: true },
+  });
+  const taken = new Set([
+    ...inUse.filter((row) => row.productId !== productId || keptIds.has(row.id)).map((row) => row.sku),
+    ...variants.map((variant) => variant.sku).filter(Boolean),
+  ]);
+  return variants.map((variant) => {
+    if (variant.sku) return variant;
+    const parts = [skuPart(variant.color, 8), skuPart(variant.size, 8)].filter(Boolean);
+    const base = [prefix, ...(parts.length > 0 ? parts : ["STD"])].join("-");
+    let sku = base;
+    for (let n = 2; taken.has(sku); n++) sku = `${base}-${n}`;
+    taken.add(sku);
+    return { ...variant, sku };
+  });
+}
+
+/** Blank photo descriptions become the product name ("{name}, photo 2" from the second on). */
+const altFor = (name: string, alt: string, index: number) =>
+  alt || (index === 0 ? name : `${name}, photo ${index + 1}`);
+
 export const catalogService = {
   /**
    * Creates or updates a product with its images, variants and collections in one transaction.
    * Variants missing from the input are deactivated (never deleted: orders reference them); a new row with one
-   * of their SKUs brings that variant back.
+   * of their SKUs brings that variant back. Blank SKUs and photo descriptions are made here.
    */
-  async saveProduct(actorId: string, input: { id?: string | undefined; product: ProductData }) {
+  async saveProduct(
+    actorId: string,
+    input: { id?: string | undefined; product: ProductData; duplicatedFrom?: string },
+  ) {
     const { product } = input;
     // Admin enters product price and shipping separately; customers pay (and see) the sum, with free shipping.
     const customerPrice = (productPricePaisa: number) => productPricePaisa + product.shippingPaisa;
@@ -62,13 +108,14 @@ export const catalogService = {
         // isn't in the form (a page opened before a save, or a variant added again) takes that variant over, so
         // its orders keep pointing at it. A SKU another product uses is named on its row instead of failing on
         // the constraint.
-        const keptIds = product.variants.flatMap((variant) => (variant.id ? [variant.id] : []));
+        const withSkus = await fillBlankSkus(tx, existing?.id ?? null, product.slug, product.variants);
+        const keptIds = withSkus.flatMap((variant) => (variant.id ? [variant.id] : []));
         const clashes = await tx.productVariant.findMany({
-          where: { sku: { in: product.variants.map((variant) => variant.sku) }, id: { notIn: keptIds } },
+          where: { sku: { in: withSkus.map((variant) => variant.sku) }, id: { notIn: keptIds } },
           select: { id: true, sku: true, productId: true },
         });
         const isOwn = (row: { productId: string }) => existing !== null && row.productId === existing.id;
-        const variants = product.variants.map((variant) => {
+        const variants = withSkus.map((variant) => {
           const revived = variant.id
             ? undefined
             : clashes.find((row) => isOwn(row) && row.sku === variant.sku);
@@ -120,7 +167,7 @@ export const catalogService = {
             data: product.images.map((image, index) => ({
               productId: saved.id,
               url: image.url,
-              alt: image.alt,
+              alt: altFor(product.name, image.alt, index),
               sortOrder: index,
             })),
           });
@@ -180,6 +227,7 @@ export const catalogService = {
             isPublished: product.isPublished,
             variants: product.variants.length,
             shippingPaisa: product.shippingPaisa,
+            ...(input.duplicatedFrom ? { duplicatedFrom: input.duplicatedFrom } : {}),
           },
         });
         return saved;
@@ -191,6 +239,69 @@ export const catalogService = {
       }
       throw error;
     }
+  },
+
+  /**
+   * Copies a product as a draft to start a similar one: "{name} (copy)", slug "{slug}-copy" (then -copy-2…), same
+   * photos, text, category, collections, shipping and prices; stock 0 and new SKUs (made like blank ones).
+   */
+  async duplicateProduct(actorId: string, id: string) {
+    const source = await db.product.findFirst({
+      where: { id, archivedAt: null },
+      select: {
+        name: true,
+        slug: true,
+        description: true,
+        care: true,
+        seoDescription: true,
+        categoryId: true,
+        shippingPaisa: true,
+        collections: { where: { archivedAt: null }, select: { id: true } },
+        images: { select: { url: true, alt: true }, orderBy: { sortOrder: "asc" } },
+        variants: {
+          select: { size: true, color: true, pricePaisa: true, isActive: true },
+          orderBy: { sortOrder: "asc" },
+        },
+      },
+    });
+    if (!source) throw new AppError("NOT_FOUND", "Product not found.");
+
+    const base = `${source.slug.slice(0, 110).replace(/-+$/, "")}-copy`;
+    const usedSlugs = await db.product.findMany({
+      where: { slug: { startsWith: base } },
+      select: { slug: true },
+    });
+    const used = new Set(usedSlugs.map((row) => row.slug));
+    let slug = base;
+    for (let n = 2; used.has(slug); n++) slug = `${base}-${n}`;
+
+    // A description made from the old name would name the old product, so it goes back to blank (made again).
+    const alt = (text: string, index: number) => (text === altFor(source.name, "", index) ? "" : text);
+    const forSale = source.variants.filter((variant) => variant.isActive);
+    return catalogService.saveProduct(actorId, {
+      duplicatedFrom: id,
+      product: {
+        name: `${source.name.slice(0, 113)} (copy)`,
+        slug,
+        description: source.description,
+        care: source.care ?? "",
+        seoDescription: source.seoDescription ?? "",
+        categoryId: source.categoryId,
+        collectionIds: source.collections.map((collection) => collection.id),
+        isPublished: false,
+        images: source.images.map((image, index) => ({ url: image.url, alt: alt(image.alt, index) })),
+        shippingPaisa: source.shippingPaisa,
+        variants: (forSale.length > 0 ? forSale : source.variants).map((variant) => ({
+          sku: "",
+          size: variant.size ?? "",
+          color: variant.color ?? "",
+          // Stored prices include shipping; saveProduct takes the product price without it.
+          pricePaisa: variant.pricePaisa - source.shippingPaisa,
+          stock: 0,
+          isActive: true,
+        })),
+      },
+    });
   },
 
   /** Hides a product for good (soft delete). Orders keep their snapshots. */

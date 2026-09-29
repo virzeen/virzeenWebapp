@@ -39,11 +39,8 @@ export const imageRefSchema = z
     error: "Use a Cloudinary public id or a /public path, not a web address",
   });
 
-const altSchema = z
-  .string()
-  .trim()
-  .min(1, { error: "Describe the image for screen readers" })
-  .max(200, { error: "Keep the alt text under 200 characters" });
+/** Blank means "use the product name" (catalogService.saveProduct fills it in). */
+const altSchema = z.string().trim().max(200, { error: "Keep the photo description under 200 characters" });
 
 // The form sends blank or non-numeric number fields as NaN, so each number says what to type.
 const PRICE_ERROR = "Enter a price in rupees, e.g. 1250";
@@ -62,9 +59,18 @@ export const productImageSchema = z.strictObject({
 });
 export type ProductImageInput = z.infer<typeof productImageSchema>;
 
+/** A variant's SKU as the admin form sends it: blank means "make one when saving" (catalogService.saveProduct). */
+const variantSkuSchema = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .regex(/^(VZ(-[A-Z0-9]+){2,4})?$/, {
+    error: "Use the format VZ-PRODUCT-COLOUR-SIZE, or leave it blank to make one",
+  });
+
 export const variantSchema = z.strictObject({
   id: idSchema.optional(),
-  sku: skuSchema,
+  sku: variantSkuSchema,
   size: z
     .string()
     .trim()
@@ -200,13 +206,18 @@ export const collectionSchema = z.strictObject({
 });
 export type CollectionInput = z.infer<typeof collectionSchema>;
 
-/** Admin products search: comes from the URL, so anything odd is ignored instead of throwing. */
+export const ADMIN_PRODUCT_STATUSES = ["published", "draft"] as const;
+export type AdminProductStatus = (typeof ADMIN_PRODUCT_STATUSES)[number];
+
+/** Admin products search and status filter: they come from the URL, so anything odd is ignored instead of throwing. */
 export const adminProductFiltersSchema = z.object({
   q: z.string().trim().min(1).max(60).optional().catch(undefined),
+  status: z.enum(ADMIN_PRODUCT_STATUSES).optional().catch(undefined),
 });
 export type AdminProductFilters = z.output<typeof adminProductFiltersSchema>;
 
 export const archiveSchema = z.strictObject({ id: idSchema });
+export const duplicateProductSchema = z.strictObject({ id: idSchema });
 
 /** Signed Cloudinary upload request (security-policy.md §4). */
 export const uploadSignatureSchema = z.strictObject({

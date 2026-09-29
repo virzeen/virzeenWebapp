@@ -6,6 +6,7 @@ import {
   archiveSchema,
   categorySchema,
   collectionSchema,
+  duplicateProductSchema,
   saveProductSchema,
   uploadSignatureSchema,
 } from "@virzeen/validators";
@@ -24,6 +25,17 @@ export async function saveProductAction(input: unknown) {
     const saved = await catalogService.saveProduct(admin.id, { id, product });
     refreshCatalog(saved.slug);
     return saved;
+  });
+}
+
+/** Copies a product as a draft; the caller opens the copy's editor. */
+export async function duplicateProductAction(input: unknown) {
+  return runAdminAction("duplicateProduct", async (admin) => {
+    const { id } = duplicateProductSchema.parse(input);
+    const copy = await catalogService.duplicateProduct(admin.id, id);
+    // Drafts aren't in the shop, so only the admin pages need fresh data.
+    revalidatePath("/admin/products");
+    return copy;
   });
 }
 
