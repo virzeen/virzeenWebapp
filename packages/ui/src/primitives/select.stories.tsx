@@ -74,7 +74,9 @@ export const FocusAndBlur: Story = {
     const trigger = canvas.getByRole("combobox", { name: /District/ });
     await expect(trigger).toHaveFocus();
     await userEvent.keyboard("{Enter}");
-    await expect(await screen.findByRole("listbox")).toBeVisible();
+    // The list fades in from transparent, so wait for it (as the Dialog story does).
+    const listbox = await screen.findByRole("listbox");
+    await waitFor(() => expect(listbox).toBeVisible());
     await expect(args.onBlur).not.toHaveBeenCalled();
     await userEvent.keyboard("{Escape}");
     await waitFor(() => expect(trigger).toHaveFocus());
