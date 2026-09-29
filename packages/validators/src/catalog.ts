@@ -45,15 +45,19 @@ export const skuSchema = z
   .min(1, { error: "Enter a SKU" })
   .regex(/^VZ(-[A-Z0-9]+){2,4}$/, { error: "Use the format VZ-PRODUCT-COLOUR-SIZE" });
 
+const IMAGE_REF_ERROR = "Use a Cloudinary public id or a /public path, not a web address";
+
+/** An image reference that says `required` when it's blank (e.g. "Add a picture for the feature"). */
+const imageRef = (required: string) =>
+  z
+    .string({ error: required })
+    .trim()
+    .min(1, { error: required })
+    .max(300, { error: IMAGE_REF_ERROR })
+    .regex(/^(\/[\w\-./]+|[\w-]+(\/[\w\-.]+)*)$/, { error: IMAGE_REF_ERROR });
+
 /** Cloudinary public id (e.g. virzeen/products/abc/front) or a local /public path for seed data. */
-export const imageRefSchema = z
-  .string()
-  .trim()
-  .min(1, { error: "Add an image" })
-  .max(300, { error: "Use a Cloudinary public id or a /public path, not a web address" })
-  .regex(/^(\/[\w\-./]+|[\w-]+(\/[\w\-.]+)*)$/, {
-    error: "Use a Cloudinary public id or a /public path, not a web address",
-  });
+export const imageRefSchema = imageRef("Add an image");
 
 /** Blank means "use the product name" (catalogService.saveProduct fills it in). */
 const altSchema = z.string().trim().max(200, { error: "Keep the photo description under 200 characters" });
@@ -76,6 +80,36 @@ export const productImageSchema = z.strictObject({
   color: z.string().trim().max(40).optional().or(z.literal("")),
 });
 export type ProductImageInput = z.infer<typeof productImageSchema>;
+
+/** A "Features that perform" card (specs/product-page.md): picture, title and text. */
+export const productFeatureSchema = z.strictObject({
+  title: z
+    .string()
+    .trim()
+    .min(1, { error: "Enter a title for the feature" })
+    .max(60, { error: "Keep the title under 60 characters" }),
+  body: z
+    .string()
+    .trim()
+    .min(1, { error: "Enter the text for the feature" })
+    .max(400, { error: "Keep the text under 400 characters" }),
+  imageUrl: imageRef("Add a picture for the feature"),
+  /** Blank means "{product}, {title}" (catalogService.saveProduct fills it in). */
+  alt: z
+    .string()
+    .trim()
+    .max(200, { error: "Keep the picture description under 200 characters" })
+    .optional()
+    .or(z.literal("")),
+});
+export type ProductFeatureInput = z.infer<typeof productFeatureSchema>;
+
+/** One bullet of "Benefits" or "Product details" (the admin types one per line). */
+const bulletSchema = z
+  .string()
+  .trim()
+  .min(1, { error: "Remove the empty line" })
+  .max(200, { error: "Keep each line under 200 characters" });
 
 /** A variant's SKU as the admin form sends it: blank means "make one when saving" (catalogService.saveProduct). */
 const variantSkuSchema = z
@@ -141,6 +175,15 @@ export const productSchema = z
       .max(2000, { error: "Keep the care notes under 2,000 characters" })
       .optional()
       .or(z.literal("")),
+    /** "Benefits" and "Product details" bullets in the product details popup (specs/product-page.md). */
+    benefits: z.array(bulletSchema).max(12, { error: "Add up to 12 benefits" }),
+    details: z.array(bulletSchema).max(20, { error: "Add up to 20 product details" }),
+    countryOfOrigin: z
+      .string()
+      .trim()
+      .max(60, { error: "Keep the country or region under 60 characters" })
+      .optional()
+      .or(z.literal("")),
     seoDescription: z
       .string()
       .trim()
@@ -148,9 +191,12 @@ export const productSchema = z
       .optional()
       .or(z.literal("")),
     categoryId: z.cuid2({ error: "Choose a category" }),
+    /** Blank = no size guide (specs/size-guides.md). */
+    sizeGuideId: z.cuid2({ error: "Choose a size guide" }).optional().or(z.literal("")),
     collectionIds: z.array(idSchema).max(20, { error: "Choose up to 20 collections" }),
     isPublished: z.boolean(),
     images: z.array(productImageSchema).max(60, { error: "Add up to 60 photos" }),
+    features: z.array(productFeatureSchema).max(6, { error: "Add up to 6 features" }),
     /** Delivery charge added to every variant's price; customers see one price and free shipping. */
     shippingPaisa: z
       .int({ error: "Enter a shipping price (0 for none)" })
@@ -241,6 +287,127 @@ export type CollectionInput = z.infer<typeof collectionSchema>;
 export const ADMIN_PRODUCT_STATUSES = ["published", "draft"] as const;
 export type AdminProductStatus = (typeof ADMIN_PRODUCT_STATUSES)[number];
 
+/** A size chart in cm: measurement columns (e.g. Chest) and one row per size with a value for each. */
+export const sizeChartSchema = z
+  .strictObject({
+    columns: z
+      .array(
+        z
+          .string()
+          .trim()
+          .min(1, { error: "Enter a name for the measurement" })
+          .max(30, { error: "Keep the measurement name under 30 characters" }),
+      )
+      .min(1, { error: "Add at least one measurement" })
+      .max(6, { error: "Add up to 6 measurements" }),
+    rows: z
+      .array(
+        z.strictObject({
+          size: z
+            .string()
+            .trim()
+            .min(1, { error: "Enter the size" })
+            .max(20, { error: "Keep the size under 20 characters" }),
+          /** One per column, in cm ("96" or "96-101"); blank allowed. */
+          values: z
+            .array(z.string().trim().max(20, { error: "Keep each value under 20 characters" }))
+            .max(6, { error: "Add up to 6 measurements" }),
+        }),
+      )
+      .min(1, { error: "Add at least one size" })
+      .max(20, { error: "Add up to 20 sizes" }),
+  })
+  .superRefine(
+    (chart, ctx) => {
+      // Runs even when other fields failed (see `when`), so values may be unparsed: read them defensively.
+      const columns: unknown[] = Array.isArray(chart.columns) ? chart.columns : [];
+      const rows: unknown[] = Array.isArray(chart.rows) ? chart.rows : [];
+      const key = (text: unknown) => (typeof text === "string" ? text.trim().toLowerCase() : "");
+      // Every clashing entry is named, so the admin sees which ones to change.
+      const columnKeys = columns.map(key);
+      columnKeys.forEach((name, index) => {
+        if (name && columnKeys.indexOf(name) !== columnKeys.lastIndexOf(name)) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["columns", index],
+            message: "Another measurement has the same name",
+          });
+        }
+      });
+      const sizeKeys = rows.map((row) => (isRecord(row) ? key(row.size) : ""));
+      rows.forEach((row, index) => {
+        const size = sizeKeys[index];
+        if (size && sizeKeys.indexOf(size) !== sizeKeys.lastIndexOf(size)) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["rows", index, "size"],
+            message: "Another size has the same name",
+          });
+        }
+        if (isRecord(row) && Array.isArray(row.values) && row.values.length !== columns.length) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["rows", index, "values"],
+            message: "Each size needs a value for every measurement",
+          });
+        }
+      });
+    },
+    // Show these alongside the field errors instead of only after every field is fixed.
+    { when: (payload) => isRecord(payload.value) },
+  );
+export type SizeChart = z.infer<typeof sizeChartSchema>;
+
+/** Parses a stored size chart; an invalid one gives null, so the shop hides the guide instead of crashing. */
+export function parseSizeChart(value: unknown): SizeChart | null {
+  const result = sizeChartSchema.safeParse(value);
+  return result.success ? result.data : null;
+}
+
+/** A size guide made in admin and picked on products (specs/size-guides.md). */
+export const sizeGuideSchema = z.strictObject({
+  name: z
+    .string()
+    .trim()
+    .min(1, { error: "Enter a name" })
+    .max(60, { error: "Keep the name under 60 characters" }),
+  intro: z
+    .string()
+    .trim()
+    .max(500, { error: "Keep the intro under 500 characters" })
+    .optional()
+    .or(z.literal("")),
+  chart: sizeChartSchema,
+  fitTips: z
+    .string()
+    .trim()
+    .max(500, { error: "Keep the fit tips under 500 characters" })
+    .optional()
+    .or(z.literal("")),
+  /** One tip per line. */
+  howToMeasure: z
+    .array(
+      z
+        .string()
+        .trim()
+        .min(1, { error: "Remove the empty line" })
+        .max(200, { error: "Keep each line under 200 characters" }),
+    )
+    .max(10, { error: "Add up to 10 tips" }),
+  imageUrl: imageRefSchema.optional().or(z.literal("")),
+  imageAlt: z
+    .string()
+    .trim()
+    .max(200, { error: "Keep the picture description under 200 characters" })
+    .optional()
+    .or(z.literal("")),
+});
+export type SizeGuideInput = z.infer<typeof sizeGuideSchema>;
+
+/** What the admin size guide form sends: the guide, plus its id when editing (like saveProductSchema). */
+export const saveSizeGuideSchema = z.strictObject({ id: idSchema.optional(), guide: sizeGuideSchema });
+export type SaveSizeGuideInput = z.input<typeof saveSizeGuideSchema>;
+
 /** Admin products search and status filter: they come from the URL, so anything odd is ignored instead of throwing. */
 export const adminProductFiltersSchema = z.object({
   q: z.string().trim().min(1).max(60).optional().catch(undefined),
@@ -253,7 +420,7 @@ export const duplicateProductSchema = z.strictObject({ id: idSchema });
 
 /** Signed Cloudinary upload request (security-policy.md §4). */
 export const uploadSignatureSchema = z.strictObject({
-  folder: z.enum(["products", "portfolio"]),
+  folder: z.enum(["products", "portfolio", "size-guides"]),
   entityId: idSchema.or(z.literal("new")),
 });
 export type UploadSignatureInput = z.infer<typeof uploadSignatureSchema>;

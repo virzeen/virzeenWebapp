@@ -1,6 +1,6 @@
 import "server-only";
 import { db, type Prisma } from "@virzeen/db";
-import type { CategoryInput, CollectionInput, ProductData } from "@virzeen/validators";
+import type { CategoryInput, CollectionInput, ProductData, SizeGuideInput } from "@virzeen/validators";
 import { recordAudit } from "../audit/audit";
 import { AppError, isUniqueViolation } from "../errors";
 
@@ -60,6 +60,9 @@ async function fillBlankSkus(tx: Tx, productId: string | null, slug: string, var
 }
 
 type ImageData = ProductData["images"][number];
+
+/** What a blank feature picture description becomes: "{product}, {feature title}". */
+const featureAlt = (name: string, title: string) => `${name}, ${title}`;
 
 /**
  * Photos in shop order: each style's photos in the order of its variants, then the photos shared by every style
@@ -123,6 +126,17 @@ export const catalogService = {
           throw new AppError("VALIDATION_FAILED", "Choose a category.", {
             fields: { categoryId: "Choose a category" },
           });
+        const sizeGuideId = emptyToNull(product.sizeGuideId);
+        if (sizeGuideId) {
+          const guide = await tx.sizeGuide.findFirst({
+            where: { id: sizeGuideId, archivedAt: null },
+            select: { id: true },
+          });
+          if (!guide)
+            throw new AppError("VALIDATION_FAILED", "Choose a size guide.", {
+              fields: { sizeGuideId: "Choose a size guide" },
+            });
+        }
 
         const existing = input.id
           ? await tx.product.findUnique({
@@ -172,6 +186,9 @@ export const catalogService = {
           slug: product.slug,
           description: product.description,
           care: emptyToNull(product.care),
+          benefits: product.benefits,
+          details: product.details,
+          countryOfOrigin: emptyToNull(product.countryOfOrigin),
           seoDescription: emptyToNull(product.seoDescription),
           category: { connect: { id: product.categoryId } },
           isPublished: product.isPublished,
@@ -183,10 +200,20 @@ export const catalogService = {
           collections: { set: product.collectionIds.map((id) => ({ id })) },
         } satisfies Prisma.ProductUpdateInput;
 
+        // The size guide is set through the relation, like the category (a create can't disconnect).
+        const sizeGuide = sizeGuideId ? { connect: { id: sizeGuideId } } : undefined;
         const saved = existing
-          ? await tx.product.update({ where: { id: existing.id }, data, select: { id: true, slug: true } })
+          ? await tx.product.update({
+              where: { id: existing.id },
+              data: { ...data, sizeGuide: sizeGuide ?? { disconnect: true } },
+              select: { id: true, slug: true },
+            })
           : await tx.product.create({
-              data: { ...data, collections: { connect: product.collectionIds.map((id) => ({ id })) } },
+              data: {
+                ...data,
+                ...(sizeGuide ? { sizeGuide } : {}),
+                collections: { connect: product.collectionIds.map((id) => ({ id })) },
+              },
               select: { id: true, slug: true },
             });
 
@@ -200,6 +227,21 @@ export const catalogService = {
               url: image.url,
               alt: image.alt || (alts[index] ?? product.name),
               color: emptyToNull(image.color?.trim()),
+              sortOrder: index,
+            })),
+          });
+        }
+
+        // "Features that perform" are replaced like the photos; a blank picture description names the feature.
+        await tx.productFeature.deleteMany({ where: { productId: saved.id } });
+        if (product.features.length > 0) {
+          await tx.productFeature.createMany({
+            data: product.features.map((feature, index) => ({
+              productId: saved.id,
+              title: feature.title,
+              body: feature.body,
+              imageUrl: feature.imageUrl,
+              imageAlt: feature.alt || featureAlt(product.name, feature.title),
               sortOrder: index,
             })),
           });
@@ -258,6 +300,8 @@ export const catalogService = {
             name: product.name,
             isPublished: product.isPublished,
             variants: product.variants.length,
+            features: product.features.length,
+            sizeGuideId,
             shippingPaisa: product.shippingPaisa,
             ...(input.duplicatedFrom ? { duplicatedFrom: input.duplicatedFrom } : {}),
           },
@@ -275,7 +319,8 @@ export const catalogService = {
 
   /**
    * Copies a product as a draft to start a similar one: "{name} (copy)", slug "{slug}-copy" (then -copy-2…), same
-   * photos, text, category, collections, shipping and prices; stock 0 and new SKUs (made like blank ones).
+   * photos, text, details, features, size guide, category, collections, shipping and prices; stock 0 and new SKUs
+   * (made like blank ones).
    */
   async duplicateProduct(actorId: string, id: string) {
     const source = await db.product.findFirst({
@@ -285,11 +330,19 @@ export const catalogService = {
         slug: true,
         description: true,
         care: true,
+        benefits: true,
+        details: true,
+        countryOfOrigin: true,
         seoDescription: true,
         categoryId: true,
+        sizeGuide: { select: { id: true, archivedAt: true } },
         shippingPaisa: true,
         collections: { where: { archivedAt: null }, select: { id: true } },
         images: { select: { url: true, alt: true, color: true }, orderBy: { sortOrder: "asc" } },
+        features: {
+          select: { title: true, body: true, imageUrl: true, imageAlt: true },
+          orderBy: { sortOrder: "asc" },
+        },
         variants: {
           select: { size: true, color: true, pricePaisa: true, isActive: true },
           orderBy: { sortOrder: "asc" },
@@ -321,8 +374,12 @@ export const catalogService = {
         slug,
         description: source.description,
         care: source.care ?? "",
+        benefits: source.benefits,
+        details: source.details,
+        countryOfOrigin: source.countryOfOrigin ?? "",
         seoDescription: source.seoDescription ?? "",
         categoryId: source.categoryId,
+        sizeGuideId: source.sizeGuide && !source.sizeGuide.archivedAt ? source.sizeGuide.id : "",
         collectionIds: source.collections.map((collection) => collection.id),
         isPublished: false,
         images: source.images.flatMap((image, index) =>
@@ -330,6 +387,12 @@ export const catalogService = {
             ? [{ url: image.url, alt: alt(image.alt, index), color: image.color ?? "" }]
             : [],
         ),
+        features: source.features.map((feature) => ({
+          title: feature.title,
+          body: feature.body,
+          imageUrl: feature.imageUrl,
+          alt: feature.imageAlt === featureAlt(source.name, feature.title) ? "" : feature.imageAlt,
+        })),
         shippingPaisa: source.shippingPaisa,
         variants: copied.map((variant) => ({
           sku: "",
@@ -393,6 +456,82 @@ export const catalogService = {
       });
       if (updated.count === 0) throw new AppError("NOT_FOUND", "Category not found.");
       await recordAudit(tx, { actorId, action: "category.archive", entity: "Category", entityId: id });
+      return { id };
+    });
+  },
+
+  /**
+   * Creates or updates a size guide (specs/size-guides.md). Names are unique among guides that aren't archived,
+   * ignoring case. The chart is stored as JSON and read back through parseSizeChart.
+   */
+  async saveSizeGuide(actorId: string, input: SizeGuideInput & { id?: string | undefined }) {
+    return db.$transaction(async (tx) => {
+      if (input.id) {
+        const existing = await tx.sizeGuide.findFirst({
+          where: { id: input.id, archivedAt: null },
+          select: { id: true },
+        });
+        if (!existing) throw new AppError("NOT_FOUND", "Size guide not found.");
+      }
+      const clash = await tx.sizeGuide.findFirst({
+        where: {
+          archivedAt: null,
+          name: { equals: input.name, mode: "insensitive" },
+          ...(input.id ? { id: { not: input.id } } : {}),
+        },
+        select: { id: true },
+      });
+      if (clash) {
+        throw new AppError("VALIDATION_FAILED", "There's already a size guide with this name.", {
+          fields: { name: "There's already a size guide with this name" },
+        });
+      }
+      const imageUrl = emptyToNull(input.imageUrl);
+      const data = {
+        name: input.name,
+        intro: emptyToNull(input.intro),
+        chart: input.chart as Prisma.InputJsonValue,
+        fitTips: emptyToNull(input.fitTips),
+        howToMeasure: input.howToMeasure,
+        imageUrl,
+        imageAlt: imageUrl ? emptyToNull(input.imageAlt) : null,
+      };
+      const saved = input.id
+        ? await tx.sizeGuide.update({ where: { id: input.id }, data, select: { id: true } })
+        : await tx.sizeGuide.create({ data, select: { id: true } });
+      await recordAudit(tx, {
+        actorId,
+        action: input.id ? "sizeGuide.update" : "sizeGuide.create",
+        entity: "SizeGuide",
+        entityId: saved.id,
+        diff: {
+          name: input.name,
+          measurements: input.chart.columns,
+          sizes: input.chart.rows.map((row) => row.size),
+        },
+      });
+      return saved;
+    });
+  },
+
+  /** Archives a size guide; refused while products that aren't archived still use it. */
+  async archiveSizeGuide(actorId: string, id: string) {
+    return db.$transaction(async (tx) => {
+      const inUse = await tx.product.count({ where: { sizeGuideId: id, archivedAt: null } });
+      if (inUse > 0) {
+        throw new AppError(
+          "CONFLICT",
+          inUse === 1
+            ? "1 product uses this size guide. Pick another guide on it first."
+            : `${inUse} products use this size guide. Pick another guide on them first.`,
+        );
+      }
+      const updated = await tx.sizeGuide.updateMany({
+        where: { id, archivedAt: null },
+        data: { archivedAt: new Date() },
+      });
+      if (updated.count === 0) throw new AppError("NOT_FOUND", "Size guide not found.");
+      await recordAudit(tx, { actorId, action: "sizeGuide.archive", entity: "SizeGuide", entityId: id });
       return { id };
     });
   },

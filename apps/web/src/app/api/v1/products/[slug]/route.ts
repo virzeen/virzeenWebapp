@@ -17,10 +17,20 @@ export const GET = apiHandler<Context>("v1.products.detail", async (_request, { 
     name: product.name,
     description: product.description,
     care: product.care,
+    benefits: product.benefits,
+    details: product.details,
+    countryOfOrigin: product.countryOfOrigin,
     fromPricePaisa: product.fromPricePaisa,
     inStock: product.inStock,
     imageUrl: product.images[0]?.url ?? null,
-    images: product.images.map(({ url, alt }) => ({ url, alt })),
+    images: product.images.map(({ url, alt, color }) => ({ url, alt, color })),
+    features: product.features.map(({ title, body, imageUrl, imageAlt }) => ({
+      title,
+      body,
+      imageUrl,
+      imageAlt,
+    })),
+    sizeGuide: product.sizeGuide,
     variants: product.variants,
   };
 });

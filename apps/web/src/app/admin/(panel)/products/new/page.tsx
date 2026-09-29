@@ -8,7 +8,7 @@ export const metadata = { title: "New product" };
 
 export default async function NewProductPage() {
   await requireAdminPage();
-  const { categories, collections } = await getProductFormOptions();
+  const { categories, collections, sizeGuides } = await getProductFormOptions();
   return (
     <Stack gap={6}>
       <Link
@@ -22,7 +22,12 @@ export default async function NewProductPage() {
         title="New product"
         description="Fill in the details, then Publish. Or Save draft and finish later: drafts aren't in the shop."
       />
-      <ProductForm categories={categories} collections={collections} uploadsEnabled={uploadsEnabled()} />
+      <ProductForm
+        categories={categories}
+        collections={collections}
+        sizeGuides={sizeGuides}
+        uploadsEnabled={uploadsEnabled()}
+      />
     </Stack>
   );
 }

@@ -14,6 +14,7 @@ if (!/@(localhost|127\.0\.0\.1)(:\d+)?\//.test(url)) {
 const { db } = await import("../src/client");
 
 type SeedVariant = { color: string | null; size: string | null; stock: number };
+type SeedFeature = { title: string; body: string; image: number };
 type SeedProduct = {
   slug: string;
   name: string;
@@ -26,6 +27,12 @@ type SeedProduct = {
   sizes: (string | null)[];
   soldOut?: string[]; // "Color/Size" combos with zero stock
   images: number[];
+  // Product details popup and "Features that perform" (specs/product-page.md).
+  benefits?: string[];
+  details?: string[];
+  countryOfOrigin?: string;
+  features?: SeedFeature[];
+  sizeGuide?: "Tops"; // a SIZE_GUIDES name (specs/size-guides.md)
 };
 
 const CATEGORIES = [
@@ -47,6 +54,31 @@ const COLLECTIONS = [
 
 const CARE = "Machine wash cold, inside out. Dry flat in the shade. Cool iron.";
 
+// Found by name (names are unique among guides that aren't archived), so re-running updates the same row.
+const SIZE_GUIDES = [
+  {
+    name: "Tops",
+    intro:
+      "Our tops have a relaxed fit. Chest is a body measurement; length and sleeve are measured on the garment.",
+    chart: {
+      columns: ["Chest", "Length", "Sleeve"],
+      rows: [
+        { size: "S", values: ["88-94", "70", "60"] },
+        { size: "M", values: ["94-100", "72", "61"] },
+        { size: "L", values: ["100-106", "74", "62"] },
+        { size: "XL", values: ["106-112", "76", "63"] },
+      ],
+    },
+    fitTips:
+      "True to size with room to move. Between sizes? Take the smaller one for a neater fit, the larger one for more room.",
+    howToMeasure: [
+      "Chest: measure around the fullest part of your chest, under your arms, keeping the tape level.",
+      "Length: measure from the highest point of the shoulder down to the hem.",
+      "Sleeve: measure from the shoulder seam to the end of the cuff.",
+    ],
+  },
+] as const;
+
 const PRODUCTS: SeedProduct[] = [
   {
     slug: "linen-overshirt",
@@ -61,6 +93,31 @@ const PRODUCTS: SeedProduct[] = [
     sizes: ["S", "M", "L", "XL"],
     soldOut: ["Black/XL", "Bone/XL"],
     images: [3, 7, 11],
+    benefits: [
+      "Washed linen that feels soft from the first wear",
+      "Breathable and quick to dry on warm days",
+      "Boxy cut to wear open over a tee or buttoned up as a shirt",
+    ],
+    details: ["100% linen", "Two patch chest pockets", "Horn-effect buttons", "Dropped shoulders"],
+    countryOfOrigin: "Nepal",
+    features: [
+      {
+        title: "Breathes on warm days",
+        body: "Washed linen lets air through and dries quickly, so it stays comfortable from morning to night.",
+        image: 11,
+      },
+      {
+        title: "Room to move",
+        body: "A boxy cut with dropped shoulders sits easily over a tee without pulling across the back.",
+        image: 7,
+      },
+      {
+        title: "Pockets that work",
+        body: "Two patch pockets on the chest keep your phone and cards close at hand.",
+        image: 3,
+      },
+    ],
+    sizeGuide: "Tops",
   },
   {
     slug: "monochrome-oversized-tee",
@@ -73,6 +130,7 @@ const PRODUCTS: SeedProduct[] = [
     colors: ["Black", "White"],
     sizes: ["S", "M", "L", "XL"],
     images: [1, 5],
+    sizeGuide: "Tops",
   },
   {
     slug: "grain-heavyweight-hoodie",
@@ -226,6 +284,19 @@ async function main() {
     collectionIds.set(collection.slug, row.id);
   }
 
+  const sizeGuideIds = new Map<string, string>();
+  for (const guide of SIZE_GUIDES) {
+    const data = { ...guide, howToMeasure: [...guide.howToMeasure], archivedAt: null };
+    const existing = await db.sizeGuide.findFirst({
+      where: { name: { equals: guide.name, mode: "insensitive" }, archivedAt: null },
+      select: { id: true },
+    });
+    const row = existing
+      ? await db.sizeGuide.update({ where: { id: existing.id }, data })
+      : await db.sizeGuide.create({ data });
+    sizeGuideIds.set(guide.name, row.id);
+  }
+
   const productIds = new Map<string, string>();
   for (const [index, product] of PRODUCTS.entries()) {
     const variants: SeedVariant[] = product.colors.flatMap((color) =>
@@ -241,8 +312,12 @@ async function main() {
       name: product.name,
       description: product.description,
       care: product.care ?? null,
+      benefits: product.benefits ?? [],
+      details: product.details ?? [],
+      countryOfOrigin: product.countryOfOrigin ?? null,
       seoDescription: `${product.name} by Virzeen. ${product.description}`.slice(0, 155),
       categoryId: categoryIds.get(product.category) as string,
+      sizeGuideId: product.sizeGuide ? (sizeGuideIds.get(product.sizeGuide) as string) : null,
       fromPricePaisa: product.pricePaisa,
       isPublished: true,
       archivedAt: null,
@@ -267,6 +342,17 @@ async function main() {
         productId: row.id,
         url: `/placeholder/product-${String(n).padStart(2, "0")}.jpg`,
         alt: `${product.name} — ${sortOrder === 0 ? "front" : "detail"} (placeholder photo)`,
+        sortOrder,
+      })),
+    });
+    await db.productFeature.deleteMany({ where: { productId: row.id } });
+    await db.productFeature.createMany({
+      data: (product.features ?? []).map((feature, sortOrder) => ({
+        productId: row.id,
+        title: feature.title,
+        body: feature.body,
+        imageUrl: `/placeholder/product-${String(feature.image).padStart(2, "0")}.jpg`,
+        imageAlt: `${product.name}, ${feature.title} (placeholder photo)`,
         sortOrder,
       })),
     });
@@ -390,7 +476,7 @@ async function main() {
   }
 
   console.log(
-    `Seeded ${CATEGORIES.length} categories, ${PRODUCTS.length} products, ${projects.length} portfolio projects${adminEmail ? `, admin ${adminEmail}` : ""}.`,
+    `Seeded ${CATEGORIES.length} categories, ${SIZE_GUIDES.length} size guide${SIZE_GUIDES.length === 1 ? "" : "s"}, ${PRODUCTS.length} products, ${projects.length} portfolio projects${adminEmail ? `, admin ${adminEmail}` : ""}.`,
   );
 }
 

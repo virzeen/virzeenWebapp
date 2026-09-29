@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { adminProductFiltersSchema, categorySchema, productSchema } from "./catalog";
+import {
+  adminProductFiltersSchema,
+  categorySchema,
+  parseSizeChart,
+  productSchema,
+  saveSizeGuideSchema,
+  sizeChartSchema,
+  sizeGuideSchema,
+  uploadSignatureSchema,
+} from "./catalog";
 
 const VALID_ID = "tz4a98xxat96iws9zmbrgj3a";
 
@@ -15,10 +24,15 @@ const product = {
   name: "Linen Overshirt",
   slug: "linen-overshirt",
   description: "Relaxed overshirt.",
+  benefits: [],
+  details: [],
+  countryOfOrigin: "",
   categoryId: VALID_ID,
+  sizeGuideId: "",
   collectionIds: [],
   isPublished: true,
   images: [{ url: "virzeen/products/abc/front", alt: "Front view" }],
+  features: [],
   shippingPaisa: 15_000,
   variants: [variant],
 };
@@ -131,6 +145,204 @@ describe("productSchema messages", () => {
   it("does not crash on input that is not an object", () => {
     expect(productSchema.safeParse(undefined).success).toBe(false);
     expect(productSchema.safeParse({ ...product, variants: "none" }).success).toBe(false);
+  });
+});
+
+describe("productSchema: product details and features (specs/product-page.md)", () => {
+  const feature = {
+    title: "Breathable linen",
+    body: "Keeps you cool all day.",
+    imageUrl: "/placeholder/a.jpg",
+  };
+
+  it("takes benefits, details, a country, a size guide and features", () => {
+    const result = productSchema.safeParse({
+      ...product,
+      benefits: [" Soft washed linen "],
+      details: ["100% linen", "Horn-effect buttons"],
+      countryOfOrigin: " Nepal ",
+      sizeGuideId: VALID_ID,
+      features: [{ ...feature, alt: "" }, feature],
+    });
+    expect(result.success).toBe(true);
+    expect(result.data).toMatchObject({ benefits: ["Soft washed linen"], countryOfOrigin: "Nepal" });
+  });
+
+  it("needs every new key, so old forms fail loudly instead of wiping the details", () => {
+    const { benefits: _benefits, features: _features, ...old } = product;
+    expect(errorsOf(old)).toMatchObject({ benefits: expect.any(String), features: expect.any(String) });
+  });
+
+  it("limits benefits to 12, details to 20 and each line to 200 characters", () => {
+    expect(
+      errorsOf({
+        ...product,
+        benefits: Array.from({ length: 13 }, (_, i) => `Benefit ${i}`),
+        details: Array.from({ length: 21 }, (_, i) => `Detail ${i}`),
+      }),
+    ).toEqual({ benefits: "Add up to 12 benefits", details: "Add up to 20 product details" });
+    expect(errorsOf({ ...product, details: ["x".repeat(201), "  "] })).toEqual({
+      "details.0": "Keep each line under 200 characters",
+      "details.1": "Remove the empty line",
+    });
+    expect(errorsOf({ ...product, countryOfOrigin: "x".repeat(61) })).toEqual({
+      countryOfOrigin: "Keep the country or region under 60 characters",
+    });
+  });
+
+  it("asks to choose a size guide when the id is not one", () => {
+    expect(errorsOf({ ...product, sizeGuideId: "not an id!" })).toEqual({
+      sizeGuideId: "Choose a size guide",
+    });
+  });
+
+  it("limits features to 6, each with a picture, a title up to 60 and text up to 400", () => {
+    expect(errorsOf({ ...product, features: Array.from({ length: 7 }, () => feature) })).toEqual({
+      features: "Add up to 6 features",
+    });
+    expect(
+      errorsOf({
+        ...product,
+        features: [
+          { title: "", body: "", imageUrl: "" },
+          { title: "x".repeat(61), body: "x".repeat(401), imageUrl: "https://evil.example/x.png" },
+        ],
+      }),
+    ).toEqual({
+      "features.0.title": "Enter a title for the feature",
+      "features.0.body": "Enter the text for the feature",
+      "features.0.imageUrl": "Add a picture for the feature",
+      "features.1.title": "Keep the title under 60 characters",
+      "features.1.body": "Keep the text under 400 characters",
+      "features.1.imageUrl": "Use a Cloudinary public id or a /public path, not a web address",
+    });
+    expect(errorsOf({ ...product, features: [{ title: "Soft", body: "Very." }] })).toEqual({
+      "features.0.imageUrl": "Add a picture for the feature",
+    });
+  });
+});
+
+describe("sizeChartSchema (specs/size-guides.md)", () => {
+  const chart = {
+    columns: ["Chest", "Length"],
+    rows: [
+      { size: "S", values: ["92-96", "70"] },
+      { size: "M", values: ["96-101", ""] },
+    ],
+  };
+  function chartErrors(input: unknown) {
+    const result = sizeChartSchema.safeParse(input);
+    const errors: Record<string, string> = {};
+    for (const issue of result.error?.issues ?? []) errors[issue.path.join(".")] ??= issue.message;
+    return errors;
+  }
+
+  it("takes sizes with a value for every measurement (blank values allowed)", () => {
+    expect(sizeChartSchema.parse(chart)).toEqual(chart);
+  });
+
+  it("needs each size to have as many values as there are measurements", () => {
+    expect(
+      chartErrors({
+        ...chart,
+        rows: [
+          { size: "S", values: ["92"] },
+          { size: "M", values: ["96", "72", "60"] },
+        ],
+      }),
+    ).toEqual({
+      "rows.0.values": "Each size needs a value for every measurement",
+      "rows.1.values": "Each size needs a value for every measurement",
+    });
+  });
+
+  it("names every size and measurement that is there twice, ignoring case and spaces", () => {
+    expect(
+      chartErrors({
+        columns: ["Chest", " chest ", "Length"],
+        rows: [
+          { size: "M", values: ["", "", ""] },
+          { size: "L", values: ["", "", ""] },
+          { size: " m", values: ["", "", ""] },
+        ],
+      }),
+    ).toEqual({
+      "columns.0": "Another measurement has the same name",
+      "columns.1": "Another measurement has the same name",
+      "rows.0.size": "Another size has the same name",
+      "rows.2.size": "Another size has the same name",
+    });
+  });
+
+  it("keeps to 1-6 measurements and 1-20 sizes, with short names and values", () => {
+    expect(chartErrors({ columns: [], rows: [] })).toEqual({
+      columns: "Add at least one measurement",
+      rows: "Add at least one size",
+    });
+    const columns = ["A", "B", "C", "D", "E", "F", "G"];
+    expect(chartErrors({ columns, rows: [{ size: "S", values: columns.map(() => "") }] })).toMatchObject({
+      columns: "Add up to 6 measurements",
+    });
+    const rows = Array.from({ length: 21 }, (_, i) => ({ size: `S${i}`, values: ["1"] }));
+    expect(chartErrors({ columns: ["Chest"], rows })).toEqual({ rows: "Add up to 20 sizes" });
+    expect(
+      chartErrors({ columns: ["x".repeat(31)], rows: [{ size: "x".repeat(21), values: ["1".repeat(21)] }] }),
+    ).toEqual({
+      "columns.0": "Keep the measurement name under 30 characters",
+      "rows.0.size": "Keep the size under 20 characters",
+      "rows.0.values.0": "Keep each value under 20 characters",
+    });
+  });
+
+  it("parseSizeChart gives null for a stored chart that isn't valid", () => {
+    expect(parseSizeChart(chart)).toEqual(chart);
+    expect(parseSizeChart(null)).toBeNull();
+    expect(parseSizeChart({ columns: ["Chest"], rows: [{ size: "S", values: [] }] })).toBeNull();
+    expect(parseSizeChart({ ...chart, extra: true })).toBeNull();
+  });
+});
+
+describe("sizeGuideSchema", () => {
+  const guide = {
+    name: "Tops",
+    intro: "",
+    chart: { columns: ["Chest"], rows: [{ size: "M", values: ["96-101"] }] },
+    fitTips: "",
+    howToMeasure: ["Measure around the fullest part of your chest."],
+    imageUrl: "",
+    imageAlt: "",
+  };
+
+  it("takes a guide with only a name and a chart filled in", () => {
+    expect(sizeGuideSchema.safeParse(guide).success).toBe(true);
+  });
+
+  it("names what is missing or too long", () => {
+    const result = sizeGuideSchema.safeParse({
+      ...guide,
+      name: " ",
+      intro: "x".repeat(501),
+      howToMeasure: Array.from({ length: 11 }, () => "Tip"),
+      imageUrl: "https://evil.example/x.png",
+    });
+    const errors = Object.fromEntries(result.error?.issues.map((i) => [i.path.join("."), i.message]) ?? []);
+    expect(errors).toEqual({
+      name: "Enter a name",
+      intro: "Keep the intro under 500 characters",
+      howToMeasure: "Add up to 10 tips",
+      imageUrl: "Use a Cloudinary public id or a /public path, not a web address",
+    });
+  });
+
+  it("is sent as { id?, guide } by the admin form, like a product", () => {
+    expect(saveSizeGuideSchema.safeParse({ guide }).success).toBe(true);
+    expect(saveSizeGuideSchema.safeParse({ id: VALID_ID, guide }).success).toBe(true);
+    expect(saveSizeGuideSchema.safeParse({ id: "not an id", guide }).success).toBe(false);
+    expect(saveSizeGuideSchema.safeParse({ ...guide, id: VALID_ID }).success).toBe(false);
+  });
+
+  it("allows size-guides uploads", () => {
+    expect(uploadSignatureSchema.safeParse({ folder: "size-guides", entityId: "new" }).success).toBe(true);
   });
 });
 

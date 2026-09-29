@@ -20,9 +20,11 @@ export {
   PAGE_SIZE,
   type ProductDetail,
   type ProductPage,
+  type ProductSizeGuide,
   type ProductSummary,
 } from "./catalog/catalog.reads";
 export { catalogService } from "./catalog/catalog.service";
+export { favouriteService, type FavouriteItem } from "./favourites/favourite.service";
 export { notifications, PAYMENT_METHOD_LABELS } from "./notifications/notifications";
 export {
   checkoutService,

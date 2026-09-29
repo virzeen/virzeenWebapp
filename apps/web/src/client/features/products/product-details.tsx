@@ -1,21 +1,9 @@
 import { Accordion, AccordionItem, Container, Link } from "@virzeen/ui";
+import type { ProductDetailsData } from "./product-details-data";
 import { ProductPurchase } from "./product-purchase";
 import { SelectedStyleProvider } from "./selected-style";
 import { StyleGallery } from "./style-gallery";
 import { hasStylePhotos, initialStyle } from "./style-photos";
-
-export type ProductDetailsData = {
-  name: string;
-  description: string;
-  care: string | null;
-  category: { name: string; slug: string };
-  /** `color`: the style a photo shows; null = every style (specs/product-styles.md). */
-  images: { id: string; url: string; alt: string; color: string | null }[];
-  /** For sale only; `pricePaisa` is what the customer pays (shipping included). */
-  variants: { id: string; size: string | null; color: string | null; pricePaisa: number; stock: number }[];
-  sizes: string[];
-  colors: string[];
-};
 
 /**
  * The product page's main block: breadcrumb, gallery, name, pickers, delivery note and the description sections.

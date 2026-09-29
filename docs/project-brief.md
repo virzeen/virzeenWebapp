@@ -62,6 +62,7 @@ What customers need from us: honest prices (VAT included, shipping shown before 
 - Home: brand hero, featured collections, featured products, portfolio highlights.
 - Shop: category and collection pages, product grid, filters (category, size, color, availability), "Load more".
 - Product page: image gallery, name, price, variant pickers (size/color), stock label, sticky "Add to bag" on mobile, description, care info, size guide, related products.
+- Favourites: "Favourite" on the product page and a Favourites page; guests keep them in the browser and they move to the account on sign-in (`specs/favourites.md`; moved from phase 2 by the owner on 2026-09-29).
 - Cart ("bag"): slide-out drawer + full cart page, quantity changes, remove with undo, subtotal.
 - Checkout: sign-in required (guest cart merges on login), address book, order summary with shipping by zone, payment by COD / eSewa / Khalti.
 - Order confirmation page and email.
@@ -94,7 +95,7 @@ What customers need from us: honest prices (VAT included, shipping shown before 
 
 ### Explicitly NOT in phase 1
 
-Reviews, wishlist, coupons/discounts, gift cards, staff role, SMS notifications, automated courier integration, automated refunds, international shipping/currency, native app store builds.
+Reviews, coupons/discounts, gift cards, staff role, SMS notifications, automated courier integration, automated refunds, international shipping/currency, native app store builds.
 
 ## 4. The customer journey
 
@@ -470,7 +471,7 @@ Free-tier limits change; re-check each provider's pricing page before launch.
 
 ### Later phases
 
-- **Phase 2 — growth:** reviews, wishlist, coupons, staff role, SMS notifications (a Nepali SMS provider), better tracking, basic analytics dashboard.
+- **Phase 2 — growth:** reviews, coupons, staff role, SMS notifications (a Nepali SMS provider), better tracking, basic analytics dashboard.
 - **Phase 3 — cross-border:** multi-currency display, duties handled upfront (DDP), international shipping, Stripe/PayPal adapters, international address formats, HS codes.
 - **Phase 4 — apps:** Capacitor builds for Play Store and App Store, push notifications.
 

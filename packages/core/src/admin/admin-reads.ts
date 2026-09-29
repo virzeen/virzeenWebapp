@@ -1,6 +1,7 @@
 import "server-only";
 import { db } from "@virzeen/db";
-import type { AdminProductStatus } from "@virzeen/validators";
+import { parseSizeChart, type AdminProductStatus, type SizeGuideInput } from "@virzeen/validators";
+import { sizeGuideSelect, toProductSizeGuide, type ProductSizeGuide } from "../catalog/catalog.reads";
 import { AppError } from "../errors";
 
 // Read models for admin screens (admin actions live in the domain services).
@@ -57,14 +58,22 @@ export const adminReads = {
         slug: true,
         description: true,
         care: true,
+        benefits: true,
+        details: true,
+        countryOfOrigin: true,
         seoDescription: true,
         categoryId: true,
+        sizeGuide: { select: { id: true, archivedAt: true } },
         isPublished: true,
         shippingPaisa: true,
         // The editor reloads its fields when this changes (after a save).
         updatedAt: true,
         collections: { select: { id: true } },
         images: { select: { url: true, alt: true, color: true }, orderBy: { sortOrder: "asc" } },
+        features: {
+          select: { title: true, body: true, imageUrl: true, imageAlt: true },
+          orderBy: { sortOrder: "asc" },
+        },
         // Variants not for sale too, so For sale can be ticked again (variants are never deleted).
         variants: {
           select: {
@@ -82,9 +91,14 @@ export const adminReads = {
     });
     if (!product) throw new AppError("NOT_FOUND", "Product not found.");
     // The form edits the product price before shipping (catalogService.saveProduct adds it back).
+    const { sizeGuide, features, ...rest } = product;
     return {
-      ...product,
+      ...rest,
+      countryOfOrigin: product.countryOfOrigin ?? "",
+      // An archived guide can't be picked again, so the select starts at "No size guide".
+      sizeGuideId: sizeGuide && !sizeGuide.archivedAt ? sizeGuide.id : "",
       images: product.images.map((image) => ({ ...image, color: image.color ?? "" })),
+      features: features.map(({ imageAlt, ...feature }) => ({ ...feature, alt: imageAlt })),
       variants: product.variants.map((v) => ({ ...v, pricePaisa: v.pricePaisa - product.shippingPaisa })),
     };
   },
@@ -100,6 +114,66 @@ export const adminReads = {
         _count: { select: { products: { where: { archivedAt: null } } } },
       },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+    });
+  },
+
+  /** Size guides for the admin list: name, how many products (not archived) use each, last change. */
+  async listSizeGuides() {
+    const guides = await db.sizeGuide.findMany({
+      where: { archivedAt: null },
+      select: {
+        id: true,
+        name: true,
+        updatedAt: true,
+        _count: { select: { products: { where: { archivedAt: null } } } },
+      },
+      orderBy: [{ name: "asc" }, { id: "asc" }],
+    });
+    return guides.map(({ _count, ...guide }) => ({ ...guide, productCount: _count.products }));
+  },
+
+  /** A size guide as the edit form's values (blank strings for empty fields); null when missing or archived. */
+  async getSizeGuideForEdit(id: string): Promise<(SizeGuideInput & { id: string }) | null> {
+    const guide = await db.sizeGuide.findFirst({
+      where: { id, archivedAt: null },
+      select: {
+        id: true,
+        name: true,
+        intro: true,
+        chart: true,
+        fitTips: true,
+        howToMeasure: true,
+        imageUrl: true,
+        imageAlt: true,
+      },
+    });
+    if (!guide) return null;
+    return {
+      id: guide.id,
+      name: guide.name,
+      intro: guide.intro ?? "",
+      // A stored chart that isn't valid starts again empty rather than breaking the form.
+      chart: parseSizeChart(guide.chart) ?? { columns: [], rows: [] },
+      fitTips: guide.fitTips ?? "",
+      howToMeasure: guide.howToMeasure,
+      imageUrl: guide.imageUrl ?? "",
+      imageAlt: guide.imageAlt ?? "",
+    };
+  },
+
+  /**
+   * Size guides the product editor can pick, with everything its preview shows in the Size guide popup.
+   * Guides whose stored chart isn't valid are left out (the shop hides them too).
+   */
+  async listSizeGuideOptions(): Promise<(ProductSizeGuide & { id: string })[]> {
+    const guides = await db.sizeGuide.findMany({
+      where: { archivedAt: null },
+      select: { id: true, ...sizeGuideSelect },
+      orderBy: [{ name: "asc" }, { id: "asc" }],
+    });
+    return guides.flatMap((guide) => {
+      const shown = toProductSizeGuide(guide);
+      return shown ? [{ id: guide.id, ...shown }] : [];
     });
   },
 

@@ -1,5 +1,5 @@
 import { db } from "@virzeen/db";
-import type { ProductData } from "@virzeen/validators";
+import type { ProductData, SizeGuideInput } from "@virzeen/validators";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createCart, createCategory, createUser, resetDatabase } from "../../test/factories";
 import { cartService } from "../cart/cart.service";
@@ -14,11 +14,16 @@ async function productInput(overrides: Partial<ProductData> = {}): Promise<Produ
     slug: "linen-overshirt",
     description: "Relaxed overshirt in washed linen.",
     care: "",
+    benefits: [],
+    details: [],
+    countryOfOrigin: "",
     seoDescription: "",
     categoryId: category.id,
+    sizeGuideId: "",
     collectionIds: [],
     isPublished: true,
     images: [{ url: "virzeen/products/linen/front", alt: "Front view" }],
+    features: [],
     shippingPaisa: 0,
     variants: [
       { sku: "VZ-LINEN-BLK-M", size: "M", color: "Black", pricePaisa: 450_000, stock: 3, isActive: true },
@@ -523,5 +528,272 @@ describe("product styles (specs/product-styles.md)", () => {
       imageUrl: "virzeen/products/tee/river",
       unitPricePaisa: 165_000,
     });
+  });
+});
+
+function sizeGuideInput(overrides: Partial<SizeGuideInput> = {}): SizeGuideInput {
+  return {
+    name: "Tops",
+    intro: "Body measurements in cm.",
+    chart: {
+      columns: ["Chest", "Length"],
+      rows: [
+        { size: "M", values: ["96-101", "72"] },
+        { size: "L", values: ["101-106", ""] },
+      ],
+    },
+    fitTips: "",
+    howToMeasure: ["Measure around the fullest part of your chest."],
+    imageUrl: "",
+    imageAlt: "Ignored without a picture",
+    ...overrides,
+  };
+}
+
+const FEATURES = [
+  {
+    title: "Breathable",
+    body: "Washed linen keeps you cool.",
+    imageUrl: "virzeen/products/linen/f1",
+    alt: "",
+  },
+  {
+    title: "Roomy pockets",
+    body: "Two patch pockets.",
+    imageUrl: "virzeen/products/linen/f2",
+    alt: "Pocket",
+  },
+];
+
+describe("product details, features and size guides (specs/product-page.md, specs/size-guides.md)", () => {
+  beforeEach(resetDatabase);
+
+  it("saves details, features and the size guide, and reads them back for the editor and the shop", async () => {
+    const admin = await createUser({ role: "ADMIN" });
+    const guide = await catalogService.saveSizeGuide(admin.id, sizeGuideInput());
+    const input = await productInput({
+      benefits: ["Soft from the first wear"],
+      details: ["100% linen", "Horn-effect buttons"],
+      countryOfOrigin: "Nepal",
+      sizeGuideId: guide.id,
+      features: FEATURES,
+    });
+
+    const saved = await catalogService.saveProduct(admin.id, { product: input });
+
+    const forEdit = await adminReads.getProductForEdit(saved.id);
+    expect(forEdit).toMatchObject({
+      benefits: ["Soft from the first wear"],
+      details: ["100% linen", "Horn-effect buttons"],
+      countryOfOrigin: "Nepal",
+      sizeGuideId: guide.id,
+      features: [
+        { ...FEATURES[0], alt: "Linen Overshirt, Breathable" },
+        { ...FEATURES[1], alt: "Pocket" },
+      ],
+    });
+    const page = await catalogReads.getProductBySlug("linen-overshirt");
+    expect(page).toMatchObject({
+      benefits: ["Soft from the first wear"],
+      details: ["100% linen", "Horn-effect buttons"],
+      countryOfOrigin: "Nepal",
+      features: [
+        { title: "Breathable", imageAlt: "Linen Overshirt, Breathable" },
+        { title: "Roomy pockets", imageAlt: "Pocket" },
+      ],
+    });
+    expect(page?.sizeGuide).toEqual({
+      name: "Tops",
+      intro: "Body measurements in cm.",
+      chart: sizeGuideInput().chart,
+      fitTips: null,
+      howToMeasure: ["Measure around the fullest part of your chest."],
+      imageUrl: null,
+      imageAlt: null,
+    });
+    const audit = await db.auditLog.findFirst({ where: { action: "product.create" } });
+    expect(audit?.diff).toMatchObject({ features: 2, sizeGuideId: guide.id });
+
+    // Saving again replaces the features and can take the size guide off.
+    await catalogService.saveProduct(admin.id, {
+      id: saved.id,
+      product: {
+        ...input,
+        countryOfOrigin: "",
+        sizeGuideId: "",
+        features: [FEATURES[1]!],
+      },
+    });
+    const after = await adminReads.getProductForEdit(saved.id);
+    expect(after).toMatchObject({ countryOfOrigin: "", sizeGuideId: "" });
+    expect(after.features.map((feature) => feature.title)).toEqual(["Roomy pockets"]);
+    expect(await db.productFeature.count()).toBe(1);
+    expect((await catalogReads.getProductBySlug("linen-overshirt"))?.sizeGuide).toBeNull();
+  });
+
+  it("refuses a size guide that is archived or doesn't exist, in the form's words", async () => {
+    const admin = await createUser({ role: "ADMIN" });
+    const guide = await catalogService.saveSizeGuide(admin.id, sizeGuideInput());
+    await catalogService.archiveSizeGuide(admin.id, guide.id);
+
+    for (const sizeGuideId of [guide.id, "tz4a98xxat96iws9zmbrgj3a"]) {
+      await expect(
+        catalogService.saveProduct(admin.id, { product: await productInput({ sizeGuideId }) }),
+      ).rejects.toMatchObject({ code: "VALIDATION_FAILED", fields: { sizeGuideId: "Choose a size guide" } });
+    }
+  });
+
+  it("shows no size guide in the shop when its stored chart isn't valid or it was archived", async () => {
+    const admin = await createUser({ role: "ADMIN" });
+    const guide = await catalogService.saveSizeGuide(admin.id, sizeGuideInput());
+    await catalogService.saveProduct(admin.id, { product: await productInput({ sizeGuideId: guide.id }) });
+
+    await db.sizeGuide.update({ where: { id: guide.id }, data: { chart: { columns: "Chest" } } });
+    expect((await catalogReads.getProductBySlug("linen-overshirt"))?.sizeGuide).toBeNull();
+    expect(await adminReads.listSizeGuideOptions()).toEqual([]);
+    expect((await adminReads.getSizeGuideForEdit(guide.id))?.chart).toEqual({ columns: [], rows: [] });
+
+    await db.sizeGuide.update({
+      where: { id: guide.id },
+      data: { chart: sizeGuideInput().chart, archivedAt: new Date() },
+    });
+    expect((await catalogReads.getProductBySlug("linen-overshirt"))?.sizeGuide).toBeNull();
+  });
+
+  it("copies details, features and the size guide to a duplicate, making feature descriptions again", async () => {
+    const admin = await createUser({ role: "ADMIN" });
+    const guide = await catalogService.saveSizeGuide(admin.id, sizeGuideInput());
+    const source = await catalogService.saveProduct(admin.id, {
+      product: await productInput({
+        benefits: ["Soft"],
+        details: ["100% linen"],
+        countryOfOrigin: "Nepal",
+        sizeGuideId: guide.id,
+        features: FEATURES,
+      }),
+    });
+
+    const copy = await catalogService.duplicateProduct(admin.id, source.id);
+
+    expect(await adminReads.getProductForEdit(copy.id)).toMatchObject({
+      benefits: ["Soft"],
+      details: ["100% linen"],
+      countryOfOrigin: "Nepal",
+      sizeGuideId: guide.id,
+      features: [
+        { title: "Breathable", alt: "Linen Overshirt (copy), Breathable" },
+        { title: "Roomy pockets", alt: "Pocket" },
+      ],
+    });
+  });
+
+  it("drops an archived size guide when duplicating", async () => {
+    const admin = await createUser({ role: "ADMIN" });
+    const guide = await catalogService.saveSizeGuide(admin.id, sizeGuideInput());
+    const source = await catalogService.saveProduct(admin.id, {
+      product: await productInput({ sizeGuideId: guide.id }),
+    });
+    // Only possible by hand: archiving through the service is refused while the product uses it.
+    await db.sizeGuide.update({ where: { id: guide.id }, data: { archivedAt: new Date() } });
+
+    const copy = await catalogService.duplicateProduct(admin.id, source.id);
+
+    expect((await adminReads.getProductForEdit(copy.id)).sizeGuideId).toBe("");
+  });
+});
+
+describe("catalogService size guides", () => {
+  beforeEach(resetDatabase);
+
+  it("saves a guide, audits it, and lists it with the number of products using it", async () => {
+    const admin = await createUser({ role: "ADMIN" });
+    const guide = await catalogService.saveSizeGuide(
+      admin.id,
+      sizeGuideInput({ fitTips: "True to size.", imageUrl: "/placeholder/product-01.jpg", imageAlt: "" }),
+    );
+    await catalogService.saveProduct(admin.id, { product: await productInput({ sizeGuideId: guide.id }) });
+    await catalogService.saveSizeGuide(admin.id, { ...sizeGuideInput({ name: "Bottoms" }) });
+
+    expect(
+      (await adminReads.listSizeGuides()).map(({ name, productCount }) => ({ name, productCount })),
+    ).toEqual([
+      { name: "Bottoms", productCount: 0 },
+      { name: "Tops", productCount: 1 },
+    ]);
+    expect(await adminReads.getSizeGuideForEdit(guide.id)).toEqual({
+      id: guide.id,
+      ...sizeGuideInput({ fitTips: "True to size.", imageUrl: "/placeholder/product-01.jpg", imageAlt: "" }),
+    });
+    expect((await adminReads.listSizeGuideOptions()).map((option) => option.name)).toEqual([
+      "Bottoms",
+      "Tops",
+    ]);
+
+    await catalogService.saveSizeGuide(admin.id, {
+      ...sizeGuideInput({ name: "Tops (unisex)" }),
+      id: guide.id,
+    });
+    expect((await adminReads.getSizeGuideForEdit(guide.id))?.name).toBe("Tops (unisex)");
+    expect(
+      (await db.auditLog.findMany({ where: { entity: "SizeGuide" }, orderBy: { createdAt: "asc" } })).map(
+        (entry) => entry.action,
+      ),
+    ).toEqual(["sizeGuide.create", "sizeGuide.create", "sizeGuide.update"]);
+  });
+
+  it("keeps names unique among guides that aren't archived, ignoring case", async () => {
+    const admin = await createUser({ role: "ADMIN" });
+    const tops = await catalogService.saveSizeGuide(admin.id, sizeGuideInput());
+
+    await expect(
+      catalogService.saveSizeGuide(admin.id, sizeGuideInput({ name: "TOPS" })),
+    ).rejects.toMatchObject({
+      code: "VALIDATION_FAILED",
+      fields: { name: "There's already a size guide with this name" },
+    });
+    // Saving a guide under its own name is fine.
+    await catalogService.saveSizeGuide(admin.id, { ...sizeGuideInput({ intro: "" }), id: tops.id });
+
+    await catalogService.archiveSizeGuide(admin.id, tops.id);
+    await expect(catalogService.saveSizeGuide(admin.id, sizeGuideInput())).resolves.toMatchObject({
+      id: expect.any(String),
+    });
+  });
+
+  it("refuses to archive a guide while products use it, counting them in plain words", async () => {
+    const admin = await createUser({ role: "ADMIN" });
+    const guide = await catalogService.saveSizeGuide(admin.id, sizeGuideInput());
+    const input = await productInput({ sizeGuideId: guide.id });
+    const first = await catalogService.saveProduct(admin.id, { product: input });
+
+    await expect(catalogService.archiveSizeGuide(admin.id, guide.id)).rejects.toMatchObject({
+      code: "CONFLICT",
+      message: "1 product uses this size guide. Pick another guide on it first.",
+    });
+
+    const shirt = {
+      ...input,
+      slug: "linen-shirt",
+      variants: input.variants.map((v) => ({ ...v, sku: v.sku.replace("LINEN", "SHIRT") })),
+    };
+    const second = await catalogService.saveProduct(admin.id, { product: shirt });
+    await expect(catalogService.archiveSizeGuide(admin.id, guide.id)).rejects.toMatchObject({
+      message: "2 products use this size guide. Pick another guide on them first.",
+    });
+
+    // Archived products don't count; a product that no longer uses it doesn't either.
+    await catalogService.archiveProduct(admin.id, first.id);
+    await catalogService.saveProduct(admin.id, { id: second.id, product: { ...shirt, sizeGuideId: "" } });
+    await expect(catalogService.archiveSizeGuide(admin.id, guide.id)).resolves.toEqual({ id: guide.id });
+
+    expect(await adminReads.getSizeGuideForEdit(guide.id)).toBeNull();
+    expect(await adminReads.listSizeGuides()).toEqual([]);
+    await expect(catalogService.archiveSizeGuide(admin.id, guide.id)).rejects.toMatchObject({
+      code: "NOT_FOUND",
+    });
+    await expect(
+      catalogService.saveSizeGuide(admin.id, { ...sizeGuideInput(), id: guide.id }),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    expect(await db.auditLog.count({ where: { action: "sizeGuide.archive" } })).toBe(1);
   });
 });

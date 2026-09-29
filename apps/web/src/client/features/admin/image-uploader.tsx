@@ -1,13 +1,14 @@
 "use client";
 
 import { Button, cn, FormField, Input, Skeleton } from "@virzeen/ui";
+import type { UploadSignatureInput } from "@virzeen/validators";
 import { ImagePlus } from "lucide-react";
 import { useRef, useState } from "react";
 import { keepFocusOnPress } from "./form-focus";
 import { IMAGE_ACCEPT, useImageUploads } from "./use-image-uploads";
 
 type ImageUploaderProps = {
-  folder: "products" | "portfolio";
+  folder: UploadSignatureInput["folder"];
   entityId: string;
   uploadsEnabled: boolean;
   onUploaded: (imageRef: string) => void;

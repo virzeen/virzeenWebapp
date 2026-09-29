@@ -44,6 +44,7 @@
 | OTP request         | 3 / 10 min per email, 10 / 10 min per IP |
 | Login verify        | 5 / 10 min per email                     |
 | Add to cart         | 60 / min per session                     |
+| Favourites          | 60 / min per user, or per IP for guests  |
 | Checkout            | 10 / 10 min per user                     |
 | Payment callbacks   | 30 / min per IP                          |
 | `/api/v1/*` general | 120 / min per IP                         |

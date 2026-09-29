@@ -1,0 +1,50 @@
+# Spec: Size guides
+
+**Status:** Approved
+**Owner approval:** owner, 2026-09-29 ("Charts made in admin", chosen over a picture per product or one chart for the shop)
+**Related docs:** `specs/product-page.md` · `ui/patterns.md` §6, §10 · `database/data-rules.md`
+
+## Goal
+
+The owner makes a size chart once (e.g. "T-shirts": sizes × Chest, Length, Sleeve in cm), picks it on each product, and customers open it from "Size guide" on the product page as a popup with a cm/inch switch.
+
+## User flow
+
+1. Admin → Size guides → New size guide: name, measurements (columns), one row per size with the values in cm, optional intro, fit tips, how-to-measure text and picture → Save.
+2. Product editor → Organise → Size guide → pick it → Save.
+3. Customer → product page → "Size guide" → popup: the table (cm or in), fit tips, how to measure.
+
+## Acceptance criteria
+
+Admin
+
+- [ ] Nav item "Size guides" (after Collections), page `/admin/size-guides` with a list (name, number of products using it, Edit, Archive) and "New size guide"; create/edit at `/admin/size-guides/new` and `/admin/size-guides/{id}` (forms in pages).
+- [ ] Form: Name (required, up to 60, unique among active guides), Intro (optional, up to 500), Measurements: 1–6 column names (e.g. Chest, up to 30 each), Sizes: 1–20 rows, each a size name (up to 20) and one value per measurement (numbers or ranges in cm, e.g. "96" or "96-101", up to 20 characters; blank allowed), add/remove/move rows and columns; "Fit tips" (optional, up to 500); "How to measure" (optional, one tip per line, up to 10 lines of 200); a how-to-measure picture (optional, with description).
+- [ ] Archive asks first; when products still use the guide it refuses: "{n} products use this size guide. Pick another guide on them first."
+- [ ] Product editor → Organise: "Size guide" select ("No size guide" + active guides) with a link "Manage size guides".
+- [ ] Every save and archive is audited (`sizeGuide.create|update|archive`).
+
+Shop
+
+- [ ] "Size guide" (ruler icon + text button) next to "Select size" only when the product has an active guide; also inside the "Size and fit" accordion.
+- [ ] It opens `Dialog size="lg"` titled "Size guide" with the guide's name under it: the intro, a units switch "cm | in" (radio group, cm first), the table (first column "Size", then each measurement with its unit, e.g. "Chest (cm)"), "Fit tips", "How to measure" (list) and the picture. Inches are worked out from cm (÷ 2.54, rounded to the nearest 0.5), ranges and numbers inside text converted, anything else shown as typed.
+- [ ] The table scrolls sideways inside the popup on narrow phones; it has a caption, `th scope="col"` headers and `th scope="row"` sizes.
+- [ ] The unit choice is remembered for the visit (sessionStorage, optional).
+
+## Out of scope
+
+- A default guide per category, several charts per guide, body vs garment toggles, shoe sizes.
+
+## Data & API
+
+- New `SizeGuide`: `name`, `intro?`, `chart Json` (`{ columns: string[], rows: { size: string, values: string[] }[] }`, validated by `sizeChartSchema` / `parseSizeChart` on read), `fitTips?`, `howToMeasure String[] @default([])`, `imageUrl?`, `imageAlt?`, `archivedAt?`, timestamps; index `[archivedAt]`.
+- `Product.sizeGuideId String?` → `SizeGuide` (`onDelete: Restrict`), indexed.
+- Validators: `sizeGuideSchema`, `sizeChartSchema`, `parseSizeChart`; `productSchema.sizeGuideId`; upload folder `size-guides`.
+- Core: `catalogService.saveSizeGuide`, `archiveSizeGuide`; `adminReads.listSizeGuides`, `getSizeGuideForEdit`; `saveProduct` checks the guide exists and isn't archived ("Choose a size guide"); `duplicateProduct` keeps it; `getProductBySlug` returns it (null when archived or invalid).
+- `/api/v1/products/:slug`: `sizeGuide: { name, intro, chart, fitTips, howToMeasure, imageUrl, imageAlt } | null` (additive).
+
+## Tests
+
+- Unit: `sizeChartSchema` (row width must match columns, limits), `toInches` ("96" → "38", "96-101" → "38 - 40", "Free" unchanged).
+- Core: save/update/archive (refused while used), product save rejects an archived guide, `getProductBySlug` includes the guide.
+- E2E: admin creates a guide and picks it on the product; the product page's Size guide opens the popup, switches to inches and closes.

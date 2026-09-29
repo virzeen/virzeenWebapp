@@ -1,6 +1,6 @@
 import "server-only";
 import { db, type Prisma } from "@virzeen/db";
-import { sortSizes, type ShopFilters } from "@virzeen/validators";
+import { parseSizeChart, sortSizes, type ShopFilters, type SizeChart } from "@virzeen/validators";
 
 // Read models shared by web queries and /api/v1 (docs/backend/api-contract.md "Shapes").
 
@@ -12,7 +12,7 @@ export const publishedProductWhere = {
   category: { archivedAt: null },
 } satisfies Prisma.ProductWhereInput;
 
-const summarySelect = {
+export const summarySelect = {
   id: true,
   slug: true,
   name: true,
@@ -24,7 +24,7 @@ const summarySelect = {
   _count: { select: { images: { where: { color: { not: null } } } } },
 } satisfies Prisma.ProductSelect;
 
-type SummaryRow = Prisma.ProductGetPayload<{ select: typeof summarySelect }>;
+export type SummaryRow = Prisma.ProductGetPayload<{ select: typeof summarySelect }>;
 
 export type ProductSummary = {
   id: string;
@@ -40,7 +40,7 @@ export type ProductSummary = {
   hasStylePhotos: boolean;
 };
 
-function toSummary(row: SummaryRow): ProductSummary {
+export function toSummary(row: SummaryRow): ProductSummary {
   const [first, second] = row.images;
   return {
     id: row.id,
@@ -57,6 +57,47 @@ function toSummary(row: SummaryRow): ProductSummary {
 }
 
 export type ProductPage = { items: ProductSummary[]; nextCursor: string | null };
+
+/** The size guide a product page shows in its "Size guide" popup (specs/size-guides.md). Chart values are in cm. */
+export type ProductSizeGuide = {
+  name: string;
+  intro: string | null;
+  chart: SizeChart;
+  fitTips: string | null;
+  howToMeasure: string[];
+  imageUrl: string | null;
+  imageAlt: string | null;
+};
+
+/** A stored guide as the shop shows it: null when there is none, it's archived, or its chart isn't valid. */
+export function toProductSizeGuide(
+  guide: (Omit<ProductSizeGuide, "chart"> & { chart: unknown; archivedAt?: Date | null }) | null,
+): ProductSizeGuide | null {
+  if (!guide || guide.archivedAt) return null;
+  const chart = parseSizeChart(guide.chart);
+  if (!chart) return null;
+  return {
+    name: guide.name,
+    intro: guide.intro,
+    chart,
+    fitTips: guide.fitTips,
+    howToMeasure: guide.howToMeasure,
+    imageUrl: guide.imageUrl,
+    imageAlt: guide.imageAlt,
+  };
+}
+
+/** The SizeGuide columns toProductSizeGuide needs. */
+export const sizeGuideSelect = {
+  name: true,
+  intro: true,
+  chart: true,
+  fitTips: true,
+  howToMeasure: true,
+  imageUrl: true,
+  imageAlt: true,
+  archivedAt: true,
+} satisfies Prisma.SizeGuideSelect;
 
 function orderFor(sort: ShopFilters["sort"]): Prisma.ProductOrderByWithRelationInput[] {
   switch (sort) {
@@ -126,11 +167,19 @@ export const catalogReads = {
         name: true,
         description: true,
         care: true,
+        benefits: true,
+        details: true,
+        countryOfOrigin: true,
         seoDescription: true,
         fromPricePaisa: true,
         categoryId: true,
         category: { select: { slug: true, name: true } },
         images: { select: { id: true, url: true, alt: true, color: true }, orderBy: { sortOrder: "asc" } },
+        features: {
+          select: { id: true, title: true, body: true, imageUrl: true, imageAlt: true },
+          orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+        },
+        sizeGuide: { select: sizeGuideSelect },
         variants: {
           where: { isActive: true },
           select: { id: true, sku: true, size: true, color: true, pricePaisa: true, stock: true },
@@ -141,6 +190,7 @@ export const catalogReads = {
     if (!row || row.variants.length === 0) return null;
     return {
       ...row,
+      sizeGuide: toProductSizeGuide(row.sizeGuide),
       inStock: row.variants.some((v) => v.stock > 0),
       sizes: sortSizes(row.variants.flatMap((v) => (v.size ? [v.size] : []))),
       colors: [...new Set(row.variants.flatMap((v) => (v.color ? [v.color] : [])))],

@@ -30,7 +30,7 @@ export default async function ProductPage({ params }: Props) {
 
   return (
     <>
-      <ProductDetails product={product} />
+      <ProductDetails product={{ ...product, productId: product.id }} />
 
       {related.length > 0 && (
         <Container as="section" className="flex flex-col gap-8 py-16" aria-labelledby="related-heading">

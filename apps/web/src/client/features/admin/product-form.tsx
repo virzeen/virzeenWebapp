@@ -6,6 +6,7 @@ import { productSchema, type ProductInput } from "@virzeen/validators";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FormProvider, useFieldArray, useForm, useWatch } from "react-hook-form";
+import type { SizeGuideView } from "@/client/features/products/product-details-data";
 import { messageFor } from "@/client/lib/error-messages";
 import { saveProductAction } from "@/server/actions/admin/catalog";
 import { useRevealFirstError } from "./form-focus";
@@ -23,6 +24,8 @@ type ProductFormProps = {
   defaultValues?: ProductInput;
   categories: { value: string; label: string; slug?: string }[];
   collections: { id: string; name: string }[];
+  /** Active size guides, whole, so the preview's Size guide popup can show the picked one. */
+  sizeGuides: (SizeGuideView & { id: string })[];
   uploadsEnabled: boolean;
 };
 
@@ -31,11 +34,16 @@ const EMPTY: ProductInput = {
   slug: "",
   description: "",
   care: "",
+  benefits: [],
+  details: [],
+  countryOfOrigin: "",
   seoDescription: "",
   categoryId: "",
+  sizeGuideId: "",
   collectionIds: [],
   isPublished: false,
   images: [],
+  features: [],
   shippingPaisa: Number.NaN,
   variants: [{ sku: "", size: "", color: "", pricePaisa: Number.NaN, stock: 0, isActive: true }],
 };
@@ -56,6 +64,7 @@ export function ProductForm({
   defaultValues,
   categories,
   collections,
+  sizeGuides,
   uploadsEnabled,
 }: ProductFormProps) {
   const router = useRouter();
@@ -96,11 +105,13 @@ export function ProductForm({
   const handOverDraft = useCallback(() => {
     const values = form.getValues();
     const category = categories.find((option) => option.value === values.categoryId);
+    const sizeGuide = sizeGuides.find((guide) => guide.id === values.sizeGuideId);
     writePreviewDraft(previewKey, {
       values,
       category: category ? { name: category.label, slug: category.slug ?? slugify(category.label) } : null,
+      sizeGuide: sizeGuide ?? null,
     });
-  }, [form, categories, previewKey]);
+  }, [form, categories, sizeGuides, previewKey]);
   useEffect(() => {
     let timer: number | undefined;
     const unsubscribe = form.subscribe({

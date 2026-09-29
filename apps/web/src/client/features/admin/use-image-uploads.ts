@@ -1,5 +1,6 @@
 "use client";
 
+import type { UploadSignatureInput } from "@virzeen/validators";
 import { useRef, useState } from "react";
 import { messageFor } from "@/client/lib/error-messages";
 import { getUploadSignatureAction } from "@/server/actions/admin/catalog";
@@ -39,7 +40,7 @@ async function send(file: File, signature: Signature) {
  * named in `errors` and the rest carry on.
  */
 export function useImageUploads(
-  folder: "products" | "portfolio",
+  folder: UploadSignatureInput["folder"],
   entityId: string,
   onUploaded: (imageRef: string) => void,
 ) {

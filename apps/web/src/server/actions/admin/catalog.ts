@@ -8,6 +8,7 @@ import {
   collectionSchema,
   duplicateProductSchema,
   saveProductSchema,
+  saveSizeGuideSchema,
   uploadSignatureSchema,
 } from "@virzeen/validators";
 import { revalidatePath } from "next/cache";
@@ -79,6 +80,26 @@ export async function archiveCollectionAction(input: unknown) {
   return runAdminAction("archiveCollection", async (admin) => {
     const { id } = archiveSchema.parse(input);
     const result = await catalogService.archiveCollection(admin.id, id);
+    refreshCatalog();
+    return result;
+  });
+}
+
+/** Create or update a size guide (specs/size-guides.md); every product using it shows the change. */
+export async function saveSizeGuideAction(input: unknown) {
+  return runAdminAction("saveSizeGuide", async (admin) => {
+    const { id, guide } = saveSizeGuideSchema.parse(input);
+    const saved = await catalogService.saveSizeGuide(admin.id, { ...guide, id });
+    refreshCatalog();
+    return saved;
+  });
+}
+
+/** Refused (CONFLICT) while products still use the guide. */
+export async function archiveSizeGuideAction(input: unknown) {
+  return runAdminAction("archiveSizeGuide", async (admin) => {
+    const { id } = archiveSchema.parse(input);
+    const result = await catalogService.archiveSizeGuide(admin.id, id);
     refreshCatalog();
     return result;
   });

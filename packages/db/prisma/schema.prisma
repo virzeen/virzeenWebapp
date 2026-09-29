@@ -82,6 +82,7 @@ model User {
   accounts         Account[]
   twoFactors       TwoFactor[]
   addresses        Address[]
+  favourites       Favourite[]
   cart             Cart?
   orders           Order[]
   auditLogs        AuditLog[]
@@ -169,6 +170,23 @@ model Address {
   @@index([userId])
 }
 
+/// A product (and style) a customer saved with "Favourite" (specs/favourites.md). Deleted when removed.
+model Favourite {
+  id        String   @id @default(cuid(2))
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  /// The style (variant color) saved; "" = a product without styles.
+  color     String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, productId, color])
+  @@index([userId, createdAt])
+  @@index([productId])
+}
+
 // ───────────────────────────── Catalog ─────────────────────────────
 
 model Category {
@@ -215,8 +233,19 @@ model Product {
   isPublished       Boolean            @default(false)
   publishedAt       DateTime?
   archivedAt        DateTime?
+  /// "Benefits" bullets in the product details popup (specs/product-page.md).
+  benefits          String[]           @default([])
+  /// "Product details" bullets in the product details popup.
+  details           String[]           @default([])
+  /// "Country/Region of origin", e.g. "Nepal".
+  countryOfOrigin   String?
+  /// Chart behind the product page's "Size guide" popup (specs/size-guides.md); null = no size guide.
+  sizeGuideId       String?
+  sizeGuide         SizeGuide?         @relation(fields: [sizeGuideId], references: [id], onDelete: Restrict)
   images            ProductImage[]
   variants          ProductVariant[]
+  features          ProductFeature[]
+  favourites        Favourite[]
   collections       Collection[]
   portfolioProjects PortfolioProject[]
   createdAt         DateTime           @default(now())
@@ -225,6 +254,7 @@ model Product {
   @@index([categoryId])
   @@index([isPublished, archivedAt, publishedAt])
   @@index([fromPricePaisa])
+  @@index([sizeGuideId])
 }
 
 model ProductImage {
@@ -236,6 +266,47 @@ model ProductImage {
   alt       String
   /// The style (a variant `color`) this photo shows; null = shared by every style (specs/product-styles.md).
   color     String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId, sortOrder])
+}
+
+/// A size chart made once in admin and picked on products (specs/size-guides.md). Archived, never deleted.
+model SizeGuide {
+  id           String    @id @default(cuid(2))
+  /// Admin label and the popup's subtitle, e.g. "Tops". Unique among guides that aren't archived.
+  name         String
+  intro        String?
+  /// { columns: string[]; rows: { size: string; values: string[] }[] } in cm, validated by sizeChartSchema
+  /// (@virzeen/validators) on save and by parseSizeChart on read.
+  chart        Json
+  fitTips      String?
+  /// "How to measure" tips, one per line.
+  howToMeasure String[]  @default([])
+  /// How-to-measure picture: Cloudinary public id (or a /public path for local seed data).
+  imageUrl     String?
+  imageAlt     String?
+  archivedAt   DateTime?
+  products     Product[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([archivedAt])
+}
+
+/// "Features that perform" card on the product page (specs/product-page.md). Replaced on every product save.
+model ProductFeature {
+  id        String   @id @default(cuid(2))
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  title     String
+  body      String
+  /// Cloudinary public id (or a /public path for local seed data).
+  imageUrl  String
+  /// Picture description; made from "{product}, {title}" when the admin leaves it blank.
+  imageAlt  String
   sortOrder Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

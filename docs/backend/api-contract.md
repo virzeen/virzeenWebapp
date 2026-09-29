@@ -61,11 +61,25 @@ type ProductDetail = {
   name: string;
   description: string;
   care: string | null;
+  benefits: string[]; // "Benefits" bullets in the product details popup (specs/product-page.md)
+  details: string[]; // "Product details" bullets
+  countryOfOrigin: string | null;
   fromPricePaisa: number;
   inStock: boolean;
   imageUrl: string | null;
   images: { url: string; alt: string; color: string | null }[]; // color: the style (variant color) shown; null = every style
+  features: { title: string; body: string; imageUrl: string; imageAlt: string }[]; // "Features that perform", in order
+  sizeGuide: SizeGuide | null; // null when the product has none (specs/size-guides.md)
   variants: Variant[];
+};
+type SizeGuide = {
+  name: string;
+  intro: string | null;
+  chart: { columns: string[]; rows: { size: string; values: string[] }[] }; // values in cm, e.g. "96" or "96-101"
+  fitTips: string | null;
+  howToMeasure: string[];
+  imageUrl: string | null;
+  imageAlt: string | null;
 };
 type Variant = {
   id: string;
@@ -119,7 +133,7 @@ type OrderItemSnapshot = {
 };
 ```
 
-Address management for the app (list/add/edit) is not part of v1 yet; the app uses the web account pages in the Capacitor shell.
+Address management for the app (list/add/edit) is not part of v1 yet; the app uses the web account pages in the Capacitor shell. The same goes for favourites (`specs/favourites.md`): the app uses the web Favourites page.
 
 ## Not public
 
