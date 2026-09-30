@@ -62,7 +62,7 @@ export function SiteFooter() {
         <Separator className="bg-canvas/15" />
         <div className="flex flex-col gap-4 text-small text-canvas/60 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-3">
-            <LogoMark className="size-6 text-canvas" inverse />
+            <LogoMark className="size-6 text-canvas" />
             <p>© {new Date().getFullYear()} Virzeen. Prices include 13% VAT.</p>
           </div>
           <div className="flex gap-4">
