@@ -102,6 +102,34 @@ test.describe("Product page", () => {
     await expect(page.getByRole("radio", { name: "Black", exact: true })).toBeChecked();
   });
 
+  // specs/product-page-v2.md "Recommendations": two rows under the product; previous/next move one card.
+  test("product page shows both carousels", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto("/product/linen-overshirt");
+    const same = page.getByRole("region", { name: "You may also like" });
+    const more = page.getByRole("region", { name: "More from Virzeen" });
+    await expect(same).toBeVisible();
+    await expect(same.getByRole("link").first()).toBeVisible();
+    await expect(more).toBeVisible();
+    await expect(more.getByRole("link").first()).toBeVisible();
+
+    // The seed has more products in other categories than the 4 that fit at lg, so the buttons show.
+    const previous = more.getByRole("button", { name: "Previous products" });
+    const next = more.getByRole("button", { name: "Next products" });
+    await expect(previous).toBeDisabled();
+    await expect(next).toBeEnabled();
+    const row = more.getByRole("list", { name: "More from Virzeen" });
+    const cardWidth = await row
+      .locator(":scope > li")
+      .first()
+      .evaluate((card) => card.getBoundingClientRect().width);
+    await next.click();
+    await expect(previous).toBeEnabled();
+    await expect
+      .poll(async () => Math.abs((await row.evaluate((list) => list.scrollLeft)) - cardWidth))
+      .toBeLessThanOrEqual(1);
+  });
+
   test("the size guide opens, switches to inches and closes", async ({ page }) => {
     await page.goto("/product/linen-overshirt");
     const button = page.getByRole("button", { name: "Size guide" }).first();
@@ -141,6 +169,57 @@ test.describe("Product page", () => {
 
     await expect(page.getByRole("heading", { level: 2, name: "Features that perform" })).toBeVisible();
     await expect(page.getByRole("heading", { level: 3, name: "Breathes on warm days" })).toBeVisible();
+  });
+});
+
+// specs/mobile-menu.md: the phone menu (below md), like Nike's.
+test.describe("Phone menu", () => {
+  test("a guest opens the menu, goes into Shop and opens a category @mobile", async ({ page }) => {
+    // The desktop project runs @mobile tests too, and the menu button only shows below md.
+    const viewport = page.viewportSize();
+    if (!viewport || viewport.width >= 768) await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+
+    const header = page.getByRole("banner");
+    // No account icon on phones: it's in the menu.
+    await expect(header.getByRole("link", { name: "Sign in" })).toBeHidden();
+    const openMenu = header.getByRole("button", { name: "Open menu" });
+    await openMenu.click();
+    const menu = page.getByRole("dialog", { name: "Menu" });
+    await expect(menu).toBeVisible();
+
+    // Guests: "Sign in" comes first and takes focus.
+    await expect(menu.getByRole("link", { name: "Sign in" })).toBeFocused();
+    for (const name of ["Home", "Portfolio", "About", "Favourites", "Bag", "Orders", "Help"]) {
+      await expect(menu.getByRole("link", { name, exact: true })).toBeVisible();
+    }
+    await expect(menu.getByRole("link", { name: "Settings" })).toHaveCount(0);
+    await expect(menu.getByRole("link", { name: "Home", exact: true })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+
+    // Shop opens its own panel; "All" goes back with focus on Shop.
+    const shop = menu.getByRole("button", { name: "Shop", exact: true });
+    await shop.click();
+    await expect(menu.getByRole("heading", { name: "Shop" })).toBeFocused();
+    await expect(menu.getByRole("link", { name: "All products" })).toBeVisible();
+    await menu.getByRole("button", { name: "All", exact: true }).click();
+    await expect(shop).toBeFocused();
+
+    await shop.click();
+    await menu.getByRole("link", { name: "Accessories", exact: true }).click();
+    await expect(page).toHaveURL(/\/shop\/accessories$/);
+    await expect(menu).toBeHidden();
+    await expect(page.getByRole("heading", { level: 1, name: "Accessories" })).toBeVisible();
+
+    // Escape closes it and focus returns to the menu button.
+    await openMenu.click();
+    await expect(menu).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(menu).toBeHidden();
+    await expect(openMenu).toBeFocused();
   });
 });
 

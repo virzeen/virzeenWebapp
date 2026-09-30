@@ -1,3 +1,4 @@
+import { firstName } from "@/client/components/layout/nav-current";
 import { SiteFooter } from "@/client/components/layout/site-footer";
 import { SiteHeader } from "@/client/components/layout/site-header";
 import { CartDrawer } from "@/client/features/cart/cart-drawer";
@@ -34,7 +35,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
         {/* At least one screen tall, with main taking the slack, so a short page's footer sits at the bottom.
           The skip link's target stays clear of the sticky header through globals.css (scroll-padding-top). */}
         <div className="flex min-h-dvh flex-col">
-          <SiteHeader isSignedIn={Boolean(user)} categories={categories} />
+          <SiteHeader isSignedIn={Boolean(user)} firstName={firstName(user?.name)} categories={categories} />
           <main id="main" className="flex-1">
             {children}
           </main>

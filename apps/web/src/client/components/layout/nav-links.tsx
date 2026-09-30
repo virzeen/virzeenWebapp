@@ -2,17 +2,13 @@
 
 import { Link } from "@virzeen/ui";
 import { usePathname } from "next/navigation";
+import { isCurrent } from "./nav-current";
 
 export const PRIMARY_NAV = [
   { href: "/shop", label: "Shop" },
   { href: "/portfolio", label: "Portfolio" },
   { href: "/about", label: "About" },
 ] as const;
-
-/** True on the link's own page and the pages under it (/portfolio marks /portfolio/light-studies too). */
-export function isCurrent(pathname: string, href: string) {
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
 
 /** Desktop header navigation with the current page marked (aria-current). */
 export function NavLinks() {
