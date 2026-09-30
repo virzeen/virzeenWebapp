@@ -1,7 +1,8 @@
 // apps/web/src/app/(site)/(shop)/product/[slug]/page.tsx  — Server Component (no "use client")
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getProductBySlug, listRelatedProducts } from "@/server/queries/catalog";
+import { Suspense } from "react";
+import { getProductBySlug, listRecommendations } from "@/server/queries/catalog";
 import { ProductDetails } from "@/client/features/products/product-details";
 import { RelatedProducts } from "@/client/features/products/related-products";
 import { JsonLd } from "@/client/components/shared/json-ld";
@@ -20,13 +21,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
+/** "You may also like" and "More from Virzeen" (specs/product-page-v2.md), streamed in after the product. */
+async function Recommendations({ product }: { product: { id: string; categoryId: string } }) {
+  return <RelatedProducts recommendations={await listRecommendations(product)} />;
+}
+
 export default async function ProductPage({ params, searchParams }: Props) {
   const { slug } = await params;
   const product = await getProductBySlug(slug); // server/queries: select only needed fields
   if (!product) notFound();
   // `?style=` from a shared link or a favourite picks that style; the canonical address stays /product/{slug}.
   const { style } = await searchParams;
-  const related = await listRelatedProducts(product);
 
   return (
     <>
@@ -36,7 +41,10 @@ export default async function ProductPage({ params, searchParams }: Props) {
         Only its small leaves are client components.
       */}
       <ProductDetails product={{ ...product, productId: product.id }} styleParam={style} />
-      <RelatedProducts items={related} />
+      {/* The carousels never hold up the product: they stream in after it. */}
+      <Suspense fallback={null}>
+        <Recommendations product={product} />
+      </Suspense>
       <JsonLd
         data={{
           "@context": "https://schema.org",

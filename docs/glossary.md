@@ -13,7 +13,7 @@ Use these exact terms in code, UI copy, and docs. If you need a new term, add it
 | Product number | A product's number, e.g. `0042`, given in creation order and never reused                                                                            |
 | Style number   | A style's code, `VZ<product number>-101`, `-102`… in the order styles were added; kept on rename, never reused. Shown as "Style: VZ0042-101"         |
 | Colour shown   | The colours a style shows, e.g. "Black/White"; the style's name when not set                                                                         |
-| Size guide     | A size chart made once in admin and picked on products; customers open it from "Size guide"                                                          |
+| Size guide     | A size table (Clothing) or one size chart picture (Accessories), made once in admin and picked on products; customers open it from "Size guide"      |
 | Favourite      | A product and style a customer saved; guests' stay in the browser until they sign in                                                                 |
 | Collection     | Curated group of products (marketing). Different from Category                                                                                       |
 | Category       | Structural classification (Tops, Bottoms, Accessories)                                                                                               |
