@@ -1,3 +1,4 @@
+import { MAX_QTY_PER_LINE } from "@virzeen/validators";
 import type { ActionError } from "@/server/actions/result";
 
 // Maps error codes to the exact copy in docs/ui/content-style.md "Standard messages".
@@ -29,4 +30,14 @@ export function messageFor(error: Pick<ActionError, "code" | "message">): string
 /** Add-to-bag shows the precise stock message ("Only 2 left") instead of the checkout wording. */
 export function addToBagMessage(error: Pick<ActionError, "code" | "message">): string {
   return error.code === "OUT_OF_STOCK" ? error.message : messageFor(error);
+}
+
+/**
+ * Why Add to bag stops before asking the server: the bag already holds every piece left, or the per-line cap
+ * (`limit` = the variant's stock, at most MAX_QTY_PER_LINE). The server's "Only N left" would read like the stock
+ * label. The product page and the Favourites cards use it.
+ */
+export function allInBagMessage(limit: number): string {
+  if (limit === MAX_QTY_PER_LINE) return `Limit ${limit} of each — you already have ${limit} in your bag.`;
+  return limit === 1 ? "The last one is already in your bag." : `All ${limit} left are already in your bag.`;
 }

@@ -12,7 +12,7 @@ Anyone can save products they like with "Favourite" and find them again on a Fav
 
 1. Product page → pick a style → "Favourite" → the button reads "Favourited" with a filled heart; toast "Added to favourites" with "View" (→ `/favourites`).
 2. Press again → removed ("Removed from favourites").
-3. Header heart → `/favourites`: a grid of saved products (the saved style's photo, name, price, style), each with "Remove"; empty state with "Start shopping".
+3. Header heart → `/favourites`: a grid of saved products (the saved style's photo, name, price, style), each with "Remove"; empty state with "Start shopping". Since 2026-09-30 the page looks like Nike's: see "Nike layout" below (Edit mode for Remove, Add to bag on each card).
 4. A guest signs in → their browser favourites are added to the account (up to the limit) and cleared from the browser.
 
 ## Acceptance criteria
@@ -56,3 +56,26 @@ Anyone can save products they like with "Favourite" and find them again on a Fav
 - Merging at sign-in removes favourites of off-sale products only when the new ones don't all fit.
 - The signed-in page shows favourites saved on another device right away and refreshes the header once. On the guest error, Try again moves focus to the heading.
 - Each signed-in press re-renders the current page (`setFavouriteAction` revalidates `/favourites`).
+
+## Nike layout (2026-09-30)
+
+**Owner approval:** owner, 2026-09-30, through the ops session: "make favourites, the bag and checkout look like Nike's on phone and computer, keeping our icons and styling". This session does the Favourites page; the bag and checkout are on `feat/nike-bag-checkout`.
+
+- [x] Title "Favourites" at the top left; an "Edit" text button at the top right ("Done" while editing; `aria-pressed`). No visible count (a screen-reader-only "{n} items" stays).
+- [x] Grid: 2 columns on phones, 3 from `md`.
+- [x] Each card: the square photo (links to the product with the saved style), then the name with the price on the right (under it on phones), then the category and the style in grey ("Tops · Black"; just the category without a style), then an outlined pill button across the card: "Add to bag" when the saved style has one variant for sale, "Select size" when it has sizes, "Sold out" (disabled) when none is in stock, "View product" (a link) when the saved style isn't sold any more but another style is in stock.
+- [x] "Add to bag" adds that variant (the product page's add path: `addToCartAction`, then the bag opens as after any add) and says "Added to bag". When the bag already holds every piece left, it says so as the product page does ("The last one is already in your bag.") without asking the server. "Select size" opens a small popup ("Select size", the product name) with the style's sizes as the product page shows them (sold-out sizes struck through), and "Add to bag"; picking a size and adding closes it.
+- [x] Edit mode: a round remove button (X, "Remove {name}") on the top right of each photo; Remove works as before (focus to the next card's Remove, else the previous one's, else "Done"). "Done" leaves edit mode. Leaving the page resets it.
+- [x] Empty state: "Items added to your Favourites will be saved here." with "Shop" (a link to `/shop`); "Edit" is hidden when there's nothing.
+- [x] Data: each favourite carries its style's variants for sale (id, size, stock, price) and the category name (core `favouriteService.list` / `summariesFor`, `FavouriteView`).
+- [ ] E2E: the favourites journey adds a favourite to the bag from the page (a size through "Select size"), removes one in edit mode, and sees the empty state. (Written in `tests/e2e/favourites.spec.ts` and typechecked on 2026-09-30; not run yet.)
+
+Decisions while building (2026-09-30, branch `feat/nike-favourites`):
+
+- A style with sizes always opens "Select size", even with one size (the product page asks for a size too). "Add to bag" is for a style without sizes. A style no longer sold (or a favourite saved without a style whose product has styles now) has no variants: its pill is "View product", a link to the product's page, while the product is in stock in another style (the card shows the product's usual photo, price and stock), else "Sold out".
+- The price is still the lowest of the style's sizes, without "From". The "Out of stock" badge on the photo is gone: the pill says "Sold out".
+- Remove keeps its name "Remove {name}, {style}", so two styles of one product don't share it.
+- After the last Remove, "Done" stays (it holds focus) until pressed; then it goes and focus moves to the heading.
+- The popup's "Add to bag" works like the product page's before a size is picked: it says "Select a size" and focuses the first size. Its errors show inside the popup: behind a modal a toast is hidden from screen readers. While an add runs the popup can't close (no X, Escape and a click outside wait), as the admin's dialogs do, so its answer always shows there; each opening starts with no size and no message. The card's own "Add to bag" shows errors as a toast, as the product page does; so does "The last one is already in your bag." (the product page shows it under its button).
+- The grid is the page's own `FavouritesGrid` (2 / 3 columns), not a new `Grid` variant.
+- On phones (below `sm`) the price goes under the name, as on the shop's product cards: beside it, a half-width column at 360px leaves about 80px for the name, so "Monochromium" or "Heavyweight" would break in the middle. The name breaks a word only when the word alone is wider than the card.

@@ -7,7 +7,7 @@ import { Price } from "@/client/components/shared/price";
 import { StockLabel } from "@/client/components/shared/stock-label";
 import { useCart } from "@/client/features/cart/cart-provider";
 import { FavouriteButton } from "@/client/features/favourites/favourite-button";
-import { addToBagMessage } from "@/client/lib/error-messages";
+import { addToBagMessage, allInBagMessage } from "@/client/lib/error-messages";
 import { addToCartAction } from "@/server/actions/cart";
 import type { SizeGuideView } from "./product-details-data";
 import { useProductSelection } from "./product-selection";
@@ -22,12 +22,6 @@ type ProductPurchaseProps = {
   /** Admin preview of an unsaved product: Add to bag and Favourite only say so (its variants may not exist yet). */
   preview?: boolean;
 };
-
-/** Why Add to bag stops: the bag already holds every piece left, or the per-line cap. */
-function allInBagMessage(limit: number): string {
-  if (limit === MAX_QTY_PER_LINE) return `Limit ${limit} of each — you already have ${limit} in your bag.`;
-  return limit === 1 ? "The last one is already in your bag." : `All ${limit} left are already in your bag.`;
-}
 
 /**
  * Style tiles, sizes, stock, "Add to bag" and "Favourite" (patterns.md §6). Unavailable options stay visible but

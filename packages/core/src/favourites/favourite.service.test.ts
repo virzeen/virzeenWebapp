@@ -229,6 +229,71 @@ describe("favouriteService.list", () => {
       product: { fromPricePaisa: 350_000, inStock: false, imageUrl: "tee/black-1" },
     });
   });
+
+  it("carries the category and the saved style's variants for sale, sizes in the product page's order", async () => {
+    const user = await createUser();
+    const tee = await productWithStyles();
+    const cap = await createProduct({ name: "Logo Cap" });
+    // Black XL comes first in the admin's order, and Black XS isn't for sale.
+    await db.productVariant.createMany({
+      data: [
+        {
+          productId: tee.id,
+          sku: `${tee.id}-Black-XL`,
+          size: "XL",
+          color: "Black",
+          pricePaisa: 400_000,
+          stock: 2,
+        },
+        {
+          productId: tee.id,
+          sku: `${tee.id}-Black-XS`,
+          size: "XS",
+          color: "Black",
+          pricePaisa: 350_000,
+          stock: 5,
+          isActive: false,
+        },
+        { productId: cap.id, sku: `${cap.id}-one`, size: null, color: null, pricePaisa: 180_000, stock: 3 },
+      ],
+    });
+    const variantId = async (productId: string, size: string | null, color: string | null) =>
+      (await db.productVariant.findFirstOrThrow({ where: { productId, size, color } })).id;
+    const categoryOf = async (categoryId: string) =>
+      (await db.category.findUniqueOrThrow({ where: { id: categoryId } })).name;
+    for (const [productId, color] of [
+      [cap.id, ""],
+      [tee.id, "Blue"],
+      [tee.id, "White"],
+      [tee.id, "Black"],
+    ] as const) {
+      await favouriteService.set(user.id, { productId, color, saved: true });
+      await tick();
+    }
+
+    const items = await favouriteService.list(user.id);
+
+    expect(items.map(({ color, variants }) => [color, variants])).toEqual([
+      [
+        "Black",
+        [
+          { id: await variantId(tee.id, "M", "Black"), size: "M", stock: 0, pricePaisa: 380_000 },
+          { id: await variantId(tee.id, "L", "Black"), size: "L", stock: 0, pricePaisa: 350_000 },
+          { id: await variantId(tee.id, "XL", "Black"), size: "XL", stock: 2, pricePaisa: 400_000 },
+        ],
+      ],
+      ["White", [{ id: await variantId(tee.id, "M", "White"), size: "M", stock: 4, pricePaisa: 250_000 }]],
+      // A style not sold any more has nothing to add.
+      ["Blue", []],
+      // A product without styles or sizes: its one variant.
+      ["", [{ id: await variantId(cap.id, null, null), size: null, stock: 3, pricePaisa: 180_000 }]],
+    ]);
+    const [teeCategory, capCategory] = [await categoryOf(tee.categoryId), await categoryOf(cap.categoryId)];
+    expect(items.map((item) => item.category)).toEqual([teeCategory, teeCategory, teeCategory, capCategory]);
+    expect(await favouriteService.summariesFor([{ productId: tee.id, color: "Black" }])).toEqual([
+      expect.objectContaining({ category: items[0]?.category, variants: items[0]?.variants }),
+    ]);
+  });
 });
 
 describe("favouriteService.merge", () => {

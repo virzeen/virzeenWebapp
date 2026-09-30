@@ -1,7 +1,7 @@
 "use server";
 
 import "server-only";
-import { favouriteService, type ProductSummary } from "@virzeen/core";
+import { favouriteService, type FavouriteVariant, type ProductSummary } from "@virzeen/core";
 import {
   favouriteProductsSchema,
   mergeFavouritesSchema,
@@ -28,6 +28,10 @@ export type FavouriteView = {
   /** When the account saved it; null for a guest's (the browser keeps its own time). */
   savedAt: string | null;
   product: ProductSummary;
+  /** The product's category name ("Tops"). */
+  category: string;
+  /** The saved style's variants for sale (stock 0 when sold out), sizes in shop order; [] when the style is gone. */
+  variants: FavouriteVariant[];
 };
 
 /** Save (`saved: true`) or remove one favourite for the signed-in customer. Idempotent. */
