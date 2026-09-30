@@ -159,7 +159,7 @@ The words on badges, in the order timeline and in the admin history (`client/lib
 | Where                         | Text                                                          |
 | ----------------------------- | ------------------------------------------------------------- |
 | `/contact`, under "Instagram" | See new pieces and preorders first on Instagram: @virzeen.co. |
-| Footer, legal line            | © {year} Virzeen. Prices include 13% VAT.                     |
+| Footer, legal line            | © {year} Virzeen.                                             |
 
 ## Sign-in code (`/verify`)
 
