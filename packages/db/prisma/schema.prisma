@@ -65,6 +65,28 @@ enum PortfolioKind {
   COLLABORATION
 }
 
+/// How "Features that perform" is laid out on the product page (specs/product-page-v2.md). From `md`: THREE = three
+/// across (two at md), THREE_TWO = groups of five, three portrait then two landscape, TWO = two across, FULL = one per
+/// row, TALL_LEFT / TALL_RIGHT = groups of three with a tall picture left / right of two stacked ones, WIDE_TOP =
+/// groups of three with one full width then two side by side, CUSTOM = the owner's rows (Product.featureRows).
+enum FeatureLayout {
+  THREE
+  THREE_TWO
+  TWO
+  FULL
+  TALL_LEFT
+  TALL_RIGHT
+  WIDE_TOP
+  CUSTOM
+}
+
+/// What a size guide shows (specs/product-page-v2.md): CHART = a size table (clothing), PICTURE = one size chart
+/// picture (accessories).
+enum SizeGuideKind {
+  CHART
+  PICTURE
+}
+
 // ─────────────────── Accounts (Better Auth tables) ───────────────────
 // Shape required by Better Auth; ids are generated as cuid2 by the auth config.
 
@@ -82,6 +104,7 @@ model User {
   accounts         Account[]
   twoFactors       TwoFactor[]
   addresses        Address[]
+  favourites       Favourite[]
   cart             Cart?
   orders           Order[]
   auditLogs        AuditLog[]
@@ -169,6 +192,23 @@ model Address {
   @@index([userId])
 }
 
+/// A product (and style) a customer saved with "Favourite" (specs/favourites.md). Deleted when removed.
+model Favourite {
+  id        String   @id @default(cuid(2))
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  /// The style (variant color) saved; "" = a product without styles.
+  color     String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, productId, color])
+  @@index([userId, createdAt])
+  @@index([productId])
+}
+
 // ───────────────────────────── Catalog ─────────────────────────────
 
 model Category {
@@ -200,6 +240,9 @@ model Collection {
 
 model Product {
   id                String             @id @default(cuid(2))
+  /// Product number (the 0042 in style numbers like VZ0042-101), never reused. Products that existed before it were
+  /// numbered in the order they were made (specs/product-editor-on-page.md).
+  number            Int                @unique @default(autoincrement())
   slug              String             @unique
   name              String
   description       String
@@ -215,8 +258,26 @@ model Product {
   isPublished       Boolean            @default(false)
   publishedAt       DateTime?
   archivedAt        DateTime?
+  /// "Benefits" bullets in the product details popup (specs/product-page.md).
+  benefits          String[]           @default([])
+  /// "Product details" bullets in the product details popup.
+  details           String[]           @default([])
+  /// "Country/Region of origin", e.g. "China" (new products start with "China").
+  countryOfOrigin   String?
+  /// Chart behind the product page's "Size guide" popup (specs/size-guides.md); null = no size guide.
+  sizeGuideId       String?
+  sizeGuide         SizeGuide?         @relation(fields: [sizeGuideId], references: [id], onDelete: Restrict)
+  /// How "Features that perform" is laid out (specs/product-page-v2.md); existing products get THREE.
+  featureLayout     FeatureLayout      @default(THREE)
+  /// The Custom layout's rows, top to bottom (specs/product-page-v2.md): up to 9 of
+  /// { count: 1-4; shape: "LANDSCAPE" | "PORTRAIT" }, validated by featureRowsSchema (@virzeen/validators) on save and
+  /// by parseFeatureRows on read (invalid = no rows). Kept when another layout is picked, so Custom gets them back.
+  featureRows       Json               @default("[]")
   images            ProductImage[]
   variants          ProductVariant[]
+  styles            ProductStyle[]
+  features          ProductFeature[]
+  favourites        Favourite[]
   collections       Collection[]
   portfolioProjects PortfolioProject[]
   createdAt         DateTime           @default(now())
@@ -225,6 +286,7 @@ model Product {
   @@index([categoryId])
   @@index([isPublished, archivedAt, publishedAt])
   @@index([fromPricePaisa])
+  @@index([sizeGuideId])
 }
 
 model ProductImage {
@@ -234,6 +296,71 @@ model ProductImage {
   /// Cloudinary public id (or a /public path for local seed data).
   url       String
   alt       String
+  /// The style (a variant `color`) this photo shows; null = shared by every style (specs/product-styles.md).
+  color     String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId, sortOrder])
+}
+
+/// A style's number and "Colour shown" (specs/product-editor-on-page.md): one row per variant colour, or one with
+/// color "" for a product without styles. Never deleted, so a style number is never reused.
+model ProductStyle {
+  id          String   @id @default(cuid(2))
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  /// The style (a variant `color`); "" = a product without styles.
+  color       String
+  /// Style number, e.g. VZ0042-101: never changes (a rename keeps it) and is never reused.
+  code        String   @unique
+  /// "Colour shown" on the product page, e.g. "Black/White"; null = the style's name.
+  colourShown String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([productId, color])
+  @@index([productId])
+}
+
+/// A size chart made once in admin and picked on products (specs/size-guides.md). Archived, never deleted.
+model SizeGuide {
+  id           String        @id @default(cuid(2))
+  /// Admin label and the popup's subtitle, e.g. "Tops". Unique among guides that aren't archived.
+  name         String
+  intro        String?
+  /// CHART = a size table (existing guides), PICTURE = one size chart picture (specs/product-page-v2.md).
+  kind         SizeGuideKind @default(CHART)
+  /// CHART: { columns: string[]; rows: { size: string; values: string[] }[] } in cm, validated by sizeChartSchema
+  /// (@virzeen/validators) on save and by parseSizeChart on read. PICTURE: null (no table is stored).
+  chart        Json?
+  fitTips      String?
+  /// "How to measure" tips, one per line.
+  howToMeasure String[]      @default([])
+  /// CHART: the how-to-measure picture (optional). PICTURE: the size chart picture (required). Cloudinary public id
+  /// (or a /public path for local seed data).
+  imageUrl     String?
+  imageAlt     String?
+  archivedAt   DateTime?
+  products     Product[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([archivedAt])
+}
+
+/// "Features that perform" card on the product page (specs/product-page.md). Replaced on every product save.
+model ProductFeature {
+  id        String   @id @default(cuid(2))
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  title     String
+  body      String
+  /// Cloudinary public id (or a /public path for local seed data).
+  imageUrl  String
+  /// Picture description; made from "{product}, {title}" when the admin leaves it blank.
+  imageAlt  String
   sortOrder Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

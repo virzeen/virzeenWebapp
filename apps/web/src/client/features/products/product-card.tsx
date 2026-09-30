@@ -12,6 +12,8 @@ export type ProductCardData = {
   hoverImageUrl: string | null;
   inStock: boolean;
   colorCount: number;
+  /** The colours are styles with their own photos: "{n} styles" (specs/product-styles.md). */
+  hasStylePhotos?: boolean;
 };
 
 /** Product grid card: the whole card is one link (patterns.md §5). */
@@ -40,7 +42,9 @@ export function ProductCard({ product, priority = false }: { product: ProductCar
         <span className="text-body">{product.name}</span>
         <Price paisa={product.fromPricePaisa} className="text-small text-ink-muted" />
         {product.colorCount > 1 && (
-          <span className="text-small text-ink-muted">{product.colorCount} colours</span>
+          <span className="text-small text-ink-muted">
+            {product.colorCount} {product.hasStylePhotos ? "styles" : "colours"}
+          </span>
         )}
       </div>
     </Link>

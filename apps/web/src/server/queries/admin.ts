@@ -1,7 +1,7 @@
 import "server-only";
 import "@/server/bootstrap";
 import { adminReads, catalogReads, orderService, portfolioService } from "@virzeen/core";
-import type { AdminOrderFilters } from "@virzeen/validators";
+import type { AdminOrderFilters, AdminProductFilters } from "@virzeen/validators";
 import { cache } from "react";
 import { features } from "@/server/env";
 
@@ -10,9 +10,11 @@ import { features } from "@/server/env";
 
 export const getDashboardStats = () => orderService.dashboardStats();
 export const listAdminOrders = (filters: AdminOrderFilters) => orderService.listForAdmin(filters);
-export const listAdminProducts = (query?: string) => adminReads.listProducts(query);
+export const listAdminProducts = ({ q, status }: AdminProductFilters) => adminReads.listProducts(q, status);
+export const getProductStatusCounts = () => adminReads.productStatusCounts();
 export const listAdminCategories = () => adminReads.listCategories();
 export const listAdminCollections = () => adminReads.listCollections();
+export const listAdminSizeGuides = () => adminReads.listSizeGuides();
 export const listAdminCustomers = (page: number) => adminReads.listCustomers(page);
 export const listAdminPortfolio = () => portfolioService.listForAdmin();
 export const listProductOptions = () => adminReads.listProductOptions();
@@ -34,6 +36,9 @@ export const getProductForEdit = cache(async (id: string) => {
   }
 });
 
+/** null when missing or archived (the page shows 404). */
+export const getSizeGuideForEdit = cache((id: string) => adminReads.getSizeGuideForEdit(id));
+
 export const getPortfolioProjectForEdit = cache(async (id: string) => {
   try {
     return await portfolioService.getForAdmin(id);
@@ -42,15 +47,19 @@ export const getPortfolioProjectForEdit = cache(async (id: string) => {
   }
 });
 
-/** Categories + collections for the product form. */
+/** Categories, collections and size guides for the product form. */
 export async function getProductFormOptions() {
-  const [categories, collections] = await Promise.all([
+  const [categories, collections, sizeGuides] = await Promise.all([
     adminReads.listCategories(),
     adminReads.listCollections(),
+    adminReads.listSizeGuideOptions(),
   ]);
   return {
-    categories: categories.map((c) => ({ value: c.id, label: c.name })),
+    // slug: the editor's preview links the breadcrumb to the category's shop page.
+    categories: categories.map((c) => ({ value: c.id, label: c.name, slug: c.slug })),
     collections: collections.map((c) => ({ id: c.id, name: c.name })),
+    // The whole guide, so the preview's Size guide popup shows it without a database read.
+    sizeGuides,
   };
 }
 

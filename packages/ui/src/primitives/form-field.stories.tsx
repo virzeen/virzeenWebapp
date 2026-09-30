@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { useState } from "react";
 import { expect } from "storybook/test";
+import { Button } from "./button";
 import { FormField } from "./form-field";
 import { Input, Textarea } from "./input";
 import { RadioGroup, RadioGroupItem } from "./radio-group";
@@ -96,5 +97,29 @@ export const WithRadioGroup: Story = {
   ),
   play: async ({ canvas }) => {
     await expect(canvas.getByRole("radiogroup", { name: /Payment method/ })).toBeInTheDocument();
+  },
+};
+
+/** `labelAside`: an action at the end of the label row, outside the label (the product page's size picker). */
+export const WithLabelAside: Story = {
+  render: () => (
+    <FormField
+      label="Select size"
+      labelAside={
+        <Button variant="link" size="sm">
+          Size guide
+        </Button>
+      }
+    >
+      <RadioGroup variant="card">
+        <RadioGroupItem value="S" label="S" />
+        <RadioGroupItem value="M" label="M" />
+        <RadioGroupItem value="L" label="L" />
+      </RadioGroup>
+    </FormField>
+  ),
+  play: async ({ canvas }) => {
+    await expect(canvas.getByRole("radiogroup", { name: "Select size" })).toBeInTheDocument();
+    await expect(canvas.getByRole("button", { name: "Size guide" })).toBeInTheDocument();
   },
 };

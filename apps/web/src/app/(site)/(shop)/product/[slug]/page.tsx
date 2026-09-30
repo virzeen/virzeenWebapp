@@ -1,16 +1,16 @@
-import { Accordion, AccordionItem, Container, Grid, Link } from "@virzeen/ui";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { JsonLd } from "@/client/components/shared/json-ld";
-import { ProductCard } from "@/client/features/products/product-card";
-import { ProductGallery } from "@/client/features/products/product-gallery";
-import { ProductPurchase } from "@/client/features/products/product-purchase";
-import { getProductBySlug, listRelatedProducts } from "@/server/queries/catalog";
+import { ProductDetails } from "@/client/features/products/product-details";
+import { RelatedProducts } from "@/client/features/products/related-products";
+import { getProductBySlug, listRecommendations } from "@/server/queries/catalog";
 import { siteUrl } from "@/server/env";
+import { flattenSearchParams, type SearchParams } from "@/server/queries/params";
 import { absoluteImageUrl, breadcrumbJsonLd, productDescription, productTitle } from "@/server/seo";
 
-// Next.js 16: params is a Promise and must be awaited.
-type Props = { params: Promise<{ slug: string }> };
+// Next.js 16: params and searchParams are Promises and must be awaited.
+type Props = { params: Promise<{ slug: string }>; searchParams: SearchParams };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const product = await getProductBySlug((await params).slug);
@@ -38,76 +38,26 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function ProductPage({ params }: Props) {
+/** The carousels under the product (specs/product-page-v2.md), streamed in after it so they never hold it up. */
+async function Recommendations({ product }: { product: { id: string; categoryId: string } }) {
+  return <RelatedProducts recommendations={await listRecommendations(product)} />;
+}
+
+export default async function ProductPage({ params, searchParams }: Props) {
   const product = await getProductBySlug((await params).slug);
   if (!product) notFound();
-  const related = await listRelatedProducts(product);
+  // `?style=` picks the style a shared link or a favourite names; the canonical address stays /product/{slug}.
+  const { style } = flattenSearchParams(await searchParams);
   const lowestPrice = Math.min(...product.variants.map((v) => v.pricePaisa));
+  const image = product.images[0] ? absoluteImageUrl(product.images[0].url, siteUrl) : null;
 
   return (
     <>
-      <Container className="py-6 pb-28 md:pb-16 lg:py-12">
-        {/* 44px-tall links; the negative top margin keeps the text where the shorter links had it. */}
-        <nav aria-label="Breadcrumb" className="-mt-3 pb-3">
-          <ol className="flex items-center gap-2 text-small text-ink-muted">
-            <li>
-              <Link href="/shop" variant="subtle" className="inline-flex min-h-11 items-center">
-                Shop
-              </Link>
-            </li>
-            <li aria-hidden>/</li>
-            <li>
-              <Link
-                href={`/shop/${product.category.slug}`}
-                variant="subtle"
-                className="inline-flex min-h-11 items-center"
-              >
-                {product.category.name}
-              </Link>
-            </li>
-          </ol>
-        </nav>
-        <div className="grid gap-8 lg:grid-cols-[3fr_2fr] lg:gap-16">
-          <ProductGallery images={product.images} productName={product.name} />
-          <div className="flex flex-col gap-8 lg:sticky lg:top-24 lg:self-start">
-            <h1 className="font-display text-h1">{product.name}</h1>
-            <ProductPurchase variants={product.variants} sizes={product.sizes} colors={product.colors} />
-            <p className="text-small text-ink-muted">
-              Prices include 13% VAT. Free shipping across Nepal and 7-day free returns. Pay in cash when it
-              arrives.
-            </p>
-            <Accordion type="multiple" defaultValue={["description"]}>
-              <AccordionItem value="description" title="Description">
-                <p className="whitespace-pre-line">{product.description}</p>
-              </AccordionItem>
-              {product.care && (
-                <AccordionItem value="care" title="Care">
-                  <p className="whitespace-pre-line">{product.care}</p>
-                </AccordionItem>
-              )}
-              <AccordionItem value="shipping" title="Shipping & returns">
-                <p>
-                  Free delivery in 1–3 days inside Kathmandu Valley and 3–7 days elsewhere in Nepal. Free
-                  returns within 7 days of delivery. <Link href="/returns">Read our returns policy</Link>.
-                </p>
-              </AccordionItem>
-            </Accordion>
-          </div>
-        </div>
-      </Container>
+      <ProductDetails product={{ ...product, productId: product.id }} styleParam={style} />
 
-      {related.length > 0 && (
-        <Container as="section" className="flex flex-col gap-8 py-16" aria-labelledby="related-heading">
-          <h2 id="related-heading" className="font-display text-h2">
-            You may also like
-          </h2>
-          <Grid columns="products" gap={4}>
-            {related.map((item) => (
-              <ProductCard key={item.id} product={item} />
-            ))}
-          </Grid>
-        </Container>
-      )}
+      <Suspense fallback={null}>
+        <Recommendations product={product} />
+      </Suspense>
 
       <JsonLd
         data={breadcrumbJsonLd(siteUrl, [
@@ -123,6 +73,7 @@ export default async function ProductPage({ params }: Props) {
           name: product.name,
           description: product.seoDescription ?? product.description,
           url: `${siteUrl}/product/${product.slug}`,
+          ...(image ? { image } : {}),
           sku: product.variants[0]?.sku,
           brand: { "@type": "Brand", name: "Virzeen" },
           category: product.category.name,

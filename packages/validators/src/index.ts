@@ -5,5 +5,6 @@ export * from "./auth";
 export * from "./cart";
 export * from "./catalog";
 export * from "./checkout";
+export * from "./favourites";
 export * from "./orders";
 export * from "./portfolio";

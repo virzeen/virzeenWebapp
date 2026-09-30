@@ -18,6 +18,7 @@ import {
   archiveCategoryAction,
   archiveCollectionAction,
   archiveProductAction,
+  archiveSizeGuideAction,
 } from "@/server/actions/admin/catalog";
 import { archivePortfolioProjectAction } from "@/server/actions/admin/portfolio";
 
@@ -26,10 +27,11 @@ const ACTIONS = {
   category: archiveCategoryAction,
   collection: archiveCollectionAction,
   portfolio: archivePortfolioProjectAction,
+  sizeGuide: archiveSizeGuideAction,
 } as const;
 
-// Trying again can't help with these: something must change first (a category still has products) or the
-// item is already gone.
+// Trying again can't help with these: something must change first (a category or size guide still has products)
+// or the item is already gone.
 const BLOCKED = new Set<ActionError["code"]>(["CONFLICT", "NOT_FOUND"]);
 
 type ArchiveButtonProps = {

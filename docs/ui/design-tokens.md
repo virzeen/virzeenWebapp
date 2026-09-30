@@ -5,20 +5,20 @@ Values below are the phase-1 defaults, set from the brand artwork (monochrome lo
 
 ## 1. Color
 
-| Token                     | Utility examples               | Default   | Use for                                                              |
-| ------------------------- | ------------------------------ | --------- | -------------------------------------------------------------------- |
-| `--color-ink` ◆           | `text-ink`, `bg-ink`           | `#141414` | Primary text, primary button background                              |
-| `--color-ink-muted`       | `text-ink-muted`               | `#666666` | Secondary text, captions, placeholders                               |
-| `--color-canvas`          | `bg-canvas`                    | `#FFFFFF` | Page background                                                      |
-| `--color-surface` ◆       | `bg-surface`                   | `#F5F5F5` | Cards, image placeholders, section bands                             |
-| `--color-line`            | `border-line`, `divide-line`   | `#E5E5E5` | Borders, dividers, input outlines                                    |
-| `--color-line-strong`     | `border-line-strong`           | `#8A8A8A` | Input, checkbox and radio outlines (3:1 against canvas, WCAG 1.4.11) |
-| `--color-accent` ◆        | `text-accent`, `bg-accent`     | `#231F20` | Brand highlights, links on hover, badges                             |
-| `--color-accent-contrast` | `text-accent-contrast`         | `#FFFFFF` | Text on accent backgrounds                                           |
-| `--color-success`         | `text-success`                 | `#2E7D4F` | In stock, payment success, accepted code boxes (`border-success`)    |
-| `--color-warning`         | `text-warning`                 | `#8A5A00` | Low stock, pending                                                   |
-| `--color-danger`          | `text-danger`, `border-danger` | `#B3261E` | Errors, out of stock, destructive actions                            |
-| `--color-focus`           | `ring-focus`                   | `#2F6FEB` | Focus rings only                                                     |
+| Token                     | Utility examples               | Default   | Use for                                                                                                                                         |
+| ------------------------- | ------------------------------ | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--color-ink` ◆           | `text-ink`, `bg-ink`           | `#141414` | Primary text, primary button background                                                                                                         |
+| `--color-ink-muted`       | `text-ink-muted`               | `#666666` | Secondary text, captions, placeholders                                                                                                          |
+| `--color-canvas`          | `bg-canvas`                    | `#FFFFFF` | Page background                                                                                                                                 |
+| `--color-surface` ◆       | `bg-surface`                   | `#F5F5F5` | Cards, image placeholders, section bands                                                                                                        |
+| `--color-line`            | `border-line`, `divide-line`   | `#E5E5E5` | Borders, dividers, input outlines                                                                                                               |
+| `--color-line-strong`     | `border-line-strong`           | `#8A8A8A` | Input, checkbox and radio outlines (3:1 against canvas, WCAG 1.4.11)                                                                            |
+| `--color-accent` ◆        | `text-accent`, `bg-accent`     | `#231F20` | Brand highlights, links on hover, badges                                                                                                        |
+| `--color-accent-contrast` | `text-accent-contrast`         | `#FFFFFF` | Text on accent backgrounds                                                                                                                      |
+| `--color-success`         | `text-success`                 | `#2E7D4F` | In stock, payment success, accepted code boxes (`border-success`)                                                                               |
+| `--color-warning`         | `text-warning`                 | `#8A5A00` | Low stock, pending                                                                                                                              |
+| `--color-danger`          | `text-danger`, `border-danger` | `#B3261E` | Errors, out of stock, destructive actions                                                                                                       |
+| `--color-focus`           | `ring-focus`                   | `#2F6FEB` | Focus rings only (buttons, links, checkboxes; not text fields). Taps show no blue flash: `html` sets `-webkit-tap-highlight-color: transparent` |
 
 Rules: text on `canvas`/`surface` uses `ink` or `ink-muted` only. On dark imagery and the ink footer, use `text-canvas` (and `/80`, `/70` opacity steps for secondary text). Status colors are for status, never decoration. Every pairing must meet WCAG AA (4.5:1 body, 3:1 large text/UI).
 
@@ -69,11 +69,15 @@ Borders are 1px `border-line`. Prefer borders and whitespace over shadows.
 
 Animate only `opacity` and `transform`. No bouncing, no infinite animations except loading skeleton shimmer. Wrap all motion in `motion-safe:` or check `useReducedMotion()`.
 
-Named animations (`animate-*`, defined with their keyframes in `tokens.css`): `spin`, `shimmer`, `fade-in`/`fade-out`, `slide-in-*`/`slide-out-*` (right, bottom) and `reveal`, used by the primitives, plus one feedback animation:
+Named animations (`animate-*`, defined with their keyframes in `tokens.css`): `spin`, `shimmer`, `fade-in`/`fade-out`, `slide-in-*`/`slide-out-*` (right, bottom) and `reveal`, used by the primitives, plus these:
 
-| Token             | Value                                                        | Use                                                                                              |
-| ----------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
-| `--animate-shake` | 400ms, `ease-standard`, played once; a damped 6px side-shake | A wrong one-time code (`CodeInput`), always as `motion-safe:animate-shake`. Nothing else shakes. |
+| Token                                                              | Value                                                                                                                 | Use                                                                                                                                                                                                  |
+| ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--animate-shake`                                                  | 400ms, `ease-standard`, played once; a damped 6px side-shake                                                          | A wrong one-time code (`CodeInput`), always as `motion-safe:animate-shake`. Nothing else shakes.                                                                                                     |
+| `--animate-nudge-in-right`, `--animate-nudge-in-left`              | 250ms, `ease-standard`; a 16px slide in with a fade                                                                   | A second panel inside a `Sheet` coming in (the phone menu's Shop, from the right) and the way back (from the left), as `motion-safe:`. 16px stays inside the sheet's 24px gutter: no sideways scroll |
+| `--animate-drop-down`, `--animate-lift-up`                         | 350ms / 250ms, `ease-standard`; a `clip-path` that grows down from the top / shrinks back up                          | `Sheet side="top"` (the phone menu, like apple.com)                                                                                                                                                  |
+| `tone-inverse` (utility in `tokens.css`)                           | Swaps `ink`/`canvas`/`ink-muted`/`surface`/`line` for an element and its children, so they draw white on a dark photo | The home page header over the hero, before scrolling                                                                                                                                                 |
+| `stagger-rows` (utility in `globals.css`, keyframes `menu-row-in`) | 350ms; each `[data-stagger="n"]` row fades in and drops 0.5rem, n × 30ms later (0–15); off with reduced motion        | The phone menu's rows as it opens                                                                                                                                                                    |
 
 ## 6. Breakpoints and layout
 
@@ -82,7 +86,7 @@ Max content width `max-w-7xl` (1280px) via `Container`. Product grid: 2 cols bas
 
 ## 7. Z-index scale (use only these)
 
-`z-10` sticky header · `z-20` dropdowns/popovers · `z-40` drawers/sheets + overlay · `z-50` dialogs · `z-60` toasts. Never invent other values.
+`z-10` sticky header (and the product editor's top bar) · `z-20` dropdowns/popovers · `z-40` drawers/sheets + overlay · `z-50` dialogs, and the `Select` list (it also opens from inside a Dialog or Sheet, so it must sit above their overlay) · `z-60` toasts. Never invent other values.
 
 ## 8. Icons
 

@@ -20,6 +20,7 @@ const LIMITS = {
   api: [120, "1 m"],
   "admin:totp": [5, "10 m"],
   account: [30, "10 m"],
+  favourite: [60, "1 m"],
   admin: [240, "1 m"],
 } as const satisfies Record<string, readonly [number, Window]>;
 

@@ -1,8 +1,5 @@
-import { ButtonLink, Link, Stack } from "@virzeen/ui";
 import { notFound } from "next/navigation";
-import { AdminPageHeader } from "@/client/features/admin/admin-page-header";
-import { ArchiveButton } from "@/client/features/admin/archive-button";
-import { ProductForm } from "@/client/features/admin/product-form";
+import { ProductEditor } from "@/client/features/admin/editor/product-editor";
 import { requireAdminPage } from "@/server/auth/session";
 import { getProductForEdit, getProductFormOptions, uploadsEnabled } from "@/server/queries/admin";
 
@@ -15,6 +12,7 @@ export async function generateMetadata({ params }: Props) {
   return { title: "Edit product" };
 }
 
+/** The product editor on the page (specs/product-editor-on-page.md): it looks like the shop's product page. */
 export default async function EditProductPage({ params }: Props) {
   await requireAdminPage();
   const [product, options] = await Promise.all([
@@ -24,46 +22,18 @@ export default async function EditProductPage({ params }: Props) {
   if (!product) notFound();
 
   return (
-    <Stack gap={6}>
-      <Link
-        href="/admin/products"
-        variant="subtle"
-        className="inline-flex min-h-11 items-center self-start text-small"
-      >
-        ← Products
-      </Link>
-      <AdminPageHeader
-        title={product.name}
-        actions={
-          <>
-            {product.isPublished && (
-              <ButtonLink href={`/product/${product.slug}`} variant="secondary" size="sm" shape="pill">
-                View in shop
-              </ButtonLink>
-            )}
-            <ArchiveButton kind="product" id={product.id} name={product.name} redirectTo="/admin/products" />
-          </>
-        }
-      />
-      <ProductForm
-        productId={product.id}
-        categories={options.categories}
-        collections={options.collections}
-        uploadsEnabled={uploadsEnabled()}
-        defaultValues={{
-          name: product.name,
-          slug: product.slug,
-          description: product.description,
-          care: product.care ?? "",
-          seoDescription: product.seoDescription ?? "",
-          categoryId: product.categoryId,
-          collectionIds: product.collections.map((c) => c.id),
-          isPublished: product.isPublished,
-          images: product.images,
-          shippingPaisa: product.shippingPaisa,
-          variants: product.variants.map((v) => ({ ...v, size: v.size ?? "", color: v.color ?? "" })),
-        }}
-      />
-    </Stack>
+    <ProductEditor
+      product={{
+        id: product.id,
+        number: product.number,
+        slug: product.slug,
+        isPublished: product.isPublished,
+        everPublished: product.publishedAt !== null,
+        savedAt: product.updatedAt.toISOString(),
+      }}
+      // The form's values as core reads them (styles with their numbers too), the same shape a save returns.
+      values={product.values}
+      options={{ ...options, uploadsEnabled: uploadsEnabled() }}
+    />
   );
 }

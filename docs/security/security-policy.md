@@ -29,7 +29,7 @@
 - Zod validation at every boundary with `.strict()`.
 - Prisma only; no unsafe raw SQL.
 - React escapes output by default; never use `dangerouslySetInnerHTML` except for sanitized admin rich text (DOMPurify).
-- File uploads go directly to Cloudinary via signed upload params; allow only image types, max 10 MB.
+- File uploads go directly to Cloudinary via signed upload params; allow only image types, max 10 MB. The signature is only made for the folders `products`, `portfolio` and `size-guides` (`uploadSignatureSchema`), as `virzeen/<folder>/<id>`.
 
 ## 5. HTTP security headers (set in `next.config.ts`)
 
@@ -44,6 +44,7 @@
 | OTP request         | 3 / 10 min per email, 10 / 10 min per IP |
 | Login verify        | 5 / 10 min per email                     |
 | Add to cart         | 60 / min per session                     |
+| Favourites          | 60 / min per user, or per IP for guests  |
 | Checkout            | 10 / 10 min per user                     |
 | Payment callbacks   | 30 / min per IP                          |
 | `/api/v1/*` general | 120 / min per IP                         |

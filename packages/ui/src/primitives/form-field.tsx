@@ -32,6 +32,8 @@ export function useFormFieldControl() {
 export type FormFieldProps = {
   /** Visible label. Always required: no placeholder-only inputs (docs/ui/patterns.md §4). */
   label: React.ReactNode;
+  /** Shown at the end of the label row, e.g. a "Size guide" button. Not part of the label. */
+  labelAside?: React.ReactNode;
   /** Helper text shown under the control. */
   helper?: React.ReactNode;
   /** Error message; turns the control into its error state. */
@@ -43,27 +45,46 @@ export type FormFieldProps = {
 
 /**
  * Wraps every form input: label + control + helper + error, with ids wired for screen readers.
- * Put exactly one control (Input, Textarea, Select, RadioGroup) inside.
+ * Put exactly one control (Input, Textarea, Select, RadioGroup) inside. `labelAside` puts a small action at the end
+ * of the label row (the product page's "Size guide" next to "Select size").
  */
-export function FormField({ label, helper, error, required = false, className, children }: FormFieldProps) {
+export function FormField({
+  label,
+  labelAside,
+  helper,
+  error,
+  required = false,
+  className,
+  children,
+}: FormFieldProps) {
   const id = useId();
   const labelId = `${id}-label`;
   const helperId = helper ? `${id}-helper` : undefined;
   const errorId = error ? `${id}-error` : undefined;
   const describedBy = [errorId, helperId].filter(Boolean).join(" ") || undefined;
+  const labelElement = (
+    <label id={labelId} htmlFor={id} className="text-small font-medium text-ink">
+      {label}
+      {required && (
+        <span className="text-ink-muted" aria-hidden>
+          {" "}
+          *
+        </span>
+      )}
+    </label>
+  );
 
   return (
     <FormFieldContext value={{ id, labelId, describedBy, invalid: Boolean(error), required }}>
       <div className={cn("flex flex-col gap-2", className)}>
-        <label id={labelId} htmlFor={id} className="text-small font-medium text-ink">
-          {label}
-          {required && (
-            <span className="text-ink-muted" aria-hidden>
-              {" "}
-              *
-            </span>
-          )}
-        </label>
+        {labelAside ? (
+          <div className="flex items-center justify-between gap-4">
+            {labelElement}
+            {labelAside}
+          </div>
+        ) : (
+          labelElement
+        )}
         {children}
         {helper && !error && (
           <p id={helperId} className="text-small text-ink-muted">

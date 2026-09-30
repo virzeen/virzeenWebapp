@@ -1,12 +1,16 @@
 "use server";
 
 import "server-only";
-import { catalogService } from "@virzeen/core";
+import { catalogReads, catalogService } from "@virzeen/core";
 import {
   archiveSchema,
   categorySchema,
   collectionSchema,
+  createDraftProductSchema,
+  duplicateProductSchema,
+  relatedByCategorySchema,
   saveProductSchema,
+  saveSizeGuideSchema,
   uploadSignatureSchema,
 } from "@virzeen/validators";
 import { revalidatePath } from "next/cache";
@@ -18,12 +22,51 @@ const refreshCatalog = (slug?: string) => {
   if (slug) revalidatePath(`/product/${slug}`);
 };
 
+/**
+ * Creates or updates a product. Returns SavedProduct: { id, slug, savedAt, values }, where `values` is the product
+ * as the editor's form values after the save (variant ids, made SKUs, style numbers), so the next save updates the
+ * same rows (specs/product-editor-on-page.md).
+ */
 export async function saveProductAction(input: unknown) {
   return runAdminAction("saveProduct", async (admin) => {
     const { id, product } = saveProductSchema.parse(input);
     const saved = await catalogService.saveProduct(admin.id, { id, product });
     refreshCatalog(saved.slug);
     return saved;
+  });
+}
+
+/** New product popup: a draft from a name, category and price; the caller opens its editor. */
+export async function createDraftProductAction(input: unknown) {
+  return runAdminAction("createDraftProduct", async (admin) => {
+    const data = createDraftProductSchema.parse(input);
+    const draft = await catalogService.createDraft(admin.id, data);
+    refreshCatalog();
+    return draft;
+  });
+}
+
+/** Copies a product as a draft; the caller opens the copy's editor. */
+export async function duplicateProductAction(input: unknown) {
+  return runAdminAction("duplicateProduct", async (admin) => {
+    const { id } = duplicateProductSchema.parse(input);
+    const copy = await catalogService.duplicateProduct(admin.id, id);
+    // Drafts aren't in the shop, so only the admin pages need fresh data.
+    revalidatePath("/admin/products");
+    return { id: copy.id, slug: copy.slug };
+  });
+}
+
+/**
+ * The carousels under the product in the editor and its Preview (specs/product-page-v2.md): "You may also like" (up
+ * to 8 published products of the category, newest first, without the product itself) and "More from Virzeen" (up to
+ * 8 of the other categories). Returns { sameCategory, otherCategories }. Read-only; admin only because drafts'
+ * categories aren't public.
+ */
+export async function listRecommendationsAction(input: unknown) {
+  return runAdminAction("listRecommendations", async () => {
+    const { categoryId, excludeId } = relatedByCategorySchema.parse(input);
+    return catalogReads.listRecommendations({ categoryId, excludeId });
   });
 }
 
@@ -67,6 +110,26 @@ export async function archiveCollectionAction(input: unknown) {
   return runAdminAction("archiveCollection", async (admin) => {
     const { id } = archiveSchema.parse(input);
     const result = await catalogService.archiveCollection(admin.id, id);
+    refreshCatalog();
+    return result;
+  });
+}
+
+/** Create or update a size guide (specs/size-guides.md); every product using it shows the change. */
+export async function saveSizeGuideAction(input: unknown) {
+  return runAdminAction("saveSizeGuide", async (admin) => {
+    const { id, guide } = saveSizeGuideSchema.parse(input);
+    const saved = await catalogService.saveSizeGuide(admin.id, { ...guide, id });
+    refreshCatalog();
+    return saved;
+  });
+}
+
+/** Refused (CONFLICT) while products still use the guide. */
+export async function archiveSizeGuideAction(input: unknown) {
+  return runAdminAction("archiveSizeGuide", async (admin) => {
+    const { id } = archiveSchema.parse(input);
+    const result = await catalogService.archiveSizeGuide(admin.id, id);
     refreshCatalog();
     return result;
   });

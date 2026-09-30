@@ -17,10 +17,25 @@ export const GET = apiHandler<Context>("v1.products.detail", async (_request, { 
     name: product.name,
     description: product.description,
     care: product.care,
+    benefits: product.benefits,
+    details: product.details,
+    countryOfOrigin: product.countryOfOrigin,
     fromPricePaisa: product.fromPricePaisa,
     inStock: product.inStock,
     imageUrl: product.images[0]?.url ?? null,
-    images: product.images.map(({ url, alt }) => ({ url, alt })),
+    images: product.images.map(({ url, alt, color }) => ({ url, alt, color })),
+    features: product.features.map(({ title, body, imageUrl, imageAlt }) => ({
+      title,
+      body,
+      imageUrl,
+      imageAlt,
+    })),
+    featureLayout: product.featureLayout,
+    // The Custom layout's rows, top to bottom; kept (and sent) whatever layout is picked.
+    featureRows: product.featureRows,
+    // kind "CHART" (a size table in `chart`) or "PICTURE" (the size chart picture in `imageUrl`, `chart` null).
+    sizeGuide: product.sizeGuide,
+    styles: product.styles,
     variants: product.variants,
   };
 });

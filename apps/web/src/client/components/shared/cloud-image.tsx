@@ -15,8 +15,11 @@ export type CloudImageProps = {
   src: string | null;
   /** Meaningful description, or "" when purely decorative. */
   alt: string;
-  /** Fixed aspect ratio prevents layout shift (docs/ui/performance-seo.md §2). */
-  ratio?: keyof typeof RATIOS;
+  /**
+   * Fixed aspect ratio prevents layout shift (docs/ui/performance-seo.md §2). "none": no ratio of its own, the
+   * className sizes the box (a picture that fills the height of its grid cell, like a tall feature).
+   */
+  ratio?: keyof typeof RATIOS | "none";
   /** Rendered width per breakpoint, e.g. "(min-width: 1024px) 25vw, 50vw". Always set it. */
   sizes: string;
   /** Only for the single LCP image on a page: preloaded, fetched at high priority, never lazy. */
@@ -36,7 +39,7 @@ export function CloudImage({
   imageClassName,
 }: CloudImageProps) {
   return (
-    <div className={cn("relative overflow-hidden bg-surface", RATIOS[ratio], className)}>
+    <div className={cn("relative overflow-hidden bg-surface", ratio !== "none" && RATIOS[ratio], className)}>
       {src && (
         <Image
           src={src}

@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { useRef } from "react";
 import { expect, fn, screen, waitFor } from "storybook/test";
 import { Button } from "./button";
+import { Dialog, DialogContent, DialogTrigger } from "./dialog";
 import { FormField } from "./form-field";
 import { Select } from "./select";
 
@@ -82,5 +83,34 @@ export const FocusAndBlur: Story = {
     await waitFor(() => expect(trigger).toHaveFocus());
     await userEvent.tab();
     await expect(args.onBlur).toHaveBeenCalledOnce();
+  },
+};
+
+/** Inside a Dialog (the admin's New product popup): the list opens above the dialog, not under its overlay. */
+export const InADialog: Story = {
+  args: { "aria-label": undefined },
+  render: (args) => (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="secondary">New product</Button>
+      </DialogTrigger>
+      <DialogContent title="New product">
+        <FormField label="Category" required>
+          <Select {...args} options={["Tops", "Bottoms", "Accessories"]} placeholder="Choose a category" />
+        </FormField>
+      </DialogContent>
+    </Dialog>
+  ),
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(canvas.getByRole("button", { name: "New product" }));
+    const dialog = await screen.findByRole("dialog", { name: "New product" });
+    await waitFor(() => expect(dialog).toBeVisible());
+    await userEvent.click(await screen.findByRole("combobox", { name: /Category/ }));
+    const option = await screen.findByRole("option", { name: "Bottoms" });
+    await waitFor(() => expect(option).toBeVisible());
+    await userEvent.click(option);
+    await waitFor(() =>
+      expect(screen.getByRole("combobox", { name: /Category/ })).toHaveTextContent("Bottoms"),
+    );
   },
 };

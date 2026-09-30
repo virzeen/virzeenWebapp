@@ -62,7 +62,7 @@ export function Select({
           if (event.currentTarget.dataset.state !== "open") onBlur?.(event);
         }}
         className={cn(
-          "flex h-11 w-full items-center justify-between gap-2 rounded-sm border border-line-strong bg-canvas px-3 text-left font-text text-body text-ink transition-colors duration-150 ease-standard focus-visible:border-ink focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1 focus-visible:outline-none disabled:cursor-not-allowed disabled:bg-surface disabled:opacity-60 aria-invalid:border-danger data-placeholder:text-ink-muted",
+          "flex h-11 w-full items-center justify-between gap-2 rounded-sm border border-line-strong bg-canvas px-3 text-left font-text text-body text-ink transition-colors duration-150 ease-standard focus-visible:border-ink focus-visible:outline-1 focus-visible:-outline-offset-2 focus-visible:outline-ink focus-visible:outline-solid disabled:cursor-not-allowed disabled:bg-surface disabled:opacity-60 aria-invalid:border-danger data-placeholder:text-ink-muted",
           className,
         )}
       >
@@ -72,10 +72,12 @@ export function Select({
         </SelectPrimitive.Icon>
       </SelectPrimitive.Trigger>
       <SelectPrimitive.Portal>
+        {/* z-50, the dialog layer: the list also opens from inside a Dialog or Sheet (the admin's New product
+            popup), and at z-20 it would sit under their overlay. Portalled after them, so it shows on top. */}
         <SelectPrimitive.Content
           position="popper"
           sideOffset={4}
-          className="z-20 max-h-80 min-w-(--radix-select-trigger-width) overflow-hidden rounded-md border border-line bg-canvas shadow-md data-[state=open]:animate-fade-in"
+          className="z-50 max-h-80 min-w-(--radix-select-trigger-width) overflow-hidden rounded-md border border-line bg-canvas shadow-md data-[state=open]:animate-fade-in"
         >
           <SelectPrimitive.Viewport className="p-1">
             {options.map(normalise).map((option) => (

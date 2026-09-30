@@ -25,41 +25,36 @@ export default async function HomePage() {
   return (
     <>
       <JsonLd data={siteJsonLd(siteUrl)} />
-      {/* Hero: brand moment, LCP image */}
-      <section className="relative isolate overflow-hidden bg-ink text-canvas">
+      {/*
+        Hero: brand moment, LCP image (the owner's photo, 2026-09-30: a man reading in a dark room, a rack of T-shirts
+        on the right). It starts under the see-through header (-mt-16, the header's height), and the words sit in the
+        bottom-right corner, with no buttons (owner). On phones it fills the screen, cropped around him.
+      */}
+      <section className="relative isolate -mt-16 overflow-hidden bg-ink text-canvas">
         <CloudImage
           src="/brand/hero.jpg"
           alt=""
           ratio="hero"
-          // Phones crop the 16:9 photo into a 4:5 frame, so it's drawn about 2.2× the screen width.
-          sizes="(min-width: 768px) 100vw, 223vw"
+          // Phones fill the whole screen with it (owner): the 16:9 photo is cropped into that tall frame, so it's
+          // drawn about 3.5× the screen width.
+          sizes="(min-width: 768px) 100vw, 350vw"
           priority
-          className="min-h-128 md:min-h-0"
-          imageClassName="object-cover"
+          className="h-svh md:h-auto"
+          imageClassName="object-cover object-hero md:object-center"
         />
-        {/* Scrim: keeps the white text at AA contrast on light parts of the image (bottom on phones, right from md) */}
+        {/* Scrims keep white text at AA contrast: the header on the bright window (top), the words on the floor. */}
         <span
           aria-hidden
-          className="absolute inset-0 bg-linear-to-t from-ink/70 via-ink/30 to-transparent md:bg-linear-to-l md:from-ink/60 md:via-ink/30"
+          className="absolute inset-x-0 top-0 h-40 bg-linear-to-b from-ink/60 to-transparent"
         />
-        <Container className="absolute inset-0 flex flex-col justify-end gap-8 pb-12 md:items-end md:justify-center md:pb-0 md:text-right">
+        <span
+          aria-hidden
+          className="absolute inset-0 bg-linear-to-t from-ink/80 via-ink/20 to-transparent md:bg-linear-to-tl md:from-ink/75 md:via-ink/15"
+        />
+        <Container className="absolute inset-0 flex flex-col items-end justify-end pb-10 text-right md:pb-16">
           <h1 className="max-w-xl font-display text-display motion-safe:animate-reveal">
             timeless monochromium experience.
           </h1>
-          <div className="flex flex-wrap gap-3 md:justify-end">
-            <ButtonLink href="/shop" variant="inverse" shape="pill" size="lg">
-              Shop the collection
-            </ButtonLink>
-            <ButtonLink
-              href="/portfolio"
-              variant="secondary"
-              shape="pill"
-              size="lg"
-              className="border-canvas/40 bg-transparent text-canvas hover:border-canvas hover:bg-canvas/10"
-            >
-              Explore the portfolio
-            </ButtonLink>
-          </div>
         </Container>
       </section>
 

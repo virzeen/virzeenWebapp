@@ -67,7 +67,7 @@ Pages compose feature components → feature components compose primitives → p
 
 ## 7. Accessibility (minimum bar — WCAG 2.2 AA)
 
-- Every interactive element is a real `button`/`a`/input (via primitives), reachable by keyboard, with visible `focus-visible` ring (`ring-focus`).
+- Every interactive element is a real `button`/`a`/input (via primitives), reachable by keyboard, with visible `focus-visible` ring (`ring-focus`). Text fields (`Input`, `Textarea`, `Select`, `CodeInput`) show focus as a 2px ink border instead: `outline-1 -outline-offset-2 outline-ink` on top of `border-ink` (owner's choice, 2026-09-29).
 - Every input has a visible label; errors linked with `aria-describedby`; required fields marked.
 - Icon-only buttons have `aria-label`. Decorative icons `aria-hidden`.
 - Images: meaningful `alt`; decorative `alt=""`.

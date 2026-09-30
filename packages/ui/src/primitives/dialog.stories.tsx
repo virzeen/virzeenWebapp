@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { expect, screen, waitFor } from "storybook/test";
+import { expect, screen, waitFor, within } from "storybook/test";
 import { Button } from "./button";
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogTrigger } from "./dialog";
 
@@ -55,4 +55,94 @@ export const OpenByDefault: Story = {
       </DialogContent>
     </Dialog>
   ),
+};
+
+/**
+ * `size="lg"`: a longer popup. The body scrolls; the title and Done stay in view. Focus starts on the body, so arrow
+ * keys and Page Down scroll it even with nothing to focus inside.
+ */
+export const Large: Story = {
+  render: () => (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="secondary">Edit Mountain print</Button>
+      </DialogTrigger>
+      <DialogContent
+        size="lg"
+        title="Mountain print"
+        description="Its photos, price and stock. Save the product to show changes in the shop."
+        footer={
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button>Done</Button>
+            </DialogClose>
+          </DialogFooter>
+        }
+      >
+        <ul className="flex flex-col gap-4">
+          {["XS", "S", "M", "L", "XL", "XXL", "3XL", "4XL", "5XL", "Free size"].map((size) => (
+            <li key={size} className="flex h-16 items-center rounded-md border border-line px-4 text-body">
+              Mountain print, {size}
+            </li>
+          ))}
+        </ul>
+      </DialogContent>
+    </Dialog>
+  ),
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(canvas.getByRole("button", { name: "Edit Mountain print" }));
+    const dialog = await screen.findByRole("dialog", { name: "Mountain print" });
+    await waitFor(() => expect(dialog).toBeVisible());
+    // The scrolling body is a named, focusable region where focus starts; Tab and Shift+Tab reach it again.
+    const body = within(dialog).getByRole("region", { name: "Mountain print" });
+    await expect(body).toHaveAttribute("tabindex", "0");
+    await waitFor(() => expect(body).toHaveFocus());
+    await expect(body.scrollHeight).toBeGreaterThan(body.clientHeight);
+    await userEvent.tab();
+    await expect(screen.getByRole("button", { name: "Done" })).toHaveFocus();
+    await userEvent.tab({ shift: true });
+    await expect(body).toHaveFocus();
+    await userEvent.click(screen.getByRole("button", { name: "Done" }));
+    await waitFor(() => expect(canvas.getByRole("button", { name: "Edit Mountain print" })).toHaveFocus());
+  },
+};
+
+/**
+ * `size="lg"` with `media`: the product page's "View product details". The header shows the photo, the name and,
+ * in the app, the price as the description.
+ */
+export const LargeWithMedia: Story = {
+  render: () => (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="underline">View product details</Button>
+      </DialogTrigger>
+      <DialogContent
+        size="lg"
+        title="Linen Overshirt"
+        description="Colour shown: Black"
+        media={<span className="block aspect-4/5 bg-ink-muted" />}
+      >
+        <div className="flex flex-col gap-6 text-body">
+          <p>A relaxed overshirt in washed linen with a boxy fit, patch pockets and horn-effect buttons.</p>
+          <section className="flex flex-col gap-2">
+            <h3 className="text-h3">Product details</h3>
+            <ul className="list-disc pl-6">
+              <li>100% linen</li>
+              <li>Colour shown: Black</li>
+              <li>Country/Region of origin: Nepal</li>
+            </ul>
+          </section>
+        </div>
+      </DialogContent>
+    </Dialog>
+  ),
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(canvas.getByRole("button", { name: "View product details" }));
+    const dialog = await screen.findByRole("dialog", { name: "Linen Overshirt" });
+    await waitFor(() => expect(dialog).toBeVisible());
+    await expect(dialog).toHaveAccessibleDescription("Colour shown: Black");
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    await waitFor(() => expect(canvas.getByRole("button", { name: "View product details" })).toHaveFocus());
+  },
 };

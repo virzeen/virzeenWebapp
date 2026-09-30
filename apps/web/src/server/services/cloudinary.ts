@@ -1,5 +1,6 @@
 import "server-only";
 import { AppError } from "@virzeen/core";
+import type { UploadSignatureInput } from "@virzeen/validators";
 import { env, features } from "@/server/env";
 import { cloudinarySignature } from "./cloudinary-signature";
 
@@ -15,7 +16,7 @@ export type UploadSignature = {
   maxBytes: number;
 };
 
-export function signUpload(folder: "products" | "portfolio", entityId: string): UploadSignature {
+export function signUpload(folder: UploadSignatureInput["folder"], entityId: string): UploadSignature {
   if (!features.cloudinary)
     throw new AppError("CONFLICT", "Image uploads aren't set up yet (Cloudinary keys missing).");
   const params: Record<string, string> = {
