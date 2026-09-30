@@ -14,6 +14,7 @@
 
 - Server Components by default; client components small and at the leaves.
 - Images: `CloudImage` only, explicit aspect ratio (prevents CLS), `sizes` always set, `priority` only on the single LCP image, Cloudinary `f_auto,q_auto`.
+- Uploads: photos are shrunk in the browser before they go to Cloudinary (`client/lib/shrink-image.ts`: longest side 2400px, WebP at 0.85, JPEG where the browser can't make WebP), so a 5–10 MB phone photo uploads as well under 1 MB. Files under 700 KB go up unchanged.
 - Fonts: `next/font`, max 2 families, `display: swap`, subset latin.
 - No heavy libraries on customer pages (charts, editors, date libs) — admin only, and dynamically imported.
 - Motion via CSS or Motion's lightweight APIs; never animate layout properties.

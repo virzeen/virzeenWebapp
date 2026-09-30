@@ -4,6 +4,7 @@ import { Button, FormField, Input } from "@virzeen/ui";
 import { ImagePlus } from "lucide-react";
 import { useId, useRef, useState } from "react";
 import { messageFor } from "@/client/lib/error-messages";
+import { shrinkForUpload } from "@/client/lib/shrink-image";
 import { getUploadSignatureAction } from "@/server/actions/admin/catalog";
 import { keepFocusOnPress } from "./form-focus";
 
@@ -35,13 +36,15 @@ export function ImageUploader({
   const [error, setError] = useState<string | null>(null);
   const [manualRef, setManualRef] = useState("");
 
-  async function upload(file: File) {
+  async function upload(picked: File) {
     setError(null);
-    if (!ACCEPT.split(",").includes(file.type)) return setError("Choose a JPG, PNG, WebP or AVIF image.");
-    if (file.size > MAX_BYTES)
-      return setError("Images must be 10 MB or smaller. Compress it to about 2500px first.");
+    if (!ACCEPT.split(",").includes(picked.type)) return setError("Choose a JPG, PNG, WebP or AVIF image.");
     setBusy(true);
     try {
+      // Phone photos are shrunk in the browser first, so there's about 10× less to upload.
+      const file = await shrinkForUpload(picked);
+      if (file.size > MAX_BYTES)
+        return setError("Images must be 10 MB or smaller. Compress it to about 2500px first.");
       const signature = await getUploadSignatureAction({ folder, entityId });
       if (!signature.ok) return setError(messageFor(signature.error));
       const body = new FormData();
