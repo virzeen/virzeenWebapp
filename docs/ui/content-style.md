@@ -33,9 +33,9 @@ Errors say what to do next: "Choose your district", "Keep the name under 120 cha
 
 | Situation                                                           | Message                                                                                          |
 | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| Added to bag (the bag drawer opens and says so; no toast)           | Added to bag · {n} item / Added to bag · {n} items                                               |
+| Added to bag (the "Added to bag" panel drops down; no toast)        | Added to bag — [View bag ({n})] [Checkout]                                                       |
 | Removed a bag line (inline row where the line was; no toast)        | Removed {productName}. — [Undo]                                                                  |
-| Empty bag                                                           | Your bag is empty. — [Browse the collection]                                                     |
+| Empty bag                                                           | There are no items in your bag. — [Browse the collection]                                        |
 | No orders                                                           | You haven't placed any orders yet. — [Start shopping]                                            |
 | No search results                                                   | Nothing matches "{query}". Try a different word or browse all products. — [Show all products]    |
 | Out of stock                                                        | Out of stock                                                                                     |
@@ -78,21 +78,21 @@ Inputs say "Enter", choices (Select, radios) say "Choose".
 
 ## Bag and product page
 
-| Situation                                                                | Text                                                |
-| ------------------------------------------------------------------------ | --------------------------------------------------- |
-| Add to bag before a size is chosen (pressing it points to "Select size") | Select a size                                       |
-| Add to bag when the variant is sold out                                  | Out of stock                                        |
-| Under Add to bag: the bag already holds the last piece                   | The last one is already in your bag.                |
-| Under Add to bag: the bag already holds every piece left                 | All {n} left are already in your bag.               |
-| Under Add to bag: the bag already holds the per-line cap                 | Limit 10 of each — you already have 10 in your bag. |
-| Bag line, quantity over 1 (under the variant)                            | {Rs X} each                                         |
-| Bag line, "+" stopped by stock                                           | Only {n} left                                       |
-| Bag line, "+" stopped by the per-line cap                                | Limit 10 of each                                    |
-| Bag line, variant sold out since it was added                            | Out of stock                                        |
-| Bag line, product no longer sold                                         | No longer available                                 |
-| Bag drawer description (otherwise)                                       | {n} item / {n} items                                |
-| Bag drawer footer                                                        | Free shipping across Nepal. Prices include VAT.     |
-| Undo failed (replaces "Removed {productName}.")                          | The error's standard message (above)                |
+| Situation                                                                | Text                                                   |
+| ------------------------------------------------------------------------ | ------------------------------------------------------ |
+| Add to bag before a size is chosen (pressing it points to "Select size") | Select a size                                          |
+| Add to bag when the variant is sold out                                  | Out of stock                                           |
+| Under Add to bag: the bag already holds the last piece                   | The last one is already in your bag.                   |
+| Under Add to bag: the bag already holds every piece left                 | All {n} left are already in your bag.                  |
+| Under Add to bag: the bag already holds the per-line cap                 | Limit 10 of each — you already have 10 in your bag.    |
+| Bag line, quantity over 1 (under the variant)                            | {Rs X} each                                            |
+| Bag line, "+" stopped by stock                                           | Only {n} left                                          |
+| Bag line, "+" stopped by the per-line cap                                | Limit 10 of each                                       |
+| Bag line, variant sold out since it was added                            | Out of stock                                           |
+| Bag line, product no longer sold                                         | No longer available                                    |
+| Bag page, under the title on phones                                      | {n} item \| {total} / {n} items \| {total}             |
+| Bag summary                                                              | Summary: Subtotal · Shipping Free · Total — [Checkout] |
+| Undo failed (replaces "Removed {productName}.")                          | The error's standard message (above)                   |
 
 ## Product page (`/product/{slug}`)
 
@@ -156,7 +156,8 @@ Nike-style layout (`specs/product-page.md`, `specs/product-page-v2.md`). The sam
 | Situation                                                      | Text                                                                      |
 | -------------------------------------------------------------- | ------------------------------------------------------------------------- |
 | Delivery section before an address is chosen                   | Choose an address to see the delivery time.                               |
-| Delivery section with an address                               | Arrives in {estimate}.                                                    |
+| Delivery section with an address                               | Free shipping. Arrives in {estimate}.                                     |
+| Checkout step headings                                         | Delivery address · Delivery · Payment                                     |
 | Shipping line before an address is chosen                      | — (unless shipping is free)                                               |
 | Under Place order: no saved address (the address form is open) | Add a delivery address to continue.                                       |
 | Under Place order: adding a new address while others are saved | Save the new address to continue.                                         |
@@ -166,7 +167,7 @@ Nike-style layout (`specs/product-page.md`, `specs/product-page-v2.md`). The sam
 | Cash on delivery option                                        | Cash on delivery — Pay the courier when your order arrives                |
 | Cash on delivery over its limit                                | Cash on delivery is available for orders up to {Rs X}.                    |
 | Collapsed summary at the top (below `lg`)                      | Order summary · {total}                                                   |
-| Summary card heading                                           | Order summary (from `lg`) · Order total (below `lg`)                      |
+| Summary heading (from `lg`)                                    | Order summary                                                             |
 | Confirmation page tab title                                    | Order confirmed · Order cancelled · Confirming your payment               |
 
 ## Addresses (account and checkout)

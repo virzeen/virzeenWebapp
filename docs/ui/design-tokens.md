@@ -83,6 +83,8 @@ Named animations (`animate-*`, defined with their keyframes in `tokens.css`): `s
 
 Tailwind defaults: `sm 640px · md 768px · lg 1024px · xl 1280px`. Design mobile first (base = 360px).
 Max content width `max-w-7xl` (1280px) via `Container`. Product grid: 2 cols base, 3 at `md`, 4 at `lg`.
+`page-edge` (spacing token, e.g. `lg:right-page-edge`): the distance from the screen's right edge to the right edge of
+`Container`'s content, so a fixed panel under the header lines up with its icons (`DropPanel`).
 
 ## 7. Z-index scale (use only these)
 

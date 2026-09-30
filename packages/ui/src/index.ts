@@ -7,6 +7,13 @@ export { Checkbox, Switch, type CheckboxProps, type SwitchProps } from "./primit
 export { DataTable, type DataTableColumn, type DataTableProps } from "./primitives/data-table";
 export { Dialog, DialogClose, DialogContent, DialogFooter, DialogTrigger } from "./primitives/dialog";
 export {
+  DropPanel,
+  DropPanelClose,
+  DropPanelContent,
+  DropPanelTrigger,
+  type DropPanelContentProps,
+} from "./primitives/drop-panel";
+export {
   Accordion,
   AccordionItem,
   Separator,

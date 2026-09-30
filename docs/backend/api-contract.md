@@ -102,6 +102,8 @@ type Cart = { id: string; items: CartItem[]; subtotalPaisa: number; itemCount: n
 type CartItem = {
   id: string;
   variantId: string;
+  productId: string; // with color: the favourite the bag's heart button saves
+  color: string; // the style bought; "" for a product without styles
   productName: string;
   productSlug: string;
   variantLabel: string;

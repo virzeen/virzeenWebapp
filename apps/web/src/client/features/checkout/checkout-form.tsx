@@ -8,7 +8,6 @@ import {
   FormField,
   RadioGroup,
   RadioGroupItem,
-  Separator,
   Stack,
   toast,
 } from "@virzeen/ui";
@@ -95,7 +94,11 @@ function placeOrderHint(state: {
   return null;
 }
 
-/** Single-page checkout: Address → Delivery summary → Payment (patterns.md §8). */
+/**
+ * Single-page checkout laid out like Nike's (owner request 2026-09-30, patterns.md §8): the steps on the left
+ * (Delivery address → Delivery → Payment, divided by hairlines, "Place order" at the end), the order summary on the
+ * right from lg. Below lg the summary is a collapsible at the top.
+ */
 export function CheckoutForm({
   addresses,
   initialAddressId,
@@ -112,10 +115,8 @@ export function CheckoutForm({
   const [isRefreshing, startRefresh] = useTransition();
   const [isPlacing, startPlacing] = useTransition();
   const [redirecting, setRedirecting] = useState(false);
-  // A form error shows at the top of the form from lg, and just above "Place order" on smaller screens
-  // (where the summary comes last); only one of the two is displayed.
-  const topErrorRef = useRef<HTMLDivElement>(null);
-  const bottomErrorRef = useRef<HTMLDivElement>(null);
+  // A form error shows just above "Place order", at the end of the steps.
+  const errorRef = useRef<HTMLDivElement>(null);
   const focusTarget = useRef<FocusTarget | null>(null);
   const addressHeadingRef = useRef<HTMLHeadingElement>(null);
   const addAddressRef = useRef<HTMLButtonElement>(null);
@@ -139,11 +140,8 @@ export function CheckoutForm({
   // Bring a new error into view and move focus to it, so "Place order" never seems to do nothing.
   useEffect(() => {
     if (!formError) return;
-    const alert = [topErrorRef.current, bottomErrorRef.current].find(
-      (el) => el !== null && el.getClientRects().length > 0,
-    );
-    alert?.scrollIntoView({ block: "center" });
-    alert?.focus({ preventScroll: true });
+    errorRef.current?.scrollIntoView({ block: "center" });
+    errorRef.current?.focus({ preventScroll: true });
   }, [formError]);
 
   useEffect(() => {
@@ -212,156 +210,152 @@ export function CheckoutForm({
     });
   }
 
+  const summaryTotal = addressId ? totals.totalPaisa : totals.subtotalPaisa;
+  const arrives = addressId ? totals.deliveryEstimate : null;
+
   return (
-    <div className="grid grid-cols-1 gap-12 lg:grid-cols-[3fr_2fr]">
-      <Stack gap={12}>
-        {/* Below lg the full summary comes last, so a collapsed copy opens the page (patterns.md §8).
-            AccordionItem's title is text only, hence formatPaisa rather than <Price>. It is an h2 like the
-            sections after it. */}
+    <div className="mx-auto grid w-full max-w-4xl grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-16">
+      <div className="flex flex-col">
+        {/* Below lg the summary opens the page, collapsed. AccordionItem's title is text only, hence formatPaisa
+            rather than <Price>. It is an h2 like the steps after it. */}
         <Accordion type="single" collapsible className="lg:hidden">
           <AccordionItem
             value="summary"
             headingLevel={2}
-            title={`Order summary · ${formatPaisa(addressId ? totals.totalPaisa : totals.subtotalPaisa)}`}
+            title={`Order summary · ${formatPaisa(summaryTotal)}`}
           >
-            <Stack gap={4} className="pt-4 text-ink">
-              <OrderSummaryLines items={cart.items} />
-              <Separator />
+            <Stack gap={6} className="pt-2 text-ink">
               <OrderSummaryTotals totals={totals} hasAddress={addressId !== null} />
+              <OrderSummaryLines items={cart.items} arrives={arrives} />
             </Stack>
           </AccordionItem>
         </Accordion>
 
-        {formError && (
-          <Alert ref={topErrorRef} variant="danger" tabIndex={-1} className="hidden lg:flex">
-            {formError}
-          </Alert>
-        )}
+        <div className="flex flex-col divide-y divide-line">
+          <section aria-labelledby="address-heading" className="flex flex-col gap-4 py-8 lg:pt-0">
+            <h2
+              id="address-heading"
+              ref={addressHeadingRef}
+              tabIndex={-1}
+              className="font-display text-h3 focus:outline-none"
+            >
+              Delivery address
+            </h2>
+            {showAddressForm ? (
+              <AddressForm
+                submitLabel="Use this address"
+                onSaved={(id) => {
+                  showForm(false, { to: "address", id });
+                  chooseAddress(id);
+                  router.refresh();
+                }}
+                onCancel={addresses.length > 0 ? () => showForm(false, { to: "add" }) : undefined}
+              />
+            ) : (
+              <>
+                <RadioGroup
+                  aria-labelledby="address-heading"
+                  variant="card"
+                  value={addressId ?? ""}
+                  onValueChange={chooseAddress}
+                  className="grid-cols-1"
+                >
+                  {addresses.map((address) => (
+                    <RadioGroupItem
+                      key={address.id}
+                      ref={(element) => {
+                        if (element) addressRefs.current.set(address.id, element);
+                        else addressRefs.current.delete(address.id);
+                      }}
+                      value={address.id}
+                      label={address.fullName}
+                      description={`${address.street}, ${address.city}, ${address.district} · ${address.phone}`}
+                    />
+                  ))}
+                </RadioGroup>
+                <Button
+                  ref={addAddressRef}
+                  variant="link"
+                  className="self-start"
+                  onClick={() => showForm(true, { to: "heading" })}
+                >
+                  Add a new address
+                </Button>
+              </>
+            )}
+          </section>
 
-        <section aria-labelledby="address-heading" className="flex flex-col gap-4">
-          <h2
-            id="address-heading"
-            ref={addressHeadingRef}
-            tabIndex={-1}
-            className="font-display text-h3 focus:outline-none"
-          >
-            1. Delivery address
-          </h2>
-          {showAddressForm ? (
-            <AddressForm
-              submitLabel="Use this address"
-              onSaved={(id) => {
-                showForm(false, { to: "address", id });
-                chooseAddress(id);
-                router.refresh();
-              }}
-              onCancel={addresses.length > 0 ? () => showForm(false, { to: "add" }) : undefined}
-            />
-          ) : (
-            <>
+          <section aria-labelledby="delivery-heading" className="flex flex-col gap-2 py-8">
+            <h2 id="delivery-heading" className="font-display text-h3">
+              Delivery
+            </h2>
+            <p className="text-body text-ink-muted">
+              {arrives
+                ? `Free shipping. Arrives in ${arrives}.`
+                : "Choose an address to see the delivery time."}
+            </p>
+          </section>
+
+          <section aria-labelledby="payment-heading" className="flex flex-col gap-4 py-8">
+            <h2 id="payment-heading" className="font-display text-h3">
+              Payment
+            </h2>
+            <FormField label="Payment method" required>
               <RadioGroup
-                aria-labelledby="address-heading"
                 variant="card"
-                value={addressId ?? ""}
-                onValueChange={chooseAddress}
+                value={selected?.value ?? ""}
+                onValueChange={(value) => setMethod(value as Method)}
                 className="grid-cols-1"
               >
-                {addresses.map((address) => (
-                  <RadioGroupItem
-                    key={address.id}
-                    ref={(element) => {
-                      if (element) addressRefs.current.set(address.id, element);
-                      else addressRefs.current.delete(address.id);
-                    }}
-                    value={address.id}
-                    label={address.fullName}
-                    description={`${address.street}, ${address.city}, ${address.district} · ${address.phone}`}
-                  />
+                {available.map((m) => (
+                  <RadioGroupItem key={m.value} value={m.value} label={m.label} description={m.description} />
                 ))}
               </RadioGroup>
-              <Button
-                ref={addAddressRef}
-                variant="link"
-                className="self-start"
-                onClick={() => showForm(true, { to: "heading" })}
-              >
-                Add a new address
-              </Button>
-            </>
-          )}
-        </section>
+            </FormField>
+            {enabledMethods.COD && !totals.isCodAvailable && totals.codLimitPaisa !== null && (
+              <p className="text-small text-ink-muted">
+                Cash on delivery is available for orders up to <Price paisa={totals.codLimitPaisa} />.
+              </p>
+            )}
+          </section>
 
-        <section aria-labelledby="delivery-heading" className="flex flex-col gap-2">
-          <h2 id="delivery-heading" className="font-display text-h3">
-            2. Delivery
-          </h2>
-          <p className="text-body text-ink-muted">
-            {addressId
-              ? `Arrives in ${totals.deliveryEstimate}.`
-              : "Choose an address to see the delivery time."}
-          </p>
-        </section>
-
-        <section aria-labelledby="payment-heading" className="flex flex-col gap-4">
-          <h2 id="payment-heading" className="font-display text-h3">
-            3. Payment
-          </h2>
-          <FormField label="Payment method" required>
-            <RadioGroup
-              variant="card"
-              value={selected?.value ?? ""}
-              onValueChange={(value) => setMethod(value as Method)}
-              className="grid-cols-1"
+          <div className="flex flex-col gap-3 py-8">
+            {formError && (
+              <Alert ref={errorRef} variant="danger" tabIndex={-1}>
+                {formError}
+              </Alert>
+            )}
+            <Button
+              size="lg"
+              shape="pill"
+              className="w-full"
+              loading={isPlacing || redirecting}
+              disabled={hint !== null || isRefreshing}
+              aria-describedby={hint ? "place-order-hint" : undefined}
+              onClick={placeOrder}
+              data-testid="place-order"
             >
-              {available.map((m) => (
-                <RadioGroupItem key={m.value} value={m.value} label={m.label} description={m.description} />
-              ))}
-            </RadioGroup>
-          </FormField>
-          {enabledMethods.COD && !totals.isCodAvailable && totals.codLimitPaisa !== null && (
-            <p className="text-small text-ink-muted">
-              Cash on delivery is available for orders up to <Price paisa={totals.codLimitPaisa} />.
-            </p>
-          )}
-        </section>
-      </Stack>
-
-      <aside aria-labelledby="summary-heading" className="lg:sticky lg:top-24 lg:self-start">
-        <Stack gap={4} className="rounded-md bg-surface p-6" aria-busy={isRefreshing || undefined}>
-          {/* Below lg "Order summary" is the collapsible at the top and this card holds only the totals. */}
-          <h2 id="summary-heading" className="font-display text-h3">
-            <span className="lg:hidden">Order total</span>
-            <span className="hidden lg:inline">Order summary</span>
-          </h2>
-          {/* Below lg the lines are in the summary at the top of the page. */}
-          <div className="hidden flex-col gap-4 lg:flex">
-            <OrderSummaryLines items={cart.items} />
-            <Separator />
+              {selected?.cta ?? "Place order"}
+            </Button>
+            {hint && (
+              <p id="place-order-hint" className="text-center text-small text-ink-muted">
+                {hint}
+              </p>
+            )}
           </div>
-          <OrderSummaryTotals totals={totals} hasAddress={addressId !== null} totalTestId="checkout-total" />
-          {formError && (
-            <Alert ref={bottomErrorRef} variant="danger" tabIndex={-1} className="lg:hidden">
-              {formError}
-            </Alert>
-          )}
-          <Button
-            size="lg"
-            shape="pill"
-            className="w-full"
-            loading={isPlacing || redirecting}
-            disabled={hint !== null || isRefreshing}
-            aria-describedby={hint ? "place-order-hint" : undefined}
-            onClick={placeOrder}
-            data-testid="place-order"
-          >
-            {selected?.cta ?? "Place order"}
-          </Button>
-          {hint && (
-            <p id="place-order-hint" className="text-center text-small text-ink-muted">
-              {hint}
-            </p>
-          )}
-        </Stack>
+        </div>
+      </div>
+
+      <aside
+        aria-labelledby="summary-heading"
+        aria-busy={isRefreshing || undefined}
+        className="hidden flex-col gap-6 lg:sticky lg:top-24 lg:flex lg:self-start"
+      >
+        <h2 id="summary-heading" className="font-display text-h3">
+          Order summary
+        </h2>
+        <OrderSummaryTotals totals={totals} hasAddress={addressId !== null} totalTestId="checkout-total" />
+        <OrderSummaryLines items={cart.items} arrives={arrives} />
       </aside>
     </div>
   );
