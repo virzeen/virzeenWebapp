@@ -4,6 +4,7 @@ import { Button, Link, Separator, Sheet, SheetContent, SheetTrigger } from "@vir
 import { Menu } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { InstallAppButton } from "@/client/components/shared/install-app";
 import { isCurrent, PRIMARY_NAV } from "./nav-links";
 
 type Category = { slug: string; name: string };
@@ -65,6 +66,7 @@ export function MobileNav({ categories, isSignedIn }: { categories: Category[]; 
           <Link href={accountHref} variant="nav" aria-current={ariaCurrent(accountHref)} onClick={close}>
             {isSignedIn ? "Account" : "Sign in"}
           </Link>
+          <InstallAppButton placement="menu" onStart={close} />
         </nav>
       </SheetContent>
     </Sheet>

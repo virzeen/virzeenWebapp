@@ -33,3 +33,4 @@
 - `manifest.ts`: name, short_name "Virzeen", icons (192, 512, maskable), theme/background colors from tokens.
 - Service worker (Serwist): cache static assets and images; never cache `/api`, `/checkout`, `/account`, or HTML for authenticated pages.
 - Offline page: brand message, "Try again" (a plain link to the same URL, so it reloads the page that was asked for even without cached scripts) and "Go to the home page".
+- "Install the Virzeen app" (owner request 2026-09-30): phones only, in the phone menu and the footer (`client/components/shared/install-app.tsx`, `client/lib/install-app.ts`). On Android it opens the browser's install panel (`beforeinstallprompt`, caught when the root layout loads); without that offer (Firefox, or the offer already used) and on iPhone, where no website can open "Add to Home Screen", it shows a three-step guide. Hidden on computers and inside the installed app. e2e: `tests/e2e/install-app.spec.ts`.
