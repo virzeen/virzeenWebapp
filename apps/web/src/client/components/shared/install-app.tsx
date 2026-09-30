@@ -90,13 +90,12 @@ export function InstallAppButton({
   if (mode === "none") return null;
   return (
     <Button
-      variant={placement === "footer" ? "inverse" : "link"}
+      variant={placement === "footer" ? "secondary" : "link"}
       size="sm"
       shape={placement === "footer" ? "pill" : "default"}
       className={cn(
         "gap-2",
         placement === "menu" && "justify-start text-small font-medium tracking-wide hover:no-underline",
-        placement === "footer" && "self-start",
         className,
       )}
       onClick={() => {
