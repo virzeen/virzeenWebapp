@@ -1,7 +1,7 @@
-import { Container, Link, Separator } from "@virzeen/ui";
+import { Accordion, AccordionItem, Container, Link, VisuallyHidden } from "@virzeen/ui";
+import { Globe } from "lucide-react";
 import { InstallAppButton, InstallAppGuide } from "@/client/components/shared/install-app";
 import { LogoMark } from "./logo-mark";
-import { Wordmark } from "./wordmark";
 
 const COLUMNS = [
   {
@@ -30,57 +30,87 @@ const COLUMNS = [
   },
 ] as const;
 
-/** Global footer on ink: brand, navigation, legal. */
+const LEGAL = [
+  { href: "/privacy", label: "Privacy" },
+  { href: "/terms", label: "Terms" },
+] as const;
+
+/**
+ * Global footer, laid out like Nike's (owner request 2026-09-30): white, a hairline on top, grey links under black
+ * titles. Computers show every column; phones show one tap-to-open section per column. Then the country and the
+ * legal line.
+ */
 export function SiteFooter() {
   return (
-    <footer className="mt-24 bg-ink text-canvas">
-      <Container className="flex flex-col gap-12 py-16">
-        <div className="flex flex-col gap-12 md:flex-row md:justify-between">
-          <div className="flex max-w-xs flex-col gap-4">
-            <Wordmark className="h-6 w-auto self-start" title="Virzeen" />
-            <p className="text-small font-light text-canvas/70">timeless monochromium experience.</p>
+    <footer className="mt-24 bg-canvas text-ink">
+      <Container>
+        <div className="border-t border-line pt-4 md:grid md:grid-cols-4 md:pt-16 lg:grid-cols-5">
+          {/* Phones: the first section open, like Nike's. */}
+          <Accordion type="multiple" defaultValue={[COLUMNS[0].title]} className="border-t-0 md:hidden">
+            {COLUMNS.map((column) => (
+              <AccordionItem key={column.title} value={column.title} title={column.title} headingLevel={2}>
+                <nav aria-label={column.title}>
+                  <ul className="flex flex-col">
+                    {column.links.map((link) => (
+                      <li key={link.href}>
+                        <Link
+                          href={link.href}
+                          variant="subtle"
+                          className="inline-flex min-h-11 items-center text-body font-medium"
+                        >
+                          {link.label}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </nav>
+              </AccordionItem>
+            ))}
+          </Accordion>
+          {COLUMNS.map((column) => (
+            <nav key={column.title} aria-label={column.title} className="hidden md:block">
+              <h2 className="text-small font-medium text-ink">{column.title}</h2>
+              <ul className="mt-6 flex flex-col gap-3 text-small font-medium">
+                {column.links.map((link) => (
+                  <li key={link.href}>
+                    <Link href={link.href} variant="subtle">
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          ))}
+          <div className="flex flex-col items-start gap-4 border-b border-line py-6 md:items-end md:border-b-0 md:py-0 lg:col-span-2">
+            <p className="flex items-center gap-2 text-small font-medium text-ink-muted">
+              <Globe className="size-4" strokeWidth={1.5} aria-hidden />
+              <VisuallyHidden>Country: </VisuallyHidden>
+              Nepal
+            </p>
             <InstallAppButton placement="footer" />
           </div>
-          <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 md:gap-16">
-            {COLUMNS.map((column) => (
-              <nav key={column.title} aria-label={column.title} className="flex flex-col gap-1">
-                <p className="pb-2 text-caption text-canvas/60 uppercase">{column.title}</p>
-                {column.links.map((link) => (
+        </div>
+        <div className="flex flex-col gap-1 pt-6 pb-10 text-small font-medium text-ink-muted md:flex-row md:flex-wrap md:items-center md:gap-x-6 md:pt-20 md:pb-12">
+          <p className="flex min-h-11 items-center gap-2 md:min-h-0">
+            <LogoMark className="size-4 shrink-0 text-ink" />© {new Date().getFullYear()} Virzeen. All rights
+            reserved.
+          </p>
+          <nav aria-label="Legal">
+            <ul className="flex flex-col md:flex-row md:gap-6">
+              {LEGAL.map((link) => (
+                <li key={link.href}>
                   <Link
-                    key={link.href}
                     href={link.href}
                     variant="subtle"
-                    className="inline-flex min-h-11 items-center text-small text-canvas/85 hover:text-canvas lg:min-h-9"
+                    className="inline-flex min-h-11 items-center md:min-h-0"
                   >
                     {link.label}
                   </Link>
-                ))}
-              </nav>
-            ))}
-          </div>
-        </div>
-        <Separator className="bg-canvas/15" />
-        <div className="flex flex-col gap-4 text-small text-canvas/60 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-center gap-3">
-            <LogoMark className="size-6 text-canvas" />
-            <p>© {new Date().getFullYear()} Virzeen. Prices include 13% VAT.</p>
-          </div>
-          <div className="flex gap-4">
-            <Link
-              href="/privacy"
-              variant="subtle"
-              className="inline-flex min-h-11 items-center text-canvas/70 hover:text-canvas"
-            >
-              Privacy
-            </Link>
-            <Link
-              href="/terms"
-              variant="subtle"
-              className="inline-flex min-h-11 items-center text-canvas/70 hover:text-canvas"
-            >
-              Terms
-            </Link>
-          </div>
+                </li>
+              ))}
+            </ul>
+          </nav>
+          <p className="pt-4 font-light md:ml-auto md:pt-0">timeless monochromium experience.</p>
         </div>
       </Container>
       <InstallAppGuide />
