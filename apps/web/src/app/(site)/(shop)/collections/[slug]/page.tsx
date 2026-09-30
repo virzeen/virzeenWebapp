@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ShopListing } from "@/client/features/products/shop-listing";
 import { getCollectionBySlug, loadShopListing } from "@/server/queries/catalog";
 import { flattenSearchParams, type SearchParams } from "@/server/queries/params";
+import { collectionTitle } from "@/server/seo";
 
 type Props = { params: Promise<{ slug: string }>; searchParams: SearchParams };
 
@@ -11,7 +12,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const collection = await getCollectionBySlug((await params).slug);
   if (!collection) notFound();
   return {
-    title: collection.name,
+    title: { absolute: collectionTitle(collection.name) },
     description: collection.description ?? `The ${collection.name} collection from Virzeen.`,
     alternates: { canonical: `/collections/${collection.slug}` },
   };
