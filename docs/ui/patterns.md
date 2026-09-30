@@ -132,7 +132,9 @@ Function over form: `DataTable` with search, filters, status `Badge`s; forms in 
 
 ## 11. Header and phone menu
 
-`SiteHeader` (`specs/mobile-menu.md`). Below `md`: the wordmark on the left (home link); Favourites (heart), Bag and Menu on the right, each 44px. There is no account icon on phones: the menu has it. From `md`: the nav links, the wordmark in the middle, then Favourites, the account icon ("My profile", guests "Sign in") and Bag.
+`SiteHeader` (`specs/mobile-menu.md`). Below `md`: the wordmark on the left (home link); Favourites (heart), Bag and Menu on the right, each 44px. There is no account icon on phones: the menu has it. From `md`: the wordmark on the left, the page links in the middle (`Link variant="header"`: Inter Tight, light; owner 2026-09-30), then Favourites, the account icon ("My profile", guests "Sign in") and Bag.
+
+**Home page header** (owner, 2026-09-30): it lies over the hero photo, which starts under it (`-mt-16`). At the top of the page it has no background and no border, and everything in it is white (`tone-inverse`, which swaps the colour tokens for the header and its children); once the page scrolls (`useScrolled`), it turns 70% white with a blur and black text. A top scrim in the hero keeps the white header readable over the bright window. Other pages keep the 85% white header with its line. The hero: the owner's photo (`public/brand/hero.jpg`, WebP widths from `scripts/brand-image-variants.mjs`), the whole screen tall on phones (`h-svh`, cropped around the man with `object-hero`), 16:9 from `md`; "timeless monochromium experience." in the bottom-right corner, no buttons.
 
 **Phone menu** (`MobileNav`, like Nike's):
 

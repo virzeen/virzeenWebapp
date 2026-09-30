@@ -182,6 +182,20 @@
   }
 }
 
+/*
+ * White-on-dark for everything inside (the home page header over the hero photo): the colour tokens are swapped for
+ * this element and its children, so text-ink turns white, bg-ink (e.g. the bag count) turns dark with light text,
+ * and hover tints stay faint. Focus rings keep --color-focus.
+ */
+@utility tone-inverse {
+  --color-ink: #ffffff;
+  --color-ink-muted: rgb(255 255 255 / 0.72);
+  --color-canvas: #141414;
+  --color-surface: rgb(255 255 255 / 0.12);
+  --color-line: rgb(255 255 255 / 0.24);
+  color: var(--color-ink);
+}
+
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;

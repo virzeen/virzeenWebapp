@@ -32,6 +32,37 @@ export const Nav: Story = {
   ),
 };
 
+/** The site header's page links (Inter Tight, light). */
+export const Header: Story = {
+  render: () => (
+    <nav aria-label="Example" className="flex gap-8">
+      <Link variant="header" href="/shop" aria-current="page">
+        Shop
+      </Link>
+      <Link variant="header" href="/portfolio">
+        Portfolio
+      </Link>
+      <Link variant="header" href="/about">
+        About
+      </Link>
+    </nav>
+  ),
+};
+
+/** `header` inside `tone-inverse` (white on a photo, the home page header before scrolling). */
+export const HeaderOnPhoto: Story = {
+  render: () => (
+    <nav aria-label="Example" className="flex gap-8 bg-ink p-6 tone-inverse">
+      <Link variant="header" href="/shop">
+        Shop
+      </Link>
+      <Link variant="header" href="/portfolio">
+        Portfolio
+      </Link>
+    </nav>
+  ),
+};
+
 /**
  * Full-width menu rows, as in the phone menu: `menu` for the main links (56px tall), `menuSmall` beside a 20px icon
  * (44px tall). Pressed and hovered rows turn `ink-muted`.

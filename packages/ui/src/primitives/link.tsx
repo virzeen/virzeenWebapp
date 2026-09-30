@@ -11,6 +11,10 @@ const linkVariants = cva(
         default: "text-ink underline underline-offset-4 hover:text-ink-muted",
         subtle: "text-ink-muted hover:text-ink",
         nav: "inline-flex min-h-11 items-center text-small font-medium tracking-wide text-ink hover:text-ink-muted aria-[current=page]:underline aria-[current=page]:underline-offset-8",
+        // The site header's page links: Inter Tight, light (owner 2026-09-30: "the thin version… the tight version of
+        // the Inter"), the current page underlined.
+        header:
+          "inline-flex min-h-11 items-center font-display text-body font-light tracking-wide text-ink hover:text-ink-muted aria-[current=page]:underline aria-[current=page]:underline-offset-8",
         // Full-width menu rows (the phone menu): large main links, and small links beside a 20px icon.
         menu: "flex min-h-14 w-full items-center justify-between gap-4 py-2 font-display text-h2 font-medium text-ink hover:text-ink-muted active:text-ink-muted",
         menuSmall:

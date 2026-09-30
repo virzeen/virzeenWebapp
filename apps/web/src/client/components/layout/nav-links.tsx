@@ -10,7 +10,7 @@ export const PRIMARY_NAV = [
   { href: "/about", label: "About" },
 ] as const;
 
-/** Desktop header navigation with the current page marked (aria-current). */
+/** Desktop header navigation (the middle of the header) with the current page marked (aria-current). */
 export function NavLinks() {
   const pathname = usePathname();
   return (
@@ -19,7 +19,7 @@ export function NavLinks() {
         <Link
           key={item.href}
           href={item.href}
-          variant="nav"
+          variant="header"
           aria-current={isCurrent(pathname, item.href) ? "page" : undefined}
         >
           {item.label}
