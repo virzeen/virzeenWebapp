@@ -9,6 +9,9 @@ export const MAX_SIZES = 20;
 /** A measurement's name for labels: "Chest", or "Measurement 2" while it's blank. */
 export const measurementName = (column: string, index: number) => column.trim() || `Measurement ${index + 1}`;
 
+/** A size's name for labels: "M", or "row 2" while it's blank. */
+export const sizeName = (size: string, index: number) => size.trim() || `row ${index + 1}`;
+
 export const moveItem = <T>(list: readonly T[], from: number, to: number) => {
   const next = [...list];
   const [item] = next.splice(from, 1);

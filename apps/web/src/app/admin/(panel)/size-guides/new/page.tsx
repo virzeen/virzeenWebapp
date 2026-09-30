@@ -19,7 +19,7 @@ export default async function NewSizeGuidePage() {
       </Link>
       <AdminPageHeader
         title="New size guide"
-        description="Measurements in cm. Customers can switch the chart to inches."
+        description="Clothing: a size table in cm that customers can switch to inches. Accessories: one picture of your size chart."
       />
       <SizeGuideForm uploadsEnabled={uploadsEnabled()} />
     </Stack>

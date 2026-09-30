@@ -1,6 +1,6 @@
 "use client";
 
-import type { SizeChart, SizeGuideInput } from "@virzeen/validators";
+import type { SizeChart, SizeGuideFormValues } from "@virzeen/validators";
 import { useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import {
@@ -13,6 +13,7 @@ import {
   removeMeasurement,
   removeSize,
 } from "./size-chart";
+import { pasteIntoChart, type GridCell, type PasteResult } from "./size-chart-paste";
 
 type ChartPath =
   `chart.columns.${number}` | `chart.rows.${number}.size` | `chart.rows.${number}.values.${number}`;
@@ -20,13 +21,14 @@ type ChartPath =
 // Measurements and sizes are plain values, so the lists get keys of their own that move with them.
 let lastKey = 0;
 const newKey = () => `chart-${++lastKey}`;
+const newKeys = (count: number) => Array.from({ length: Math.max(count, 0) }, newKey);
 
 /**
- * The size chart editor's state (specs/size-guides.md): the chart lives in the form ("chart"), the list keys here.
- * The inputs are controlled: moving a size or measurement changes which form path each input edits.
+ * The size table editor's state (specs/product-page-v2.md "Size guides"): the chart lives in the form ("chart"), the
+ * keys here. The inputs are controlled: moving a size or measurement changes which form path each input edits.
  */
 export function useSizeChart() {
-  const form = useFormContext<SizeGuideInput>();
+  const form = useFormContext<SizeGuideFormValues>();
   const chart = useWatch({ control: form.control, name: "chart" });
   const [storedColumnKeys, setColumnKeys] = useState(() => chart.columns.map(newKey));
   const [storedRowKeys, setRowKeys] = useState(() => chart.rows.map(newKey));
@@ -77,6 +79,31 @@ export function useSizeChart() {
     removeRow(index: number) {
       update(removeSize(chart, index));
       setRowKeys(removeItem(rowKeys, index));
+    },
+    /** A whole new table (a template): every box is new. */
+    replace(next: SizeChart) {
+      update(next);
+      setColumnKeys(next.columns.map(newKey));
+      setRowKeys(next.rows.map(newKey));
+    },
+    /**
+     * What pasting cells copied from a spreadsheet at `at` would make, without changing anything yet: cells filled in
+     * from there (sizes and measurements added at the end as needed), or a whole copied table in place of this one
+     * (`replaced`, which asks first when something is typed).
+     */
+    planPaste(at: GridCell, block: string[][]): PasteResult {
+      return pasteIntoChart(chart, at, block);
+    },
+    /** Puts a planned paste in the table. A replaced table's boxes are all new, so focus must be put back. */
+    applyPaste(result: PasteResult) {
+      update(result.chart);
+      if (result.replaced) {
+        setColumnKeys(result.chart.columns.map(newKey));
+        setRowKeys(result.chart.rows.map(newKey));
+      } else {
+        setColumnKeys([...columnKeys, ...newKeys(result.addedColumns)]);
+        setRowKeys([...rowKeys, ...newKeys(result.addedRows)]);
+      }
     },
     /** Typing in a box: checked as you type only after a save attempt (like the other fields). */
     change(path: ChartPath, value: string) {

@@ -8,6 +8,7 @@ import {
   moveSize,
   removeMeasurement,
   removeSize,
+  sizeName,
 } from "./size-chart";
 
 const chart: SizeChart = {
@@ -59,5 +60,10 @@ describe("size chart editor", () => {
   it("names a blank measurement by its place", () => {
     expect(measurementName(" Chest ", 0)).toBe("Chest");
     expect(measurementName("  ", 1)).toBe("Measurement 2");
+  });
+
+  it("names a blank size by its row", () => {
+    expect(sizeName(" M ", 0)).toBe("M");
+    expect(sizeName("", 2)).toBe("row 3");
   });
 });

@@ -1,4 +1,5 @@
 import { ButtonLink, DataTable, EmptyState } from "@virzeen/ui";
+import { SIZE_GUIDE_KIND_LABELS } from "@virzeen/validators";
 import { AdminPageHeader } from "@/client/features/admin/admin-page-header";
 import { ArchiveButton } from "@/client/features/admin/archive-button";
 import { formatDate } from "@/client/lib/format";
@@ -21,7 +22,7 @@ export default async function AdminSizeGuidesPage() {
     <div className="flex flex-col gap-6">
       <AdminPageHeader
         title="Size guides"
-        description="Size charts customers open from Size guide on the product page. Pick one on each product under Size and fit."
+        description="Size tables (clothing) and size chart pictures (accessories) customers open from Size guide on the product page. Pick one on each product under Size and fit."
         actions={guides.length > 0 ? newGuide : undefined}
       />
       <DataTable
@@ -41,6 +42,7 @@ export default async function AdminSizeGuidesPage() {
             header: "Size guide",
             cell: (row) => <span className="font-medium">{row.name}</span>,
           },
+          { key: "type", header: "Type", cell: (row) => SIZE_GUIDE_KIND_LABELS[row.kind] },
           { key: "products", header: "Used on", cell: (row) => productCount(row.productCount) },
           { key: "updated", header: "Updated", hideOnMobile: true, cell: (row) => formatDate(row.updatedAt) },
           {

@@ -5,8 +5,9 @@ import { useState } from "react";
 import { Controller, type Control, type FieldPathByValue, type FieldValues } from "react-hook-form";
 import { linesError, sameLines, toLines } from "./text-lines";
 
-type LinesFieldProps<T extends FieldValues> = {
-  control: Control<T>;
+/** `TOut`: what the form's resolver hands on submit (differs from `T` when the schema transforms, e.g. size guides). */
+type LinesFieldProps<T extends FieldValues, TOut = T> = {
+  control: Control<T, unknown, TOut>;
   name: FieldPathByValue<T, string[]>;
   label: string;
   helper: string;
@@ -18,13 +19,13 @@ type LinesFieldProps<T extends FieldValues> = {
  * the list of lines that aren't blank, trimmed; the box keeps exactly what was typed (a new empty line stays while
  * typing) and only rewrites itself when the value changes from outside, e.g. the form reloads after a save.
  */
-export function LinesField<T extends FieldValues>({
+export function LinesField<T extends FieldValues, TOut = T>({
   control,
   name,
   label,
   helper,
   rows = 4,
-}: LinesFieldProps<T>) {
+}: LinesFieldProps<T, TOut>) {
   return (
     <Controller
       control={control}
