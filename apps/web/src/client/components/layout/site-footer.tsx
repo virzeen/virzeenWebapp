@@ -63,7 +63,7 @@ export function SiteFooter() {
         <div className="flex flex-col gap-4 text-small text-canvas/60 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-3">
             <LogoMark className="size-6 text-canvas" />
-            <p>© {new Date().getFullYear()} Virzeen. Prices include 13% VAT.</p>
+            <p>© {new Date().getFullYear()} Virzeen.</p>
           </div>
           <div className="flex gap-4">
             <Link
