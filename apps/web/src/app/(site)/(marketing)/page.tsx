@@ -1,6 +1,5 @@
 import { ButtonLink, Container, Grid, Link } from "@virzeen/ui";
 import { PORTFOLIO_KIND_LABELS } from "@virzeen/validators";
-import { Banknote, RotateCcw, ShieldCheck, Truck } from "lucide-react";
 import type { Metadata } from "next";
 import { CloudImage } from "@/client/components/shared/cloud-image";
 import { JsonLd } from "@/client/components/shared/json-ld";
@@ -14,25 +13,6 @@ export const metadata: Metadata = {
   description: HOME_DESCRIPTION,
   alternates: { canonical: "/" },
 };
-
-const PROMISES = [
-  { icon: Banknote, title: "Cash on delivery", text: "Pay the courier when your order arrives." },
-  {
-    icon: Truck,
-    title: "Free shipping",
-    text: "Across Nepal: 1–3 days in Kathmandu Valley, 3–7 days elsewhere.",
-  },
-  {
-    icon: ShieldCheck,
-    title: "Honest prices",
-    text: "VAT included. The price you see is the price you pay.",
-  },
-  {
-    icon: RotateCcw,
-    title: "7-day free returns",
-    text: "Changed your mind? We pick it up free and refund you in full.",
-  },
-] as const;
 
 export default async function HomePage() {
   const [arrivals, collections, projects] = await Promise.all([
@@ -202,21 +182,6 @@ export default async function HomePage() {
           </Grid>
         </Container>
       )}
-
-      {/* Promises */}
-      <section aria-label="Why shop with Virzeen" className="border-t border-line">
-        <Container className="grid grid-cols-1 gap-8 py-12 sm:grid-cols-2 lg:grid-cols-4">
-          {PROMISES.map(({ icon: Icon, title, text }) => (
-            <div key={title} className="flex gap-4">
-              <Icon className="size-6 shrink-0 text-ink" strokeWidth={1.5} aria-hidden />
-              <div className="flex flex-col gap-1">
-                <p className="text-body font-medium">{title}</p>
-                <p className="text-small text-ink-muted">{text}</p>
-              </div>
-            </div>
-          ))}
-        </Container>
-      </section>
     </>
   );
 }
