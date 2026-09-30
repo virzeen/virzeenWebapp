@@ -58,13 +58,15 @@ export async function duplicateProductAction(input: unknown) {
 }
 
 /**
- * "You may also like" in the product editor and its Preview: up to 4 published products of the category (newest
- * first), without the product itself. Read-only; admin only because drafts' categories aren't public.
+ * The carousels under the product in the editor and its Preview (specs/product-page-v2.md): "You may also like" (up
+ * to 8 published products of the category, newest first, without the product itself) and "More from Virzeen" (up to
+ * 8 of the other categories). Returns { sameCategory, otherCategories }. Read-only; admin only because drafts'
+ * categories aren't public.
  */
-export async function listRelatedByCategoryAction(input: unknown) {
-  return runAdminAction("listRelatedByCategory", async () => {
+export async function listRecommendationsAction(input: unknown) {
+  return runAdminAction("listRecommendations", async () => {
     const { categoryId, excludeId } = relatedByCategorySchema.parse(input);
-    return catalogReads.listRelatedByCategory({ categoryId, excludeId });
+    return catalogReads.listRecommendations({ categoryId, excludeId });
   });
 }
 

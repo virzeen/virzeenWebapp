@@ -134,6 +134,8 @@ describe("productSchema", () => {
     isPublished: true,
     images: [{ url: "virzeen/products/abc/front", alt: "Front view" }],
     features: [],
+    featureLayout: "THREE",
+    featureRows: [],
     styles: [],
     shippingPaisa: 15_000,
     variants: [variant],

@@ -29,6 +29,8 @@ const product = (extra: Partial<ProductInput> = {}): ProductInput => ({
   isPublished: false,
   images: [],
   features: [],
+  featureLayout: "THREE",
+  featureRows: [],
   styles: [],
   shippingPaisa: 0,
   variants: [],

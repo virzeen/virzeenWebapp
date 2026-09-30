@@ -58,6 +58,7 @@ const CARE = "Machine wash cold, inside out. Dry flat in the shade. Cool iron.";
 // Found by name (names are unique among guides that aren't archived), so re-running updates the same row.
 const SIZE_GUIDES = [
   {
+    kind: "CHART", // a size table (clothing), specs/product-page-v2.md
     name: "Tops",
     intro:
       "Our tops have a relaxed fit. Chest is a body measurement; length and sleeve are measured on the garment.",

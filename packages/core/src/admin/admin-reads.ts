@@ -1,10 +1,14 @@
 import "server-only";
 import { db, type Prisma } from "@virzeen/db";
 import {
+  parseFeatureRows,
   parseSizeChart,
   type AdminProductStatus,
+  type FeatureLayout,
+  type FeatureRow,
   type ProductInput,
-  type SizeGuideInput,
+  type SizeChart,
+  type SizeGuideFormValues,
 } from "@virzeen/validators";
 import { sizeGuideSelect, toProductSizeGuide, type ProductSizeGuide } from "../catalog/catalog.reads";
 import { styleColors } from "../catalog/product-styles";
@@ -34,7 +38,12 @@ export type ProductFormValues = {
   collectionIds: string[];
   isPublished: boolean;
   images: { url: string; alt: string; color: string }[];
+  /** Title and body may be "" (a feature that is only a picture). */
   features: { title: string; body: string; imageUrl: string; alt: string }[];
+  /** How the features are laid out on the product page (specs/product-page-v2.md). */
+  featureLayout: FeatureLayout;
+  /** The Custom layout's rows, kept whatever layout is picked; [] for none or when the stored rows are invalid. */
+  featureRows: FeatureRow[];
   /** In style order: the variant colours in row order, or one style "" for a product without colours. */
   styles: { color: string; colourShown: string; code: string }[];
   shippingPaisa: number;
@@ -49,6 +58,12 @@ export type ProductFormValues = {
     isActive: boolean;
   }[];
 };
+
+/**
+ * A size guide as the admin edit form starts from (adminReads.getSizeGuideForEdit): blank strings for empty fields.
+ * `chart` is null for a PICTURE guide (it stores no table); the form starts its draft table itself.
+ */
+export type SizeGuideForEdit = Omit<SizeGuideFormValues, "chart"> & { id: string; chart: SizeChart | null };
 
 /**
  * The product editor's read of one product (adminReads.getProductForEdit); catalogService.saveProduct reads it
@@ -82,6 +97,8 @@ export async function readProductForEdit(client: Prisma.TransactionClient, id: s
         select: { title: true, body: true, imageUrl: true, imageAlt: true },
         orderBy: { sortOrder: "asc" },
       },
+      featureLayout: true,
+      featureRows: true,
       // Variants not for sale too, so For sale can be ticked again (variants are never deleted).
       variants: {
         select: {
@@ -99,7 +116,7 @@ export async function readProductForEdit(client: Prisma.TransactionClient, id: s
     },
   });
   if (!product) throw new AppError("NOT_FOUND", "Product not found.");
-  const { sizeGuide, features, styles: styleRows, ...rest } = product;
+  const { sizeGuide, features, styles: styleRows, featureRows: storedRows, ...rest } = product;
   // What the shop shows: every product was set to China and new ones start with it, so a blank one was cleared on
   // purpose (the editor must not show "China" where the product page shows no origin).
   const countryOfOrigin = product.countryOfOrigin ?? "";
@@ -107,6 +124,7 @@ export async function readProductForEdit(client: Prisma.TransactionClient, id: s
   const sizeGuideId = sizeGuide && !sizeGuide.archivedAt ? sizeGuide.id : "";
   const images = product.images.map((image) => ({ ...image, color: image.color ?? "" }));
   const featureValues = features.map(({ imageAlt, ...feature }) => ({ ...feature, alt: imageAlt }));
+  const featureRows = parseFeatureRows(storedRows);
   // The form edits the product price before shipping (catalogService.saveProduct adds it back).
   const variants = product.variants.map((v) => ({ ...v, pricePaisa: v.pricePaisa - product.shippingPaisa }));
   const styles = styleColors(product.variants).map((color) => {
@@ -128,6 +146,8 @@ export async function readProductForEdit(client: Prisma.TransactionClient, id: s
     isPublished: product.isPublished,
     images,
     features: featureValues,
+    featureLayout: product.featureLayout,
+    featureRows,
     styles,
     shippingPaisa: product.shippingPaisa,
     variants: variants.map((v) => ({ ...v, size: v.size ?? "", color: v.color ?? "" })),
@@ -138,6 +158,7 @@ export async function readProductForEdit(client: Prisma.TransactionClient, id: s
     sizeGuideId,
     images,
     features: featureValues,
+    featureRows,
     variants,
     styles,
     /** What the editor's form starts from (and what a save hands back). */
@@ -207,13 +228,14 @@ export const adminReads = {
     });
   },
 
-  /** Size guides for the admin list: name, how many products (not archived) use each, last change. */
+  /** Size guides for the admin list: name, type, how many products (not archived) use each, last change. */
   async listSizeGuides() {
     const guides = await db.sizeGuide.findMany({
       where: { archivedAt: null },
       select: {
         id: true,
         name: true,
+        kind: true,
         updatedAt: true,
         _count: { select: { products: { where: { archivedAt: null } } } },
       },
@@ -222,12 +244,16 @@ export const adminReads = {
     return guides.map(({ _count, ...guide }) => ({ ...guide, productCount: _count.products }));
   },
 
-  /** A size guide as the edit form's values (blank strings for empty fields); null when missing or archived. */
-  async getSizeGuideForEdit(id: string): Promise<(SizeGuideInput & { id: string }) | null> {
+  /**
+   * A size guide as the edit form's values (blank strings for empty fields); null when missing or archived. A CHART
+   * guide's chart that isn't valid starts again empty; a PICTURE guide's chart is null.
+   */
+  async getSizeGuideForEdit(id: string): Promise<SizeGuideForEdit | null> {
     const guide = await db.sizeGuide.findFirst({
       where: { id, archivedAt: null },
       select: {
         id: true,
+        kind: true,
         name: true,
         intro: true,
         chart: true,
@@ -240,10 +266,11 @@ export const adminReads = {
     if (!guide) return null;
     return {
       id: guide.id,
+      kind: guide.kind,
       name: guide.name,
       intro: guide.intro ?? "",
       // A stored chart that isn't valid starts again empty rather than breaking the form.
-      chart: parseSizeChart(guide.chart) ?? { columns: [], rows: [] },
+      chart: guide.kind === "CHART" ? (parseSizeChart(guide.chart) ?? { columns: [], rows: [] }) : null,
       fitTips: guide.fitTips ?? "",
       howToMeasure: guide.howToMeasure,
       imageUrl: guide.imageUrl ?? "",
@@ -252,8 +279,9 @@ export const adminReads = {
   },
 
   /**
-   * Size guides the product editor can pick, with everything its preview shows in the Size guide popup.
-   * Guides whose stored chart isn't valid are left out (the shop hides them too).
+   * Size guides the product editor can pick, with everything its preview shows in the Size guide popup (`kind`, and
+   * `chart` null for a PICTURE guide). Guides the shop would hide (a CHART guide whose stored chart isn't valid, a
+   * PICTURE guide without its picture) are left out.
    */
   async listSizeGuideOptions(): Promise<(ProductSizeGuide & { id: string })[]> {
     const guides = await db.sizeGuide.findMany({

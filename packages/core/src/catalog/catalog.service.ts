@@ -1,11 +1,12 @@
 import "server-only";
-import { db, type Prisma } from "@virzeen/db";
-import type {
-  CategoryInput,
-  CollectionInput,
-  CreateDraftProductInput,
-  ProductData,
-  SizeGuideInput,
+import { db, Prisma } from "@virzeen/db";
+import {
+  parseFeatureRows,
+  type CategoryInput,
+  type CollectionInput,
+  type CreateDraftProductInput,
+  type ProductData,
+  type SizeGuideInput,
 } from "@virzeen/validators";
 import { DEFAULT_COUNTRY_OF_ORIGIN, readProductForEdit, type ProductFormValues } from "../admin/admin-reads";
 import { recordAudit } from "../audit/audit";
@@ -31,6 +32,15 @@ const plural = (count: number, one: string, many: string) => `${count} ${count =
 
 type Tx = Prisma.TransactionClient;
 type VariantData = ProductData["variants"][number];
+
+/**
+ * What saveProduct takes: a checked product, whose `featureLayout` and `featureRows` may be left out (a new product
+ * then gets the database's defaults, an existing one keeps its own).
+ */
+type ProductToSave = Omit<ProductData, "featureLayout" | "featureRows"> & {
+  featureLayout?: ProductData["featureLayout"] | undefined;
+  featureRows?: ProductData["featureRows"] | undefined;
+};
 
 /**
  * What a save hands back to the product editor (specs/product-editor-on-page.md): the product as the editor's values
@@ -101,8 +111,8 @@ async function fillBlankSkus(tx: Tx, productId: string | null, slug: string, var
 
 type ImageData = ProductData["images"][number];
 
-/** What a blank feature picture description becomes: "{product}, {feature title}". */
-const featureAlt = (name: string, title: string) => `${name}, ${title}`;
+/** What a blank feature picture description becomes: "{product}, {feature title}", or "{product}" without a title. */
+const featureAlt = (name: string, title: string) => (title.trim() ? `${name}, ${title.trim()}` : name);
 
 /**
  * Photos in shop order: each style's photos in the order of its variants, then the photos shared by every style
@@ -144,7 +154,7 @@ export const catalogService = {
    */
   async saveProduct(
     actorId: string,
-    input: { id?: string | undefined; product: ProductData; duplicatedFrom?: string },
+    input: { id?: string | undefined; product: ProductToSave; duplicatedFrom?: string },
   ): Promise<SavedProduct> {
     const { product } = input;
     // Admin enters product price and shipping separately; customers pay (and see) the sum, with free shipping.
@@ -241,6 +251,9 @@ export const catalogService = {
           isPublished: product.isPublished,
           fromPricePaisa,
           shippingPaisa: product.shippingPaisa,
+          ...(product.featureLayout ? { featureLayout: product.featureLayout } : {}),
+          // The Custom layout's rows are kept whatever layout is picked (specs/product-page-v2.md).
+          ...(product.featureRows ? { featureRows: product.featureRows } : {}),
           publishedAt: product.isPublished
             ? (existing?.publishedAt ?? new Date())
             : (existing?.publishedAt ?? null),
@@ -279,7 +292,8 @@ export const catalogService = {
           });
         }
 
-        // "Features that perform" are replaced like the photos; a blank picture description names the feature.
+        // "Features that perform" are replaced like the photos; a blank picture description names the feature (or
+        // just the product, for a feature that is only a picture).
         await tx.productFeature.deleteMany({ where: { productId: saved.id } });
         if (product.features.length > 0) {
           await tx.productFeature.createMany({
@@ -379,8 +393,9 @@ export const catalogService = {
 
   /**
    * Copies a product as a draft to start a similar one: "{name} (copy)", slug "{slug}-copy" (then -copy-2…), same
-   * photos, text, details, features, size guide, category, collections, shipping, prices and colour shown; stock 0,
-   * new SKUs (made like blank ones), and a new product number with new style numbers.
+   * photos, text, details, features and their layout (Custom rows too), size guide, category, collections, shipping,
+   * prices and colour shown; stock 0, new SKUs (made like blank ones), and a new product number with new style
+   * numbers.
    */
   async duplicateProduct(actorId: string, id: string): Promise<SavedProduct> {
     const source = await db.product.findFirst({
@@ -403,6 +418,8 @@ export const catalogService = {
           select: { title: true, body: true, imageUrl: true, imageAlt: true },
           orderBy: { sortOrder: "asc" },
         },
+        featureLayout: true,
+        featureRows: true,
         variants: {
           select: { size: true, color: true, pricePaisa: true, isActive: true },
           orderBy: { sortOrder: "asc" },
@@ -447,6 +464,8 @@ export const catalogService = {
           imageUrl: feature.imageUrl,
           alt: feature.imageAlt === featureAlt(source.name, feature.title) ? "" : feature.imageAlt,
         })),
+        featureLayout: source.featureLayout,
+        featureRows: parseFeatureRows(source.featureRows),
         // The colour shown is copied; the style numbers are the copy's own (saveStyles makes them).
         styles: source.styles.map((style) => ({ color: style.color, colourShown: style.colourShown ?? "" })),
         shippingPaisa: source.shippingPaisa,
@@ -466,7 +485,8 @@ export const catalogService = {
   /**
    * Starts a product from the New product popup (specs/product-editor-on-page.md): a draft with the name, category
    * and price, a slug made from the name (-2, -3… when taken), no description or photos, no shipping, origin China,
-   * and one variant (no size or colour, stock 0, made SKU) with its style number. The editor opens on it.
+   * the default features layout, and one variant (no size or colour, stock 0, made SKU) with its style number. The
+   * editor opens on it.
    */
   async createDraft(actorId: string, input: CreateDraftProductInput): Promise<{ id: string }> {
     const saved = await catalogService.saveProduct(actorId, {
@@ -547,8 +567,9 @@ export const catalogService = {
   },
 
   /**
-   * Creates or updates a size guide (specs/size-guides.md). Names are unique among guides that aren't archived,
-   * ignoring case. The chart is stored as JSON and read back through parseSizeChart.
+   * Creates or updates a size guide (specs/size-guides.md, specs/product-page-v2.md). Names are unique among guides
+   * that aren't archived, ignoring case. A CHART guide's chart is stored as JSON and read back through parseSizeChart;
+   * a PICTURE guide stores no chart (null) and its imageUrl is the size chart picture.
    */
   async saveSizeGuide(actorId: string, input: SizeGuideInput & { id?: string | undefined }) {
     return db.$transaction(async (tx) => {
@@ -576,7 +597,8 @@ export const catalogService = {
       const data = {
         name: input.name,
         intro: emptyToNull(input.intro),
-        chart: input.chart as Prisma.InputJsonValue,
+        kind: input.kind,
+        chart: input.kind === "CHART" ? (input.chart as Prisma.InputJsonValue) : Prisma.DbNull,
         fitTips: emptyToNull(input.fitTips),
         howToMeasure: input.howToMeasure,
         imageUrl,
@@ -592,8 +614,9 @@ export const catalogService = {
         entityId: saved.id,
         diff: {
           name: input.name,
-          measurements: input.chart.columns,
-          sizes: input.chart.rows.map((row) => row.size),
+          kind: input.kind,
+          measurements: input.chart?.columns ?? [],
+          sizes: input.chart?.rows.map((row) => row.size) ?? [],
         },
       });
       return saved;

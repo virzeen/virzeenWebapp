@@ -12,7 +12,12 @@ export { AppError, ERROR_CODES, isAppError, type ErrorCode } from "./errors";
 
 export { addressService, MAX_ADDRESSES, type SavedAddress } from "./addresses/address.service";
 export { adminAccounts, type AdminAccount } from "./admin/admin-accounts";
-export { adminReads, DEFAULT_COUNTRY_OF_ORIGIN, type ProductFormValues } from "./admin/admin-reads";
+export {
+  adminReads,
+  DEFAULT_COUNTRY_OF_ORIGIN,
+  type ProductFormValues,
+  type SizeGuideForEdit,
+} from "./admin/admin-reads";
 export { cartService, type CartOwner } from "./cart/cart.service";
 export { type CartLine, type CartSummary } from "./cart/cart-summary";
 export {
@@ -20,6 +25,7 @@ export {
   PAGE_SIZE,
   type ProductDetail,
   type ProductPage,
+  type ProductRecommendations,
   type ProductSizeGuide,
   type ProductSummary,
 } from "./catalog/catalog.reads";

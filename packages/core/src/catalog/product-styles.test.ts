@@ -37,6 +37,8 @@ async function productInput(overrides: Partial<ProductData> = {}): Promise<Produ
     isPublished: true,
     images: [{ url: "virzeen/products/tee/front", alt: "" }],
     features: [],
+    featureLayout: "THREE",
+    featureRows: [],
     styles: [],
     shippingPaisa: 0,
     variants: [row("Black")],
@@ -502,6 +504,83 @@ describe("catalogReads.listRelatedByCategory (You may also like)", () => {
     expect(await catalogReads.listRelatedByCategory({ categoryId: input.categoryId, limit: 1 })).toHaveLength(
       1,
     );
+  });
+});
+
+describe("catalogReads.listRecommendations (specs/product-page-v2.md)", () => {
+  beforeEach(resetDatabase);
+
+  it("lists the category without the product, and the other categories, published only, newest first", async () => {
+    const admin = await createUser({ role: "ADMIN" });
+    const input = await productInput();
+    const otherCategory = (await createCategory()).id;
+    const minutesAgo = (minutes: number) => new Date(Date.now() - minutes * 60_000);
+    const save = async (slug: string, overrides: Partial<ProductData> = {}, publishedAt?: Date) => {
+      const saved = await catalogService.saveProduct(admin.id, { product: { ...input, slug, ...overrides } });
+      if (publishedAt) await db.product.update({ where: { id: saved.id }, data: { publishedAt } });
+      return saved;
+    };
+    const current = await save("this-tee", {}, minutesAgo(10));
+    await save("older-tee", {}, minutesAgo(5));
+    await save("newer-tee", {}, minutesAgo(1));
+    await save("draft-tee", { isPublished: false });
+    await save("older-cap", { categoryId: otherCategory }, minutesAgo(4));
+    await save("newer-cap", { categoryId: otherCategory }, minutesAgo(2));
+    await save("draft-cap", { categoryId: otherCategory, isPublished: false });
+    // Published, but nothing for sale any more.
+    const switchedOff = await save("switched-off-cap", { categoryId: otherCategory });
+    await db.productVariant.updateMany({ where: { productId: switchedOff.id }, data: { isActive: false } });
+    const archived = await save("archived-cap", { categoryId: otherCategory });
+    await catalogService.archiveProduct(admin.id, archived.id);
+
+    const slugs = (list: { slug: string }[]) => list.map((item) => item.slug);
+    const all = await catalogReads.listRecommendations({
+      categoryId: input.categoryId,
+      excludeId: current.id,
+    });
+    expect(slugs(all.sameCategory)).toEqual(["newer-tee", "older-tee"]);
+    expect(slugs(all.otherCategories)).toEqual(["newer-cap", "older-cap"]);
+
+    // Without a product to leave out (a draft's Preview), the whole category.
+    const whole = await catalogReads.listRecommendations({ categoryId: input.categoryId });
+    expect(slugs(whole.sameCategory)).toEqual(["newer-tee", "older-tee", "this-tee"]);
+
+    const one = await catalogReads.listRecommendations({
+      categoryId: input.categoryId,
+      excludeId: current.id,
+      limit: 1,
+    });
+    expect({ same: slugs(one.sameCategory), other: slugs(one.otherCategories) }).toEqual({
+      same: ["newer-tee"],
+      other: ["newer-cap"],
+    });
+
+    // Seen from the other category, the tees are "More from Virzeen".
+    const fromCap = await catalogReads.listRecommendations({ categoryId: otherCategory });
+    expect(slugs(fromCap.otherCategories)).toEqual(["newer-tee", "older-tee", "this-tee"]);
+  });
+
+  it("gives two empty lists when there is nothing else to show", async () => {
+    const admin = await createUser({ role: "ADMIN" });
+    const input = await productInput();
+    const only = await catalogService.saveProduct(admin.id, { product: input });
+
+    expect(
+      await catalogReads.listRecommendations({ categoryId: input.categoryId, excludeId: only.id }),
+    ).toEqual({ sameCategory: [], otherCategories: [] });
+  });
+
+  it("shows up to 8 in each list by default", async () => {
+    const admin = await createUser({ role: "ADMIN" });
+    const input = await productInput();
+    for (let index = 0; index < 9; index++) {
+      await catalogService.saveProduct(admin.id, { product: { ...input, slug: `tee-${index}` } });
+    }
+
+    const lists = await catalogReads.listRecommendations({ categoryId: input.categoryId });
+
+    expect(lists.sameCategory).toHaveLength(8);
+    expect(lists.otherCategories).toEqual([]);
   });
 });
 

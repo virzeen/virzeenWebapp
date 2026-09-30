@@ -68,8 +68,10 @@ type ProductDetail = {
   inStock: boolean;
   imageUrl: string | null;
   images: { url: string; alt: string; color: string | null }[]; // color: the style (variant color) shown; null = every style
-  features: { title: string; body: string; imageUrl: string; imageAlt: string }[]; // "Features that perform", in order
-  sizeGuide: SizeGuide | null; // null when the product has none (specs/size-guides.md)
+  features: { title: string; body: string; imageUrl: string; imageAlt: string }[]; // "Features that perform", in order; title and body may be "" (a picture-only feature)
+  featureLayout: "THREE" | "THREE_TWO" | "TWO" | "FULL" | "TALL_LEFT" | "TALL_RIGHT" | "WIDE_TOP" | "CUSTOM"; // how the features are laid out (specs/product-page-v2.md)
+  featureRows: { count: number; shape: "LANDSCAPE" | "PORTRAIT" }[]; // CUSTOM's rows, top to bottom: 1-4 pictures each, 16:9 or 4:5; up to 9, [] = none (then CUSTOM looks like THREE); sent whatever the layout
+  sizeGuide: SizeGuide | null; // null when the product has none, or it can't be shown (specs/size-guides.md)
   styles: Style[]; // in style order: one per colour for sale, or one with color "" when nothing for sale has a colour
   variants: Variant[];
 };
@@ -79,12 +81,13 @@ type Style = {
   colourShown: string | null; // "Colour shown", e.g. "Black/White"; falls back to color (null for the "" style)
 };
 type SizeGuide = {
+  kind: "CHART" | "PICTURE"; // CHART = a size table (clothing), PICTURE = one size chart picture (accessories), specs/product-page-v2.md
   name: string;
   intro: string | null;
-  chart: { columns: string[]; rows: { size: string; values: string[] }[] }; // values in cm, e.g. "96" or "96-101"
+  chart: { columns: string[]; rows: { size: string; values: string[] }[] } | null; // CHART: values in cm, e.g. "96" or "96-101"; PICTURE: null
   fitTips: string | null;
   howToMeasure: string[];
-  imageUrl: string | null;
+  imageUrl: string | null; // CHART: the how-to-measure picture (optional); PICTURE: the size chart picture (never null)
   imageAlt: string | null;
 };
 type Variant = {

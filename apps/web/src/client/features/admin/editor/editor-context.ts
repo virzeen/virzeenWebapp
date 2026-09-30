@@ -69,11 +69,6 @@ export type ProductEditor = {
   commitFields: (changes: readonly EditorChange[]) => string | null;
   /** Try again after "Couldn't save". */
   retry: () => void;
-  /**
-   * Work kept outside the form until it's complete (a new feature): while any `id` holds it, leaving the page asks
-   * first, through the editor's one leave check. Stable; call it again with false (or on unmount) to let go.
-   */
-  holdUnsaved: (id: string, unsaved: boolean) => void;
 };
 
 export const ProductEditorContext = createContext<ProductEditor | null>(null);

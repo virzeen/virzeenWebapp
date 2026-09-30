@@ -30,6 +30,10 @@ export const GET = apiHandler<Context>("v1.products.detail", async (_request, { 
       imageUrl,
       imageAlt,
     })),
+    featureLayout: product.featureLayout,
+    // The Custom layout's rows, top to bottom; kept (and sent) whatever layout is picked.
+    featureRows: product.featureRows,
+    // kind "CHART" (a size table in `chart`) or "PICTURE" (the size chart picture in `imageUrl`, `chart` null).
     sizeGuide: product.sizeGuide,
     styles: product.styles,
     variants: product.variants,

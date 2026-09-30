@@ -81,20 +81,86 @@ export const productImageSchema = z.strictObject({
 });
 export type ProductImageInput = z.infer<typeof productImageSchema>;
 
-/** A "Features that perform" card (specs/product-page.md): picture, title and text. */
+/**
+ * How "Features that perform" is laid out on the product page (specs/product-page-v2.md): seven ready-made layouts,
+ * in the editor's picker order, then CUSTOM (the owner's own rows, `featureRows`).
+ */
+export const FEATURE_LAYOUTS = [
+  "THREE",
+  "THREE_TWO",
+  "TWO",
+  "FULL",
+  "TALL_LEFT",
+  "TALL_RIGHT",
+  "WIDE_TOP",
+  "CUSTOM",
+] as const;
+export type FeatureLayout = (typeof FEATURE_LAYOUTS)[number];
+
+/** The editor's Layout picker names (specs/product-page-v2.md). */
+export const FEATURE_LAYOUT_LABELS: Record<FeatureLayout, string> = {
+  THREE: "Three across",
+  THREE_TWO: "Three + two",
+  TWO: "Two across",
+  FULL: "Full width",
+  TALL_LEFT: "Tall + two",
+  TALL_RIGHT: "Two + tall",
+  WIDE_TOP: "Wide + two",
+  CUSTOM: "Custom",
+};
+
+/** How many features a product can have (specs/product-page-v2.md). */
+export const MAX_FEATURES = 9;
+/** How many rows the Custom layout can have. */
+export const MAX_FEATURE_ROWS = 9;
+/** How many pictures one Custom row can hold (1 to 4). */
+export const MAX_FEATURE_ROW_COUNT = 4;
+
+/** A Custom row's picture shape: LANDSCAPE = 16:9, PORTRAIT = 4:5. */
+export const FEATURE_ROW_SHAPES = ["LANDSCAPE", "PORTRAIT"] as const;
+export type FeatureRowShape = (typeof FEATURE_ROW_SHAPES)[number];
+
+/** The rows editor's shape names. */
+export const FEATURE_ROW_SHAPE_LABELS: Record<FeatureRowShape, string> = {
+  LANDSCAPE: "Landscape",
+  PORTRAIT: "Portrait",
+};
+
+const ROW_COUNT_ERROR = "Choose 1 to 4 pictures";
+
+/** One row of the Custom layout, top to bottom: how many pictures it holds and their shape. */
+export const featureRowSchema = z.strictObject({
+  count: z
+    .int({ error: ROW_COUNT_ERROR })
+    .min(1, { error: ROW_COUNT_ERROR })
+    .max(MAX_FEATURE_ROW_COUNT, { error: ROW_COUNT_ERROR }),
+  shape: z.enum(FEATURE_ROW_SHAPES, { error: "Choose Landscape or Portrait" }),
+});
+export type FeatureRow = z.infer<typeof featureRowSchema>;
+
+/**
+ * The Custom layout's rows (Product.featureRows). Kept when another layout is picked, so switching back to Custom
+ * gets them back; no rows looks like "Three across".
+ */
+export const featureRowsSchema = z
+  .array(featureRowSchema)
+  .max(MAX_FEATURE_ROWS, { error: `Add up to ${MAX_FEATURE_ROWS} rows` });
+
+/** Parses stored Custom rows; anything invalid gives no rows (the shop then shows "Three across"), never a crash. */
+export function parseFeatureRows(value: unknown): FeatureRow[] {
+  const result = featureRowsSchema.safeParse(value);
+  return result.success ? result.data : [];
+}
+
+/**
+ * A "Features that perform" card (specs/product-page-v2.md): only the picture is needed; the title and text are
+ * optional ("" = none), so a feature can be just a picture and saves as soon as it's uploaded.
+ */
 export const productFeatureSchema = z.strictObject({
-  title: z
-    .string()
-    .trim()
-    .min(1, { error: "Enter a title for the feature" })
-    .max(60, { error: "Keep the title under 60 characters" }),
-  body: z
-    .string()
-    .trim()
-    .min(1, { error: "Enter the text for the feature" })
-    .max(400, { error: "Keep the text under 400 characters" }),
+  title: z.string().trim().max(60, { error: "Keep the title under 60 characters" }),
+  body: z.string().trim().max(400, { error: "Keep the text under 400 characters" }),
   imageUrl: imageRef("Add a picture for the feature"),
-  /** Blank means "{product}, {title}" (catalogService.saveProduct fills it in). */
+  /** Blank means "{product}, {title}", or "{product}" without a title (catalogService.saveProduct fills it in). */
   alt: z
     .string()
     .trim()
@@ -220,7 +286,13 @@ export const productSchema = z
     collectionIds: z.array(idSchema).max(20, { error: "Choose up to 20 collections" }),
     isPublished: z.boolean(),
     images: z.array(productImageSchema).max(60, { error: "Add up to 60 photos" }),
-    features: z.array(productFeatureSchema).max(6, { error: "Add up to 6 features" }),
+    features: z
+      .array(productFeatureSchema)
+      .max(MAX_FEATURES, { error: `Add up to ${MAX_FEATURES} features` }),
+    /** How the features are laid out on the product page (specs/product-page-v2.md). */
+    featureLayout: z.enum(FEATURE_LAYOUTS, { error: "Choose a layout" }),
+    /** The Custom layout's rows; saved whatever layout is picked, so they come back when Custom is picked again. */
+    featureRows: featureRowsSchema,
     /** Colour shown and style numbers (specs/product-editor-on-page.md); styles are the variant colours. */
     styles: z.array(productStyleSchema).max(20, { error: "Add up to 20 styles" }),
     /** Delivery charge added to every variant's price; customers see one price and free shipping. */
@@ -309,7 +381,10 @@ export const createDraftProductSchema = z.strictObject({
 });
 export type CreateDraftProductInput = z.infer<typeof createDraftProductSchema>;
 
-/** The related products the editor and Preview show under "You may also like". */
+/**
+ * The recommendations the editor and Preview show under the product (specs/product-page-v2.md): "You may also like"
+ * (the category, without `excludeId`) and "More from Virzeen" (other categories).
+ */
 export const relatedByCategorySchema = z.strictObject({
   categoryId: idSchema,
   excludeId: idSchema.optional(),
@@ -426,45 +501,102 @@ export function parseSizeChart(value: unknown): SizeChart | null {
   return result.success ? result.data : null;
 }
 
-/** A size guide made in admin and picked on products (specs/size-guides.md). */
-export const sizeGuideSchema = z.strictObject({
-  name: z
-    .string()
-    .trim()
-    .min(1, { error: "Enter a name" })
-    .max(60, { error: "Keep the name under 60 characters" }),
-  intro: z
-    .string()
-    .trim()
-    .max(500, { error: "Keep the intro under 500 characters" })
-    .optional()
-    .or(z.literal("")),
-  chart: sizeChartSchema,
-  fitTips: z
-    .string()
-    .trim()
-    .max(500, { error: "Keep the fit tips under 500 characters" })
-    .optional()
-    .or(z.literal("")),
-  /** One tip per line. */
-  howToMeasure: z
-    .array(
-      z
-        .string()
-        .trim()
-        .min(1, { error: "Remove the empty line" })
-        .max(200, { error: "Keep each line under 200 characters" }),
-    )
-    .max(10, { error: "Add up to 10 tips" }),
-  imageUrl: imageRefSchema.optional().or(z.literal("")),
-  imageAlt: z
-    .string()
-    .trim()
-    .max(200, { error: "Keep the picture description under 200 characters" })
-    .optional()
-    .or(z.literal("")),
-});
-export type SizeGuideInput = z.infer<typeof sizeGuideSchema>;
+/** What a size guide shows (specs/product-page-v2.md): a size table (clothing) or one size chart picture. */
+export const SIZE_GUIDE_KINDS = ["CHART", "PICTURE"] as const;
+export type SizeGuideKind = (typeof SIZE_GUIDE_KINDS)[number];
+
+/** The size guide form's Type choices and the admin list's Type column. */
+export const SIZE_GUIDE_KIND_LABELS: Record<SizeGuideKind, string> = {
+  CHART: "Clothing",
+  PICTURE: "Accessories",
+};
+
+const SIZE_CHART_PICTURE_REQUIRED = "Upload the size chart picture";
+
+/**
+ * A size guide made in admin and picked on products (specs/size-guides.md, specs/product-page-v2.md).
+ * - CHART (Clothing): `chart` must be a valid sizeChartSchema (errors keep their chart.* paths); `imageUrl` is the
+ *   optional how-to-measure picture.
+ * - PICTURE (Accessories): `imageUrl` is the size chart picture and is required; `chart` isn't checked (the form keeps
+ *   the table typed before switching type, until Save) and comes out null.
+ * The input is one flat shape (the form's values: SizeGuideFormValues); the output is a union on `kind`
+ * (SizeGuideInput) whose `chart` is a SizeChart for CHART and null for PICTURE.
+ */
+export const sizeGuideSchema = z
+  .strictObject({
+    kind: z.enum(SIZE_GUIDE_KINDS, { error: "Choose a type" }),
+    name: z
+      .string()
+      .trim()
+      .min(1, { error: "Enter a name" })
+      .max(60, { error: "Keep the name under 60 characters" }),
+    intro: z
+      .string()
+      .trim()
+      .max(500, { error: "Keep the intro under 500 characters" })
+      .optional()
+      .or(z.literal("")),
+    /**
+     * Checked below for a CHART guide only, so it's typed as a chart for the form. Always sent (the form keeps its
+     * draft table): a PICTURE guide may send anything here, null included.
+     */
+    chart: z.custom<z.input<typeof sizeChartSchema>>(),
+    fitTips: z
+      .string()
+      .trim()
+      .max(500, { error: "Keep the fit tips under 500 characters" })
+      .optional()
+      .or(z.literal("")),
+    /** One tip per line. */
+    howToMeasure: z
+      .array(
+        z
+          .string()
+          .trim()
+          .min(1, { error: "Remove the empty line" })
+          .max(200, { error: "Keep each line under 200 characters" }),
+      )
+      .max(10, { error: "Add up to 10 tips" }),
+    /** CHART: the how-to-measure picture (optional). PICTURE: the size chart picture (required, below). Blank = none. */
+    imageUrl: z
+      .string()
+      .trim()
+      .pipe(z.union([z.literal(""), imageRefSchema]))
+      .optional(),
+    /** Blank: CHART → "How to measure", PICTURE → "{name} size chart" (made where it's shown). */
+    imageAlt: z
+      .string()
+      .trim()
+      .max(200, { error: "Keep the picture description under 200 characters" })
+      .optional()
+      .or(z.literal("")),
+  })
+  .superRefine(
+    (guide, ctx) => {
+      // Runs even when other fields failed (see `when`), so values may be unparsed: read them defensively.
+      if (guide.kind === "CHART") {
+        const checked = sizeChartSchema.safeParse(guide.chart);
+        for (const issue of checked.error?.issues ?? []) {
+          ctx.addIssue({ code: "custom", path: ["chart", ...issue.path], message: issue.message });
+        }
+      }
+      if (guide.kind === "PICTURE" && (typeof guide.imageUrl !== "string" || guide.imageUrl.trim() === "")) {
+        ctx.addIssue({ code: "custom", path: ["imageUrl"], message: SIZE_CHART_PICTURE_REQUIRED });
+      }
+    },
+    // Show these alongside the field errors instead of only after every field is fixed.
+    { when: (payload) => isRecord(payload.value) },
+  )
+  // Only runs once everything above passed, so a CHART guide's chart is valid here.
+  .transform(({ chart, ...guide }) =>
+    guide.kind === "CHART"
+      ? { ...guide, kind: "CHART" as const, chart: sizeChartSchema.parse(chart) }
+      : { ...guide, kind: "PICTURE" as const, chart: null },
+  );
+/** The size guide form's values: one shape for both types, with the draft table kept while PICTURE is picked. */
+export type SizeGuideFormValues = z.input<typeof sizeGuideSchema>;
+/** A checked size guide (what catalogService.saveSizeGuide takes): `chart` is null for a PICTURE guide. */
+export type SizeGuideInput = z.output<typeof sizeGuideSchema>;
 
 /** What the admin size guide form sends: the guide, plus its id when editing (like saveProductSchema). */
 export const saveSizeGuideSchema = z.strictObject({ id: idSchema.optional(), guide: sizeGuideSchema });

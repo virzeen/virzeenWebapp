@@ -1,4 +1,10 @@
-import { sortSizes, type ProductInput } from "@virzeen/validators";
+import {
+  FEATURE_LAYOUTS,
+  parseFeatureRows,
+  sortSizes,
+  type FeatureLayout,
+  type ProductInput,
+} from "@virzeen/validators";
 import type { ProductDetailsData, SizeGuideView } from "@/client/features/products/product-details-data";
 
 // The editor hands its current values to the preview tab through localStorage (same browser, same site), so the
@@ -39,6 +45,12 @@ const amount = (value: unknown) => (typeof value === "number" && Number.isFinite
 const text = (value: unknown) => (typeof value === "string" ? value.trim() : "");
 /** Bullet lines without the blank ones the admin is still typing. */
 const lines = (list: readonly unknown[] | undefined) => (list ?? []).map(text).filter(Boolean);
+/** A size guide picked before guide types (an older editor's draft) is a size table. */
+const withKind = (guide: SizeGuideView | null | undefined): SizeGuideView | null =>
+  guide ? { ...guide, kind: guide.kind === "PICTURE" ? "PICTURE" : "CHART" } : null;
+/** The form's layout; a draft saved before layouts (or anything odd) shows three across, the default. */
+const layout = (value: unknown): FeatureLayout =>
+  FEATURE_LAYOUTS.find((candidate) => candidate === value) ?? "THREE";
 
 /**
  * The styles the preview shows: one per colour for sale (or the one "" style), with the number the editor has for it
@@ -66,7 +78,8 @@ export function relatedQueryFor(draft: PreviewDraft): { categoryId: string; excl
 /**
  * What the product page would show for these editor values: rows for sale only, prices with shipping added,
  * blank photo and feature descriptions made from the name (like catalogService.saveProduct), sizes in shop order.
- * Drafts saved by an older editor may lack the newer fields (details, features, styles): they show as empty.
+ * Drafts saved by an older editor may lack the newer fields (details, features, styles, the features layout and its
+ * Custom rows): they show as empty (three across for the layout, no rows).
  */
 export function toPreviewProduct(draft: PreviewDraft): ProductDetailsData {
   const { values } = draft;
@@ -107,7 +120,9 @@ export function toPreviewProduct(draft: PreviewDraft): ProductDetailsData {
         imageAlt: text(feature.alt) || (title ? `${name}, ${title}` : name),
       };
     }),
-    sizeGuide: draft.sizeGuide ?? null,
+    featureLayout: layout(values.featureLayout),
+    featureRows: parseFeatureRows(values.featureRows),
+    sizeGuide: withKind(draft.sizeGuide),
     variants,
     sizes: sortSizes(variants.flatMap((variant) => (variant.size ? [variant.size] : []))),
     colors,

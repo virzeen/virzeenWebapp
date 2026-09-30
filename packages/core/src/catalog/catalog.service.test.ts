@@ -24,6 +24,8 @@ async function productInput(overrides: Partial<ProductData> = {}): Promise<Produ
     isPublished: true,
     images: [{ url: "virzeen/products/linen/front", alt: "Front view" }],
     features: [],
+    featureLayout: "THREE",
+    featureRows: [],
     styles: [],
     shippingPaisa: 0,
     variants: [
@@ -532,8 +534,12 @@ describe("product styles (specs/product-styles.md)", () => {
   });
 });
 
-function sizeGuideInput(overrides: Partial<SizeGuideInput> = {}): SizeGuideInput {
+type ChartGuide = Extract<SizeGuideInput, { kind: "CHART" }>;
+type PictureGuide = Extract<SizeGuideInput, { kind: "PICTURE" }>;
+
+function sizeGuideInput(overrides: Partial<ChartGuide> = {}): ChartGuide {
   return {
+    kind: "CHART",
     name: "Tops",
     intro: "Body measurements in cm.",
     chart: {
@@ -547,6 +553,21 @@ function sizeGuideInput(overrides: Partial<SizeGuideInput> = {}): SizeGuideInput
     howToMeasure: ["Measure around the fullest part of your chest."],
     imageUrl: "",
     imageAlt: "Ignored without a picture",
+    ...overrides,
+  };
+}
+
+/** An Accessories guide (specs/product-page-v2.md): one size chart picture, no table. */
+function pictureGuideInput(overrides: Partial<PictureGuide> = {}): PictureGuide {
+  return {
+    kind: "PICTURE",
+    name: "Belts",
+    intro: "",
+    chart: null,
+    fitTips: "Pick your trouser waist size.",
+    howToMeasure: [],
+    imageUrl: "virzeen/size-guides/new/belts",
+    imageAlt: "",
     ...overrides,
   };
 }
@@ -604,6 +625,7 @@ describe("product details, features and size guides (specs/product-page.md, spec
       ],
     });
     expect(page?.sizeGuide).toEqual({
+      kind: "CHART",
       name: "Tops",
       intro: "Body measurements in cm.",
       chart: sizeGuideInput().chart,
@@ -707,6 +729,133 @@ describe("product details, features and size guides (specs/product-page.md, spec
   });
 });
 
+describe("feature layouts and picture-only features (specs/product-page-v2.md)", () => {
+  beforeEach(resetDatabase);
+
+  it("saves the features layout, reads it back for the editor and the shop, and copies it to a duplicate", async () => {
+    const admin = await createUser({ role: "ADMIN" });
+    const input = await productInput({ featureLayout: "TALL_LEFT", features: FEATURES });
+
+    const saved = await catalogService.saveProduct(admin.id, { product: input });
+
+    expect(saved.values.featureLayout).toBe("TALL_LEFT");
+    expect((await adminReads.getProductForEdit(saved.id)).values.featureLayout).toBe("TALL_LEFT");
+    expect((await catalogReads.getProductBySlug("linen-overshirt"))?.featureLayout).toBe("TALL_LEFT");
+
+    await catalogService.saveProduct(admin.id, {
+      id: saved.id,
+      product: { ...input, featureLayout: "WIDE_TOP" },
+    });
+    expect((await catalogReads.getProductBySlug("linen-overshirt"))?.featureLayout).toBe("WIDE_TOP");
+
+    const copy = await catalogService.duplicateProduct(admin.id, saved.id);
+    expect(copy.values.featureLayout).toBe("WIDE_TOP");
+  });
+
+  it("saves the Custom rows, reads them back, keeps them under another layout, and copies them", async () => {
+    const admin = await createUser({ role: "ADMIN" });
+    const featureRows = [
+      { count: 1, shape: "LANDSCAPE" as const },
+      { count: 2, shape: "PORTRAIT" as const },
+      { count: 4, shape: "PORTRAIT" as const },
+    ];
+    const input = await productInput({ featureLayout: "CUSTOM", featureRows, features: FEATURES });
+
+    const saved = await catalogService.saveProduct(admin.id, { product: input });
+
+    expect(saved.values).toMatchObject({ featureLayout: "CUSTOM", featureRows });
+    expect((await adminReads.getProductForEdit(saved.id)).values.featureRows).toEqual(featureRows);
+    expect(await catalogReads.getProductBySlug("linen-overshirt")).toMatchObject({
+      featureLayout: "CUSTOM",
+      featureRows,
+    });
+
+    // Another layout keeps the rows, so picking Custom again gets them back.
+    await catalogService.saveProduct(admin.id, { id: saved.id, product: { ...input, featureLayout: "TWO" } });
+    expect(await catalogReads.getProductBySlug("linen-overshirt")).toMatchObject({
+      featureLayout: "TWO",
+      featureRows,
+    });
+
+    const copy = await catalogService.duplicateProduct(admin.id, saved.id);
+    expect(copy.values).toMatchObject({ featureLayout: "TWO", featureRows });
+  });
+
+  it("reads rows that can't be used as no rows", async () => {
+    const admin = await createUser({ role: "ADMIN" });
+    const saved = await catalogService.saveProduct(admin.id, {
+      product: await productInput({ featureLayout: "CUSTOM" }),
+    });
+    // Only possible by hand in the database.
+    await db.product.update({
+      where: { id: saved.id },
+      data: { featureRows: [{ count: 7, shape: "ROUND" }] },
+    });
+
+    expect((await adminReads.getProductForEdit(saved.id)).values.featureRows).toEqual([]);
+    expect((await catalogReads.getProductBySlug("linen-overshirt"))?.featureRows).toEqual([]);
+    expect((await catalogService.duplicateProduct(admin.id, saved.id)).values.featureRows).toEqual([]);
+  });
+
+  it("starts a new draft with three across and no Custom rows", async () => {
+    const admin = await createUser({ role: "ADMIN" });
+    const category = await createCategory();
+
+    const draft = await catalogService.createDraft(admin.id, {
+      name: "Beanie",
+      categoryId: category.id,
+      pricePaisa: 135_000,
+    });
+
+    expect((await adminReads.getProductForEdit(draft.id)).values).toMatchObject({
+      featureLayout: "THREE",
+      featureRows: [],
+    });
+  });
+
+  it("keeps the saved layout and rows when a save leaves them out", async () => {
+    const admin = await createUser({ role: "ADMIN" });
+    const featureRows = [{ count: 3, shape: "PORTRAIT" as const }];
+    const { featureLayout: _layout, featureRows: _rows, ...rest } = await productInput();
+    const saved = await catalogService.saveProduct(admin.id, {
+      product: { ...rest, featureLayout: "CUSTOM", featureRows },
+    });
+
+    await catalogService.saveProduct(admin.id, { id: saved.id, product: rest });
+
+    expect((await adminReads.getProductForEdit(saved.id)).values).toMatchObject({
+      featureLayout: "CUSTOM",
+      featureRows,
+    });
+  });
+
+  it("saves a feature that is only a picture, describing it with the product's name", async () => {
+    const admin = await createUser({ role: "ADMIN" });
+    const pictureOnly = { title: "", body: "", imageUrl: "virzeen/products/linen/f3", alt: "" };
+
+    const saved = await catalogService.saveProduct(admin.id, {
+      product: await productInput({ features: [pictureOnly, FEATURES[0]!] }),
+    });
+
+    expect(saved.values.features).toEqual([
+      { ...pictureOnly, alt: "Linen Overshirt" },
+      { ...FEATURES[0], alt: "Linen Overshirt, Breathable" },
+    ]);
+    const page = await catalogReads.getProductBySlug("linen-overshirt");
+    expect(page?.features.map(({ title, body, imageAlt }) => ({ title, body, imageAlt }))).toEqual([
+      { title: "", body: "", imageAlt: "Linen Overshirt" },
+      { title: "Breathable", body: "Washed linen keeps you cool.", imageAlt: "Linen Overshirt, Breathable" },
+    ]);
+
+    // A duplicate makes the description again from its own name.
+    const copy = await catalogService.duplicateProduct(admin.id, saved.id);
+    expect(copy.values.features.map((feature) => feature.alt)).toEqual([
+      "Linen Overshirt (copy)",
+      "Linen Overshirt (copy), Breathable",
+    ]);
+  });
+});
+
 describe("catalogService size guides", () => {
   beforeEach(resetDatabase);
 
@@ -800,5 +949,72 @@ describe("catalogService size guides", () => {
       catalogService.saveSizeGuide(admin.id, { ...sizeGuideInput(), id: guide.id }),
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
     expect(await db.auditLog.count({ where: { action: "sizeGuide.archive" } })).toBe(1);
+  });
+
+  it("lists each guide's type", async () => {
+    const admin = await createUser({ role: "ADMIN" });
+    await catalogService.saveSizeGuide(admin.id, sizeGuideInput());
+    await catalogService.saveSizeGuide(admin.id, pictureGuideInput());
+
+    expect((await adminReads.listSizeGuides()).map(({ name, kind }) => ({ name, kind }))).toEqual([
+      { name: "Belts", kind: "PICTURE" },
+      { name: "Tops", kind: "CHART" },
+    ]);
+  });
+});
+
+describe("Accessories size guides (specs/product-page-v2.md)", () => {
+  beforeEach(resetDatabase);
+
+  it("saves the picture without a table and shows it in the editor, the product editor's options and the shop", async () => {
+    const admin = await createUser({ role: "ADMIN" });
+
+    const guide = await catalogService.saveSizeGuide(admin.id, pictureGuideInput());
+    await catalogService.saveProduct(admin.id, { product: await productInput({ sizeGuideId: guide.id }) });
+
+    const stored = await db.sizeGuide.findUniqueOrThrow({ where: { id: guide.id } });
+    expect(stored).toMatchObject({ kind: "PICTURE", chart: null, imageUrl: "virzeen/size-guides/new/belts" });
+    expect(await adminReads.getSizeGuideForEdit(guide.id)).toEqual({ id: guide.id, ...pictureGuideInput() });
+    const shown = {
+      kind: "PICTURE",
+      name: "Belts",
+      intro: null,
+      chart: null,
+      fitTips: "Pick your trouser waist size.",
+      howToMeasure: [],
+      imageUrl: "virzeen/size-guides/new/belts",
+      imageAlt: null,
+    };
+    expect(await adminReads.listSizeGuideOptions()).toEqual([{ id: guide.id, ...shown }]);
+    expect((await catalogReads.getProductBySlug("linen-overshirt"))?.sizeGuide).toEqual(shown);
+    const audit = await db.auditLog.findFirst({ where: { action: "sizeGuide.create" } });
+    expect(audit?.diff).toEqual({ name: "Belts", kind: "PICTURE", measurements: [], sizes: [] });
+  });
+
+  it("switches a guide between a table and a picture", async () => {
+    const admin = await createUser({ role: "ADMIN" });
+    const guide = await catalogService.saveSizeGuide(admin.id, sizeGuideInput());
+
+    await catalogService.saveSizeGuide(admin.id, { ...pictureGuideInput({ name: "Tops" }), id: guide.id });
+    expect(await adminReads.getSizeGuideForEdit(guide.id)).toMatchObject({ kind: "PICTURE", chart: null });
+
+    await catalogService.saveSizeGuide(admin.id, { ...sizeGuideInput(), id: guide.id });
+    expect(await adminReads.getSizeGuideForEdit(guide.id)).toMatchObject({
+      kind: "CHART",
+      chart: sizeGuideInput().chart,
+    });
+  });
+
+  it("is hidden from the shop and the product editor without its picture", async () => {
+    const admin = await createUser({ role: "ADMIN" });
+    const guide = await catalogService.saveSizeGuide(admin.id, pictureGuideInput());
+    await catalogService.saveProduct(admin.id, { product: await productInput({ sizeGuideId: guide.id }) });
+
+    // Only possible by hand: the form needs the picture.
+    await db.sizeGuide.update({ where: { id: guide.id }, data: { imageUrl: null } });
+
+    expect((await catalogReads.getProductBySlug("linen-overshirt"))?.sizeGuide).toBeNull();
+    expect(await adminReads.listSizeGuideOptions()).toEqual([]);
+    expect(await adminReads.getSizeGuideForEdit(guide.id)).toMatchObject({ kind: "PICTURE", imageUrl: "" });
   });
 });

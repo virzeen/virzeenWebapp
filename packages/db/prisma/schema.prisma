@@ -65,6 +65,28 @@ enum PortfolioKind {
   COLLABORATION
 }
 
+/// How "Features that perform" is laid out on the product page (specs/product-page-v2.md). From `md`: THREE = three
+/// across (two at md), THREE_TWO = groups of five, three portrait then two landscape, TWO = two across, FULL = one per
+/// row, TALL_LEFT / TALL_RIGHT = groups of three with a tall picture left / right of two stacked ones, WIDE_TOP =
+/// groups of three with one full width then two side by side, CUSTOM = the owner's rows (Product.featureRows).
+enum FeatureLayout {
+  THREE
+  THREE_TWO
+  TWO
+  FULL
+  TALL_LEFT
+  TALL_RIGHT
+  WIDE_TOP
+  CUSTOM
+}
+
+/// What a size guide shows (specs/product-page-v2.md): CHART = a size table (clothing), PICTURE = one size chart
+/// picture (accessories).
+enum SizeGuideKind {
+  CHART
+  PICTURE
+}
+
 // ─────────────────── Accounts (Better Auth tables) ───────────────────
 // Shape required by Better Auth; ids are generated as cuid2 by the auth config.
 
@@ -245,6 +267,12 @@ model Product {
   /// Chart behind the product page's "Size guide" popup (specs/size-guides.md); null = no size guide.
   sizeGuideId       String?
   sizeGuide         SizeGuide?         @relation(fields: [sizeGuideId], references: [id], onDelete: Restrict)
+  /// How "Features that perform" is laid out (specs/product-page-v2.md); existing products get THREE.
+  featureLayout     FeatureLayout      @default(THREE)
+  /// The Custom layout's rows, top to bottom (specs/product-page-v2.md): up to 9 of
+  /// { count: 1-4; shape: "LANDSCAPE" | "PORTRAIT" }, validated by featureRowsSchema (@virzeen/validators) on save and
+  /// by parseFeatureRows on read (invalid = no rows). Kept when another layout is picked, so Custom gets them back.
+  featureRows       Json               @default("[]")
   images            ProductImage[]
   variants          ProductVariant[]
   styles            ProductStyle[]
@@ -298,23 +326,26 @@ model ProductStyle {
 
 /// A size chart made once in admin and picked on products (specs/size-guides.md). Archived, never deleted.
 model SizeGuide {
-  id           String    @id @default(cuid(2))
+  id           String        @id @default(cuid(2))
   /// Admin label and the popup's subtitle, e.g. "Tops". Unique among guides that aren't archived.
   name         String
   intro        String?
-  /// { columns: string[]; rows: { size: string; values: string[] }[] } in cm, validated by sizeChartSchema
-  /// (@virzeen/validators) on save and by parseSizeChart on read.
-  chart        Json
+  /// CHART = a size table (existing guides), PICTURE = one size chart picture (specs/product-page-v2.md).
+  kind         SizeGuideKind @default(CHART)
+  /// CHART: { columns: string[]; rows: { size: string; values: string[] }[] } in cm, validated by sizeChartSchema
+  /// (@virzeen/validators) on save and by parseSizeChart on read. PICTURE: null (no table is stored).
+  chart        Json?
   fitTips      String?
   /// "How to measure" tips, one per line.
-  howToMeasure String[]  @default([])
-  /// How-to-measure picture: Cloudinary public id (or a /public path for local seed data).
+  howToMeasure String[]      @default([])
+  /// CHART: the how-to-measure picture (optional). PICTURE: the size chart picture (required). Cloudinary public id
+  /// (or a /public path for local seed data).
   imageUrl     String?
   imageAlt     String?
   archivedAt   DateTime?
   products     Product[]
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
   @@index([archivedAt])
 }

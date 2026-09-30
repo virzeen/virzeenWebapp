@@ -23,6 +23,8 @@ const product = (extra: Partial<ProductInput> = {}): ProductInput => ({
   isPublished: false,
   images: [],
   features: [],
+  featureLayout: "THREE",
+  featureRows: [],
   styles: [{ color: "", colourShown: "", code: "VZ0001-101" }],
   shippingPaisa: 15_000,
   variants: [

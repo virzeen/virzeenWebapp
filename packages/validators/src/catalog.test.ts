@@ -3,11 +3,21 @@ import {
   adminProductFiltersSchema,
   categorySchema,
   createDraftProductSchema,
+  FEATURE_LAYOUT_LABELS,
+  FEATURE_LAYOUTS,
+  FEATURE_ROW_SHAPE_LABELS,
+  FEATURE_ROW_SHAPES,
+  featureRowSchema,
+  featureRowsSchema,
+  MAX_FEATURES,
+  parseFeatureRows,
   parseSizeChart,
   productSchema,
   relatedByCategorySchema,
   saveSizeGuideSchema,
   sizeChartSchema,
+  SIZE_GUIDE_KIND_LABELS,
+  SIZE_GUIDE_KINDS,
   sizeGuideSchema,
   uploadSignatureSchema,
 } from "./catalog";
@@ -35,6 +45,8 @@ const product = {
   isPublished: true,
   images: [{ url: "virzeen/products/abc/front", alt: "Front view" }],
   features: [],
+  featureLayout: "THREE",
+  featureRows: [],
   styles: [],
   shippingPaisa: 15_000,
   variants: [variant],
@@ -186,10 +198,19 @@ describe("productSchema: product details and features (specs/product-page.md)", 
   });
 
   it("needs every new key, so old forms fail loudly instead of wiping the details", () => {
-    const { benefits: _benefits, features: _features, styles: _styles, ...old } = product;
+    const {
+      benefits: _benefits,
+      features: _features,
+      featureLayout: _featureLayout,
+      featureRows: _featureRows,
+      styles: _styles,
+      ...old
+    } = product;
     expect(errorsOf(old)).toMatchObject({
       benefits: expect.any(String),
       features: expect.any(String),
+      featureLayout: "Choose a layout",
+      featureRows: expect.any(String),
       styles: expect.any(String),
     });
   });
@@ -217,9 +238,11 @@ describe("productSchema: product details and features (specs/product-page.md)", 
     });
   });
 
-  it("limits features to 6, each with a picture, a title up to 60 and text up to 400", () => {
-    expect(errorsOf({ ...product, features: Array.from({ length: 7 }, () => feature) })).toEqual({
-      features: "Add up to 6 features",
+  it("limits features to 9, each with a picture, a title up to 60 and text up to 400", () => {
+    expect(MAX_FEATURES).toBe(9);
+    expect(errorsOf({ ...product, features: Array.from({ length: 9 }, () => feature) })).toEqual({});
+    expect(errorsOf({ ...product, features: Array.from({ length: 10 }, () => feature) })).toEqual({
+      features: "Add up to 9 features",
     });
     expect(
       errorsOf({
@@ -230,8 +253,6 @@ describe("productSchema: product details and features (specs/product-page.md)", 
         ],
       }),
     ).toEqual({
-      "features.0.title": "Enter a title for the feature",
-      "features.0.body": "Enter the text for the feature",
       "features.0.imageUrl": "Add a picture for the feature",
       "features.1.title": "Keep the title under 60 characters",
       "features.1.body": "Keep the text under 400 characters",
@@ -240,6 +261,115 @@ describe("productSchema: product details and features (specs/product-page.md)", 
     expect(errorsOf({ ...product, features: [{ title: "Soft", body: "Very." }] })).toEqual({
       "features.0.imageUrl": "Add a picture for the feature",
     });
+  });
+
+  it("takes a feature that is only a picture: blank title and text, trimmed (specs/product-page-v2.md)", () => {
+    const result = productSchema.safeParse({
+      ...product,
+      features: [{ title: "  ", body: "", imageUrl: "/placeholder/a.jpg", alt: "" }],
+    });
+    expect(result.success).toBe(true);
+    expect(result.data?.features).toEqual([{ title: "", body: "", imageUrl: "/placeholder/a.jpg", alt: "" }]);
+    const longest = { ...feature, title: ` ${"x".repeat(60)} `, body: "x".repeat(400) };
+    expect(errorsOf({ ...product, features: [longest] })).toEqual({});
+  });
+});
+
+describe("productSchema: feature layout (specs/product-page-v2.md)", () => {
+  it("has seven ready-made layouts and Custom, each with a name", () => {
+    expect(FEATURE_LAYOUTS).toEqual([
+      "THREE",
+      "THREE_TWO",
+      "TWO",
+      "FULL",
+      "TALL_LEFT",
+      "TALL_RIGHT",
+      "WIDE_TOP",
+      "CUSTOM",
+    ]);
+    expect(Object.keys(FEATURE_LAYOUT_LABELS)).toEqual([...FEATURE_LAYOUTS]);
+    expect(Object.values(FEATURE_LAYOUT_LABELS)).toEqual([
+      "Three across",
+      "Three + two",
+      "Two across",
+      "Full width",
+      "Tall + two",
+      "Two + tall",
+      "Wide + two",
+      "Custom",
+    ]);
+  });
+
+  it("takes any of the layouts and nothing else", () => {
+    for (const featureLayout of FEATURE_LAYOUTS) {
+      expect(productSchema.safeParse({ ...product, featureLayout }).data?.featureLayout).toBe(featureLayout);
+    }
+    expect(errorsOf({ ...product, featureLayout: "GRID" })).toEqual({ featureLayout: "Choose a layout" });
+    expect(errorsOf({ ...product, featureLayout: "three" })).toEqual({ featureLayout: "Choose a layout" });
+  });
+});
+
+describe("productSchema: Custom layout rows (specs/product-page-v2.md)", () => {
+  const row = { count: 2, shape: "PORTRAIT" };
+
+  it("has two shapes, Landscape and Portrait", () => {
+    expect(FEATURE_ROW_SHAPES).toEqual(["LANDSCAPE", "PORTRAIT"]);
+    expect(FEATURE_ROW_SHAPE_LABELS).toEqual({ LANDSCAPE: "Landscape", PORTRAIT: "Portrait" });
+  });
+
+  it("takes rows of 1 to 4 pictures, kept whatever layout is picked", () => {
+    const featureRows = [
+      { count: 1, shape: "LANDSCAPE" },
+      { count: 2, shape: "PORTRAIT" },
+      { count: 4, shape: "PORTRAIT" },
+    ];
+    for (const featureLayout of ["CUSTOM", "THREE"]) {
+      expect(productSchema.safeParse({ ...product, featureLayout, featureRows }).data?.featureRows).toEqual(
+        featureRows,
+      );
+    }
+    expect(errorsOf({ ...product, featureLayout: "CUSTOM", featureRows: [] })).toEqual({});
+  });
+
+  it("says what to change in a row that can't be used", () => {
+    expect(
+      errorsOf({
+        ...product,
+        featureRows: [
+          { count: 0, shape: "PORTRAIT" },
+          { count: 5, shape: "LANDSCAPE" },
+          { count: 1.5, shape: "PORTRAIT" },
+          { count: 2, shape: "SQUARE" },
+        ],
+      }),
+    ).toEqual({
+      "featureRows.0.count": "Choose 1 to 4 pictures",
+      "featureRows.1.count": "Choose 1 to 4 pictures",
+      "featureRows.2.count": "Choose 1 to 4 pictures",
+      "featureRows.3.shape": "Choose Landscape or Portrait",
+    });
+    expect(featureRowSchema.safeParse({ ...row, extra: true }).success).toBe(false);
+  });
+
+  it("limits the rows to 9", () => {
+    expect(featureRowsSchema.safeParse(Array(9).fill(row)).success).toBe(true);
+    expect(errorsOf({ ...product, featureRows: Array(10).fill(row) })).toEqual({
+      featureRows: "Add up to 9 rows",
+    });
+  });
+
+  it("reads stored rows defensively: anything invalid is no rows", () => {
+    expect(parseFeatureRows([{ count: 3, shape: "LANDSCAPE" }])).toEqual([{ count: 3, shape: "LANDSCAPE" }]);
+    for (const stored of [
+      null,
+      undefined,
+      "[]",
+      {},
+      [{ count: 9, shape: "PORTRAIT" }],
+      Array(10).fill(row),
+    ]) {
+      expect(parseFeatureRows(stored)).toEqual([]);
+    }
   });
 });
 
@@ -404,6 +534,7 @@ describe("sizeChartSchema (specs/size-guides.md)", () => {
 
 describe("sizeGuideSchema", () => {
   const guide = {
+    kind: "CHART",
     name: "Tops",
     intro: "",
     chart: { columns: ["Chest"], rows: [{ size: "M", values: ["96-101"] }] },
@@ -413,19 +544,94 @@ describe("sizeGuideSchema", () => {
     imageAlt: "",
   };
 
+  /** Field path → first message, the way the admin form shows them. */
+  function guideErrors(input: unknown) {
+    const result = sizeGuideSchema.safeParse(input);
+    const errors: Record<string, string> = {};
+    for (const issue of result.error?.issues ?? []) errors[issue.path.join(".")] ??= issue.message;
+    return errors;
+  }
+
   it("takes a guide with only a name and a chart filled in", () => {
     expect(sizeGuideSchema.safeParse(guide).success).toBe(true);
   });
 
+  it("has two types, Clothing and Accessories, and needs one of them", () => {
+    expect(SIZE_GUIDE_KINDS).toEqual(["CHART", "PICTURE"]);
+    expect(SIZE_GUIDE_KIND_LABELS).toEqual({ CHART: "Clothing", PICTURE: "Accessories" });
+    const { kind: _kind, ...withoutKind } = guide;
+    expect(guideErrors(withoutKind)).toEqual({ kind: "Choose a type" });
+    expect(guideErrors({ ...guide, kind: "TABLE" })).toEqual({ kind: "Choose a type" });
+  });
+
+  it("needs a valid chart for a Clothing guide, with errors at their places in the chart", () => {
+    expect(guideErrors({ ...guide, chart: { columns: [], rows: [] } })).toEqual({
+      "chart.columns": "Add at least one measurement",
+      "chart.rows": "Add at least one size",
+    });
+    expect(
+      guideErrors({
+        ...guide,
+        name: "",
+        chart: { columns: ["Chest", "chest"], rows: [{ size: " ", values: ["96"] }] },
+      }),
+    ).toEqual({
+      name: "Enter a name",
+      "chart.columns.0": "Another measurement has the same name",
+      "chart.columns.1": "Another measurement has the same name",
+      "chart.rows.0.size": "Enter the size",
+      "chart.rows.0.values": "Each size needs a value for every measurement",
+    });
+    expect(guideErrors({ ...guide, chart: "not a chart" })).toHaveProperty("chart");
+    const { chart: _chart, ...withoutChart } = guide;
+    expect(guideErrors(withoutChart)).toHaveProperty("chart");
+  });
+
+  it("gives a Clothing guide its chart, trimmed", () => {
+    const result = sizeGuideSchema.parse({
+      ...guide,
+      chart: { columns: [" Chest "], rows: [{ size: " M ", values: [" 96-101 "] }] },
+    });
+    expect(result.kind).toBe("CHART");
+    expect(result.chart).toEqual({ columns: ["Chest"], rows: [{ size: "M", values: ["96-101"] }] });
+  });
+
+  it("reads a blank picture as none", () => {
+    expect(sizeGuideSchema.parse({ ...guide, imageUrl: "  " }).imageUrl).toBe("");
+  });
+
+  it("needs the size chart picture for an Accessories guide", () => {
+    for (const imageUrl of ["", "  ", undefined]) {
+      expect(guideErrors({ ...guide, kind: "PICTURE", imageUrl })).toEqual({
+        imageUrl: "Upload the size chart picture",
+      });
+    }
+    expect(guideErrors({ ...guide, kind: "PICTURE", imageUrl: "https://evil.example/x.png" })).toEqual({
+      imageUrl: "Use a Cloudinary public id or a /public path, not a web address",
+    });
+  });
+
+  it("drops an Accessories guide's chart without checking it (the form keeps the draft table)", () => {
+    const picture = { ...guide, kind: "PICTURE", imageUrl: "virzeen/size-guides/new/belts", imageAlt: "" };
+    for (const chart of [{ columns: [""], rows: [{ size: "", values: ["", ""] }] }, "junk", null]) {
+      const result = sizeGuideSchema.safeParse({ ...picture, chart });
+      expect(result.success).toBe(true);
+      expect(result.data).toMatchObject({
+        kind: "PICTURE",
+        chart: null,
+        imageUrl: "virzeen/size-guides/new/belts",
+      });
+    }
+  });
+
   it("names what is missing or too long", () => {
-    const result = sizeGuideSchema.safeParse({
+    const errors = guideErrors({
       ...guide,
       name: " ",
       intro: "x".repeat(501),
       howToMeasure: Array.from({ length: 11 }, () => "Tip"),
       imageUrl: "https://evil.example/x.png",
     });
-    const errors = Object.fromEntries(result.error?.issues.map((i) => [i.path.join("."), i.message]) ?? []);
     expect(errors).toEqual({
       name: "Enter a name",
       intro: "Keep the intro under 500 characters",

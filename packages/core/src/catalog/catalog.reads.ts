@@ -1,6 +1,13 @@
 import "server-only";
 import { db, type Prisma } from "@virzeen/db";
-import { parseSizeChart, sortSizes, type ShopFilters, type SizeChart } from "@virzeen/validators";
+import {
+  parseFeatureRows,
+  parseSizeChart,
+  sortSizes,
+  type ShopFilters,
+  type SizeChart,
+  type SizeGuideKind,
+} from "@virzeen/validators";
 import { stylesForShop } from "./product-styles";
 
 // Read models shared by web queries and /api/v1 (docs/backend/api-contract.md "Shapes").
@@ -59,37 +66,53 @@ export function toSummary(row: SummaryRow): ProductSummary {
 
 export type ProductPage = { items: ProductSummary[]; nextCursor: string | null };
 
-/** The size guide a product page shows in its "Size guide" popup (specs/size-guides.md). Chart values are in cm. */
+/**
+ * The two carousels under a product (specs/product-page-v2.md): "You may also like" (same category, without the
+ * product) and "More from Virzeen" (other categories). Each is newest first; an empty one is hidden.
+ */
+export type ProductRecommendations = { sameCategory: ProductSummary[]; otherCategories: ProductSummary[] };
+
+/**
+ * The size guide a product page shows in its "Size guide" popup (specs/size-guides.md, specs/product-page-v2.md).
+ * CHART (Clothing): `chart` is the size table in cm; `imageUrl` is the optional how-to-measure picture.
+ * PICTURE (Accessories): `chart` is null; `imageUrl` is the size chart picture (never null).
+ */
 export type ProductSizeGuide = {
+  kind: SizeGuideKind;
   name: string;
   intro: string | null;
-  chart: SizeChart;
+  chart: SizeChart | null;
   fitTips: string | null;
   howToMeasure: string[];
   imageUrl: string | null;
   imageAlt: string | null;
 };
 
-/** A stored guide as the shop shows it: null when there is none, it's archived, or its chart isn't valid. */
+/**
+ * A stored guide as the shop shows it: null when there is none, it's archived, a CHART guide's chart isn't valid, or
+ * a PICTURE guide has no picture.
+ */
 export function toProductSizeGuide(
   guide: (Omit<ProductSizeGuide, "chart"> & { chart: unknown; archivedAt?: Date | null }) | null,
 ): ProductSizeGuide | null {
   if (!guide || guide.archivedAt) return null;
-  const chart = parseSizeChart(guide.chart);
-  if (!chart) return null;
-  return {
+  const shown = {
+    kind: guide.kind,
     name: guide.name,
     intro: guide.intro,
-    chart,
     fitTips: guide.fitTips,
     howToMeasure: guide.howToMeasure,
     imageUrl: guide.imageUrl,
     imageAlt: guide.imageAlt,
   };
+  if (guide.kind === "PICTURE") return guide.imageUrl ? { ...shown, chart: null } : null;
+  const chart = parseSizeChart(guide.chart);
+  return chart ? { ...shown, chart } : null;
 }
 
 /** The SizeGuide columns toProductSizeGuide needs. */
 export const sizeGuideSelect = {
+  kind: true,
   name: true,
   intro: true,
   chart: true,
@@ -180,6 +203,8 @@ export const catalogReads = {
           select: { id: true, title: true, body: true, imageUrl: true, imageAlt: true },
           orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
         },
+        featureLayout: true,
+        featureRows: true,
         sizeGuide: { select: sizeGuideSelect },
         variants: {
           where: { isActive: true },
@@ -193,6 +218,8 @@ export const catalogReads = {
     const colors = [...new Set(row.variants.flatMap((v) => (v.color ? [v.color] : [])))];
     return {
       ...row,
+      /** The Custom layout's rows (specs/product-page-v2.md); [] when there are none or they can't be read. */
+      featureRows: parseFeatureRows(row.featureRows),
       sizeGuide: toProductSizeGuide(row.sizeGuide),
       inStock: row.variants.some((v) => v.stock > 0),
       sizes: sortSizes(row.variants.flatMap((v) => (v.size ? [v.size] : []))),
@@ -227,6 +254,37 @@ export const catalogReads = {
       take: limit,
     });
     return rows.map(toSummary);
+  },
+
+  /**
+   * The carousels under a product (specs/product-page-v2.md): up to `limit` published products of the category
+   * without `excludeId` ("You may also like"), and up to `limit` of the other categories ("More from Virzeen"), both
+   * newest first and only with a variant for sale.
+   */
+  async listRecommendations({
+    categoryId,
+    excludeId,
+    limit = 8,
+  }: {
+    categoryId: string;
+    excludeId?: string | undefined;
+    limit?: number;
+  }): Promise<ProductRecommendations> {
+    const [sameCategory, otherRows] = await Promise.all([
+      catalogReads.listRelatedByCategory({ categoryId, excludeId, limit }),
+      db.product.findMany({
+        where: {
+          ...publishedProductWhere,
+          categoryId: { not: categoryId },
+          ...(excludeId ? { id: { not: excludeId } } : {}),
+          variants: { some: { isActive: true } },
+        },
+        select: summarySelect,
+        orderBy: orderFor("newest"),
+        take: limit,
+      }),
+    ]);
+    return { sameCategory, otherCategories: otherRows.map(toSummary) };
   },
 
   async listRelated(product: { id: string; categoryId: string }, limit = 4): Promise<ProductSummary[]> {

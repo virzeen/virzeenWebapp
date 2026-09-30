@@ -20,6 +20,8 @@ const values: ProductInput = {
     { url: "virzeen/products/new/back", alt: "Back view" },
   ],
   features: [],
+  featureLayout: "TALL_LEFT",
+  featureRows: [{ count: 1, shape: "LANDSCAPE" }],
   styles: [{ color: "Black", colourShown: "Black/White", code: "VZ0042-101" }],
   shippingPaisa: 15_000,
   variants: [
@@ -73,6 +75,7 @@ describe("toPreviewProduct", () => {
 
   it("shows the product details, features and picked size guide, with blank lines dropped and made descriptions", () => {
     const sizeGuide = {
+      kind: "CHART" as const,
       name: "Tops",
       intro: null,
       chart: { columns: ["Chest"], rows: [{ size: "M", values: ["94-100"] }] },
@@ -109,7 +112,16 @@ describe("toPreviewProduct", () => {
 
   it("opens a draft saved by an older editor, before details, features and size guides", () => {
     const oldValues: Record<string, unknown> = { ...values };
-    for (const key of ["benefits", "details", "countryOfOrigin", "sizeGuideId", "features", "styles"])
+    for (const key of [
+      "benefits",
+      "details",
+      "countryOfOrigin",
+      "sizeGuideId",
+      "features",
+      "featureLayout",
+      "featureRows",
+      "styles",
+    ])
       delete oldValues[key];
     const draft = JSON.parse(JSON.stringify({ values: oldValues, category: null }));
 
@@ -119,10 +131,84 @@ describe("toPreviewProduct", () => {
     expect(product.details).toEqual([]);
     expect(product.countryOfOrigin).toBeNull();
     expect(product.features).toEqual([]);
+    expect(product.featureLayout).toBe("THREE");
+    expect(product.featureRows).toEqual([]);
     expect(product.sizeGuide).toBeNull();
     expect(product.variants).toHaveLength(2);
     expect(product.styles).toEqual([{ color: "Black", code: "", colourShown: "Black" }]);
     expect(relatedQueryFor(draft)).toEqual({ categoryId: "tz4a98xxat96iws9zmbrgj3a" });
+  });
+
+  it("lays the features out as the form says, and shows a picture-only feature named after the product", () => {
+    const product = toPreviewProduct({
+      values: {
+        ...values,
+        features: [{ title: " ", body: "", imageUrl: "virzeen/products/new/cool", alt: "" }],
+      },
+      category: null,
+      sizeGuide: null,
+    });
+
+    expect(product.featureLayout).toBe("TALL_LEFT");
+    expect(product.features).toEqual([
+      {
+        id: "0-virzeen/products/new/cool",
+        title: "",
+        body: "",
+        imageUrl: "virzeen/products/new/cool",
+        imageAlt: "Linen Shirt",
+      },
+    ]);
+    const odd = JSON.parse(JSON.stringify({ values: { ...values, featureLayout: "GRID" }, category: null }));
+    expect(toPreviewProduct(odd).featureLayout).toBe("THREE");
+  });
+
+  it("carries the Custom rows, and reads rows that can't be used as none", () => {
+    const featureRows = [
+      { count: 1, shape: "LANDSCAPE" as const },
+      { count: 2, shape: "PORTRAIT" as const },
+      { count: 4, shape: "PORTRAIT" as const },
+    ];
+    const product = toPreviewProduct({
+      values: { ...values, featureLayout: "CUSTOM", featureRows },
+      category: null,
+      sizeGuide: null,
+    });
+    expect(product).toMatchObject({ featureLayout: "CUSTOM", featureRows });
+
+    const odd = JSON.parse(
+      JSON.stringify({ values: { ...values, featureRows: [{ count: 6, shape: "ROUND" }] }, category: null }),
+    );
+    expect(toPreviewProduct(odd).featureRows).toEqual([]);
+  });
+
+  it("shows a picked Accessories size guide as it is (a picture, no table)", () => {
+    const sizeGuide = {
+      kind: "PICTURE" as const,
+      name: "Belts",
+      intro: null,
+      chart: null,
+      fitTips: null,
+      howToMeasure: [],
+      imageUrl: "virzeen/size-guides/new/belts",
+      imageAlt: null,
+    };
+    expect(toPreviewProduct({ values, category: null, sizeGuide }).sizeGuide).toEqual(sizeGuide);
+  });
+
+  it("reads a size guide picked before guide types as a size table", () => {
+    const chart = { columns: ["Chest"], rows: [{ size: "M", values: ["94-100"] }] };
+    const old = {
+      name: "Tops",
+      intro: null,
+      chart,
+      fitTips: null,
+      howToMeasure: [],
+      imageUrl: null,
+      imageAlt: null,
+    };
+    const draft = JSON.parse(JSON.stringify({ values, category: null, sizeGuide: old }));
+    expect(toPreviewProduct(draft).sizeGuide).toEqual({ ...old, kind: "CHART" });
   });
 
   it("shows each style's number and colour shown; a new style has no number yet", () => {
