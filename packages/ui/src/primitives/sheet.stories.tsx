@@ -53,6 +53,55 @@ export const Bottom: Story = {
   ),
 };
 
+/** `side="top"` with `header`: the phone menu, the whole screen, dropping down from the top (apple.com). */
+export const Top: Story = {
+  globals: { viewport: { value: "mobile1" } },
+  render: () => (
+    <Sheet>
+      <SheetTrigger asChild>
+        <Button variant="secondary">Open menu</Button>
+      </SheetTrigger>
+      <SheetContent
+        side="top"
+        title="Menu"
+        header={
+          <SheetClose asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              shape="pill"
+              aria-label="Close menu"
+              className="-mr-2 ml-auto"
+            >
+              <X className="size-6" strokeWidth={1.5} aria-hidden />
+            </Button>
+          </SheetClose>
+        }
+      >
+        <nav aria-label="Example" className="flex flex-col">
+          <Link variant="menu" href="/">
+            Home
+          </Link>
+          <Link variant="menu" href="/shop">
+            Shop
+          </Link>
+        </nav>
+      </SheetContent>
+    </Sheet>
+  ),
+  play: async ({ canvas, userEvent }) => {
+    const trigger = canvas.getByRole("button", { name: "Open menu" });
+    await userEvent.click(trigger);
+    const dialog = await screen.findByRole("dialog", { name: "Menu" });
+    await waitFor(() => expect(dialog).toBeVisible());
+    // The whole screen: as wide as the window.
+    await expect(dialog.getBoundingClientRect().width).toBe(window.innerWidth);
+    await userEvent.click(within(dialog).getByRole("button", { name: "Close menu" }));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Menu" })).toBeNull());
+    await waitFor(() => expect(trigger).toHaveFocus());
+  },
+};
+
 /**
  * `header`: your own top row instead of the title bar (the phone menu). The title isn't shown but still names the
  * dialog; the X is a `SheetClose` with its own `aria-label`.

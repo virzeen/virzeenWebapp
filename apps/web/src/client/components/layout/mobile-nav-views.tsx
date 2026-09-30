@@ -73,10 +73,12 @@ export function MenuMain({
 }: MenuMainProps) {
   const greetingHref = isSignedIn ? "/account" : "/login";
   const greeting = isSignedIn ? (firstName ? `Hi, ${firstName}` : "Hi there") : "Sign in";
+  const shortcuts = SHORTCUTS.filter((item) => isSignedIn || !item.signedInOnly);
   return (
-    <div className={cn("flex flex-col", returning && "motion-safe:animate-nudge-in-left")}>
+    <div className={cn("flex flex-col", returning ? "motion-safe:animate-nudge-in-left" : "stagger-rows")}>
       <Link
         ref={firstLinkRef}
+        data-stagger={0}
         variant="menuSmall"
         href={greetingHref}
         aria-current={ariaCurrent(greetingHref)}
@@ -86,21 +88,21 @@ export function MenuMain({
         {greeting}
         <ChevronRight className="ml-auto size-5 shrink-0" strokeWidth={1.5} aria-hidden />
       </Link>
-      <Separator className="my-4" />
+      <Separator data-stagger={1} className="my-4" />
       <ul>
-        <li>
+        <li data-stagger={2}>
           <Link variant="menu" href="/" aria-current={ariaCurrent("/")} onClick={onNavigate}>
             Home
           </Link>
         </li>
-        <li>
+        <li data-stagger={3}>
           <Button ref={shopButtonRef} variant="menu" onClick={onOpenShop}>
             Shop
             <ChevronRight className="size-6 shrink-0" strokeWidth={1.5} aria-hidden />
           </Button>
         </li>
-        {PAGES.map((page) => (
-          <li key={page.href}>
+        {PAGES.map((page, index) => (
+          <li key={page.href} data-stagger={4 + index}>
             <Link variant="menu" href={page.href} aria-current={ariaCurrent(page.href)} onClick={onNavigate}>
               {page.label}
             </Link>
@@ -108,8 +110,8 @@ export function MenuMain({
         ))}
       </ul>
       <ul className="mt-12">
-        {SHORTCUTS.filter((item) => isSignedIn || !item.signedInOnly).map((item) => (
-          <li key={item.href}>
+        {shortcuts.map((item, index) => (
+          <li key={item.href} data-stagger={4 + PAGES.length + index}>
             <Link
               variant="menuSmall"
               href={item.href}
@@ -122,7 +124,11 @@ export function MenuMain({
           </li>
         ))}
         {/* Empty where the button renders nothing: then the row is gone for screen readers too. */}
-        {install && <li className="empty:hidden">{install}</li>}
+        {install && (
+          <li className="empty:hidden" data-stagger={4 + PAGES.length + shortcuts.length}>
+            {install}
+          </li>
+        )}
       </ul>
     </div>
   );

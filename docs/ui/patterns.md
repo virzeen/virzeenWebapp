@@ -136,7 +136,7 @@ Function over form: `DataTable` with search, filters, status `Badge`s; forms in 
 
 **Phone menu** (`MobileNav`, like Nike's):
 
-- "Open menu" opens a right `Sheet` (full width up to `max-w-md`, the page dimmed behind it) named "Menu", with no visible title: its `header` holds a 44px X ("Close menu") at the top right, where the menu button was.
+- "Open menu" opens a top `Sheet` (the whole screen, dropping down from the top like apple.com's; its rows fade in one after another with `stagger-rows`) named "Menu", with no visible title: its `header` holds a 44px X ("Close menu") at the top right, where the menu button was.
 - Main panel: the greeting row (person icon, "Hi, {first name}" → `/account`, "Hi there" without a name, guests "Sign in" → `/login`; chevron on the right), a line, the large rows Home, Shop ›, Portfolio and About (`Link` / `Button variant="menu"`), then after a gap the icon rows Favourites, Bag (`/cart`), Orders (`/account/orders`), Settings (signed in only) and Help (`/contact`) (`Link variant="menuSmall"`, 20px icons).
 - Shop › swaps in the Shop panel (`motion-safe:animate-nudge-in-right`): "‹ All" at the top left, the heading "Shop", then All products and each category with products for sale, in their order. "All" swaps the main panel back (`nudge-in-left`). With reduced motion both are instant.
 - Focus: the greeting row when the menu opens; the Shop heading (`tabIndex={-1}`) on entering Shop; the Shop button on the way back; the menu button when it closes. Tab stays inside; Escape, the X or a tap on the dimmed page closes it.

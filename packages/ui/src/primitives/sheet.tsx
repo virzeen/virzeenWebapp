@@ -7,7 +7,8 @@ import { cn } from "../lib/cn";
 
 /**
  * A panel that slides in over the page and holds content or a flow.
- * `side="right"`: cart drawer and the phone menu. `side="bottom"`: mobile filters.
+ * `side="right"`: cart drawer. `side="bottom"`: mobile filters. `side="top"`: the phone menu, the whole screen,
+ * dropping down from the top like apple.com's.
  * Critical yes/no confirmations use `Dialog` instead.
  *
  * `header` replaces the title bar (and its close button) with your own top row, e.g. a back button and an X made
@@ -28,6 +29,7 @@ const sheetVariants = cva("fixed z-40 flex flex-col bg-canvas shadow-md outline-
         "inset-y-0 right-0 h-full w-full max-w-md data-[state=closed]:animate-slide-out-right data-[state=open]:animate-slide-in-right",
       bottom:
         "inset-x-0 bottom-0 max-h-5/6 rounded-t-md data-[state=closed]:animate-slide-out-bottom data-[state=open]:animate-slide-in-bottom",
+      top: "inset-x-0 top-0 h-dvh w-full shadow-none data-[state=closed]:animate-lift-up data-[state=open]:animate-drop-down",
     },
   },
   defaultVariants: { side: "right" },

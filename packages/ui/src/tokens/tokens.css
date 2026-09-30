@@ -80,6 +80,9 @@
   --animate-reveal: reveal 400ms cubic-bezier(0.2, 0, 0, 1) both;
   /* A second panel inside a sheet (the phone menu's Shop) and the way back: a 16px slide with a fade. 16px stays
      inside the sheet's 24px gutter, so nothing scrolls sideways. Use with motion-safe:. */
+  /* The phone menu (Sheet side="top"): drops down from the top over the whole screen, like apple.com's. */
+  --animate-drop-down: drop-down 350ms cubic-bezier(0.2, 0, 0, 1);
+  --animate-lift-up: lift-up 250ms cubic-bezier(0.2, 0, 0, 1);
   --animate-nudge-in-right: nudge-in-right 250ms cubic-bezier(0.2, 0, 0, 1);
   --animate-nudge-in-left: nudge-in-left 250ms cubic-bezier(0.2, 0, 0, 1);
   /* A wrong one-time code (CodeInput): a short, damped side-to-side shake, played once. Use with motion-safe:. */
@@ -127,6 +130,22 @@
   @keyframes slide-out-bottom {
     to {
       transform: translateY(100%);
+    }
+  }
+  @keyframes drop-down {
+    from {
+      clip-path: inset(0 0 100% 0);
+    }
+    to {
+      clip-path: inset(0 0 0 0);
+    }
+  }
+  @keyframes lift-up {
+    from {
+      clip-path: inset(0 0 0 0);
+    }
+    to {
+      clip-path: inset(0 0 100% 0);
     }
   }
   @keyframes nudge-in-right {

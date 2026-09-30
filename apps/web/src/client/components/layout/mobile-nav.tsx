@@ -14,8 +14,9 @@ type View = "main" | "shop" | "back";
 type MobileNavProps = { categories: MenuCategory[]; isSignedIn: boolean; firstName: string | null };
 
 /**
- * The phone menu (below md), like Nike's (specs/mobile-menu.md): a right Sheet with its own top row (the X, and
- * "‹ All" in Shop), the main list, and Shop's categories in a second panel. Every link closes it, and so does any
+ * The phone menu (below md, specs/mobile-menu.md): Nike's content in apple.com's motion. A top Sheet drops down over
+ * the whole screen and its rows fade in one after another; its own top row (the X, and "‹ All" in Shop), the main
+ * list, and Shop's categories in a second panel. Every link closes it, and so does any
  * navigation (browser Back); focus goes back to the menu button.
  */
 export function MobileNav({ categories, isSignedIn, firstName }: MobileNavProps) {
@@ -59,7 +60,7 @@ export function MobileNav({ categories, isSignedIn, firstName }: MobileNavProps)
         </Button>
       </SheetTrigger>
       <SheetContent
-        side="right"
+        side="top"
         title="Menu"
         onOpenAutoFocus={(event) => {
           event.preventDefault();

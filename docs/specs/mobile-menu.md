@@ -1,17 +1,17 @@
 # Spec: Mobile menu like Nike's
 
 **Status:** Approved (2026-09-30)
-**Owner approval:** owner, 2026-09-30. First asked for apple.com's menu, then sent Nike's mobile menu: "need to be like this the menu one… the favourites, the Orders, and the bag is the cart and the orders shows the order that they did, and help as well. This is better." Earlier in the same request: "just side of the menu bar there need to be the icon… Home, Shop, Portfolio, About… in the Shop there need to show the category… there won't be the account… there will be the Setting… and my Profile… make it the best design."
+**Owner approval:** owner, 2026-09-30. Motion (later the same day): "the menu doesn't need to slide from the right side, it need to come from the up like the apple.com". First asked for apple.com's menu, then sent Nike's mobile menu: "need to be like this the menu one… the favourites, the Orders, and the bag is the cart and the orders shows the order that they did, and help as well. This is better." Earlier in the same request: "just side of the menu bar there need to be the icon… Home, Shop, Portfolio, About… in the Shop there need to show the category… there won't be the account… there will be the Setting… and my Profile… make it the best design."
 **Related docs:** `ui/patterns.md` (header, navigation) · `ui/components-catalog.md` (Sheet) · `ui/content-style.md` · `specs/favourites.md`
 
 ## Goal
 
-On phones (below `md`) the menu works like Nike's: a panel slides in from the right with a greeting row, large links with chevrons, Shop opening its categories in a second panel, and a list of icon links (Favourites, Bag, Orders, Help) at the bottom. The header shows the icons beside the menu button.
+On phones (below `md`) the menu works like Nike's: a panel drops down from the top over the whole screen, like apple.com's, with a greeting row, large links with chevrons, Shop opening its categories in a second panel, and a list of icon links (Favourites, Bag, Orders, Help) at the bottom. The header shows the icons beside the menu button.
 
 ## User flow
 
 1. Phone → header: Virzeen wordmark (left) · Favourites heart, Bag, Menu (right).
-2. Menu → a panel slides in from the right (the page dims behind it): an X at the top right; "Hi, {first name}" with a person icon and a chevron (signed in) or "Sign in" (guests); a line; large links Home, Shop ›, Portfolio, About; then small icon links Favourites, Bag, Orders, Settings (signed in), Help.
+2. Menu → a panel drops down from the top and covers the screen, its rows fading in one after another: an X at the top right; "Hi, {first name}" with a person icon and a chevron (signed in) or "Sign in" (guests); a line; large links Home, Shop ›, Portfolio, About; then small icon links Favourites, Bag, Orders, Settings (signed in), Help.
 3. Shop › → the panel slides to Shop: "‹ All" back button at the top left, the heading "Shop", then large links All products and each category that has products.
 4. A link opens its page and the menu closes; the X, Escape, a tap on the dimmed page or Back (Android) closes it.
 
@@ -23,7 +23,7 @@ Header (below `md`; `md` and up unchanged)
 
 Menu panel
 
-- [x] `Sheet side="right"` (slides in from the right, the page dimmed behind, can't scroll); full width on phones up to `max-w-md`. No visible title (the dialog is still named "Menu" for screen readers); a 44px X at the top right.
+- [x] `Sheet side="top"` (owner, later on 2026-09-30: "come from the up like the apple.com"): the whole screen, dropping down from the top (`animate-drop-down`, 350ms; closing `animate-lift-up`, 250ms); the page underneath can't scroll; the rows fade in and drop a little one after another (`stagger-rows`, 30ms apart). Was a right `Sheet` like Nike's. No visible title (the dialog is still named "Menu" for screen readers); a 44px X at the top right.
 - [x] Greeting row (signed in): person icon, "Hi, {first name}" (the first word of the account name; "Hi there" when there's no name), chevron → `/account` (My profile). Guests: person icon, "Sign in", chevron → `/login`. A line under it.
 - [x] Main list, large (Nike's ~24px medium, from the type tokens), each a full-width row at least 44px tall: Home (`/`), Shop (chevron, opens the Shop panel), Portfolio, About.
 - [x] Icon list, small (Nike's ~16px medium) with 20px line icons, after a gap: Favourites (heart, `/favourites`), Bag (bag, `/cart`), Orders (box, `/account/orders`; guests are asked to sign in first by the page), Settings (gear, `/account/settings`, signed in only), Help (question mark in a circle, `/contact`).

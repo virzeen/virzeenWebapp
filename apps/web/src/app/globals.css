@@ -24,6 +24,69 @@ html:has([data-sticky-header]) {
 }
 
 /*
+ * The phone menu's rows fade in and drop a little, one after another, as the menu opens (like apple.com): each row
+ * carries data-stagger="{n}" (0–15) and waits n × 30ms. Nothing moves with reduced motion.
+ */
+@keyframes menu-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(-0.5rem);
+  }
+}
+@utility stagger-rows {
+  @media (prefers-reduced-motion: no-preference) {
+    & [data-stagger] {
+      animation: menu-row-in 350ms cubic-bezier(0.2, 0, 0, 1) both;
+    }
+    & [data-stagger="1"] {
+      animation-delay: 30ms;
+    }
+    & [data-stagger="2"] {
+      animation-delay: 60ms;
+    }
+    & [data-stagger="3"] {
+      animation-delay: 90ms;
+    }
+    & [data-stagger="4"] {
+      animation-delay: 120ms;
+    }
+    & [data-stagger="5"] {
+      animation-delay: 150ms;
+    }
+    & [data-stagger="6"] {
+      animation-delay: 180ms;
+    }
+    & [data-stagger="7"] {
+      animation-delay: 210ms;
+    }
+    & [data-stagger="8"] {
+      animation-delay: 240ms;
+    }
+    & [data-stagger="9"] {
+      animation-delay: 270ms;
+    }
+    & [data-stagger="10"] {
+      animation-delay: 300ms;
+    }
+    & [data-stagger="11"] {
+      animation-delay: 330ms;
+    }
+    & [data-stagger="12"] {
+      animation-delay: 360ms;
+    }
+    & [data-stagger="13"] {
+      animation-delay: 390ms;
+    }
+    & [data-stagger="14"] {
+      animation-delay: 420ms;
+    }
+    & [data-stagger="15"] {
+      animation-delay: 450ms;
+    }
+  }
+}
+
+/*
  * Things pressed and held to drag (the editor's feature pictures): no "Save image" / "Copy" menu on iPhone, which
  * would otherwise open during the press-and-hold that starts a drag.
  */
