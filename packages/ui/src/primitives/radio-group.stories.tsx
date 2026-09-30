@@ -7,7 +7,7 @@ const meta = {
   title: "Primitives/RadioGroup",
   component: RadioGroup,
   tags: ["autodocs"],
-  argTypes: { variant: { control: "select", options: ["default", "card", "swatch"] } },
+  argTypes: { variant: { control: "select", options: ["default", "card", "swatch", "segmented"] } },
 } satisfies Meta<typeof RadioGroup>;
 
 export default meta;
@@ -36,6 +36,22 @@ export const SizePicker: Story = {
     await expect(canvas.getByRole("radio", { name: "XL" })).toBeDisabled();
     await userEvent.click(canvas.getByRole("radio", { name: "M" }));
     await expect(canvas.getByRole("radio", { name: "M" })).toBeChecked();
+  },
+};
+
+/** A few short choices joined in one pill, e.g. the size guide's units. */
+export const Segmented: Story = {
+  render: () => (
+    <RadioGroup aria-label="Units" variant="segmented" defaultValue="cm">
+      <RadioGroupItem value="cm" label="cm" />
+      <RadioGroupItem value="in" label="in" />
+    </RadioGroup>
+  ),
+  play: async ({ canvas, userEvent }) => {
+    await expect(canvas.getByRole("radio", { name: "cm" })).toBeChecked();
+    await userEvent.click(canvas.getByRole("radio", { name: "in" }));
+    await expect(canvas.getByRole("radio", { name: "in" })).toBeChecked();
+    await expect(canvas.getByRole("radio", { name: "cm" })).not.toBeChecked();
   },
 };
 

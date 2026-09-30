@@ -1,7 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { expect, screen } from "storybook/test";
+import { X } from "lucide-react";
+import { expect, screen, waitFor, within } from "storybook/test";
 import { Button } from "./button";
-import { Sheet, SheetContent, SheetTrigger } from "./sheet";
+import { Link } from "./link";
+import { Sheet, SheetClose, SheetContent, SheetTrigger } from "./sheet";
 
 const meta = {
   title: "Primitives/Sheet",
@@ -49,4 +51,56 @@ export const Bottom: Story = {
       </SheetContent>
     </Sheet>
   ),
+};
+
+/**
+ * `header`: your own top row instead of the title bar (the phone menu). The title isn't shown but still names the
+ * dialog; the X is a `SheetClose` with its own `aria-label`.
+ */
+export const CustomHeader: Story = {
+  globals: { viewport: { value: "mobile1" } },
+  render: () => (
+    <Sheet>
+      <SheetTrigger asChild>
+        <Button variant="secondary">Open menu</Button>
+      </SheetTrigger>
+      <SheetContent
+        title="Menu"
+        header={
+          <SheetClose asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              shape="pill"
+              aria-label="Close menu"
+              className="-mr-2 ml-auto"
+            >
+              <X className="size-6" strokeWidth={1.5} aria-hidden />
+            </Button>
+          </SheetClose>
+        }
+      >
+        <nav aria-label="Example" className="flex flex-col">
+          <Link variant="menu" href="/">
+            Home
+          </Link>
+          <Link variant="menu" href="/portfolio">
+            Portfolio
+          </Link>
+        </nav>
+      </SheetContent>
+    </Sheet>
+  ),
+  play: async ({ canvas, userEvent }) => {
+    const trigger = canvas.getByRole("button", { name: "Open menu" });
+    await userEvent.click(trigger);
+    const dialog = await screen.findByRole("dialog", { name: "Menu" });
+    await waitFor(() => expect(dialog).toBeVisible());
+    // No title bar: the title is only for screen readers, and the default "Close" button is gone.
+    await expect(within(dialog).getByRole("heading", { name: "Menu" })).toHaveClass("sr-only");
+    await expect(within(dialog).queryByRole("button", { name: "Close" })).toBeNull();
+    await userEvent.click(within(dialog).getByRole("button", { name: "Close menu" }));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Menu" })).toBeNull());
+    await waitFor(() => expect(trigger).toHaveFocus());
+  },
 };

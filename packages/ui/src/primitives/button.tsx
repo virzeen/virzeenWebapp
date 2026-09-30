@@ -15,6 +15,7 @@ const buttonVariants = cva(
         destructive: "bg-danger text-canvas hover:bg-danger/90",
         link: "text-ink underline-offset-4 hover:underline", // sized by the compound variant below
         underline: "text-ink underline underline-offset-4 hover:text-ink-muted", // an always-underlined text button
+        menu: "text-ink hover:text-ink-muted active:text-ink-muted", // a large full-width menu row, sized below
       },
       size: {
         sm: "h-11 px-4 text-small lg:h-9 lg:px-3", // 44px on touch widths; 36px from lg for dense rows
@@ -31,6 +32,12 @@ const buttonVariants = cva(
     // height, but keeps a 44px tap area at every size (the lg: classes undo sm's desktop size).
     compoundVariants: [
       { variant: ["link", "underline"], className: "h-auto min-h-11 px-0 lg:h-auto lg:px-0" },
+      // The same row as `Link variant="menu"`: label on the left, a chevron (or other icon) on the right.
+      {
+        variant: "menu",
+        className:
+          "h-auto min-h-14 w-full justify-between gap-4 px-0 py-2 text-left font-display text-h2 whitespace-normal lg:h-auto lg:px-0",
+      },
     ],
     defaultVariants: { variant: "primary", size: "md", shape: "default" },
   },
@@ -50,6 +57,8 @@ export type ButtonProps = React.ComponentProps<"button"> &
  * `size="sm"` is for secondary actions in rows: 44px tall on phones and tablets, 36px from `lg` (desktop).
  * `variant="link"` keeps a 44px-tall tap area at every size; `variant="underline"` is the same text button, always
  * underlined, for an action that reads like a link in running content ("View product details").
+ * `variant="menu"`: a large full-width row in a menu that opens a second panel (the phone menu's "Shop ›"); it
+ * matches `Link variant="menu"`, so buttons and links line up in one list.
  */
 export function Button({
   className,

@@ -6,7 +6,7 @@ import { createContext, useContext } from "react";
 import { cn } from "../lib/cn";
 import { useFormFieldControl } from "./form-field";
 
-type Variant = "default" | "card" | "swatch";
+type Variant = "default" | "card" | "swatch" | "segmented";
 const VariantContext = createContext<Variant>("default");
 
 const groupVariants = cva("", {
@@ -15,6 +15,7 @@ const groupVariants = cva("", {
       default: "flex flex-col gap-3",
       card: "grid grid-cols-[repeat(auto-fill,minmax(4.5rem,1fr))] gap-2",
       swatch: "flex flex-wrap gap-2",
+      segmented: "inline-flex w-fit rounded-full border border-line-strong bg-canvas p-0.5",
     },
   },
   defaultVariants: { variant: "default" },
@@ -28,8 +29,9 @@ export type RadioGroupProps = Omit<React.ComponentProps<typeof RadioGroupPrimiti
  * `variant="card"`: bordered option tiles (variant pickers, payment methods). Unavailable options stay visible
  * but disabled with a line-through. `variant="swatch"`: square picture tiles without a caption (product styles): the
  * label is the accessible name and the tile's `title`; the picked tile gets an ink border, not a fill, so the picture
- * stays visible; a disabled tile is dimmed with a diagonal line. Inside `FormField` the group is labelled by the field
- * label.
+ * stays visible; a disabled tile is dimmed with a diagonal line. `variant="segmented"`: 2–4 short choices joined in one
+ * pill (e.g. cm | in), the picked one filled; 44px tall, 36px from lg. Inside `FormField` the group is labelled by the
+ * field label.
  */
 export function RadioGroup({ className, variant, ...props }: RadioGroupProps) {
   const { labelId, "aria-describedby": describedBy, "aria-invalid": invalid } = useFormFieldControl();
@@ -97,6 +99,20 @@ export function RadioGroupItem({
             vectorEffect="non-scaling-stroke"
           />
         </svg>
+      </RadioGroupPrimitive.Item>
+    );
+  }
+
+  if (variant === "segmented") {
+    return (
+      <RadioGroupPrimitive.Item
+        className={cn(
+          "flex min-h-11 min-w-11 items-center justify-center rounded-full px-4 text-body font-medium text-ink transition-colors duration-150 ease-standard hover:bg-surface focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:text-ink-muted disabled:line-through data-[state=checked]:bg-ink data-[state=checked]:text-canvas lg:min-h-9",
+          className,
+        )}
+        {...props}
+      >
+        {label}
       </RadioGroupPrimitive.Item>
     );
   }

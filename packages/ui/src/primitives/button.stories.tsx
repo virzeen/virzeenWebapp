@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { ShoppingBag } from "lucide-react";
+import { ChevronRight, ShoppingBag } from "lucide-react";
 import { expect, fn } from "storybook/test";
 import { Button } from "./button";
 
@@ -11,7 +11,7 @@ const meta = {
   argTypes: {
     variant: {
       control: "select",
-      options: ["primary", "secondary", "ghost", "inverse", "destructive", "link", "underline"],
+      options: ["primary", "secondary", "ghost", "inverse", "destructive", "link", "underline", "menu"],
     },
     size: { control: "select", options: ["sm", "md", "lg", "icon"] },
     shape: { control: "select", options: ["default", "pill"] },
@@ -38,6 +38,28 @@ export const Underline: Story = {
     const button = canvas.getByRole("button", { name: "View product details" });
     await expect(getComputedStyle(button).textDecorationLine).toBe("underline");
     await expect(button.getBoundingClientRect().height).toBeGreaterThanOrEqual(44);
+  },
+};
+/**
+ * A large full-width menu row that opens a second panel (the phone menu's "Shop ›"): the same look as
+ * `Link variant="menu"`, with the chevron on the right.
+ */
+export const Menu: Story = {
+  globals: { viewport: { value: "mobile1" } },
+  args: {
+    variant: "menu",
+    children: (
+      <>
+        Shop
+        <ChevronRight className="size-6" strokeWidth={1.5} aria-hidden />
+      </>
+    ),
+  },
+  play: async ({ canvas, userEvent, args }) => {
+    const button = canvas.getByRole("button", { name: "Shop" });
+    await expect(button.getBoundingClientRect().height).toBeGreaterThanOrEqual(56);
+    await userEvent.click(button);
+    await expect(args.onClick).toHaveBeenCalledOnce();
   },
 };
 /** Secondary actions in a row (Edit, Archive, Filters): 44px tall on phones and tablets, 36px from `lg`. */
