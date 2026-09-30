@@ -1,6 +1,5 @@
 import { Container, Link, Separator } from "@virzeen/ui";
 import { InstallAppButton, InstallAppGuide } from "@/client/components/shared/install-app";
-import { SITE } from "@/client/lib/site";
 import { LogoMark } from "./logo-mark";
 import { Wordmark } from "./wordmark";
 
@@ -19,7 +18,6 @@ const COLUMNS = [
       { href: "/about", label: "About" },
       { href: "/portfolio", label: "Portfolio" },
       { href: "/contact", label: "Contact" },
-      { href: SITE.instagram, label: "Instagram" },
     ],
   },
   {
@@ -32,7 +30,7 @@ const COLUMNS = [
   },
 ] as const;
 
-/** Global footer on ink: brand, navigation, payment methods, legal. */
+/** Global footer on ink: brand, navigation, legal. */
 export function SiteFooter() {
   return (
     <footer className="mt-24 bg-ink text-canvas">
@@ -40,7 +38,7 @@ export function SiteFooter() {
         <div className="flex flex-col gap-12 md:flex-row md:justify-between">
           <div className="flex max-w-xs flex-col gap-4">
             <Wordmark className="h-6 w-auto self-start" title="Virzeen" />
-            <p className="text-small text-canvas/70">timeless monochromium experience.</p>
+            <p className="text-small font-light text-canvas/70">timeless monochromium experience.</p>
             <InstallAppButton placement="footer" />
           </div>
           <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 md:gap-16">
@@ -67,12 +65,6 @@ export function SiteFooter() {
             <LogoMark className="size-6 text-canvas" inverse />
             <p>© {new Date().getFullYear()} Virzeen. Prices include 13% VAT.</p>
           </div>
-          {/* Each fact stays whole ("7-day" never splits); lines break only after a "·". */}
-          <p>
-            <span className="whitespace-nowrap">Cash on delivery ·</span>{" "}
-            <span className="whitespace-nowrap">Free shipping across Nepal ·</span>{" "}
-            <span className="whitespace-nowrap">7-day free returns</span>
-          </p>
           <div className="flex gap-4">
             <Link
               href="/privacy"
