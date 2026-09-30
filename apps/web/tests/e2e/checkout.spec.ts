@@ -35,7 +35,7 @@ test("checkout with cash on delivery confirms the order and shows it in the acco
 
   await page.goto("/account/orders");
   await expect(page.getByRole("link", { name: new RegExp(orderNumber) })).toBeVisible();
-  await expect(page.getByTestId("open-bag")).toHaveAccessibleName("Open bag");
+  await expect(page.getByTestId("open-bag")).toHaveAccessibleName("Bag");
 });
 
 test("checkout with eSewa verifies the payment and marks the order paid", async ({ page }) => {

@@ -10,6 +10,10 @@ type Client = Prisma.TransactionClient | PrismaClient;
 export type CartLine = {
   id: string;
   variantId: string;
+  /** With `color`, the favourite this line matches (the bag's heart button). */
+  productId: string;
+  /** The style bought; "" for a product without styles. */
+  color: string;
   productName: string;
   productSlug: string;
   variantLabel: string;
@@ -51,6 +55,7 @@ export const cartLineSelect = {
       isActive: true,
       product: {
         select: {
+          id: true,
           name: true,
           slug: true,
           isPublished: true,
@@ -77,6 +82,8 @@ export function toCartLine(row: CartLineRow): CartLine {
   return {
     id: row.id,
     variantId: variant.id,
+    productId: variant.product.id,
+    color: variant.color ?? "",
     productName: variant.product.name,
     productSlug: variant.product.slug,
     variantLabel: variantLabelOf(variant),

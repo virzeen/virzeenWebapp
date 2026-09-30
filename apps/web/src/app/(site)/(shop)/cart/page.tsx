@@ -1,4 +1,4 @@
-import { Alert, Container } from "@virzeen/ui";
+import { Container } from "@virzeen/ui";
 import type { Metadata } from "next";
 import { CartPageContent } from "@/client/features/cart/cart-page-content";
 import { flattenSearchParams, type SearchParams } from "@/server/queries/params";
@@ -18,10 +18,8 @@ const NOTICES: Record<string, { tone: "warning" | "info"; text: string }> = {
 export default async function CartPage({ searchParams }: { searchParams: SearchParams }) {
   const notice = NOTICES[flattenSearchParams(await searchParams).notice ?? ""];
   return (
-    <Container className="flex flex-col gap-8 py-12 lg:py-16">
-      <h1 className="font-display text-h1">Bag</h1>
-      {notice && notice.tone === "warning" && <Alert variant="warning">{notice.text}</Alert>}
-      <CartPageContent notice={notice?.tone === "info" ? notice.text : null} />
+    <Container className="py-8 lg:py-12">
+      <CartPageContent notice={notice ?? null} />
     </Container>
   );
 }

@@ -1,7 +1,7 @@
 import { firstName } from "@/client/components/layout/nav-current";
 import { SiteFooter } from "@/client/components/layout/site-footer";
 import { SiteHeader } from "@/client/components/layout/site-header";
-import { CartDrawer } from "@/client/features/cart/cart-drawer";
+import { AddedToBagPanel } from "@/client/features/cart/added-to-bag-panel";
 import { CartProvider } from "@/client/features/cart/cart-provider";
 import { FavouritesProvider } from "@/client/features/favourites/favourites-provider";
 import { getUser } from "@/server/auth/session";
@@ -15,7 +15,7 @@ async function favouriteKeys() {
   return user ? listMyFavouriteKeys(user.id) : [];
 }
 
-/** Customer-facing shell: header, bag drawer, footer. The admin area has its own layout. */
+/** Customer-facing shell: header, "Added to bag" panel, footer. The admin area has its own layout. */
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
   const [user, cart, categories, favourites] = await Promise.all([
     getUser(),
@@ -41,7 +41,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
           </main>
           <SiteFooter />
         </div>
-        <CartDrawer />
+        <AddedToBagPanel />
       </FavouritesProvider>
     </CartProvider>
   );

@@ -2,10 +2,13 @@
 
 import { Button, cn, Link, toast } from "@virzeen/ui";
 import { MAX_QTY_PER_LINE } from "@virzeen/validators";
+import { Heart, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useId, useLayoutEffect, useRef, useState, useTransition } from "react";
 import { CloudImage } from "@/client/components/shared/cloud-image";
 import { Price } from "@/client/components/shared/price";
 import { QuantityStepper } from "@/client/components/shared/quantity-stepper";
+import { useFavourites } from "@/client/features/favourites/favourites-provider";
 import { messageFor } from "@/client/lib/error-messages";
 import {
   removeCartItemAction,
@@ -37,7 +40,10 @@ type CartLineProps = {
   focusOnMount?: boolean;
 };
 
-/** One bag line: image, name, variant, quantity stepper, line price, remove with undo (patterns.md §7). */
+/**
+ * One bag line, laid out like Nike's (patterns.md §7): the photo, then the name with the line price on the right, the
+ * style and size in grey; under them the quantity pill (a bin at 1 removes the line, with Undo) and the heart.
+ */
 export function CartLine({ line, onRemoved, focusOnMount = false }: CartLineProps) {
   const { setCart } = useCart();
   const [isPending, startTransition] = useTransition();
@@ -91,55 +97,86 @@ export function CartLine({ line, onRemoved, focusOnMount = false }: CartLineProp
   }
 
   return (
-    <li className="flex gap-4 py-4" aria-busy={isPending || undefined}>
-      <Link href={`/product/${line.productSlug}`} variant="subtle" className="w-20 shrink-0 sm:w-24">
-        <CloudImage src={line.imageUrl} alt={line.imageAlt} sizes="96px" />
+    <li
+      className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-4 py-6 sm:gap-x-6"
+      aria-busy={isPending || undefined}
+    >
+      <Link href={`/product/${line.productSlug}`} variant="subtle" className="w-28 sm:w-36 lg:w-40">
+        <CloudImage src={line.imageUrl} alt={line.imageAlt} sizes="(min-width: 1024px) 160px, 144px" />
       </Link>
-      <div className="flex min-w-0 flex-1 flex-col gap-2">
+      <div className="flex flex-col gap-1">
         <div className="flex items-start justify-between gap-4">
           {/* A long one-word name ("Monochromium") breaks instead of running into the price at 320px. */}
-          <div className="min-w-0 wrap-anywhere hyphens-auto">
-            <Link
-              ref={linkRef}
-              href={`/product/${line.productSlug}`}
-              variant="subtle"
-              className="text-body text-ink"
-            >
-              {line.productName}
-            </Link>
-            <p className="text-small text-ink-muted">{line.variantLabel}</p>
-            {line.quantity > 1 && (
-              <p className="text-small text-ink-muted">
-                <Price paisa={line.unitPricePaisa} /> each
-              </p>
-            )}
-          </div>
-          <Price paisa={line.lineTotalPaisa} className="shrink-0 text-body" />
+          <Link
+            ref={linkRef}
+            href={`/product/${line.productSlug}`}
+            variant="subtle"
+            className="min-w-0 text-body font-medium wrap-anywhere hyphens-auto text-ink hover:text-ink-muted"
+          >
+            {line.productName}
+          </Link>
+          <Price paisa={line.lineTotalPaisa} className="shrink-0 text-body font-medium" />
         </div>
-        {line.isAvailable ? (
-          <div className="flex items-center justify-between gap-2">
-            <QuantityStepper
-              value={line.quantity}
-              max={Math.max(line.maxQuantity, line.quantity)}
-              onChange={changeQuantity}
-              disabled={isPending}
-              label={`Quantity of ${line.productName}`}
-            />
-            <Button variant="link" size="sm" onClick={remove} disabled={isPending}>
-              Remove
-            </Button>
-          </div>
-        ) : (
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-small text-danger">No longer available</p>
-            <Button variant="link" size="sm" onClick={remove} disabled={isPending}>
-              Remove
-            </Button>
-          </div>
+        <p className="text-body text-ink-muted">{line.variantLabel}</p>
+        {line.quantity > 1 && (
+          <p className="text-body text-ink-muted">
+            <Price paisa={line.unitPricePaisa} /> each
+          </p>
         )}
+        {!line.isAvailable && <p className="text-body text-danger">No longer available</p>}
         {note && <p className="text-small text-ink-muted">{note}</p>}
       </div>
+      <div className="col-span-2 flex items-center gap-3">
+        {line.isAvailable ? (
+          <QuantityStepper
+            value={line.quantity}
+            max={Math.max(line.maxQuantity, line.quantity)}
+            onChange={changeQuantity}
+            onRemove={remove}
+            disabled={isPending}
+            label={`Quantity of ${line.productName}`}
+          />
+        ) : (
+          <Button variant="secondary" shape="pill" onClick={remove} disabled={isPending}>
+            <Trash2 className="size-4" strokeWidth={1.5} aria-hidden />
+            Remove
+          </Button>
+        )}
+        {line.isAvailable && <FavouriteToggle line={line} />}
+      </div>
     </li>
+  );
+}
+
+/** The heart beside the quantity, like Nike's bag: saves the product in the style bought (specs/favourites.md). */
+function FavouriteToggle({ line }: { line: Line }) {
+  const { isSaved, toggle } = useFavourites();
+  const router = useRouter();
+  const saved = isSaved(line.productId, line.color);
+
+  async function press() {
+    const now = await toggle(line.productId, line.color);
+    if (now === true) {
+      toast.success("Added to favourites", {
+        action: { label: "View", onClick: () => router.push("/favourites") },
+      });
+    } else if (now === false) {
+      toast.message("Removed from favourites");
+    }
+  }
+
+  return (
+    <Button
+      variant="secondary"
+      size="icon"
+      shape="pill"
+      className="border-line"
+      aria-pressed={saved}
+      aria-label={`Favourite ${line.productName}`}
+      onClick={() => void press()}
+    >
+      <Heart className={cn("size-5", saved && "fill-current")} strokeWidth={1.5} aria-hidden />
+    </Button>
   );
 }
 

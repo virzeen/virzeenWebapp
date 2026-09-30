@@ -20,16 +20,21 @@ test.describe("Add to bag", () => {
     await page.getByRole("radio", { name: "M", exact: true }).click();
     await page.getByRole("button", { name: "Add to bag" }).click();
 
-    await expect(page.getByText("Added to bag")).toBeVisible();
-    const bag = page.getByRole("dialog", { name: "Bag" });
-    await expect(bag).toBeVisible();
-    await expect(bag.getByText("Linen Overshirt")).toBeVisible();
-    await expect(bag.getByTestId("cart-subtotal")).toContainText("Rs 4,500");
+    // Nike's "Added to bag": what went in, then View bag and Checkout.
+    const added = page.getByRole("dialog", { name: "Added to bag" });
+    await expect(added).toBeVisible();
+    await expect(added.getByText("Linen Overshirt")).toBeVisible();
+    await expect(added.getByText("Rs 4,500")).toBeVisible();
+    await expect(added.getByRole("link", { name: "Checkout" })).toHaveAttribute("href", "/checkout");
 
-    // The drawer is modal (the page behind it is hidden from assistive tech), so close it first.
+    // The panel is modal (the page behind it is hidden from assistive tech), so close it first.
     await page.keyboard.press("Escape");
-    await expect(bag).toBeHidden();
-    await expect(page.getByTestId("open-bag")).toHaveAccessibleName("Open bag, 1 item");
+    await expect(added).toBeHidden();
+    await expect(page.getByTestId("open-bag")).toHaveAccessibleName("Bag, 1 item");
+
+    await page.getByTestId("open-bag").click();
+    await expect(page.getByRole("heading", { level: 1, name: "Bag" })).toBeVisible();
+    await expect(page.getByTestId("cart-subtotal")).toContainText("Rs 4,500");
   });
 
   test("out-of-stock sizes cannot be selected", async ({ page }) => {
@@ -37,19 +42,28 @@ test.describe("Add to bag", () => {
     await expect(page.getByRole("radio", { name: "XL", exact: true })).toBeDisabled();
   });
 
-  test("the bag keeps quantity changes and removal with undo", async ({ page }) => {
+  test("the bag page keeps quantity changes and removal with undo", async ({ page }) => {
     await page.goto("/product/logo-cap");
     await page.getByRole("button", { name: "Add to bag" }).click();
-    const bag = page.getByRole("dialog", { name: "Bag" });
-    await bag.getByRole("button", { name: "Increase quantity" }).click();
-    await expect(bag.getByTestId("cart-subtotal")).toContainText("Rs 3,600");
+    await page
+      .getByRole("dialog", { name: "Added to bag" })
+      .getByRole("link", { name: "View bag (1)" })
+      .click();
+    await expect(page.getByRole("heading", { level: 1, name: "Bag" })).toBeVisible();
 
-    await bag.getByRole("button", { name: "Remove" }).click();
-    await expect(bag.getByText("Your bag is empty.")).toBeVisible();
-    await expect(bag.getByRole("status")).toHaveText(/Removed Logo Cap\./);
-    await bag.getByRole("button", { name: "Undo" }).click();
-    await expect(bag.getByText("Logo Cap")).toBeVisible();
-    await expect(bag.getByTestId("cart-subtotal")).toContainText("Rs 3,600");
+    const quantity = page.getByRole("group", { name: "Quantity of Logo Cap" });
+    await quantity.getByRole("button", { name: "Increase quantity" }).click();
+    await expect(page.getByTestId("cart-subtotal")).toContainText("Rs 3,600");
+
+    // Like Nike's bag: "−" lowers the quantity, and at 1 it becomes a bin that removes the line.
+    await quantity.getByRole("button", { name: "Decrease quantity" }).click();
+    await expect(page.getByTestId("cart-subtotal")).toContainText("Rs 1,800");
+    await quantity.getByRole("button", { name: "Remove" }).click();
+    await expect(page.getByText("There are no items in your bag.")).toBeVisible();
+    await expect(page.getByText("Removed Logo Cap.")).toBeVisible();
+    await page.getByRole("button", { name: "Undo" }).click();
+    await expect(quantity).toBeVisible();
+    await expect(page.getByTestId("cart-subtotal")).toContainText("Rs 1,800");
   });
 });
 

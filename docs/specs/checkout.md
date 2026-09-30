@@ -34,9 +34,9 @@ A signed-in customer in Nepal can buy the items in their bag and pay with Cash o
 - [ ] Given only one payment method is offered (cash on delivery at launch), when opening `/checkout`, then it is already chosen and "Place order" only needs an address.
 - [ ] Given the customer has a default address, when opening `/checkout`, then it is already chosen and shipping, total and "Arrives in {estimate}." show for it.
 - [ ] Given no address or no method is chosen, then "Place order" is disabled and the reason shows under it ("Add a delivery address to continue.", "Save the new address to continue.", "Choose a delivery address to continue.", "Choose a payment method to continue.").
-- [ ] Given placing the order fails with a message for the form, then it shows in a danger `Alert` at the top of the form from `lg` and just above "Place order" below `lg`, scrolled into view and focused.
+- [ ] Given placing the order fails with a message for the form, then it shows in a danger `Alert` just above "Place order", scrolled into view and focused.
 - [ ] Given the chosen address was deleted elsewhere (another tab), when choosing it or placing the order, then it is unselected, the saved addresses reload, "That address is no longer saved. Choose another address or add a new one." shows (a toast on choosing, the form `Alert` on placing) and no order is created.
-- [ ] Below `lg`, the page opens with a collapsed "Order summary · {total}" (an h2); the card by "Place order" holds only the totals and is headed "Order total".
+- [ ] Below `lg`, the page opens with a collapsed "Order summary · {total}" (an h2) holding the totals and the lines; from `lg` the summary sits on the right. "Place order" ends the steps (Delivery address, Delivery, Payment) on the left, like Nike's checkout.
 
 ### Addresses (checkout and account)
 

@@ -1,20 +1,20 @@
 "use client";
 
-import { Button } from "@virzeen/ui";
+import { ButtonLink } from "@virzeen/ui";
 import { ShoppingBag } from "lucide-react";
 import { useCart } from "./cart-provider";
 
-/** Header bag icon with the live item count. */
+/** Header bag icon with the live item count. Opens the bag page, like Nike's. */
 export function BagButton() {
-  const { cart, open } = useCart();
+  const { cart } = useCart();
   const count = cart.itemCount;
   return (
-    <Button
+    <ButtonLink
+      href="/cart"
       variant="ghost"
       size="icon"
       shape="pill"
-      onClick={(event) => open({ returnFocusTo: event.currentTarget })}
-      aria-label={count > 0 ? `Open bag, ${count} ${count === 1 ? "item" : "items"}` : "Open bag"}
+      aria-label={count > 0 ? `Bag, ${count} ${count === 1 ? "item" : "items"}` : "Bag"}
       className="relative"
       data-testid="open-bag"
     >
@@ -27,6 +27,6 @@ export function BagButton() {
           {count > 9 ? "9+" : count}
         </span>
       )}
-    </Button>
+    </ButtonLink>
   );
 }
