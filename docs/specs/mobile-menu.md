@@ -60,6 +60,6 @@ Account wording
 - **Focus on open** goes to the greeting row (the first item), not the X; after a tap it shows no focus ring, only after the keyboard.
 - **Back (Android)**: any navigation while the menu is open, browser Back included, closes it. The menu doesn't add its own history entry (Next's router owns history, and an extra entry would race a link's navigation), so Back goes to the previous page and closes the menu, rather than only closing the menu. Ask the owner if Back should only close it.
 - **Current page**: marked with `aria-current="page"` only (no underline), like Nike; the Shop button itself isn't marked, All products or the category inside is.
-- **Bag** in the menu opens the bag page (`/cart`), not the drawer.
+- **Bag** in the menu opens the bag page (`/cart`), like the header's bag icon.
 - **Greeting name**: the site layout passes `firstName(user.name)` (`nav-current.ts`): the first word, or "Hi there" when the account has no name (email sign-ups start without one).
 - **Not changed**: the account nav landmark is still named "Account" for screen readers (only the heading, page title and header icon became "My profile").

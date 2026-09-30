@@ -15,8 +15,8 @@ export default async function CheckoutPage() {
   if (!data) redirect("/cart?notice=empty");
 
   return (
-    <Container className="flex flex-col gap-8 py-12 lg:py-16">
-      <h1 className="font-display text-h1">Checkout</h1>
+    <Container className="flex flex-col gap-6 py-8 lg:gap-12 lg:py-12">
+      <h1 className="text-center font-display text-h2">Checkout</h1>
       <CheckoutForm
         addresses={data.addresses}
         initialAddressId={data.defaultAddressId}

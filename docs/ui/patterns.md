@@ -15,7 +15,7 @@ Standard layouts and behaviors. Build new screens from these instead of inventin
 ## 2. Server/client split
 
 - The page and most components are Server Components.
-- Only leaves that need state/events are client components (`AddToBagButton`, `QuantityStepper`, `CartDrawer`, forms).
+- Only leaves that need state/events are client components (`AddToBagButton`, `QuantityStepper`, `AddedToBagPanel`, forms).
 - Pass plain serializable props (ids, strings, numbers) into client components, never Prisma objects or functions from the server.
   Example: `docs/examples/client-add-to-bag.tsx`.
 
@@ -23,7 +23,7 @@ Standard layouts and behaviors. Build new screens from these instead of inventin
 
 1. Client leaf calls a Server Action inside `startTransition` (or a `<form action>`).
 2. Show pending immediately (`Button loading`, disabled).
-3. On `{ ok: true }` → toast/redirect and let `revalidatePath/Tag` refresh data. Add to bag opens the drawer instead of a toast; remove offers an inline Undo (§7).
+3. On `{ ok: true }` → toast/redirect and let `revalidatePath/Tag` refresh data. Add to bag opens the "Added to bag" panel instead of a toast; remove offers an inline Undo (§7).
 4. On `{ ok: false }` → map `error.code` to copy from `content-style.md` and show it (toast or inline).
 5. Never update the UI as if it succeeded before the action returns, except simple optimistic quantity changes via `useOptimistic` with rollback.
 
@@ -65,26 +65,31 @@ Nike-style (`specs/product-page.md`, `specs/product-page-v2.md`). `ProductDetail
 - **Features** (`ProductFeatures` → `FeatureGrid`, `specs/product-page-v2.md`): laid out in the product's `featureLayout`, no carousel. On phones one picture per row, 16:9 when it is a landscape one, else 4:5. From `md` a 12-column grid: Three across (3 a row from `lg`, 2 at `md`, never one alone on a row), Three + two, Two across, Full width, Tall + two, Two + tall, Wide + two, or Custom (the product's `featureRows`, top to bottom; the last row repeats; a row of 4 is 2 + 2 at `md`; no rows looks like Three across). `featureTiles(layout, count, rows)` in `feature-layout.ts` (pure) gives each feature's place and shape; `FeatureFrame` is the picture's box, and a tall picture never gets shorter than the two 16:9 pictures beside it. Title (h3) and text show only when present; when no feature has either, rows sit 16px apart instead of 32px.
 - **Recommendations** (`RelatedProducts` → two `ProductCarousel`s): "You may also like" (published products of the same category, newest first, up to 8, not this one) and "More from Virzeen" (other categories, the same way), each hidden when empty. A carousel has its h2 on the left and round "Previous products" / "Next products" buttons on the right from `md`, disabled at the ends (focus moves to the other one first) and hidden when every card fits; the row is measured again when cards come or go. It shows only whole cards: 2 per view on phones, 3 from `md`, 4 from `lg` (each card carries its gap as right padding; the row's `-mr-4` puts the last one's in the gutter). It snaps to a card, a press moves one card, and reduced motion turns off smooth scrolling. The row is focusable (arrow keys scroll it).
 
-## 7. Cart drawer
+## 7. Bag (like Nike's)
 
-Opens after add-to-bag (description "Added to bag · N items") and from the header. Lines (`CartLine`): image, name, variant, "{Rs X} each" when there are several, `QuantityStepper`, line `Price`, Remove, and a note when "+" stops ("Only N left", "Limit 10 of each", "Out of stock"). Footer: subtotal, "Free shipping across Nepal. Prices include VAT.", primary "Checkout", secondary "View bag". The drawer has no trigger of its own, so `open({ returnFocusTo })` records what opened it (header bag or Add to bag) and focus goes back there on close.
+Laid out like Nike's bag (owner request 2026-09-30), in our type and colours.
 
-**Remove with inline undo** (drawer and `/cart`). Never a toast: behind the modal drawer a toast's Undo can't be reached.
+- **"Added to bag"** (`AddedToBagPanel`, a `DropPanel`): drops down after an add, under the header on the right from `md`, across the top on phones. A check and "Added to bag", the line the add went into (photo, name, style/size, price), then "View bag ({n})" (secondary) and "Checkout" (primary) side by side. Modal; it has no trigger of its own, so `open({ returnFocusTo, added: true })` records the Add to bag button and focus goes back there on close. `CartProvider` works out which line the add went into by comparing the bag before and after `setCart`.
+- **The header bag icon opens `/cart`** (a link, "Bag, {n} items"), as does Bag in the phone menu.
+- **`/cart`**: "Bag" and the lines on the left, "Summary" on the right from `lg` (Subtotal, Shipping Free, Total between hairlines, Checkout). Phones: "Bag" centred with "{n} items | {total}" under it, the summary after the lines and Checkout in a bar fixed to the bottom (`data-sticky-cta`). Empty: "There are no items in your bag." and "Browse the collection".
+- **Lines** (`CartLine`): the photo on the left; the name with the line price on the right, then the style/size in grey, "{Rs X} each" when there are several, a note when "+" stops ("Only N left", "Limit 10 of each", "Out of stock") or "No longer available". Under them the quantity pill (`QuantityStepper` with `onRemove`: at 1 the "−" is a bin that removes the line) and a round heart that saves the product in the style bought (favourites). A line no longer sold shows a "Remove" pill instead of the stepper and no heart.
 
-1. Remove → the line goes and `RemovedLineNotice` shows "Removed {name}." with Undo: at the top of the drawer's list (in a `role="status"` region), or on `/cart` exactly where the line was.
+**Remove with inline undo** (`/cart`). Never a toast: the Undo belongs where the line was.
+
+1. Remove → the line goes and `RemovedLineNotice` shows "Removed {name}." with Undo: exactly where the line was.
 2. Keyboard focus moves to Undo, since the pressed Remove button is gone.
 3. Undo puts the line back in its old place (it keeps its original added time) and focuses its product link. If Undo fails, the row shows the error instead of "Removed {name}.".
-4. Closing the drawer, or another change to the bag, ends the offer.
+4. Another removal replaces the offer.
 
 After −, + or Remove, focus returns to the pressed button, or to the other stepper button when a limit disabled it.
 
 ## 8. Checkout
 
-Single page, three clear sections (Address → Delivery summary → Payment). From `lg` the order summary sits on the right. Below `lg` a collapsed "Order summary · {total}" (an `AccordionItem` with `headingLevel={2}`) opens the page, and the card by the button holds only the totals, headed "Order total". One primary button at the end. See `docs/specs/checkout.md`.
+Single page laid out like Nike's checkout (owner request 2026-09-30): the title centred, then the steps on the left (Delivery address → Delivery → Payment, divided by hairlines) ending with the one primary button, "Place order". From `lg` the order summary sits on the right, plain (no card): Subtotal, Shipping, Total between hairlines, the VAT it includes, "Arrives in {estimate}" and the lines (photo, name, Qty, style/size, price). Below `lg` a collapsed "Order summary · {total}" (an `AccordionItem` with `headingLevel={2}`) opens the page and holds the same. See `docs/specs/checkout.md`.
 
 - When only one payment method is offered (cash on delivery at launch), it is already chosen.
 - "Place order" is disabled until an address and a method are chosen, with the reason under it.
-- A form error shows at the top of the form from `lg` and just above "Place order" below `lg`, then scrolls into view and takes focus.
+- A form error shows just above "Place order", then scrolls into view and takes focus.
 - Address section focus: "Add a new address" → the section heading; Cancel → "Add a new address"; after saving → the new address.
 
 ## 9. Portfolio pages

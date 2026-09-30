@@ -7,8 +7,8 @@ import { cn } from "../lib/cn";
 
 /**
  * A panel that slides in over the page and holds content or a flow.
- * `side="right"`: cart drawer. `side="bottom"`: mobile filters. `side="top"`: the phone menu, the whole screen,
- * dropping down from the top like apple.com's.
+ * `side="right"`: side panels (the product editor's Settings). `side="bottom"`: mobile filters. `side="top"`: the
+ * phone menu, the whole screen, dropping down from the top like apple.com's.
  * Critical yes/no confirmations use `Dialog` instead.
  *
  * `header` replaces the title bar (and its close button) with your own top row, e.g. a back button and an X made
