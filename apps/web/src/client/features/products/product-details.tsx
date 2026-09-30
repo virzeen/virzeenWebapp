@@ -19,7 +19,8 @@ type ProductDetailsProps = {
 /**
  * The product page's main block (specs/product-page.md, patterns.md §6). From lg: the gallery on the left, sticky
  * under the header, and the name, price, pickers, buttons, description and accordions on the right. Below lg: name
- * and price, then the gallery, then the rest (one h1, placed by the grid). Then "Features that perform".
+ * and price, then the gallery, then the rest (one h1, placed by the grid). Then "Features that perform", in the
+ * product's feature layout.
  * Shared by the shop's product page and the admin preview (specs/admin-product-editor.md "Preview"), so the preview
  * always looks like the real page: no server-only imports here.
  */
@@ -87,7 +88,13 @@ export function ProductDetails({ product, styleParam, preview = false }: Product
           </div>
         </div>
       </ProductSelectionProvider>
-      {product.features.length > 0 && <ProductFeatures features={product.features} />}
+      {product.features.length > 0 && (
+        <ProductFeatures
+          features={product.features}
+          layout={product.featureLayout}
+          rows={product.featureRows}
+        />
+      )}
     </Container>
   );
 }

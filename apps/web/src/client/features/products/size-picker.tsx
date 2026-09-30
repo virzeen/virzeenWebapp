@@ -5,6 +5,7 @@ import type { SizeGuideView } from "./product-details-data";
 import { useProductSelection } from "./product-selection";
 import { variantFor } from "./selection";
 import { SizeGuideDialog } from "./size-guide-dialog";
+import { sizeGridColumns } from "./size-grid";
 
 type SizePickerProps = {
   ref: React.Ref<HTMLDivElement>;
@@ -15,8 +16,8 @@ type SizePickerProps = {
 };
 
 /**
- * "Select size" with "Size guide" on the right (when the product has a guide), then a grid of size boxes, up to 5 in
- * a row. Sizes sold out in the picked style stay visible, struck through and disabled.
+ * "Select size" with "Size guide" on the right (when the product has a guide), then a grid of size boxes as wide as the
+ * longest size name needs, up to 5 in a row. Sizes sold out in the picked style stay visible, struck through and disabled.
  */
 export function SizePicker({ ref, error, onPick, sizeGuide }: SizePickerProps) {
   const { variants, colors, sizes, style, size, pickSize } = useProductSelection();
@@ -36,12 +37,20 @@ export function SizePicker({ ref, error, onPick, sizeGuide }: SizePickerProps) {
           pickSize(value);
           onPick();
         }}
-        // Boxes at least 4.5rem wide, and never more than 5 in a row.
-        className="grid-cols-[repeat(auto-fill,minmax(max(4.5rem,calc((100%_-_2rem)/5)),1fr))]"
+        className={sizeGridColumns(sizes)}
       >
         {sizes.map((s) => {
           const variant = variantFor(variants, colors.length > 0, true, style, s);
-          return <RadioGroupItem key={s} value={s} label={s} disabled={!variant || variant.stock <= 0} />;
+          return (
+            <RadioGroupItem
+              key={s}
+              value={s}
+              label={s}
+              disabled={!variant || variant.stock <= 0}
+              // A name longer than its box wraps instead of running over the border.
+              className="text-center wrap-anywhere"
+            />
+          );
         })}
       </RadioGroup>
     </FormField>

@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { JsonLd } from "@/client/components/shared/json-ld";
 import { ProductDetails } from "@/client/features/products/product-details";
 import { RelatedProducts } from "@/client/features/products/related-products";
-import { getProductBySlug, listRelatedProducts } from "@/server/queries/catalog";
+import { getProductBySlug, listRecommendations } from "@/server/queries/catalog";
 import { env, siteUrl } from "@/server/env";
 import { flattenSearchParams, type SearchParams } from "@/server/queries/params";
 
@@ -31,12 +32,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
+/** The carousels under the product (specs/product-page-v2.md), streamed in after it so they never hold it up. */
+async function Recommendations({ product }: { product: { id: string; categoryId: string } }) {
+  return <RelatedProducts recommendations={await listRecommendations(product)} />;
+}
+
 export default async function ProductPage({ params, searchParams }: Props) {
   const product = await getProductBySlug((await params).slug);
   if (!product) notFound();
   // `?style=` picks the style a shared link or a favourite names; the canonical address stays /product/{slug}.
   const { style } = flattenSearchParams(await searchParams);
-  const related = await listRelatedProducts(product);
   const lowestPrice = Math.min(...product.variants.map((v) => v.pricePaisa));
   const image = product.images[0] ? absoluteImageUrl(product.images[0].url) : undefined;
 
@@ -44,7 +49,9 @@ export default async function ProductPage({ params, searchParams }: Props) {
     <>
       <ProductDetails product={{ ...product, productId: product.id }} styleParam={style} />
 
-      <RelatedProducts items={related} />
+      <Suspense fallback={null}>
+        <Recommendations product={product} />
+      </Suspense>
 
       <JsonLd
         data={{
