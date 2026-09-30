@@ -1,4 +1,5 @@
 import { Container, Link, Separator } from "@virzeen/ui";
+import { InstallAppButton, InstallAppGuide } from "@/client/components/shared/install-app";
 import { SITE } from "@/client/lib/site";
 import { LogoMark } from "./logo-mark";
 import { Wordmark } from "./wordmark";
@@ -40,6 +41,7 @@ export function SiteFooter() {
           <div className="flex max-w-xs flex-col gap-4">
             <Wordmark className="h-6 w-auto self-start" title="Virzeen" />
             <p className="text-small text-canvas/70">timeless monochromium experience.</p>
+            <InstallAppButton placement="footer" />
           </div>
           <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 md:gap-16">
             {COLUMNS.map((column) => (
@@ -89,6 +91,7 @@ export function SiteFooter() {
           </div>
         </div>
       </Container>
+      <InstallAppGuide />
     </footer>
   );
 }
