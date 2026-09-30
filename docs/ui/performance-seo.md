@@ -22,10 +22,11 @@
 
 ## 3. SEO (every public page)
 
-- `generateMetadata`: unique `title` ("Linen Overshirt — Virzeen"), `description` (≤ 155 chars), canonical URL, Open Graph image.
+- `generateMetadata`: unique `title`, `description` (≤ 160 chars), canonical URL, Open Graph image. Titles and descriptions come from `server/seo.ts` (owner request 2026-09-30), so every page names the brand with what's sold: "Linen Overshirt | Tops by Virzeen", "Vases by Virzeen", "Monsoon collection by Virzeen", home "Virzeen | Monochrome, black & white fashion from Nepal". These are `title.absolute`, with no " — Virzeen" suffix. A product's description is the owner's search description or, when blank, the start of its description plus the price and "Free shipping across Nepal. Cash on delivery." Link previews show the product's first photo as a 1200px JPEG.
 - One `h1`, logical heading order. A whole-page 404, error or offline screen makes its `EmptyState` title the h1 (`titleAs="h1"`).
 - Missing pages keep a real 404 title: `generateMetadata` calls `notFound()` for a missing item, so the tab reads "Page not found — Virzeen" ("Not found" in admin, "Order not found" in the account).
 - Product pages include JSON-LD `Product` with `offers` (price in NPR, availability).
+- The home page has JSON-LD `Organization` (logo, Instagram, contact) and `WebSite` (name, alternate names), so Google shows the brand name and logo. Product and category pages add `BreadcrumbList` (Home › Shop › Tops › product).
 - `sitemap.ts` lists published products, collections, portfolio projects. `robots.ts` blocks `/admin`, `/account`, `/checkout`, `/api`.
 - Clean slugs: `/product/linen-overshirt`, never ids in public URLs.
 

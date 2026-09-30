@@ -7,6 +7,7 @@ import { ProductGallery } from "@/client/features/products/product-gallery";
 import { ProductPurchase } from "@/client/features/products/product-purchase";
 import { getProductBySlug, listRelatedProducts } from "@/server/queries/catalog";
 import { siteUrl } from "@/server/env";
+import { absoluteImageUrl, breadcrumbJsonLd, productDescription, productTitle } from "@/server/seo";
 
 // Next.js 16: params is a Promise and must be awaited.
 type Props = { params: Promise<{ slug: string }> };
@@ -14,12 +15,26 @@ type Props = { params: Promise<{ slug: string }> };
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const product = await getProductBySlug((await params).slug);
   if (!product) notFound();
-  const description = product.seoDescription ?? product.description.slice(0, 155);
+  const prices = product.variants.map((v) => v.pricePaisa);
+  const title = productTitle(product.name, product.category.name);
+  const description = productDescription({
+    seoDescription: product.seoDescription,
+    description: product.description,
+    lowestPaisa: Math.min(...prices),
+    highestPaisa: Math.max(...prices),
+  });
+  // Link previews (WhatsApp, Facebook) show the product's first photo instead of the site-wide picture.
+  const image = product.images[0] && absoluteImageUrl(product.images[0].url, siteUrl);
   return {
-    title: product.name,
+    title: { absolute: title },
     description,
     alternates: { canonical: `/product/${product.slug}` },
-    openGraph: { title: `${product.name} — Virzeen`, description, type: "website" },
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      ...(image ? { images: [{ url: image, alt: product.name }] } : {}),
+    },
   };
 }
 
@@ -94,6 +109,13 @@ export default async function ProductPage({ params }: Props) {
         </Container>
       )}
 
+      <JsonLd
+        data={breadcrumbJsonLd(siteUrl, [
+          { name: "Shop", path: "/shop" },
+          { name: product.category.name, path: `/shop/${product.category.slug}` },
+          { name: product.name, path: `/product/${product.slug}` },
+        ])}
+      />
       <JsonLd
         data={{
           "@context": "https://schema.org",
