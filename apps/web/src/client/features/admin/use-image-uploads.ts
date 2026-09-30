@@ -12,7 +12,8 @@ const PARALLEL = 3;
 export type PendingUpload = { key: string; name: string };
 type Signature = { uploadUrl: string; fields: Record<string, string> };
 
-function problemWith(file: File) {
+/** Why a file can't be uploaded (its type or size), or null. */
+export function imageProblem(file: File) {
   if (!IMAGE_ACCEPT.split(",").includes(file.type))
     return `${file.name}: choose a JPG, PNG, WebP or AVIF image.`;
   if (file.size > MAX_BYTES) return `${file.name} is over 10 MB. Compress it to about 2500px first.`;
@@ -52,7 +53,7 @@ export function useImageUploads(
   async function upload(files: File[], room = Number.POSITIVE_INFINITY, full = "") {
     const problems: string[] = [];
     const accepted = files.filter((file) => {
-      const problem = problemWith(file);
+      const problem = imageProblem(file);
       if (problem) problems.push(problem);
       return !problem;
     });

@@ -23,9 +23,9 @@ export function FeatureRemoveDialog({
 }: FeatureRemoveDialogProps) {
   const description = !card
     ? undefined
-    : card.isNew || !card.title.trim()
-      ? "Its picture and anything typed on it are dropped."
-      : `"${card.title}" comes off the product page.`;
+    : card.title.trim()
+      ? `"${card.title}" comes off the product page.`
+      : "Its picture comes off the product page.";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

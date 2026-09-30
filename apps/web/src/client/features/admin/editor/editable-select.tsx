@@ -3,7 +3,7 @@
 import { Button, cn, FormField, Select, type SelectOption } from "@virzeen/ui";
 import { useEffect, useId, useRef, useState } from "react";
 import { useEditDrafts } from "./edit-drafts";
-import { editLabelFor } from "./editable-text-keys";
+import { coarsePointer, editLabelFor } from "./editable-text-keys";
 import { EditableView } from "./editable-view";
 
 export type EditableSelectProps = {
@@ -52,7 +52,7 @@ export function EditableSelect(props: EditableSelectProps) {
   useEffect(() => () => drafts?.report(id, null), [drafts, id]);
 
   function close(refocus: boolean) {
-    if (refocus) setFocusPencil((count) => count + 1);
+    if (refocus && !coarsePointer()) setFocusPencil((count) => count + 1);
     setEditing(false);
     setProblem(null);
     drafts?.report(id, null);

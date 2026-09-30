@@ -2,6 +2,14 @@
 
 export type EditKeyAction = "commit" | "cancel" | null;
 
+/**
+ * True when the main pointer is a finger (phones, tablets). There an edit that ends (the on-screen keyboard's Enter/Go,
+ * or a picked option) doesn't hand focus back to the pencil: that only draws a focus ring on it (owner, 2026-09-30).
+ * The box just closes, and the on-screen keyboard with it. With a mouse or keyboard, focus goes back as before.
+ */
+export const coarsePointer = () =>
+  typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
+
 type KeyPress = {
   key: string;
   multiline: boolean;

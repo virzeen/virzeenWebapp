@@ -3,10 +3,13 @@
 import { Button, ButtonLink, Container, EmptyState, Skeleton } from "@virzeen/ui";
 import { Eye, Smartphone, X } from "lucide-react";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import type { ProductCardData } from "@/client/features/products/product-card";
 import { ProductDetails } from "@/client/features/products/product-details";
-import { RelatedProducts } from "@/client/features/products/related-products";
-import { listRelatedByCategoryAction } from "@/server/actions/admin/catalog";
+import {
+  NO_RECOMMENDATIONS,
+  RelatedProducts,
+  type RecommendationsView,
+} from "@/client/features/products/related-products";
+import { listRecommendationsAction } from "@/server/actions/admin/catalog";
 import {
   previewStorageKey,
   previewUrl,
@@ -42,26 +45,29 @@ function useDraft(key: string) {
 }
 
 /**
- * "You may also like" under the preview, like the shop page: published products of the draft's category (read on
- * the server). Nothing while loading, when there are none, or when the read fails.
+ * The carousels under the preview, like the shop page: "You may also like" (published products of the draft's
+ * category) and "More from Virzeen" (the other categories), read on the server. Nothing while loading, when there
+ * are none, or when the read fails.
  */
 function PreviewRelated({ categoryId, excludeId }: { categoryId: string; excludeId?: string | undefined }) {
   const key = `${categoryId}:${excludeId ?? ""}`;
-  const [loaded, setLoaded] = useState<{ key: string; items: ProductCardData[] } | null>(null);
+  const [loaded, setLoaded] = useState<{ key: string; recommendations: RecommendationsView } | null>(null);
   useEffect(() => {
     let current = true;
-    void listRelatedByCategoryAction(excludeId ? { categoryId, excludeId } : { categoryId })
+    void listRecommendationsAction(excludeId ? { categoryId, excludeId } : { categoryId })
       .then((result) => {
-        if (current) setLoaded({ key, items: result.ok ? result.data : [] });
+        if (current) setLoaded({ key, recommendations: result.ok ? result.data : NO_RECOMMENDATIONS });
       })
       .catch(() => {
-        if (current) setLoaded({ key, items: [] });
+        if (current) setLoaded({ key, recommendations: NO_RECOMMENDATIONS });
       });
     return () => {
       current = false;
     };
   }, [categoryId, excludeId, key]);
-  return <RelatedProducts items={loaded?.key === key ? loaded.items : []} />;
+  return (
+    <RelatedProducts recommendations={loaded?.key === key ? loaded.recommendations : NO_RECOMMENDATIONS} />
+  );
 }
 
 /** Admin preview of a product page from the editor's current values (specs/admin-product-editor.md "Preview"). */

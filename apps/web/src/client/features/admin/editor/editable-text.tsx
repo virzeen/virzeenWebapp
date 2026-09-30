@@ -3,7 +3,14 @@
 import { cn, FormField, Input, Textarea, type InputProps, type TextareaProps } from "@virzeen/ui";
 import { useEffect, useId, useRef, useState } from "react";
 import { useEditDrafts } from "./edit-drafts";
-import { editKeyAction, editLabelFor, hasChanged, keyPress, normalizeDraft } from "./editable-text-keys";
+import {
+  coarsePointer,
+  editKeyAction,
+  editLabelFor,
+  hasChanged,
+  keyPress,
+  normalizeDraft,
+} from "./editable-text-keys";
 import { EditableView } from "./editable-view";
 
 type OwnInputProps = "value" | "defaultValue" | "onChange" | "onKeyDown" | "onBlur" | "ref";
@@ -35,7 +42,8 @@ export type EditableTextProps = {
 /**
  * Text on the product page that edits in place (specs/product-editor-on-page.md "Editing model"): a pencil beside
  * it; double-click the text or press the pencil for a box with the text selected. Enter (one line), Ctrl+Enter or
- * clicking/tabbing outside saves; Escape cancels. After Enter or Escape focus goes back to the pencil.
+ * clicking/tabbing outside saves; Escape cancels. After Enter or Escape focus goes back to the pencil (not on touch
+ * screens, where that would only draw a ring on it).
  */
 export function EditableText(props: EditableTextProps) {
   const { label, editLabel, value, multiline = false, placeholder, error, className, children } = props;
@@ -74,7 +82,7 @@ export function EditableText(props: EditableTextProps) {
 
   function close(refocus: boolean) {
     open.current = false;
-    refocusPencil.current = refocus;
+    refocusPencil.current = refocus && !coarsePointer();
     setEditing(false);
     setProblem(null);
     drafts?.report(id, null);

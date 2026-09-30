@@ -24,6 +24,14 @@ html:has([data-sticky-header]) {
 }
 
 /*
+ * Things pressed and held to drag (the editor's feature pictures): no "Save image" / "Copy" menu on iPhone, which
+ * would otherwise open during the press-and-hold that starts a drag.
+ */
+@utility callout-none {
+  -webkit-touch-callout: none;
+}
+
+/*
  * Product gallery from lg (product-gallery.tsx): the 4:5 main photo is as wide as its column allows, but never
  * taller than the screen under the sticky header (top-24 plus a gap below), so the whole photo and its previous/next
  * buttons stay in view while the right column scrolls.

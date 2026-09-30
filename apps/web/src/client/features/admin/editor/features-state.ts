@@ -1,23 +1,21 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useWatch } from "react-hook-form";
 import { useProductEditor } from "./editor-context";
 import {
   featurePartProblem,
-  isComplete,
   MAX_FEATURES,
-  moveItem,
+  moveKeyed,
+  newFeature,
   newFeatureKey,
   partChanges,
   removeAt,
-  toFeature,
   type Feature,
   type FeaturePart,
-  type NewFeature,
 } from "./features-cards";
 
-/** One card on the page: a saved feature (its place in the form's `features`) or the new one (index -1). */
+/** One card on the page: a feature and its place in the form's `features`. */
 export type FeatureCardView = {
   key: string;
   index: number;
@@ -25,22 +23,18 @@ export type FeatureCardView = {
   body: string;
   imageUrl: string;
   alt: string;
-  isNew: boolean;
 };
 
 /**
- * "Features that perform" in the editor: the saved features (the form's `features`, each with a stable key) and at
- * most one new feature, kept here until it has a picture, a title and text, so autosave never sends it half done.
- * Every change to a saved feature goes through commitFields (checked, then saved). Each handler returns the
- * problem to show, or null.
+ * "Features that perform" in the editor: the form's `features`, each with a stable key. A feature needs only its
+ * picture (specs/product-page-v2.md), so a new one joins the list as soon as its picture is in. Every change goes
+ * through commitFields (checked, then saved). Each handler returns the problem to show, or null.
  */
 export function useFeatureCards() {
-  const { form, commitFields, holdUnsaved } = useProductEditor();
-  const holdId = useId();
+  const { form, commitFields } = useProductEditor();
   const features = useWatch({ control: form.control, name: "features" });
   const productName = useWatch({ control: form.control, name: "name" });
   const [keys, setKeys] = useState(() => features.map(() => newFeatureKey()));
-  const [added, setAdded] = useState<NewFeature | null>(null);
   // The list changed length outside these handlers (a reload): fresh keys, so no card keeps another's.
   if (keys.length !== features.length) setKeys(features.map(() => newFeatureKey()));
   // Uploads finish later: they look their card up by key in the list as it is by then.
@@ -48,47 +42,32 @@ export function useFeatureCards() {
   useEffect(() => {
     latestKeys.current = keys;
   });
-  // The new feature's picture is only here until it's complete: leaving asks first (the editor's one leave check).
-  const unfinished = added !== null;
-  useEffect(() => holdUnsaved(holdId, unfinished), [holdUnsaved, holdId, unfinished]);
-  useEffect(() => () => holdUnsaved(holdId, false), [holdUnsaved, holdId]);
 
   function commitList(next: Feature[], nextKeys: string[]) {
     const problem = commitFields([{ name: "features", value: next }]);
-    if (!problem) setKeys(nextKeys);
+    if (!problem) {
+      latestKeys.current = nextKeys;
+      setKeys(nextKeys);
+    }
     return problem;
   }
 
-  function move(key: string, by: 1 | -1) {
-    const from = keys.indexOf(key);
-    if (from < 0) return null;
-    return commitList(moveItem(features, from, from + by), moveItem(keys, from, from + by));
+  /** A dropped card to place `to`; one commit, so autosave runs once. Dropped where it was: nothing happens. */
+  function moveTo(key: string, to: number) {
+    const moved = moveKeyed(features, keys, key, to);
+    return moved ? commitList(moved.list, moved.keys) : null;
   }
 
+  /** Move earlier / Move later. */
+  const move = (key: string, by: 1 | -1) => moveTo(key, keys.indexOf(key) + by);
+
   function remove(key: string) {
-    if (added?.key === key) {
-      setAdded(null);
-      return null;
-    }
     const index = keys.indexOf(key);
     return index < 0 ? null : commitList(removeAt(features, index), removeAt(keys, index));
   }
 
-  /** A new title or text. The new feature joins the form (and saves) as soon as it's complete. */
+  /** A new title or text ("" takes it away: both are optional). */
   function edit(key: string, part: FeaturePart, value: string): string | null {
-    if (added?.key === key) {
-      const problem = featurePartProblem(part, value);
-      if (problem) return problem;
-      const next = { ...added, [part]: value };
-      if (!isComplete(next)) {
-        setAdded(next);
-        return null;
-      }
-      // Same key: the card stays the same on the page (and keeps focus) once it's saved.
-      const failed = commitList([...features, toFeature(next)], [...keys, next.key]);
-      if (!failed) setAdded(null);
-      return failed;
-    }
     const index = keys.indexOf(key);
     const feature = features[index];
     return feature ? commitFields(partChanges(index, feature, part, value, productName)) : null;
@@ -103,23 +82,20 @@ export function useFeatureCards() {
   function setPicture(key: string, url: string) {
     const problem = featurePartProblem("imageUrl", url);
     if (problem) return problem;
-    setAdded((was) => (was?.key === key ? { ...was, imageUrl: url } : was));
     const index = latestKeys.current.indexOf(key);
     return index < 0 ? null : commitFields([{ name: `features.${index}.imageUrl`, value: url }]);
   }
 
-  /** The + card's picture: the new feature's card, keyed `key` (none while one is open or the list is full). */
-  function start(key: string, url: string) {
+  /** The + box's picture: a new feature keyed `key` at the end, saved straight away (none once the list is full). */
+  function add(key: string, url: string) {
     const problem = featurePartProblem("imageUrl", url);
     if (problem) return problem;
-    setAdded(
-      (was) =>
-        was ??
-        (form.getValues("features").length < MAX_FEATURES
-          ? { key, imageUrl: url, title: "", body: "" }
-          : null),
-    );
-    return null;
+    // The upload may finish after other changes: add to the list as it is now.
+    const current = form.getValues("features");
+    if (current.length >= MAX_FEATURES) return `Add up to ${MAX_FEATURES} features`;
+    const known = latestKeys.current.length === current.length;
+    const currentKeys = known ? latestKeys.current : current.map(() => newFeatureKey());
+    return commitList([...current, newFeature(url)], [...currentKeys, key]);
   }
 
   const cards: FeatureCardView[] = features.map((feature, index) => ({
@@ -129,21 +105,18 @@ export function useFeatureCards() {
     body: feature.body,
     imageUrl: feature.imageUrl,
     alt: feature.alt ?? "",
-    isNew: false,
   }));
-  if (added) cards.push({ ...added, index: -1, alt: "", isNew: true });
 
   return {
     cards,
-    /** How many are saved: the new one (if any) comes after them and can't move. */
-    savedCount: features.length,
-    canAdd: !added && features.length < MAX_FEATURES,
+    canAdd: features.length < MAX_FEATURES,
     productName,
     move,
+    moveTo,
     remove,
     edit,
     editAlt,
     setPicture,
-    start,
+    add,
   };
 }

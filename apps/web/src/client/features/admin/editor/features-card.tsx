@@ -1,10 +1,11 @@
 "use client";
 
-import { Badge, Button } from "@virzeen/ui";
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Trash2 } from "lucide-react";
+import { Button, cn } from "@virzeen/ui";
+import { ArrowLeft, ArrowRight, Trash2 } from "lucide-react";
 import { EditableText } from "./editable-text";
-import { altIsMade, madeFeatureAlt, type FeaturePart } from "./features-cards";
+import { altIsMade, featureName, madeFeatureAlt, type FeaturePart } from "./features-cards";
 import { FeaturePicture } from "./features-picture";
+import { useSortableFeature } from "./features-sortable";
 import type { FeatureCardView } from "./features-state";
 
 export type FeatureActions = {
@@ -33,59 +34,36 @@ type FeatureCardProps = {
 const ICON = { className: "size-5", strokeWidth: 1.5, "aria-hidden": true } as const;
 
 /**
- * One "Features that perform" card as in the shop (picture 4:5, title, text), editable in place: an upload button
- * on the picture, pencils on the title, the text and the picture description; Move earlier / later and Remove on
- * the picture, shown on hover or focus from md with a mouse (always on touch). A new feature says "Not saved yet"
- * until it has a title and text. Buttons carry data-action, so focus can follow a moved or removed card.
+ * One feature in the editor's simple grid (specs/product-page-v2.md "Editor"): a square thumbnail with a button in
+ * each corner, always shown (owner, 2026-09-30: not only on hover): Replace picture (top left), Remove (top right,
+ * asks first), Move earlier (bottom left, ←) and Move later (bottom right, →), as the grid reads in list order. Under
+ * it, pencils on the title, the text (both optional) and the picture description. Buttons carry data-action, so
+ * focus can follow a moved or removed card. The list item itself, so it sits straight in the grid. The picture also
+ * drags the card to a new place (FeatureSortable); the dragged card is lifted over the others.
  */
 export function FeatureCard({ card, first, last, productName, errors, actions }: FeatureCardProps) {
-  const name = card.title.trim() || (card.isNew ? "new feature" : `feature ${card.index + 1}`);
+  const name = featureName(card.title, card.index);
   const made = madeFeatureAlt(productName, card.title);
   const altMade = altIsMade(card.alt, productName, card.title);
+  // A single feature has nowhere to go, like its disabled arrows.
+  const { setItemRef, moving, dragging, handle } = useSortableFeature(card.key, first && last);
 
   return (
-    <li data-feature={card.key} className="group/feature flex flex-col gap-4">
+    <li
+      ref={setItemRef}
+      style={moving}
+      data-feature={card.key}
+      className={cn("flex min-w-0 flex-col gap-3", dragging && "z-10 opacity-90")}
+    >
       <FeaturePicture
         imageUrl={card.imageUrl}
         alt={altMade ? made : card.alt}
         name={name}
         error={errors?.imageUrl}
         onUploaded={(url) => actions.setPicture(card.key, url)}
+        drag={handle}
       >
-        {card.isNew && (
-          <Badge variant="warning" className="absolute top-3 left-3">
-            Not saved yet
-          </Badge>
-        )}
-        <div className="absolute top-3 right-3 flex gap-1 transition-opacity duration-150 ease-standard md:pointer-fine:opacity-0 md:pointer-fine:group-focus-within/feature:opacity-100 md:pointer-fine:group-hover/feature:opacity-100">
-          {!card.isNew && (
-            <>
-              <Button
-                variant="secondary"
-                size="icon"
-                shape="pill"
-                aria-label={`Move ${name} earlier`}
-                data-action="earlier"
-                disabled={first}
-                onClick={() => actions.move(card, -1)}
-              >
-                <ArrowUp {...ICON} className="size-5 md:hidden" />
-                <ArrowLeft {...ICON} className="size-5 max-md:hidden" />
-              </Button>
-              <Button
-                variant="secondary"
-                size="icon"
-                shape="pill"
-                aria-label={`Move ${name} later`}
-                data-action="later"
-                disabled={last}
-                onClick={() => actions.move(card, 1)}
-              >
-                <ArrowDown {...ICON} className="size-5 md:hidden" />
-                <ArrowRight {...ICON} className="size-5 max-md:hidden" />
-              </Button>
-            </>
-          )}
+        <div className="absolute top-2 right-2">
           <Button
             variant="secondary"
             size="icon"
@@ -97,19 +75,45 @@ export function FeatureCard({ card, first, last, productName, errors, actions }:
             <Trash2 {...ICON} />
           </Button>
         </div>
+        <div className="absolute bottom-2 left-2">
+          <Button
+            variant="secondary"
+            size="icon"
+            shape="pill"
+            aria-label={`Move ${name} earlier`}
+            data-action="earlier"
+            disabled={first}
+            onClick={() => actions.move(card, -1)}
+          >
+            <ArrowLeft {...ICON} />
+          </Button>
+        </div>
+        <div className="absolute right-2 bottom-2">
+          <Button
+            variant="secondary"
+            size="icon"
+            shape="pill"
+            aria-label={`Move ${name} later`}
+            data-action="later"
+            disabled={last}
+            onClick={() => actions.move(card, 1)}
+          >
+            <ArrowRight {...ICON} />
+          </Button>
+        </div>
       </FeaturePicture>
-      <div className="flex flex-col gap-2 pr-6">
+      <div className="flex flex-col gap-2">
         <div data-part="title">
           <EditableText
             label="Title"
             editLabel={`title of ${name}`}
             value={card.title}
-            placeholder="Add a title"
+            placeholder="Add a title (optional)"
             error={errors?.title}
             inputProps={{ maxLength: 60 }}
             onCommit={(next) => actions.edit(card.key, "title", next)}
           >
-            <h3 className="text-h3">{card.title}</h3>
+            <h3 className="font-medium break-words">{card.title}</h3>
           </EditableText>
         </div>
         <div data-part="body">
@@ -118,29 +122,27 @@ export function FeatureCard({ card, first, last, productName, errors, actions }:
             editLabel={`text of ${name}`}
             multiline
             value={card.body}
-            placeholder="Add text"
+            placeholder="Add text (optional)"
             error={errors?.body}
             textareaProps={{ rows: 4, maxLength: 400 }}
             onCommit={(next) => actions.edit(card.key, "body", next)}
           >
-            <p className="whitespace-pre-line text-ink-muted">{card.body}</p>
+            <p className="text-small break-words whitespace-pre-line text-ink-muted">{card.body}</p>
           </EditableText>
         </div>
-        {card.isNew ? (
-          <p className="text-small text-ink-muted">Add a title and text to save this feature.</p>
-        ) : (
-          // A made description shows as made and saves as "", so it follows the name and title.
-          <EditableText
-            label="Picture description"
-            editLabel={`picture description of ${name}`}
-            value={altMade ? "" : card.alt}
-            error={errors?.alt}
-            inputProps={{ placeholder: made, maxLength: 200 }}
-            onCommit={(next) => actions.editAlt(card.key, next)}
-          >
-            <p className="text-small text-ink-muted">Picture description: {altMade ? made : card.alt}</p>
-          </EditableText>
-        )}
+        {/* A made description shows as made and saves as "", so it follows the name and title. */}
+        <EditableText
+          label="Picture description"
+          editLabel={`picture description of ${name}`}
+          value={altMade ? "" : card.alt}
+          error={errors?.alt}
+          inputProps={{ placeholder: made, maxLength: 200 }}
+          onCommit={(next) => actions.editAlt(card.key, next)}
+        >
+          <p className="text-small break-words text-ink-muted">
+            Picture description: {altMade ? made : card.alt}
+          </p>
+        </EditableText>
       </div>
     </li>
   );

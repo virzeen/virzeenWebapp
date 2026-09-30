@@ -48,10 +48,13 @@ export function useMediaUploads({ productId, room, uploadsEnabled, onUploaded, r
     setReferenceOpen(true);
   }
 
-  /** Spread on the main photo or the empty drop zone: files dragged onto it upload. */
+  /**
+   * Spread on the main photo or the empty drop zone: files dragged onto it upload. Without uploads a drop opens the
+   * "Image reference" popup; either way the browser never opens the file in the tab (and leaves the editor).
+   */
   const dropProps = {
     onDragOver: (event: React.DragEvent) => {
-      if (!uploadsEnabled || !hasFiles(event)) return;
+      if (!hasFiles(event)) return;
       event.preventDefault();
       setDragging(true);
     },
@@ -59,10 +62,11 @@ export function useMediaUploads({ productId, room, uploadsEnabled, onUploaded, r
       if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDragging(false);
     },
     onDrop: (event: React.DragEvent) => {
-      if (!uploadsEnabled || !hasFiles(event)) return;
+      if (!hasFiles(event)) return;
       event.preventDefault();
       setDragging(false);
-      add(Array.from(event.dataTransfer.files));
+      if (uploadsEnabled) add(Array.from(event.dataTransfer.files));
+      else choose();
     },
   };
 

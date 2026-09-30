@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@virzeen/ui";
-import { EDITABLE_GROUP, EditPencil } from "./edit-pencil";
+import { EditPencil } from "./edit-pencil";
 
 type EditableViewProps = {
   /** The pencil reads "Edit {editLabel}". */
@@ -28,7 +28,7 @@ export function EditableView({
   children,
 }: EditableViewProps) {
   return (
-    <div className={cn(EDITABLE_GROUP, "flex flex-col gap-1", className)}>
+    <div className={cn("flex flex-col gap-1", className)}>
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1" onDoubleClick={onEdit}>
           {children}

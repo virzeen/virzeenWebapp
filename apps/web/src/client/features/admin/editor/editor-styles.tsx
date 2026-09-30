@@ -1,13 +1,13 @@
 "use client";
 
-import { cn, FormField, RadioGroup, RadioGroupItem } from "@virzeen/ui";
+import { FormField, RadioGroup, RadioGroupItem } from "@virzeen/ui";
 import { useRef, useState } from "react";
 import { useWatch } from "react-hook-form";
 import { CloudImage } from "@/client/components/shared/cloud-image";
 import { hasStylePhotos, tilePhotoFor } from "@/client/features/products/style-photos";
 import { AddStyle } from "./buybox-add-style";
 import { EditStyle } from "./buybox-edit-style";
-import { EDITABLE_GROUP, EditPencil } from "./edit-pencil";
+import { EditPencil } from "./edit-pencil";
 import { useProductEditor } from "./editor-context";
 
 /**
@@ -30,7 +30,7 @@ export function EditorStyles() {
     groupRef.current?.querySelector<HTMLElement>('[role="radio"][data-state="checked"]')?.focus();
 
   return (
-    <div className={cn(EDITABLE_GROUP, "flex flex-col gap-2")}>
+    <div className="flex flex-col gap-2">
       {styles.length === 0 ? (
         <>
           <p className="text-small font-medium text-ink">Styles</p>

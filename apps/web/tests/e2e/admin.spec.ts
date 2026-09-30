@@ -108,6 +108,28 @@ test("admin sets up two-factor, builds a product on its page and it appears in t
   await expect(page.getByRole("heading", { level: 1, name: "E2E Tops" })).toBeVisible();
   await expect(page.getByLabel("Length (cm), L", { exact: true })).toHaveValue("74");
 
+  // An Accessories guide is one size chart picture (specs/product-page-v2.md), shown as customers will see it.
+  await page.getByRole("navigation", { name: "Admin" }).getByRole("link", { name: "Size guides" }).click();
+  await page.getByRole("link", { name: "New size guide" }).click();
+  await page.getByRole("textbox", { name: "Name", exact: true }).fill("E2E Bags");
+  await page.getByRole("radio", { name: /^Accessories/ }).click();
+  await page.getByRole("button", { name: "Save size guide" }).click();
+  await expect(page.getByText("Upload the size chart picture").first()).toBeVisible();
+  await expect(page).toHaveURL(/\/admin\/size-guides\/new$/);
+  // Uploads are off in e2e: the uploader takes an image reference instead.
+  await page.getByLabel(/^Image reference/).fill("/placeholder/product-04.jpg");
+  await page.getByRole("button", { name: "Add size chart picture" }).click();
+  const customerView = page.getByRole("region", { name: "What customers see" });
+  await expect(customerView.getByRole("img", { name: "E2E Bags size chart" })).toBeVisible();
+  await expect(customerView.getByRole("link", { name: /Open full size/ })).toBeVisible();
+  await expect(customerView.getByRole("radiogroup", { name: "Units" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Save size guide" }).click();
+  await expect(page).toHaveURL(/\/admin\/size-guides\/(?!new)[a-z0-9]+$/);
+  await expect(page.getByRole("heading", { level: 1, name: "E2E Bags" })).toBeVisible();
+  await page.getByRole("navigation", { name: "Admin" }).getByRole("link", { name: "Size guides" }).click();
+  await expect(page.getByRole("row", { name: /E2E Bags/ }).getByText("Accessories")).toBeVisible();
+  await expect(page.getByRole("row", { name: /E2E Tops/ }).getByText("Clothing")).toBeVisible();
+
   // New product (specs/product-editor-on-page.md): a small popup makes a draft, and its editor opens.
   await page.getByRole("navigation", { name: "Admin" }).getByRole("link", { name: "Products" }).click();
   await page.getByRole("button", { name: "New product" }).click();
@@ -118,7 +140,6 @@ test("admin sets up two-factor, builds a product on its page and it appears in t
   await newProduct.getByLabel(/^Price \(Rs\)/).fill("1350");
   await newProduct.getByRole("button", { name: "Create draft" }).click();
   await expect(page).toHaveURL(/\/admin\/products\/(?!new)[a-z0-9]+$/);
-  const editorUrl = page.url();
   await expect(page.getByRole("heading", { level: 1, name: "E2E Beanie" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Status: Draft" })).toBeVisible();
 
@@ -198,27 +219,65 @@ test("admin sets up two-factor, builds a product on its page and it appears in t
   // Every product starts as made in China.
   await expect(page.getByText("Country/Region of origin: China")).toBeVisible();
 
-  // Features that perform: the + card starts with the picture; the feature saves once it has a title and text.
+  // Features that perform: pick Custom and build one row of one landscape picture (each choice saves at once), then
+  // add a picture-only feature through the + tile. It saves straight away; the title comes later with its pencil.
   const features = page.getByRole("region", { name: "Features that perform" });
-  await features.getByLabel(/^Image reference/).fill("/placeholder/product-03.jpg");
+  await features.getByRole("radio", { name: "Custom", exact: true }).click();
+  await features.getByRole("button", { name: "Add row" }).click();
+  await features
+    .getByRole("radiogroup", { name: "Pictures in row 1" })
+    .getByRole("radio", { name: "1", exact: true })
+    .click();
+  await features
+    .getByRole("radiogroup", { name: "Shape of row 1" })
+    .getByRole("radio", { name: "Landscape" })
+    .click();
+  await expect(features.getByText("This row holds 1 picture. You have 0.")).toBeVisible();
+  // Uploads are off in e2e, so the + tile opens the "Image reference" box.
   await features.getByRole("button", { name: "Add feature" }).click();
-  await expect(features.getByText("Not saved yet")).toBeVisible();
-  await features.getByRole("button", { name: "Edit title of new feature" }).click();
+  const addFeature = page.getByRole("dialog", { name: "Add feature" });
+  await addFeature.getByLabel(/^Image reference/).fill("/placeholder/product-03.jpg");
+  await addFeature.getByRole("button", { name: "Add feature" }).click();
+  await expect(addFeature).toBeHidden();
+  await expect(features.getByText("1 of 9")).toBeVisible();
+  await expect(features.getByText("This row holds 1 picture. You have 1.")).toBeVisible();
+  await expectSaved(page);
+  const titlePencil = features.getByRole("button", { name: "Edit title of feature 1" });
+  await expect(titlePencil).toBeFocused();
+  await titlePencil.click();
   const featureTitle = features.getByRole("textbox", { name: "Title", exact: true });
   await featureTitle.fill("Ribbed for warmth");
   await featureTitle.press("Enter");
-  // An unfinished feature isn't saved: leaving by a link asks first; cancelling stays.
-  page.once("dialog", (dialog) => void dialog.dismiss());
-  await page.getByRole("link", { name: "← Products" }).click();
-  await expect(page).toHaveURL(editorUrl);
-  await expect(features.getByText("Not saved yet")).toBeVisible();
-  await features.getByRole("button", { name: "Edit text of Ribbed for warmth" }).click();
-  const featureText = features.getByRole("textbox", { name: "Text", exact: true });
-  await featureText.fill("A close rib knit that keeps the cold out.");
-  await featureText.press("Control+Enter");
-  await expect(features.getByText("Not saved yet")).toBeHidden();
-  await expect(features.getByText("1 of 6")).toBeVisible();
   await expect(features.getByRole("heading", { level: 3, name: "Ribbed for warmth" })).toBeVisible();
+  await expectSaved(page);
+  // Drag to reorder: a second picture-only feature, dragged by its picture onto the first one's place, goes first and
+  // saves at once. dnd-kit starts a mouse drag after 8px, so the pointer moves in steps.
+  await features.getByRole("button", { name: "Add feature" }).click();
+  await addFeature.getByLabel(/^Image reference/).fill("/placeholder/product-05.jpg");
+  await addFeature.getByRole("button", { name: "Add feature" }).click();
+  await expect(addFeature).toBeHidden();
+  await expect(features.getByText("2 of 9")).toBeVisible();
+  await expectSaved(page);
+  const featureCards = features.locator("[data-feature]");
+  // Mid-screen: clear of the sticky top bar, and of the edges where dragging scrolls the page.
+  await featureCards.first().evaluate((card) => card.scrollIntoView({ block: "center" }));
+  const dragFrom = await featureCards.nth(1).locator("img").boundingBox();
+  const dropOn = await featureCards.first().locator("img").boundingBox();
+  if (!dragFrom || !dropOn) throw new Error("The feature pictures aren't on screen");
+  const [fromX, fromY] = [dragFrom.x + dragFrom.width / 2, dragFrom.y + dragFrom.height / 2];
+  const [toX, toY] = [dropOn.x + dropOn.width / 2, dropOn.y + dropOn.height / 2];
+  await page.mouse.move(fromX, fromY);
+  await page.mouse.down();
+  await page.mouse.move(fromX - 12, fromY, { steps: 3 });
+  await page.mouse.move(toX, toY, { steps: 12 });
+  await page.mouse.move(toX + 1, toY + 1);
+  await page.mouse.up();
+  await expect(featureCards.first().locator('img[src*="product-05"]')).toBeVisible();
+  await expect(
+    featureCards.nth(1).getByRole("heading", { level: 3, name: "Ribbed for warmth" }),
+  ).toBeVisible();
+  await expect(features.getByText("Moved feature 2 to position 1 of 2")).toBeAttached();
+  await expectSaved(page);
 
   // The size guide, picked inside "Size and fit".
   await page.getByRole("button", { name: "Edit size guide" }).click();
@@ -249,7 +308,9 @@ test("admin sets up two-factor, builds a product on its page and it appears in t
   await expect(page.getByLabel("Stock, Black, M", { exact: true })).toHaveValue("7");
   await expect(page.getByLabel(/^Stock, Black, /)).toHaveCount(2);
   await expect(page.getByText(/^Style: VZ\d{4,}-101$/)).toBeVisible();
-  await expect(features.getByText("1 of 6")).toBeVisible();
+  await expect(features.getByText("2 of 9")).toBeVisible();
+  // The dragged order was saved.
+  await expect(featureCards.first().locator('img[src*="product-05"]')).toBeVisible();
   // "You may also like": published products of the same category, as under the shop page.
   await expect(page.getByRole("heading", { level: 2, name: "You may also like" })).toBeVisible();
 
@@ -262,6 +323,8 @@ test("admin sets up two-factor, builds a product on its page and it appears in t
   await expect(preview.getByRole("heading", { level: 1, name: "E2E Monochrome Beanie" })).toBeVisible();
   await expect(preview.getByText("Colour shown: Black/White")).toBeVisible();
   await expect(preview.getByRole("heading", { level: 2, name: "You may also like" })).toBeVisible();
+  // The features in their layout (Custom: one landscape row, repeated), with the title added in the editor.
+  await expect(preview.getByRole("heading", { level: 3, name: "Ribbed for warmth" })).toBeVisible();
   await page.getByRole("button", { name: "Edit colour shown of Black" }).click();
   await colourShown.fill("Black/Grey");
   await colourShown.press("Enter");

@@ -1,24 +1,26 @@
-import { productFeatureSchema, type ProductInput } from "@virzeen/validators";
+import { MAX_FEATURES, productFeatureSchema, type ProductInput } from "@virzeen/validators";
 
-// The pure parts of "Features that perform" in the editor (specs/product-editor-on-page.md): the list operations,
-// when a new feature is complete, and picture descriptions that follow the name and title.
+// The pure parts of "Features that perform" in the editor (specs/product-editor-on-page.md, product-page-v2.md): the
+// list operations, a new feature, and picture descriptions that follow the name and title.
 
 export type Feature = ProductInput["features"][number];
 export type FeaturePart = "title" | "body";
-/** A feature being added: kept out of the form (and so out of saves) until it has a picture, a title and text. */
-export type NewFeature = { key: string; imageUrl: string; title: string; body: string };
 /** A change for commitFields. */
 export type FeatureChange = { name: `features.${number}.${keyof Feature}`; value: string };
 
-/** productSchema allows 6. */
-export const MAX_FEATURES = 6;
+/** productSchema allows 9 (specs/product-page-v2.md). */
+export { MAX_FEATURES };
 
 let lastKey = 0;
 /** A card's stable key: uploads and focus follow the card, not its place in the list. */
 export const newFeatureKey = () => `feature-${++lastKey}`;
 
-/** The picture description catalogService.saveProduct makes for a blank one ("{product}, {title}"). */
-export const madeFeatureAlt = (name: string, title: string) => `${name.trim()}, ${title.trim()}`;
+/**
+ * The picture description catalogService.saveProduct makes for a blank one: "{product}, {title}", or "{product}"
+ * for a feature without a title (specs/product-page-v2.md).
+ */
+export const madeFeatureAlt = (name: string, title: string) =>
+  title.trim() ? `${name.trim()}, ${title.trim()}` : name.trim();
 
 /**
  * True when the picture description is blank or the one made from the name and title. getProductForEdit returns
@@ -38,21 +40,32 @@ export function moveItem<T>(list: readonly T[], from: number, to: number): T[] {
   return next;
 }
 
+/**
+ * The list and its card keys with the card keyed `key` moved to place `to` (Move earlier / Move later, or a drag and
+ * drop), kept in step. Null when nothing moves: dropped where it was, `to` outside the list, or an unknown key.
+ */
+export function moveKeyed<T>(list: readonly T[], keys: readonly string[], key: string, to: number) {
+  const from = keys.indexOf(key);
+  if (from < 0 || from === to || to < 0 || to >= list.length || keys.length !== list.length) return null;
+  return { list: moveItem(list, from, to), keys: moveItem(keys, from, to) };
+}
+
+/** A card's name in its buttons and messages: the title, or "feature {n}" without one. */
+export const featureName = (title: string, index: number) => title.trim() || `feature ${index + 1}`;
+
+/** What screen readers hear after a drop (`to` counts from 0): "Moved Breathes to position 2 of 5". */
+export const movedMessage = (name: string, to: number, total: number) =>
+  `Moved ${name} to position ${to + 1} of ${total}`;
+
 export const removeAt = <T>(list: readonly T[], index: number): T[] => list.filter((_, i) => i !== index);
 
-/** A new feature is saved once it has a picture, a title and text. */
-export const isComplete = (feature: Pick<NewFeature, "imageUrl" | "title" | "body">) =>
-  [feature.imageUrl, feature.title, feature.body].every((text) => text.trim() !== "");
+/**
+ * A new feature: only its picture, which is all a feature needs (specs/product-page-v2.md), so it joins the list and
+ * saves straight away. Title and text can be added later; the save makes the picture description.
+ */
+export const newFeature = (imageUrl: string): Feature => ({ imageUrl, title: "", body: "", alt: "" });
 
-/** The new feature as the form holds it (a blank picture description: the save makes one). */
-export const toFeature = ({ imageUrl, title, body }: NewFeature): Feature => ({
-  imageUrl,
-  title,
-  body,
-  alt: "",
-});
-
-/** Why a title, text or picture can't be used ("Enter a title for the feature"), or null. */
+/** Why a title, text or picture can't be used ("Keep the title under 60 characters"), or null. */
 export function featurePartProblem(part: FeaturePart | "imageUrl", value: string): string | null {
   const checked = productFeatureSchema.shape[part].safeParse(value);
   return checked.success ? null : (checked.error.issues[0]?.message ?? null);

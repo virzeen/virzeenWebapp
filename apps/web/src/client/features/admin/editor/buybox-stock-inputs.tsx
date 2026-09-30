@@ -9,7 +9,7 @@ import { useProductEditor } from "./editor-context";
 
 // The shop's size box (RadioGroup "card"), drawn as the stock box's visible label: sold out is struck through.
 const BOX =
-  "flex min-h-11 items-center justify-center rounded-sm border px-3 py-2 text-center text-body font-medium";
+  "flex min-h-11 items-center justify-center rounded-sm border px-3 py-2 text-center text-body font-medium wrap-anywhere";
 
 /** A row's stock (and price) boxes: the form value, saved when the box is left. */
 function useRowInputs(index: number) {

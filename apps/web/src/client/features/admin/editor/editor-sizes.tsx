@@ -3,16 +3,17 @@
 import { cn } from "@virzeen/ui";
 import { useRef, useState } from "react";
 import { useFormState, useWatch } from "react-hook-form";
+import { sizeGridColumns } from "@/client/features/products/size-grid";
 import { SizeGuideDialog } from "@/client/features/products/size-guide-dialog";
 import { SizeChips } from "./buybox-size-chips";
 import { rowIndexFor, sizeCells } from "./buybox-stock";
 import { SingleStock, SizeStock } from "./buybox-stock-inputs";
-import { EDITABLE_GROUP, EditPencil } from "./edit-pencil";
+import { EditPencil } from "./edit-pencil";
 import { useProductEditor } from "./editor-context";
 
 /**
  * The size grid, as on the shop page (size-picker.tsx): "Select size" with Size guide on the right (when the product
- * has one), then the size boxes, up to 5 in a row. Each box shows the picked style's stock under it (0 = sold out,
+ * has one), then the size boxes, as wide as the longest size name needs and up to 5 in a row. Each box shows the picked style's stock under it (0 = sold out,
  * struck through as in the shop), and a price when "Different prices for some sizes" is on (Settings). The pencil
  * opens the size chips. A product without sizes has one Stock box. Boxes save when left
  * (specs/product-editor-on-page.md "Sizes").
@@ -36,7 +37,7 @@ export function EditorSizes() {
   }
 
   return (
-    <div className={cn(EDITABLE_GROUP, "flex flex-col gap-2")}>
+    <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-4">
         <p className="text-small font-medium text-ink">{sizes.length > 0 ? "Select size" : "Sizes"}</p>
         <div className="flex items-center gap-2">
@@ -58,8 +59,8 @@ export function EditorSizes() {
           </p>
           <ul
             aria-label={picked ? `Stock of ${picked} per size` : "Stock per size"}
-            // Boxes at least 4.5rem wide, and never more than 5 in a row (as in the shop).
-            className="grid grid-cols-[repeat(auto-fill,minmax(max(4.5rem,calc((100%_-_2rem)/5)),1fr))] gap-2"
+            // As wide as the shop's boxes (size-picker.tsx).
+            className={cn("grid gap-2", sizeGridColumns(sizes))}
           >
             {sizeCells(rows, sizes, picked).map((cell) => (
               <SizeStock

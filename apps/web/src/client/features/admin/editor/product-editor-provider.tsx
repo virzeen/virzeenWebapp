@@ -7,7 +7,7 @@ import { useCallback, useRef, useState } from "react";
 import { FormProvider, useFieldArray, useForm, useFormContext } from "react-hook-form";
 import { useUnsavedChanges } from "../use-unsaved-changes";
 import { useVariantOptions } from "../use-variant-options";
-import { EditDraftsContext, useDraftProblems, useHeldWork } from "./edit-drafts";
+import { EditDraftsContext, useDraftProblems } from "./edit-drafts";
 import {
   ProductEditorContext,
   type EditorChange,
@@ -122,8 +122,7 @@ function EditorState({ product: initial, values, options, children }: ProductEdi
 
   const { drafts, openProblem } = useDraftProblems();
   const save = openProblem ? { status: "invalid" as const, message: openProblem } : autosave.state;
-  const { holding, holdUnsaved } = useHeldWork();
-  useUnsavedChanges(save.status !== "saved" || holding);
+  useUnsavedChanges(save.status !== "saved");
 
   const { categories, addCategory } = useAddedCategories(options.categories);
   const styles = variantOptions.options.colors;
@@ -146,7 +145,6 @@ function EditorState({ product: initial, values, options, children }: ProductEdi
     commitField: (name, value) => commitFields([{ name, value }]),
     commitFields,
     retry: () => void commit(),
-    holdUnsaved,
   };
 
   return (
