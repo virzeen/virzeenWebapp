@@ -13,6 +13,7 @@ export function LogoMark({ className, title }: LogoMarkProps) {
       viewBox="0 0 460.76 376.74"
       className={className}
       fill="currentColor"
+      overflow="visible" // the V's tips touch the edge of the artwork; keep their soft edge pixels
       role={title ? "img" : undefined}
       aria-label={title}
       aria-hidden={title ? undefined : true}
