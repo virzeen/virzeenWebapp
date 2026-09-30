@@ -156,12 +156,10 @@ The words on badges, in the order timeline and in the admin history (`client/lib
 
 ## Contact and social
 
-| Where                                      | Text                                                               |
-| ------------------------------------------ | ------------------------------------------------------------------ |
-| `/contact`, under "Instagram"              | See new pieces and preorders first on Instagram: @virzeen.co.      |
-| Footer, Virzeen column                     | Instagram (links to instagram.com/virzeen.co)                      |
-| Footer, bottom row (each fact on one line) | Cash on delivery · Free shipping across Nepal · 7-day free returns |
-| Footer, legal line                         | © {year} Virzeen. Prices include 13% VAT.                          |
+| Where                         | Text                                                          |
+| ----------------------------- | ------------------------------------------------------------- |
+| `/contact`, under "Instagram" | See new pieces and preorders first on Instagram: @virzeen.co. |
+| Footer, legal line            | © {year} Virzeen. Prices include 13% VAT.                     |
 
 ## Sign-in code (`/verify`)
 
