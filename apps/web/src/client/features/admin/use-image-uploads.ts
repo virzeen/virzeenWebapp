@@ -3,6 +3,7 @@
 import type { UploadSignatureInput } from "@virzeen/validators";
 import { useRef, useState } from "react";
 import { messageFor } from "@/client/lib/error-messages";
+import { shrinkForUpload } from "@/client/lib/shrink-image";
 import { getUploadSignatureAction } from "@/server/actions/admin/catalog";
 
 export const IMAGE_ACCEPT = "image/jpeg,image/png,image/webp,image/avif";
@@ -12,26 +13,34 @@ const PARALLEL = 3;
 export type PendingUpload = { key: string; name: string };
 type Signature = { uploadUrl: string; fields: Record<string, string> };
 
-/** Why a file can't be uploaded (its type or size), or null. */
+/** Why a file can't be uploaded (its type), or null. The size is checked after shrinking (send). */
 export function imageProblem(file: File) {
   if (!IMAGE_ACCEPT.split(",").includes(file.type))
     return `${file.name}: choose a JPG, PNG, WebP or AVIF image.`;
-  if (file.size > MAX_BYTES) return `${file.name} is over 10 MB. Compress it to about 2500px first.`;
   return null;
 }
 
-/** One direct upload to Cloudinary (project-brief.md §10); null when it fails. */
-async function send(file: File, signature: Signature) {
+type Sent = { ref: string } | { problem: string };
+
+/**
+ * One direct upload to Cloudinary (project-brief.md §10). The photo is shrunk in the browser first
+ * (shrink-image.ts), so a large phone photo passes the 10 MB limit and goes up about 10× faster.
+ */
+async function send(picked: File, signature: Signature): Promise<Sent> {
+  const failed = { problem: `${picked.name} didn't upload. Please try again.` };
   try {
+    const file = await shrinkForUpload(picked);
+    if (file.size > MAX_BYTES)
+      return { problem: `${picked.name} is over 10 MB. Compress it to about 2500px first.` };
     const body = new FormData();
     body.append("file", file);
     for (const [key, value] of Object.entries(signature.fields)) body.append(key, value);
     const response = await fetch(signature.uploadUrl, { method: "POST", body });
-    if (!response.ok) return null;
+    if (!response.ok) return failed;
     const result = (await response.json()) as { public_id?: string };
-    return result.public_id ?? null;
+    return result.public_id ? { ref: result.public_id } : failed;
   } catch {
-    return null;
+    return failed;
   }
 }
 
@@ -91,9 +100,9 @@ export function useImageUploads(
         const index = next++;
         const file = items[index]?.file;
         if (!file) return;
-        const ref = await send(file, signature.data);
-        results[index] = ref;
-        if (!ref) setErrors((current) => [...current, `${file.name} didn't upload. Please try again.`]);
+        const sent = await send(file, signature.data);
+        results[index] = "ref" in sent ? sent.ref : null;
+        if ("problem" in sent) setErrors((current) => [...current, sent.problem]);
         flush();
       }
     };

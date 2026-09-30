@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: { default: "Virzeen — timeless monochromium experience", template: "%s — Virzeen" },
   description:
-    "Virzeen: a monochrome fashion label from Nepal. Shop the collection, explore our campaigns and lookbooks.",
+    "Virzeen: a monochrome fashion label from Nepal. Black and white, aesthetic pieces with free shipping across Nepal and cash on delivery.",
   applicationName: "Virzeen",
   openGraph: { type: "website", siteName: "Virzeen", locale: "en_NP" },
   twitter: { card: "summary_large_image" },

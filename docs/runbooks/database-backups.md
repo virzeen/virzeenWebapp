@@ -52,7 +52,7 @@ Railway no longer lets new services use a config file (`railway.json`) and stops
    | `S3_ACCESS_KEY_ID`        | the key's keyID                                                                                        |
    | `S3_SECRET_ACCESS_KEY`    | the key's applicationKey                                                                               |
 
-4. Click **Deploy** to apply the changes. The build log must show `FROM postgres:17-alpine` and `apk add --no-cache aws-cli`. If it shows pnpm or Railpack instead, the website's settings are being used: check `RAILWAY_DOCKERFILE_PATH`.
+4. Click **Deploy** to apply the changes. The build log must show `FROM postgres:18-alpine` and `apk add --no-cache aws-cli`. If it shows pnpm or Railpack instead, the website's settings are being used: check `RAILWAY_DOCKERFILE_PATH`.
 
 ## 3. First run and checks
 
@@ -70,7 +70,7 @@ Railway marks the cron run as failed. The last lines of its log say why:
 | `Missing variables: …`                                           | Add those variables (step 2.3).                                                           |
 | `The database did not answer within 60 seconds.`                 | Check the Postgres service is running and `DATABASE_URL` is `${{Postgres.DATABASE_URL}}`. |
 | `password authentication failed`                                 | `DATABASE_URL` was typed by hand or is out of date: set it back to the reference.         |
-| `The database runs PostgreSQL 18 but this image has pg_dump 17.` | Set `ARG PG_MAJOR=18` in `ops/db-backup/Dockerfile` and merge it.                         |
+| `The database runs PostgreSQL 19 but this image has pg_dump 18.` | Set `ARG PG_MAJOR=19` in `ops/db-backup/Dockerfile` and merge it.                         |
 | `InvalidAccessKeyId`, `SignatureDoesNotMatch`, `AccessDenied`    | Wrong or deleted key: create a new one (step 1.3) and update both key variables.          |
 | `NoSuchBucket`                                                   | `S3_BUCKET` or `S3_ENDPOINT` doesn't match the bucket.                                    |
 

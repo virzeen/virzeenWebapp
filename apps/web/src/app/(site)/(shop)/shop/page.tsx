@@ -3,11 +3,12 @@ import type { Metadata } from "next";
 import { ShopListing } from "@/client/features/products/shop-listing";
 import { loadShopListing } from "@/server/queries/catalog";
 import { flattenSearchParams, type SearchParams } from "@/server/queries/params";
+import { SHOP_TITLE } from "@/server/seo";
 
 export const metadata: Metadata = {
-  title: "Shop",
+  title: { absolute: SHOP_TITLE },
   description:
-    "Shop the Virzeen collection. Prices include VAT. Free shipping and cash on delivery across Nepal.",
+    "Shop Virzeen: monochrome, black and white clothing and accessories from Nepal. Prices include VAT. Free shipping and cash on delivery.",
   alternates: { canonical: "/shop" },
 };
 

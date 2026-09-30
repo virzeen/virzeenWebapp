@@ -24,7 +24,7 @@ Rules: text on `canvas`/`surface` uses `ink` or `ink-muted` only. On dark imager
 
 ## 2. Typography
 
-Two families: **display** (headings, brand moments) and **text** (everything else), loaded with `next/font` and exposed as `--font-display` / `--font-text` ◆. Phase-1 placeholders: **Inter Tight** (display) and **Inter** (text), light weights echoing the posters. The wordmark is an SVG traced from the brand artwork (`client/components/layout/wordmark.tsx`), never set in a web font.
+Two families: **display** (headings, brand moments) and **text** (everything else), loaded with `next/font` and exposed as `--font-display` / `--font-text` ◆. Phase-1 placeholders: **Inter Tight** (display) and **Inter** (text), light weights echoing the posters. The wordmark and the V mark are the owner's artwork (`apps/web/public/brand/logo/`, 2026-09-30) drawn as inline SVG in `currentColor` (`client/components/layout/wordmark.tsx`, `logo-mark.tsx`: black on light, white on dark), never set in a web font.
 
 | Token            | Utility        | Size / line-height            | Weight                        | Use                             |
 | ---------------- | -------------- | ----------------------------- | ----------------------------- | ------------------------------- |

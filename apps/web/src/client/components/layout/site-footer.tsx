@@ -1,5 +1,5 @@
 import { Container, Link, Separator } from "@virzeen/ui";
-import { SITE } from "@/client/lib/site";
+import { InstallAppButton, InstallAppGuide } from "@/client/components/shared/install-app";
 import { LogoMark } from "./logo-mark";
 import { Wordmark } from "./wordmark";
 
@@ -18,7 +18,6 @@ const COLUMNS = [
       { href: "/about", label: "About" },
       { href: "/portfolio", label: "Portfolio" },
       { href: "/contact", label: "Contact" },
-      { href: SITE.instagram, label: "Instagram" },
     ],
   },
   {
@@ -31,7 +30,7 @@ const COLUMNS = [
   },
 ] as const;
 
-/** Global footer on ink: brand, navigation, payment methods, legal. */
+/** Global footer on ink: brand, navigation, legal. */
 export function SiteFooter() {
   return (
     <footer className="mt-24 bg-ink text-canvas">
@@ -39,7 +38,8 @@ export function SiteFooter() {
         <div className="flex flex-col gap-12 md:flex-row md:justify-between">
           <div className="flex max-w-xs flex-col gap-4">
             <Wordmark className="h-6 w-auto self-start" title="Virzeen" />
-            <p className="text-small text-canvas/70">timeless monochromium experience.</p>
+            <p className="text-small font-light text-canvas/70">timeless monochromium experience.</p>
+            <InstallAppButton placement="footer" />
           </div>
           <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 md:gap-16">
             {COLUMNS.map((column) => (
@@ -62,15 +62,9 @@ export function SiteFooter() {
         <Separator className="bg-canvas/15" />
         <div className="flex flex-col gap-4 text-small text-canvas/60 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-3">
-            <LogoMark className="size-6 text-canvas" inverse />
+            <LogoMark className="size-6 text-canvas" />
             <p>© {new Date().getFullYear()} Virzeen. Prices include 13% VAT.</p>
           </div>
-          {/* Each fact stays whole ("7-day" never splits); lines break only after a "·". */}
-          <p>
-            <span className="whitespace-nowrap">Cash on delivery ·</span>{" "}
-            <span className="whitespace-nowrap">Free shipping across Nepal ·</span>{" "}
-            <span className="whitespace-nowrap">7-day free returns</span>
-          </p>
           <div className="flex gap-4">
             <Link
               href="/privacy"
@@ -89,6 +83,7 @@ export function SiteFooter() {
           </div>
         </div>
       </Container>
+      <InstallAppGuide />
     </footer>
   );
 }

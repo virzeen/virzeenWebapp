@@ -55,6 +55,8 @@ type MenuMainProps = LinkState & {
   onOpenShop: () => void;
   firstLinkRef: Ref<HTMLAnchorElement>;
   shopButtonRef: Ref<HTMLButtonElement>;
+  /** "Install the Virzeen app", last in the icon list (it renders nothing where it can't install). */
+  install?: React.ReactNode;
 };
 
 /** The menu's first panel: greeting, the large page links with Shop ›, then the small icon links. */
@@ -65,6 +67,7 @@ export function MenuMain({
   onOpenShop,
   firstLinkRef,
   shopButtonRef,
+  install,
   ariaCurrent,
   onNavigate,
 }: MenuMainProps) {
@@ -118,6 +121,8 @@ export function MenuMain({
             </Link>
           </li>
         ))}
+        {/* Empty where the button renders nothing: then the row is gone for screen readers too. */}
+        {install && <li className="empty:hidden">{install}</li>}
       </ul>
     </div>
   );

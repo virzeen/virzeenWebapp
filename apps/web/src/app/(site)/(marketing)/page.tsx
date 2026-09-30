@@ -3,10 +3,15 @@ import { PORTFOLIO_KIND_LABELS } from "@virzeen/validators";
 import { Banknote, RotateCcw, ShieldCheck, Truck } from "lucide-react";
 import type { Metadata } from "next";
 import { CloudImage } from "@/client/components/shared/cloud-image";
+import { JsonLd } from "@/client/components/shared/json-ld";
 import { ProductCard } from "@/client/features/products/product-card";
+import { siteUrl } from "@/server/env";
 import { listCollections, listNewArrivals, listPortfolioProjects } from "@/server/queries/catalog";
+import { HOME_DESCRIPTION, HOME_TITLE, siteJsonLd } from "@/server/seo";
 
 export const metadata: Metadata = {
+  title: { absolute: HOME_TITLE },
+  description: HOME_DESCRIPTION,
   alternates: { canonical: "/" },
 };
 
@@ -39,6 +44,7 @@ export default async function HomePage() {
 
   return (
     <>
+      <JsonLd data={siteJsonLd(siteUrl)} />
       {/* Hero: brand moment, LCP image */}
       <section className="relative isolate overflow-hidden bg-ink text-canvas">
         <CloudImage

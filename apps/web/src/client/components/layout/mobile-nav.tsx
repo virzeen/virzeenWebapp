@@ -4,6 +4,7 @@ import { Button, Sheet, SheetClose, SheetContent, SheetTrigger } from "@virzeen/
 import { ChevronLeft, Menu, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { InstallAppButton } from "@/client/components/shared/install-app";
 import { type MenuCategory, MenuMain, MenuShop, menuHrefs } from "./mobile-nav-views";
 import { currentHref } from "./nav-current";
 
@@ -97,6 +98,15 @@ export function MobileNav({ categories, isSignedIn, firstName }: MobileNavProps)
               onOpenShop={() => setView("shop")}
               firstLinkRef={firstLinkRef}
               shopButtonRef={shopButtonRef}
+              // Phones only (it renders nothing on computers, in the installed app and once installed). The menu
+              // closes first, so the browser's install panel or the guide opens over the page.
+              install={
+                <InstallAppButton
+                  placement="menu"
+                  onStart={() => setOpen(false)}
+                  className="min-h-11 w-full gap-3 px-0 text-body"
+                />
+              }
               {...links}
             />
           )}
