@@ -35,8 +35,15 @@ export function ProductDetails({ product, styleParam, preview = false }: Product
 
   return (
     <Container className="py-6 pb-28 md:pb-16 lg:py-12">
-      {/* 44px-tall links; the negative top margin keeps the text where the shorter links had it. */}
-      <nav aria-label="Breadcrumb" className="-mt-3 pb-3">
+      {/*
+        Hidden, still working (owner, 2026-10-01: "hide it … it need to have a function but dont show it"): search
+        engines read the trail from the page's BreadcrumbList data, screen readers still find this nav, and it shows
+        while a keyboard user is in it, so focus never sits on something invisible.
+      */}
+      <nav
+        aria-label="Breadcrumb"
+        className="sr-only focus-within:not-sr-only focus-within:-mt-3 focus-within:pb-3"
+      >
         <ol className="flex items-center gap-2 text-small text-ink-muted">
           <li>
             <Link href="/shop" variant="subtle" className="inline-flex min-h-11 items-center">
