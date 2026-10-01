@@ -16,6 +16,18 @@ export const colors = {
   focus: "#2f6feb",
 } as const;
 
+/**
+ * `tone-inverse` (tokens.css) for places without CSS variables or alpha blending: white on ink, its see-through
+ * steps made solid on ink. Emails in dark mode (packages/emails layout.tsx).
+ */
+export const inverseColors = {
+  canvas: colors.ink,
+  ink: colors.canvas,
+  inkMuted: "#bdbdbd", // white at 72% on ink
+  surface: "#303030", // white at 12% on ink
+  line: "#4c4c4c", // white at 24% on ink
+} as const;
+
 export const fontStack = '"Helvetica Neue", Helvetica, Arial, sans-serif';
 
 /** Tailwind config for React Email's <Tailwind>, so email templates use the same token class names. */

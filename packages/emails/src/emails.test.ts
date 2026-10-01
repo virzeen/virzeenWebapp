@@ -18,7 +18,31 @@ describe("renderOtpEmail", () => {
     expect(email.text).toContain("482913");
     // tests/e2e/helpers.ts reads the first 6-digit number in the text, so nothing may come before the code.
     expect(/\b(\d{6})\b/.exec(email.text)?.[1]).toBe("482913");
-    expect(email.html).not.toMatch(/class="/); // Tailwind classes are inlined for email clients
+    // Tailwind classes are inlined for email clients; only the dark-mode hooks (vz-*, and Gmail's body) stay.
+    const classes = [...email.html.matchAll(/class="([^"]*)"/g)].flatMap((match) => match[1]!.split(/\s+/));
+    expect(classes.length).toBeGreaterThan(0);
+    expect(classes.every((name) => name.startsWith("vz-") || name === "body")).toBe(true);
+  });
+
+  it("swaps to a white wordmark and white-on-ink colours in dark mode, black on white otherwise", async () => {
+    const email = await renderOtpEmail({ otp: "482913", siteUrl: "https://virzeen.com" });
+    expect(email.html).toContain('<meta name="color-scheme" content="light dark"/>');
+    expect(email.html).toContain("@media (prefers-color-scheme: dark)");
+    expect(email.html).toContain("[data-ogsc] .vz-dark-only");
+    // Gmail never reports dark mode: it always gets the white wordmark, blended to the opposite of its background.
+    expect(email.html).toContain(
+      "u + .body .vz-dark-only { display: block !important; max-height: none !important; mix-blend-mode: difference; }",
+    );
+    // The ink wordmark shows by default (Gmail ignores the media query and keeps it).
+    expect(email.html).toMatch(
+      /<img class="vz-light-only"[^>]*src="https:\/\/virzeen\.com\/brand\/email-wordmark\.png"/,
+    );
+    // The white one is hidden until dark mode, from Outlook for Windows too.
+    const dark = /<img class="vz-dark-only"[^>]*>/.exec(email.html)?.[0] ?? "";
+    expect(dark).toContain('src="https://virzeen.com/brand/email-wordmark-dark.png"');
+    expect(dark).toContain("display:none");
+    expect(dark).toContain("mso-hide:all");
+    expect(email.html).toContain('<body class="body vz-page"');
   });
 
   it("stays readable in Outlook for Windows: no rem units, font set on every element", async () => {
