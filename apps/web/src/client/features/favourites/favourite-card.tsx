@@ -38,7 +38,7 @@ type FavouriteCardProps = {
  * "Heavyweight". A button can't sit inside a link, so the heart lies over the photo's top right beside it. A style
  * that isn't sold any more shows the product's usual photo and price, with just the category.
  *
- * Removed with the heart, the card dims and a dark bar on the photo says "Removed from favourites" with Undo; 5
+ * Removed with the heart, the card dims and a dark bar slides up inside the photo: "Removed from favourites" with Undo; 5
  * seconds later the card fades away and `onGone` takes it off the page. While a keyboard user's focus is inside the
  * card the clock waits, so there's time to reach Undo (WCAG 2.2.1); it starts again when focus leaves.
  */
@@ -99,9 +99,9 @@ export function FavouriteCard({ item, priority = false, saved, onToggleSaved, on
         <Heart className={cn("size-5", saved && "fill-current")} strokeWidth={1.5} aria-hidden />
       </Button>
       {removed && (
-        // As tall as the photo, so the bar sits on the photo's bottom edge.
-        <div className="pointer-events-none absolute inset-x-0 top-0 flex aspect-square items-end p-3">
-          <div className="pointer-events-auto flex w-full flex-wrap items-center justify-center gap-x-4 rounded-sm bg-canvas px-4 py-1 text-center tone-inverse">
+        // As tall as the photo and clipped to it, so the bar slides up from inside the photo's bottom edge.
+        <div className="pointer-events-none absolute inset-x-0 top-0 flex aspect-square items-end overflow-hidden p-3">
+          <div className="pointer-events-auto flex w-full flex-wrap items-center justify-center gap-x-4 rounded-sm bg-canvas px-4 py-1 text-center tone-inverse motion-safe:animate-slide-in-bottom">
             <p className="text-small font-medium">Removed from favourites</p>
             <Button variant="underline" size="sm" onClick={onToggleSaved}>
               Undo
