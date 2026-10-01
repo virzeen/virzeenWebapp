@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { idSchema } from "./common";
-
-export const MAX_QTY_PER_LINE = 10;
+import { MAX_QTY_PER_LINE } from "./limits";
 
 const quantity = z
   .int({ error: "Choose a quantity" })

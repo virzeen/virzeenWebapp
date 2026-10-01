@@ -1,9 +1,8 @@
 "use client";
 
 import { Button, Stack, toast } from "@virzeen/ui";
-import { MAX_QTY_PER_LINE } from "@virzeen/validators";
+import { MAX_QTY_PER_LINE } from "@virzeen/validators/limits";
 import { useRef, useState, useTransition } from "react";
-import { Price } from "@/client/components/shared/price";
 import { StockLabel } from "@/client/components/shared/stock-label";
 import { useCart } from "@/client/features/cart/cart-provider";
 import { favouriteDetails } from "@/client/features/favourites/favourite-bag";
@@ -28,7 +27,7 @@ type ProductPurchaseProps = {
 
 /**
  * Style tiles, sizes, stock, "Add to bag" and "Favourite" (patterns.md §6). Unavailable options stay visible but
- * disabled. On phones Add to bag sits in a sticky bottom bar (`data-sticky-cta`: globals.css keeps focus and the
+ * disabled. On phones Add to bag floats alone at the bottom of the screen (`data-sticky-cta`: globals.css keeps focus and the
  * footer clear of it). Pressed before a size is chosen, it points to the sizes instead of doing nothing.
  */
 export function ProductPurchase({ product, sizeGuide, tiles, preview = false }: ProductPurchaseProps) {
@@ -92,27 +91,30 @@ export function ProductPurchase({ product, sizeGuide, tiles, preview = false }: 
       {selected ? <StockLabel stock={selected.stock} /> : !anyInStock && <StockLabel stock={0} />}
 
       <Stack gap={3}>
-        <div
-          data-sticky-cta
-          className="fixed inset-x-0 bottom-0 z-10 border-t border-line bg-canvas/95 px-4 py-3 backdrop-blur-md md:static md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none"
-        >
-          <div className="flex items-center gap-4">
-            <Price paisa={price.paisa} from={price.from} className="text-body md:hidden" />
-            <Button
-              ref={buttonRef}
-              size="lg"
-              shape="pill"
-              className="flex-1"
-              loading={isPending}
-              disabled={soldOut}
-              onClick={addToBag}
-              data-testid="add-to-bag"
-            >
-              {buttonLabel}
-            </Button>
-          </div>
+        {/*
+          Phones: only the Add to bag button floats over the bottom of the page, with nothing behind it (owner,
+          2026-10-01: no price, "the bg need to be opacity 0"). From md it sits in the column as usual.
+        */}
+        <div data-sticky-cta className="fixed inset-x-0 bottom-0 z-10 px-4 pb-4 md:static md:p-0">
+          <Button
+            ref={buttonRef}
+            size="lg"
+            shape="pill"
+            className="w-full"
+            loading={isPending}
+            disabled={soldOut}
+            onClick={addToBag}
+            data-testid="add-to-bag"
+          >
+            {buttonLabel}
+          </Button>
           <div role="status">
-            {allInBag && <p className="pt-2 text-small text-ink-muted">{allInBagMessage(limit)}</p>}
+            {allInBag && (
+              // With nothing behind the bar on phones, the note gets its own backing to stay readable.
+              <p className="mt-2 rounded-sm bg-canvas px-2 py-1 text-small text-ink-muted md:mt-0 md:p-0 md:pt-2">
+                {allInBagMessage(limit)}
+              </p>
+            )}
           </div>
         </div>
         {/* Saves the style picked now ("" for a product without styles; the first style when all are sold out). */}

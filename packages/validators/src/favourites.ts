@@ -1,15 +1,13 @@
 import { z } from "zod";
 import { idSchema } from "./common";
+import { MAX_FAVOURITE_COLOR, MAX_FAVOURITES } from "./limits";
 
 // Favourites (specs/favourites.md): a product plus the style picked when saved.
-
-/** Most favourites one account (or one browser) keeps. */
-export const MAX_FAVOURITES = 100;
 
 /** A saved product and style; `color` is the variant colour, "" for a product without styles. */
 export const favouriteKeySchema = z.strictObject({
   productId: idSchema,
-  color: z.string().trim().max(40, { error: "Keep the style under 40 characters" }),
+  color: z.string().trim().max(MAX_FAVOURITE_COLOR, { error: "Keep the style under 40 characters" }),
 });
 export type FavouriteKey = z.infer<typeof favouriteKeySchema>;
 

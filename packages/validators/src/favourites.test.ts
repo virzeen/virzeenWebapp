@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   favouriteKeySchema,
   favouriteProductsSchema,
-  MAX_FAVOURITES,
   mergeFavouritesSchema,
   setFavouriteSchema,
 } from "./favourites";
+import { MAX_FAVOURITES, toFavouriteKey } from "./limits";
 
 const PRODUCT_ID = "tz4a98xxat96iws9zmbrgj3a";
 
@@ -48,5 +48,27 @@ describe("favourite keys (specs/favourites.md)", () => {
     expect(mergeFavouritesSchema.safeParse({ keys: keys(101) }).success).toBe(false);
     expect(favouriteProductsSchema.safeParse({ keys: [] }).success).toBe(true);
     expect(favouriteProductsSchema.safeParse({ keys: keys(101) }).success).toBe(false);
+  });
+});
+
+describe("toFavouriteKey (the browser's zod-free check)", () => {
+  const id = "cmg1a2b3c4d5e6f7g8h9i0j1k";
+  const cases: [unknown, unknown][] = [
+    [id, ""],
+    [id, "  Black  "],
+    [id, "x".repeat(40)],
+    [id, "x".repeat(41)],
+    ["Not-A-Cuid", "Black"],
+    ["", "Black"],
+    [42, "Black"],
+    [id, null],
+    [id, 7],
+  ];
+
+  it("accepts and trims exactly what favouriteKeySchema does", () => {
+    for (const [productId, color] of cases) {
+      const parsed = favouriteKeySchema.safeParse({ productId, color });
+      expect(toFavouriteKey(productId, color)).toEqual(parsed.success ? parsed.data : null);
+    }
   });
 });
