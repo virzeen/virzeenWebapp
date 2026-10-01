@@ -11,7 +11,7 @@ import { useAddToBag } from "./use-add-to-bag";
 
 /**
  * The outlined pill on a favourite's card (specs/favourites.md "Nike layout"): "Add to bag", which adds a style's one
- * variant or opens the Add to bag popup for one with sizes, and says "Added" (green tick) once the bag holds the
+ * variant or opens the Add to bag popup for one with sizes, and says "Added" (black tick) once the bag holds the
  * style; "Sold out" (disabled) when none is in stock; "View product" (a link to the product page) when the saved
  * style isn't sold any more but another style is in stock.
  */

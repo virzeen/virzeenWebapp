@@ -46,7 +46,10 @@ test.describe("Add to bag", () => {
   test("the bag page keeps quantity changes and removal with undo", async ({ page }) => {
     await page.goto("/product/logo-cap");
     await page.getByRole("button", { name: "Add to bag" }).click();
-    await page.getByRole("dialog", { name: "Bag" }).getByRole("link", { name: "View bag" }).click();
+    const drawer = page.getByRole("dialog", { name: "Bag" });
+    await drawer.getByRole("link", { name: "View bag" }).click();
+    // The drawer slides closed before the page's own lines are the only ones.
+    await expect(drawer).toBeHidden();
     await expect(page.getByRole("heading", { level: 1, name: "Bag" })).toBeVisible();
 
     const quantity = page.getByRole("group", { name: "Quantity of Logo Cap" });

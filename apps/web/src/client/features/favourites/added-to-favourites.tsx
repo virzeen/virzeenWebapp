@@ -23,7 +23,7 @@ const AddedToFavouritesContext = createContext<ShowAdded | null>(null);
 
 /**
  * "Added to favourites", like Nike's (owner request 2026-10-01, specs/favourites.md): after a Favourite press saves a
- * product, a panel drops down under the header on the right (phones: across the top) with a green tick, the photo,
+ * product, a panel drops down under the header on the right (phones: across the top) with a black tick, the photo,
  * name, details and price, and "View favourites". A `DropPanel`: modal, Escape or a click outside closes it, and focus
  * goes back to the button that saved. Inside `FavouritesProvider`, so every Favourite button can open it.
  */
@@ -44,9 +44,9 @@ export function AddedToFavouritesProvider({ children }: { children: React.ReactN
       <DropPanel open={open} onOpenChange={setOpen}>
         <DropPanelContent
           title="Added to favourites"
-          // A white tick on a green disc, as on the "Added" pill.
+          // A white tick on a black disc, as on the "Added" pill (black and white only, owner 2026-10-01).
           icon={
-            <CircleCheck className="size-5 shrink-0 fill-success text-canvas" strokeWidth={1.5} aria-hidden />
+            <CircleCheck className="size-5 shrink-0 fill-ink text-canvas" strokeWidth={1.5} aria-hidden />
           }
           // The panel has no trigger: send focus back to the Favourite button that saved.
           onCloseAutoFocus={(event) => {
