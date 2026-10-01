@@ -164,9 +164,11 @@
       transform: translateX(-1rem);
     }
   }
+  /* Starts at 40%, not 0: browsers don't count an invisible element as the page's largest content (LCP), so a
+     hero heading fading in from 0 left the home page without an early LCP and failed the Lighthouse audit. */
   @keyframes reveal {
     from {
-      opacity: 0;
+      opacity: 0.4;
       transform: translateY(12px);
     }
   }
