@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { Controller, useForm } from "react-hook-form";
 import { authClient } from "@/client/lib/auth-client";
+import { forgetPendingSignIn, rememberPendingSignIn } from "@/client/lib/pending-sign-in";
 import { authErrorMessage, codeCheckFailure, type AuthError } from "./auth-errors";
 
 const RESEND_SECONDS = 60;
@@ -101,6 +102,7 @@ export function VerifyForm({ email, next }: { email: string; next: string }) {
     }
     if (!error) {
       setPhase("success"); // `busy` stays set
+      forgetPendingSignIn();
       router.replace(next);
       router.refresh();
       return;
@@ -163,6 +165,7 @@ export function VerifyForm({ email, next }: { email: string; next: string }) {
     form.resetField("otp");
     setAlert(null);
     setCooldown(RESEND_SECONDS);
+    rememberPendingSignIn(email, next); // the new code's 10 minutes start now
     toast.success("We sent a new code");
     form.setFocus("otp");
   }
