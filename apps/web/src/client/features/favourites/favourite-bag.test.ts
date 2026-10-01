@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bagChoice, favouriteDetails, favouriteHref } from "./favourite-bag";
+import { bagChoice, favouriteDetails, favouriteHref, keepPlaces, styleInBag } from "./favourite-bag";
 
 const variant = (id: string, size: string | null, stock: number) => ({
   id,
@@ -55,5 +55,44 @@ describe("favouriteDetails", () => {
   it("gives the category and the style, or just the category", () => {
     expect(favouriteDetails({ category: "Tops", style: "Black" })).toBe("Tops · Black");
     expect(favouriteDetails({ category: "Accessories", style: "" })).toBe("Accessories");
+  });
+});
+
+describe("styleInBag", () => {
+  const sizes = [variant("s", "S", 0), variant("m", "M", 2)];
+
+  it("is true when the bag holds any size of the style", () => {
+    expect(styleInBag(sizes, [{ variantId: "other" }, { variantId: "m" }])).toBe(true);
+  });
+
+  it("is false for an empty bag, other products, or a style no longer sold", () => {
+    expect(styleInBag(sizes, [])).toBe(false);
+    expect(styleInBag(sizes, [{ variantId: "other" }])).toBe(false);
+    expect(styleInBag([], [{ variantId: "m" }])).toBe(false);
+  });
+});
+
+describe("keepPlaces", () => {
+  const card = (productId: string, color = "", name = productId) => ({ productId, color, name });
+  const a = card("a");
+  const b = card("b", "Black");
+  const c = card("c");
+
+  it("keeps a card whose heart was pressed here where it was, though the list dropped it", () => {
+    expect(keepPlaces([a, b, c], [a, c], new Set(["b:Black"]))).toEqual([a, b, c]);
+  });
+
+  it("drops a card the list dropped without a press here", () => {
+    expect(keepPlaces([a, b, c], [a, c], new Set())).toEqual([a, c]);
+  });
+
+  it("keeps the places when a card saved again comes back first in the list", () => {
+    expect(keepPlaces([a, b, c], [b, a, c], new Set(["b:Black"]))).toEqual([a, b, c]);
+  });
+
+  it("puts new cards first and takes the list's fresh data", () => {
+    const renamed = card("a", "", "A, renamed");
+    const d = card("d");
+    expect(keepPlaces([a, c], [d, renamed, c], new Set())).toEqual([d, renamed, c]);
   });
 });

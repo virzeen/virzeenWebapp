@@ -1,5 +1,8 @@
-import { Button, Link } from "@virzeen/ui";
-import { X } from "lucide-react";
+"use client";
+
+import { Button, cn, Link } from "@virzeen/ui";
+import { Heart } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { CloudImage } from "@/client/components/shared/cloud-image";
 import { Price } from "@/client/components/shared/price";
 import type { FavouriteView } from "@/server/actions/favourites";
@@ -13,29 +16,58 @@ import { FavouriteBagButton } from "./favourite-bag-button";
 export const favouriteName = ({ product, style }: FavouriteView) =>
   style ? `${product.name}, ${style}` : product.name;
 
+/** How long "Removed from favourites — Undo" stays before the card fades away, and how long the fade takes. */
+const UNDO_MS = 5000;
+const FADE_MS = 400;
+
 type FavouriteCardProps = {
   item: FavouriteView;
   priority?: boolean;
-  /** Edit mode: a round Remove (X) on the photo's top right. */
-  editing: boolean;
-  onRemove: () => void;
+  /** The heart is filled. Empty: removed with a press here, so the card offers Undo until it goes. */
+  saved: boolean;
+  /** The heart, and Undo: removes the favourite, or saves it again. */
+  onToggleSaved: () => void;
+  /** The card has faded away after its Undo time: take it off the page. */
+  onGone: () => void;
 };
 
 /**
  * A saved product, Nike's way (specs/favourites.md "Nike layout"): one link to the product in the saved style (the
- * square photo, the name with the price on the right, "Category · Style" in grey), then the bag pill. On phones the
- * price goes under the name: beside it, a half-width column left no room for a word like "Heavyweight". A button
- * can't sit inside a link, so Remove lies over the photo beside it. A style that isn't sold any more shows the
- * product's usual photo and price, with just the category.
+ * square photo; the name with "Category · Style" in grey under it on the left and the price on the right), then the
+ * bag pill. On phones the price goes under them: beside them, a half-width column left no room for a word like
+ * "Heavyweight". A button can't sit inside a link, so the heart lies over the photo's top right beside it. A style
+ * that isn't sold any more shows the product's usual photo and price, with just the category.
+ *
+ * Removed with the heart, the card dims and a dark bar on the photo says "Removed from favourites" with Undo; 5
+ * seconds later the card fades away and `onGone` takes it off the page. While a keyboard user's focus is inside the
+ * card the clock waits, so there's time to reach Undo (WCAG 2.2.1); it starts again when focus leaves.
  */
-export function FavouriteCard({ item, priority = false, editing, onRemove }: FavouriteCardProps) {
+export function FavouriteCard({ item, priority = false, saved, onToggleSaved, onGone }: FavouriteCardProps) {
   const { product } = item;
+  const removed = !saved;
+  // A keyboard user's focus is inside the card.
+  const [held, setHeld] = useState(false);
+  const fading = useFadeAway(removed && !held, onGone);
+
   return (
-    <div role="listitem" className="relative flex flex-col gap-4">
+    <div
+      role="listitem"
+      className={cn(
+        "relative flex flex-col gap-4 transition-opacity duration-400 ease-standard",
+        fading && "opacity-0",
+      )}
+      onFocus={(event) => setHeld(event.target.matches(":focus-visible"))}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setHeld(false);
+      }}
+    >
       <Link
         href={favouriteHref(item)}
         variant="subtle"
-        className="group flex flex-col gap-3 text-ink hover:text-ink"
+        className={cn(
+          "group flex flex-col gap-3 text-ink transition-opacity duration-150 ease-standard hover:text-ink",
+          removed && "opacity-50",
+        )}
       >
         <CloudImage
           src={product.imageUrl}
@@ -45,29 +77,67 @@ export function FavouriteCard({ item, priority = false, editing, onRemove }: Fav
           priority={priority}
           imageClassName="transition-transform duration-400 ease-standard motion-safe:group-hover:scale-102"
         />
-        <div className="flex flex-col gap-1">
-          <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+          <div className="flex min-w-0 flex-col gap-1">
             {/* A word longer than the space left for it breaks instead of pushing the price out of the card. */}
-            <span className="min-w-0 text-body font-medium wrap-break-word">{product.name}</span>
-            <Price paisa={product.fromPricePaisa} className="shrink-0 text-body font-medium" />
+            <span className="text-body font-medium wrap-break-word">{product.name}</span>
+            <span className="text-body wrap-break-word text-ink-muted">{favouriteDetails(item)}</span>
           </div>
-          <span className="text-body wrap-break-word text-ink-muted">{favouriteDetails(item)}</span>
+          <Price paisa={product.fromPricePaisa} className="shrink-0 text-body font-medium" />
         </div>
       </Link>
-      {editing && (
-        <Button
-          variant="secondary"
-          size="icon"
-          shape="pill"
-          className="absolute top-2 right-2"
-          aria-label={`Remove ${favouriteName(item)}`}
-          data-remove-favourite
-          onClick={onRemove}
-        >
-          <X className="size-5" strokeWidth={1.5} aria-hidden />
-        </Button>
+      <Button
+        variant="inverse"
+        size="icon"
+        shape="pill"
+        className="absolute top-3 right-3"
+        aria-label={`Favourite ${favouriteName(item)}`}
+        aria-pressed={saved}
+        data-favourite-heart
+        onClick={onToggleSaved}
+      >
+        <Heart className={cn("size-5", saved && "fill-current")} strokeWidth={1.5} aria-hidden />
+      </Button>
+      {removed && (
+        // As tall as the photo, so the bar sits on the photo's bottom edge.
+        <div className="pointer-events-none absolute inset-x-0 top-0 flex aspect-square items-end p-3">
+          <div className="pointer-events-auto flex w-full flex-wrap items-center justify-center gap-x-4 rounded-sm bg-canvas px-4 py-1 text-center tone-inverse">
+            <p className="text-small font-medium">Removed from favourites</p>
+            <Button variant="underline" size="sm" onClick={onToggleSaved}>
+              Undo
+            </Button>
+          </div>
+        </div>
       )}
-      <FavouriteBagButton item={item} />
+      <div>
+        <FavouriteBagButton item={item} />
+      </div>
     </div>
   );
+}
+
+/**
+ * While `running`: after UNDO_MS the card starts fading (true), and FADE_MS later `onGone` runs. Stopping (Undo, or
+ * a keyboard user's focus coming in) cancels both and shows the card again; running again starts from the beginning.
+ */
+function useFadeAway(running: boolean, onGone: () => void) {
+  const [fading, setFading] = useState(false);
+  const goneRef = useRef(onGone);
+  useEffect(() => {
+    goneRef.current = onGone;
+  });
+  // Stopped mid-fade: visible again (React "adjust state when a prop changes" pattern).
+  if (!running && fading) setFading(false);
+
+  useEffect(() => {
+    if (!running) return;
+    const fade = window.setTimeout(() => setFading(true), UNDO_MS);
+    const gone = window.setTimeout(() => goneRef.current(), UNDO_MS + FADE_MS);
+    return () => {
+      window.clearTimeout(fade);
+      window.clearTimeout(gone);
+    };
+  }, [running]);
+
+  return running && fading;
 }

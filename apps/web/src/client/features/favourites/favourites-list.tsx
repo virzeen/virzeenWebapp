@@ -5,6 +5,7 @@ import { Heart } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { FavouriteView } from "@/server/actions/favourites";
+import { keepPlaces } from "./favourite-bag";
 import { FavouriteCard, favouriteName } from "./favourite-card";
 import { FavouritesGrid } from "./favourites-grid";
 import { useFavourites } from "./favourites-provider";
@@ -22,24 +23,34 @@ type FavouritesListProps = {
 };
 
 const itemCount = (n: number) => `${n} ${n === 1 ? "item" : "items"}`;
+const NONE: ReadonlySet<string> = new Set();
 
 /**
- * The Favourites page body (specs/favourites.md "Nike layout"): the heading with "Edit" on the right (a count for
- * screen readers only), then the saved products, 2 and 3 across. "Edit" (then "Done", `aria-pressed`) puts a round
- * Remove on each photo, and only shows when there's something to remove. Remove takes a card away at once (the
- * provider saves it and puts it back if that fails); keyboard focus then moves to the next card's Remove, else the
- * previous one's, else "Done", and a screen reader hears "Removed {name}.". Edit mode ends with the page.
+ * The Favourites page body (specs/favourites.md "Nike layout"): the heading (a count for screen readers only), then
+ * the saved products, 2 and 3 across, each with a heart on its photo. Pressing a filled heart removes the favourite
+ * at once (the provider saves it and fills the heart again if that fails); the card stays, dimmed, with "Removed from
+ * favourites" and Undo (or the empty heart) to save it again, and after 5 seconds it fades away (`FavouriteCard`).
+ * When the card that goes held keyboard focus, focus moves to the next card's heart, else the previous one's, else
+ * the heading. A screen reader hears "Removed {name} from favourites." or "Added {name} to favourites.".
  */
 export function FavouritesList({ items, expected, error, onRetry }: FavouritesListProps) {
-  const { signedIn, isSaved, isRemoved, remove: removeFavourite, merging } = useFavourites();
+  const { signedIn, isSaved, isRemoved, save, remove, merging } = useFavourites();
   const router = useRouter();
   const checked = useRef(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
-  const editRef = useRef<HTMLButtonElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
-  const [editing, setEditing] = useState(false);
-  // The card just removed and where it was, until it has left the page.
-  const removing = useRef<{ key: string; index: number } | null>(null);
+  // Where the card that just went held focus, until the page has drawn without it.
+  const refocusAt = useRef<number | null>(null);
+  // Hearts pressed on this page (`keyOf`): their cards stay when the list drops them, until they fade away.
+  const [pressed, setPressed] = useState(NONE);
+  // The cards shown, and the list they were last matched with (React "adjust state when a prop changes" pattern).
+  const [shown, setShown] = useState(items);
+  const [listed, setListed] = useState(items);
+  if (items !== listed) {
+    setListed(items);
+    setShown(items && shown ? keepPlaces(shown, items, pressed) : items);
+  }
+  const inList = new Set(items?.map(keyOf));
   const [announcement, setAnnouncement] = useState("");
 
   // Signed in, which favourites are saved comes from the site layout, which moving here from another page doesn't
@@ -54,35 +65,49 @@ export function FavouritesList({ items, expected, error, onRetry }: FavouritesLi
     if (signedIn && items.some(unknown)) router.refresh();
   }, [items, signedIn, isSaved, isRemoved, router]);
 
-  // A removed card goes at once (it comes back if that fails); a guest's list also follows their other tabs.
-  const visible = items?.filter((item) => !isRemoved(item.productId, item.color)) ?? null;
-  // Right after sign-in an empty account list may be about to get the browser's favourites.
-  const loading = !error && (visible === null || (merging && visible.length === 0));
-  const cards = !loading && visible && visible.length > 0 ? visible : null;
-  // After the last Remove, "Done" stays (holding focus) until it's pressed.
-  const showEdit = !loading && (cards !== null || editing);
-
   useLayoutEffect(() => {
-    const pending = removing.current;
-    if (!pending || visible?.some((item) => keyOf(item) === pending.key)) return;
-    removing.current = null;
-    const buttons = gridRef.current?.querySelectorAll<HTMLElement>("[data-remove-favourite]");
-    (buttons?.item(pending.index) ?? buttons?.item(pending.index - 1) ?? editRef.current)?.focus();
+    const index = refocusAt.current;
+    if (index === null) return;
+    refocusAt.current = null;
+    const hearts = gridRef.current?.querySelectorAll<HTMLElement>("[data-favourite-heart]");
+    (hearts?.item(index) ?? hearts?.item(index - 1) ?? headingRef.current)?.focus();
   });
 
-  async function remove(item: FavouriteView, index: number) {
-    removing.current = { key: keyOf(item), index };
-    setAnnouncement(`Removed ${favouriteName(item)}.`);
-    if ((await removeFavourite(item.productId, item.color)) !== null) return;
-    // Not saved: the card is back and a toast says why.
-    removing.current = null;
-    setAnnouncement("");
+  // Right after sign-in an empty account list may be about to get the browser's favourites.
+  const loading = !error && (shown === null || (merging && shown.length === 0));
+  const cards = !loading && shown && shown.length > 0 ? shown : null;
+
+  /** Filled: saved, or listed by the server and not removed here (saved on another device since the layout). */
+  const saved = (item: FavouriteView) =>
+    isSaved(item.productId, item.color) ||
+    (inList.has(keyOf(item)) && !isRemoved(item.productId, item.color));
+
+  async function toggleSaved(item: FavouriteView) {
+    const removing = saved(item);
+    setPressed((current) => new Set(current).add(keyOf(item)));
+    setAnnouncement(
+      removing
+        ? `Removed ${favouriteName(item)} from favourites.`
+        : `Added ${favouriteName(item)} to favourites.`,
+    );
+    const now = await (removing ? remove : save)(item.productId, item.color);
+    // Not saved: the heart is back as it was and a toast says why.
+    if (now === null) setAnnouncement("");
   }
 
-  function toggleEditing() {
-    // "Done" with nothing left goes away, so focus waits on the heading.
-    if (editing && !cards) headingRef.current?.focus();
-    setEditing(!editing);
+  /** The Undo time is over: the card leaves the page (and stays gone when the list comes again). */
+  function leave(item: FavouriteView) {
+    const key = keyOf(item);
+    const index = shown?.findIndex((card) => keyOf(card) === key) ?? -1;
+    if (index >= 0 && gridRef.current?.children.item(index)?.contains(document.activeElement)) {
+      refocusAt.current = index;
+    }
+    setShown((current) => current?.filter((card) => keyOf(card) !== key) ?? current);
+    setPressed((current) => {
+      const next = new Set(current);
+      next.delete(key);
+      return next;
+    });
   }
 
   function retry() {
@@ -93,16 +118,11 @@ export function FavouritesList({ items, expected, error, onRetry }: FavouritesLi
 
   return (
     <div className="flex flex-col gap-8">
-      <header className="flex min-h-11 items-center justify-between gap-4">
+      <header className="flex min-h-11 items-center">
         <h1 ref={headingRef} tabIndex={-1} className="font-display text-h1 focus:outline-none">
           Favourites
         </h1>
         {cards && <p className="sr-only">{itemCount(cards.length)}</p>}
-        {showEdit && (
-          <Button ref={editRef} variant="link" aria-pressed={editing} onClick={toggleEditing}>
-            {editing ? "Done" : "Edit"}
-          </Button>
-        )}
       </header>
       <p role="status" className="sr-only">
         {announcement}
@@ -121,8 +141,9 @@ export function FavouritesList({ items, expected, error, onRetry }: FavouritesLi
               key={keyOf(item)}
               item={item}
               priority={index < 2}
-              editing={editing}
-              onRemove={() => void remove(item, index)}
+              saved={saved(item)}
+              onToggleSaved={() => void toggleSaved(item)}
+              onGone={() => leave(item)}
             />
           ))}
         </FavouritesGrid>

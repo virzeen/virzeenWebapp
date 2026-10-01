@@ -189,6 +189,14 @@ describe("favouriteService.list", () => {
     ]);
     expect(items[1]).toMatchObject({ productId: tee.id, savedAt: expect.any(Date) });
     expect(items[1]?.product).toMatchObject({ id: tee.id, imageAlt: "Tee, White" });
+    // The Add to bag popup's gallery: the style's photos, else every photo of the product.
+    expect(items.map((item) => item.photos.map((photo) => photo.url))).toEqual([
+      ["tee/white", "tee/black-1", "tee/black-2", "tee/chart"],
+      ["tee/white"],
+      ["/placeholder/product-1.jpg"],
+      ["tee/black-1", "tee/black-2"],
+    ]);
+    expect(items[1]?.photos[0]).toEqual({ id: expect.any(String), url: "tee/white", alt: "Tee, White" });
     expect(await favouriteService.listKeys(user.id)).toHaveLength(5);
   });
 

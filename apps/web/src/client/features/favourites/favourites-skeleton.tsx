@@ -3,7 +3,7 @@ import { FavouritesGrid } from "./favourites-grid";
 
 const CARD_IDS = ["a", "b", "c", "d", "e", "f", "g", "h"];
 
-/** Favourites cards while they load: square photo, name and price, category, the bag pill (ui-discipline.md §6). */
+/** Favourites cards while they load: square photo, name and category, price, the bag pill (ui-discipline.md §6). */
 export function FavouritesGridSkeleton({ count = 4 }: { count?: number }) {
   return (
     <FavouritesGrid aria-busy>
@@ -11,16 +11,16 @@ export function FavouritesGridSkeleton({ count = 4 }: { count?: number }) {
         <div key={id} className="flex flex-col gap-4">
           <div className="flex flex-col gap-3">
             <Skeleton className="aspect-square w-full" />
-            <div className="flex flex-col gap-2">
-              {/* The price goes under the name on phones, as on the card. */}
-              <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:gap-3">
+            {/* The name and category on the left, the price on the right (under them on phones), as on the card. */}
+            <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:gap-3">
+              <div className="flex flex-1 flex-col gap-2">
+                <Skeleton shape="text" className="w-2/3" />
                 <Skeleton shape="text" className="w-1/2" />
-                <Skeleton shape="text" className="w-1/4" />
               </div>
-              <Skeleton shape="text" className="w-1/3" />
+              <Skeleton shape="text" className="w-1/4" />
             </div>
           </div>
-          <Skeleton shape="circle" className="h-11 w-full" />
+          <Skeleton shape="circle" className="h-12 w-32" />
         </div>
       ))}
     </FavouritesGrid>

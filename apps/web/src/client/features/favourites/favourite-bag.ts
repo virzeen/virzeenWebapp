@@ -1,7 +1,17 @@
 import type { FavouriteView } from "@/server/actions/favourites";
+import { keyOf } from "./favourites-store";
 
 type Variant = FavouriteView["variants"][number];
 type SizedVariant = Variant & { size: string };
+
+/** The bag page's favourites: the newest few, and how many there are in all. */
+export type FavouritesPreview = { items: FavouriteView[]; total: number };
+
+/**
+ * How many favourites the bag page shows, as Nike's does; "View more favourites" leads to the rest. Here, not in a
+ * client file, so the bag page (a Server Component) reads the number itself.
+ */
+export const BAG_FAVOURITES_SHOWN = 2;
 
 /** What a favourite's pill button does (specs/favourites.md "Nike layout"). */
 export type BagChoice =
@@ -45,3 +55,29 @@ export const favouriteHref = ({
 /** The grey line under the name: "Tops · Black", or just the category without a style. */
 export const favouriteDetails = ({ category, style }: Pick<FavouriteView, "category" | "style">) =>
   style ? `${category} · ${style}` : category;
+
+/** "Added" on the pill: the bag holds one of the saved style's variants (any of its sizes). */
+export const styleInBag = (variants: readonly Pick<Variant, "id">[], bag: readonly { variantId: string }[]) =>
+  bag.some((line) => variants.some((variant) => variant.id === line.variantId));
+
+/**
+ * The Favourites page's cards once a new list arrives (`next`): the cards already shown stay in their places (with
+ * fresh data while listed), the ones whose heart was pressed here (`pressed`) stay even when the list has dropped
+ * them, so a second press saves them again, and new ones go first, newest first as listed. Any other card the list
+ * dropped (removed on another device, no longer on sale) goes.
+ */
+export function keepPlaces<T extends { productId: string; color: string }>(
+  before: readonly T[],
+  next: readonly T[],
+  pressed: ReadonlySet<string>,
+): T[] {
+  const listed = new Map(next.map((item) => [keyOf(item), item]));
+  const shown = new Set(before.map(keyOf));
+  const added = next.filter((item) => !shown.has(keyOf(item)));
+  const kept = before.flatMap((item) => {
+    const fresh = listed.get(keyOf(item));
+    if (fresh) return [fresh];
+    return pressed.has(keyOf(item)) ? [item] : [];
+  });
+  return [...added, ...kept];
+}

@@ -2,9 +2,10 @@ import { expect, test } from "@playwright/test";
 import { signIn, uniqueEmail } from "./helpers";
 
 // Journey: favourites (docs/specs/favourites.md). A guest's favourites live in the browser and move to the
-// account on sign-in; the page (Nike layout) adds a favourite to the bag and removes it in edit mode.
+// account on sign-in; the page (Nike layout) adds a favourite to the bag through the Add to bag popup, removes it
+// with the heart (Undo, then the card fades away), and the bag page shows favourites or "You might also like".
 test.describe("Favourites", () => {
-  test("a guest's favourite moves to the account on sign-in, goes into the bag and is removed in edit mode", async ({
+  test("a guest's favourite moves to the account on sign-in, goes into the bag and is removed with the heart", async ({
     page,
   }) => {
     await page.goto("/product/linen-overshirt");
@@ -34,12 +35,20 @@ test.describe("Favourites", () => {
     await page.reload();
     await expect(card).toBeVisible();
 
-    // "Select size": the style's sizes as on the product page (Bone XL is sold out), then Add to bag.
-    const selectSize = page.getByRole("button", { name: "Select size" });
-    await selectSize.click();
-    const popup = page.getByRole("dialog", { name: "Select size" });
-    await expect(popup).toContainText("Linen Overshirt");
+    // "Add to bag": the popup with the style's sizes as on the product page (Bone XL is sold out).
+    const addToBag = page.getByRole("button", { name: "Add to bag" });
+    await addToBag.click();
+    const popup = page.getByRole("dialog", { name: "Linen Overshirt" });
+    await expect(popup).toHaveAccessibleDescription("Tops · Bone");
     await expect(popup.getByRole("radio", { name: "XL", exact: true })).toBeDisabled();
+    await expect(popup.getByRole("link", { name: "View full product" })).toHaveAttribute(
+      "href",
+      "/product/linen-overshirt?style=Bone",
+    );
+    // Before a size: "Select a size", and focus on the first size.
+    await popup.getByRole("button", { name: "Add to bag" }).click();
+    await expect(popup.getByText("Select a size")).toBeVisible();
+    await expect(popup.getByRole("radio", { name: "S", exact: true })).toBeFocused();
     await popup.getByRole("radio", { name: "M", exact: true }).click();
     await popup.getByRole("button", { name: "Add to bag" }).click();
     await expect(popup).toBeHidden();
@@ -48,32 +57,48 @@ test.describe("Favourites", () => {
     await expect(bag.getByText("Linen Overshirt")).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(bag).toBeHidden();
-    await expect(selectSize).toBeFocused();
+    // The pill now says "Added" and keeps focus.
+    const added = page.getByRole("button", { name: "Added to bag. Add another" });
+    await expect(added).toBeFocused();
 
-    // Edit mode: a round Remove on the photo. The card goes at once; the save is the Server Action's POST.
-    await page.getByRole("button", { name: "Edit", exact: true }).click();
-    const done = page.getByRole("button", { name: "Done", exact: true });
-    await expect(done).toHaveAttribute("aria-pressed", "true");
+    // The bag page lists the favourite under the bag, already added.
+    await page.goto("/cart");
+    const bagFavourites = page.getByRole("region", { name: "Favourites" });
+    await expect(bagFavourites.getByRole("link", { name: "Linen Overshirt", exact: true })).toBeVisible();
+    await expect(bagFavourites.getByRole("button", { name: "Added to bag. Add another" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "You might also like" })).toHaveCount(0);
+
+    // The heart removes it at once (the save is the Server Action's POST); Undo saves it again.
+    await page.goto("/favourites");
+    const heart = page.getByRole("button", { name: "Favourite Linen Overshirt, Bone" });
+    await expect(heart).toHaveAttribute("aria-pressed", "true");
+    await heart.click();
+    await expect(heart).toHaveAttribute("aria-pressed", "false");
+    await expect(page.getByText("Removed from favourites")).toBeVisible();
+    await page.getByRole("button", { name: "Undo" }).click();
+    await expect(heart).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByText("Removed from favourites")).toBeHidden();
+
+    // Removed again and left alone: 5 seconds later the card fades away and the empty state shows.
     const saved = page.waitForResponse(
       (response) =>
         response.request().method() === "POST" && new URL(response.url()).pathname === "/favourites",
     );
-    await page.getByRole("button", { name: "Remove Linen Overshirt, Bone" }).click();
-    const empty = page.getByText("Items added to your Favourites will be saved here.");
-    await expect(empty).toBeVisible();
-    // No card left to move to, so focus goes to "Done"; pressing it leaves edit mode and hides it.
-    await expect(done).toBeFocused();
+    await heart.click();
     expect((await saved).ok()).toBe(true);
-    await done.click();
-    await expect(heading).toBeFocused();
-    await expect(page.getByRole("button", { name: /^(Edit|Done)$/ })).toHaveCount(0);
+    const empty = page.getByText("Items added to your Favourites will be saved here.");
+    await expect(empty).toBeVisible({ timeout: 10_000 });
+    await expect(card).toHaveCount(0);
     await expect(page.getByRole("main").getByRole("link", { name: "Shop", exact: true })).toHaveAttribute(
       "href",
       "/shop",
     );
-
     await page.reload();
     await expect(empty).toBeVisible();
-    await expect(page.getByRole("button", { name: "Edit", exact: true })).toHaveCount(0);
+
+    // No favourites: the bag page suggests products instead.
+    await page.goto("/cart");
+    await expect(page.getByRole("heading", { name: "You might also like" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Favourites" })).toHaveCount(0);
   });
 });
