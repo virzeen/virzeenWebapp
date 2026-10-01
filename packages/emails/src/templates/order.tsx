@@ -35,10 +35,10 @@ function OrderSummary({ order }: { order: OrderEmailData }) {
   return (
     <Section className="mt-6">
       {order.items.map((item) => (
-        <Row key={item.id} className="border-b border-line">
+        <Row key={item.id} className="vz-line border-b border-line">
           <Column className="py-3">
             <Text className="m-0 text-body">{item.productName}</Text>
-            <Text className="m-0 text-small text-ink-muted">
+            <Text className="vz-muted m-0 text-small text-ink-muted">
               {item.variantLabel} · Qty {item.quantity}
             </Text>
           </Column>
@@ -50,7 +50,7 @@ function OrderSummary({ order }: { order: OrderEmailData }) {
       ))}
       <Row className="mt-3">
         <Column>
-          <Text className="m-0 text-body text-ink-muted">Subtotal</Text>
+          <Text className="vz-muted m-0 text-body text-ink-muted">Subtotal</Text>
         </Column>
         <Column className="text-right whitespace-nowrap">
           <Text className="m-0 text-body">{formatPaisa(order.subtotalPaisa)}</Text>
@@ -58,7 +58,7 @@ function OrderSummary({ order }: { order: OrderEmailData }) {
       </Row>
       <Row>
         <Column>
-          <Text className="m-0 text-body text-ink-muted">Shipping</Text>
+          <Text className="vz-muted m-0 text-body text-ink-muted">Shipping</Text>
         </Column>
         <Column className="text-right whitespace-nowrap">
           <Text className="m-0 text-body">
@@ -74,7 +74,7 @@ function OrderSummary({ order }: { order: OrderEmailData }) {
           <Text className="m-0 text-h2">{formatPaisa(order.totalPaisa)}</Text>
         </Column>
       </Row>
-      <Text className="mt-1 text-small text-ink-muted">
+      <Text className="vz-muted mt-1 text-small text-ink-muted">
         Includes {formatPaisa(order.vatPaisa)} VAT (13%). Paid by {order.paymentMethodLabel}.
       </Text>
     </Section>
@@ -83,8 +83,8 @@ function OrderSummary({ order }: { order: OrderEmailData }) {
 
 function AddressBlock({ address }: { address: OrderEmailData["address"] }) {
   return (
-    <Section className="mt-6 rounded-md bg-surface px-6 py-4">
-      <Text className="m-0 text-caption text-ink-muted uppercase">Delivering to</Text>
+    <Section className="vz-surface mt-6 rounded-md bg-surface px-6 py-4">
+      <Text className="vz-muted m-0 text-caption text-ink-muted uppercase">Delivering to</Text>
       <Text className="m-0 mt-2 text-body">
         {address.fullName}
         <br />
@@ -109,13 +109,13 @@ export function OrderConfirmationEmail({ order }: { order: OrderEmailData }) {
       <Heading as="h1" className="m-0 text-h1 font-normal">
         Thank you — your order <span className="whitespace-nowrap">{order.orderNumber}</span> is confirmed.
       </Heading>
-      <Text className="text-body text-ink-muted">
+      <Text className="vz-muted text-body text-ink-muted">
         Hi {order.customerName}, we&apos;re getting your order ready. Placed on{" "}
         <span className="whitespace-nowrap">{formatDate(order.placedAt)}</span>.
       </Text>
       <OrderSummary order={order} />
       <AddressBlock address={order.address} />
-      <Button href={url} className="mt-8 rounded-full bg-ink px-6 py-3 text-body text-canvas">
+      <Button href={url} className="vz-button mt-8 rounded-full bg-ink px-6 py-3 text-body text-canvas">
         View your order
       </Button>
     </EmailLayout>
@@ -140,17 +140,17 @@ export function OrderShippedEmail({ order }: { order: OrderShippedEmailData }) {
       <Heading as="h1" className="m-0 text-h1 font-normal">
         Your order is on its way.
       </Heading>
-      <Text className="text-body text-ink-muted">
+      <Text className="vz-muted text-body text-ink-muted">
         Hi {order.customerName}, order <span className="whitespace-nowrap">{order.orderNumber}</span> has been
         handed to {order.courierName}.
       </Text>
-      <Section className="mt-6 rounded-md bg-surface px-6 py-4">
-        <Text className="m-0 text-caption text-ink-muted uppercase">Tracking number</Text>
+      <Section className="vz-surface mt-6 rounded-md bg-surface px-6 py-4">
+        <Text className="vz-muted m-0 text-caption text-ink-muted uppercase">Tracking number</Text>
         <Text className="m-0 mt-2 text-h2">{order.trackingNumber}</Text>
       </Section>
       <Button
         href={`${order.siteUrl}/account/orders/${order.orderNumber}`}
-        className="mt-8 rounded-full bg-ink px-6 py-3 text-body text-canvas"
+        className="vz-button mt-8 rounded-full bg-ink px-6 py-3 text-body text-canvas"
       >
         Track your order
       </Button>
@@ -176,18 +176,18 @@ export function OrderCancelledEmail({ order }: { order: OrderCancelledEmailData 
       <Heading as="h1" className="m-0 text-h1 font-normal">
         Your order <span className="whitespace-nowrap">{order.orderNumber}</span> was cancelled.
       </Heading>
-      <Text className="text-body text-ink-muted">
+      <Text className="vz-muted text-body text-ink-muted">
         Hi {order.customerName}, {order.reason}
       </Text>
       {order.wasPaidOnline && (
-        <Text className="text-body text-ink-muted">
+        <Text className="vz-muted text-body text-ink-muted">
           Your refund will be processed to your original payment method. We&apos;ll email you when it&apos;s
           done.
         </Text>
       )}
       <Button
         href={`${order.siteUrl}/shop`}
-        className="mt-8 rounded-full bg-ink px-6 py-3 text-body text-canvas"
+        className="vz-button mt-8 rounded-full bg-ink px-6 py-3 text-body text-canvas"
       >
         Continue shopping
       </Button>
@@ -211,7 +211,7 @@ export function AdminAlertEmail({ alert }: { alert: AdminAlertEmailData }) {
       ))}
       <Button
         href={`${alert.siteUrl}/admin/orders`}
-        className="mt-8 rounded-sm bg-ink px-6 py-3 text-body text-canvas"
+        className="vz-button mt-8 rounded-sm bg-ink px-6 py-3 text-body text-canvas"
       >
         Open admin
       </Button>
