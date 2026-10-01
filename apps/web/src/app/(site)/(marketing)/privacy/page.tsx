@@ -1,6 +1,6 @@
-import { Link } from "@virzeen/ui";
 import type { Metadata } from "next";
 import { ContentHeading, ContentPage } from "@/client/components/shared/content-page";
+import { EmailLink } from "@/client/components/shared/email-link";
 import { SITE } from "@/client/lib/site";
 
 export const metadata: Metadata = {
@@ -55,8 +55,8 @@ export default function PrivacyPage() {
       <ContentHeading>Your choices</ContentHeading>
       <p>
         You can update your details and addresses in your account. To get a copy of your data or delete your
-        account, email <Link href={`mailto:${SITE.infoEmail}`}>{SITE.infoEmail}</Link>. Order records we need
-        for tax and accounting stay with us after an account is deleted.
+        account, email <EmailLink email={SITE.infoEmail} />. Order records we need for tax and accounting stay
+        with us after an account is deleted.
       </p>
     </ContentPage>
   );

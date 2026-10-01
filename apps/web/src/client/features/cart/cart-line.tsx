@@ -1,7 +1,7 @@
 "use client";
 
 import { Button, cn, Link, toast } from "@virzeen/ui";
-import { MAX_QTY_PER_LINE } from "@virzeen/validators";
+import { MAX_QTY_PER_LINE } from "@virzeen/validators/limits";
 import { Heart, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useId, useLayoutEffect, useRef, useState, useTransition } from "react";
