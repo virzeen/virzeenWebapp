@@ -38,14 +38,19 @@ export function SizeGuidePreview() {
   );
 }
 
-/** The popup's title and content: drawn again only when the (deferred) guide changes. */
+/**
+ * The popup's title and content: drawn again only when the (deferred) guide changes. An Accessories guide's popup
+ * shows no title, as in the shop (size-guide-dialog.tsx).
+ */
 const PreviewPopup = memo(function PreviewPopup({ guide }: { guide: SizeGuideView }) {
   return (
     <div className="flex flex-col rounded-md border border-line bg-canvas">
-      <div className="flex flex-col gap-1 border-b border-line p-4">
-        <p className="font-display text-h3 text-ink">Size guide</p>
-        <p className="text-body text-ink-muted">{guide.name || "Your guide's name"}</p>
-      </div>
+      {guide.kind !== "PICTURE" && (
+        <div className="flex flex-col gap-1 border-b border-line p-4">
+          <p className="font-display text-h3 text-ink">Size guide</p>
+          <p className="text-body text-ink-muted">{guide.name || "Your guide's name"}</p>
+        </div>
+      )}
       <div className="p-4">
         <SizeGuideContent
           guide={guide}

@@ -200,3 +200,35 @@ export const Split: Story = {
     await waitFor(() => expect(canvas.getByRole("button", { name: "Add to bag" })).toHaveFocus());
   },
 };
+
+/**
+ * `size="lg"` with `hideTitle`: the product page's picture size guide. Only the picture shows; screen readers still
+ * hear "Size guide" and the guide's name, and the picture starts under the close button.
+ */
+export const LargePictureOnly: Story = {
+  render: () => (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="link" size="sm">
+          Size guide
+        </Button>
+      </DialogTrigger>
+      <DialogContent size="lg" title="Size guide" description="Mini and Grande" hideTitle>
+        <div
+          role="img"
+          aria-label="Mini and Grande size chart"
+          className="aspect-4/3 w-full rounded-md bg-surface"
+        />
+      </DialogContent>
+    </Dialog>
+  ),
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(canvas.getByRole("button", { name: "Size guide" }));
+    const dialog = await screen.findByRole("dialog", { name: "Size guide" });
+    await waitFor(() => expect(dialog).toBeVisible());
+    await expect(dialog).toHaveAccessibleDescription("Mini and Grande");
+    await expect(within(dialog).getByText("Size guide").closest(".sr-only")).not.toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    await waitFor(() => expect(canvas.getByRole("button", { name: "Size guide" })).toHaveFocus());
+  },
+};

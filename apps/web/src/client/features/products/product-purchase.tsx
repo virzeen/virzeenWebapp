@@ -11,6 +11,7 @@ import { addToBagMessage, allInBagMessage } from "@/client/lib/error-messages";
 import { addToCartAction } from "@/server/actions/cart";
 import type { ProductDetailsData, SizeGuideView } from "./product-details-data";
 import { useProductSelection } from "./product-selection";
+import { SizeGuideDialog } from "./size-guide-dialog";
 import { SizePicker } from "./size-picker";
 import { galleryFor } from "./style-photos";
 import { StylePicker } from "./style-picker";
@@ -80,7 +81,11 @@ export function ProductPurchase({ product, sizeGuide, tiles, preview = false }: 
 
   return (
     <Stack gap={6}>
-      <StylePicker tiles={tiles} />
+      {/* "Size guide" sits beside "Select size"; a product without sizes (a vase in two styles) has it beside Style. */}
+      <StylePicker
+        tiles={tiles}
+        labelAside={sizeGuide && sizes.length === 0 ? <SizeGuideDialog guide={sizeGuide} /> : undefined}
+      />
       <SizePicker
         ref={sizeGroupRef}
         error={sizeError}
