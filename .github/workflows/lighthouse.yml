@@ -1,7 +1,8 @@
 name: Lighthouse
 
-# Audits the live site every morning (and on demand) on a simulated mid-range phone. Fails when a page drops
-# below the budget, so GitHub emails the owner; the HTML reports are kept as an artifact for 14 days.
+# Audits the live site every morning (and on demand) on a simulated mid-range phone: a warm-up run, then three runs
+# per page. Fails when a page's median score drops below the budget, so GitHub emails the owner; the HTML reports
+# are kept as an artifact for 14 days.
 on:
   workflow_dispatch:
   schedule:
@@ -13,7 +14,7 @@ permissions:
 jobs:
   lighthouse:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - uses: actions/setup-node@v5
         with:
@@ -22,12 +23,19 @@ jobs:
       - name: Audit the live site (mobile)
         run: |
           mkdir -p reports
-          for path in / /shop /portfolio /about /contact; do
-            name=$(echo "$path" | tr '/' '-'); name="page${name%-}"
-            npx -y lighthouse@13.5.0 "https://virzeen.com$path" --quiet \
+          audit() {
+            npx -y lighthouse@13.5.0 "$1" --quiet \
               --chrome-flags="--headless=new --no-sandbox" \
               --only-categories=performance,accessibility,best-practices,seo --form-factor=mobile \
-              --output=json --output=html --output-path="reports/$name"
+              --output=json --output=html --output-path="$2"
+          }
+          # The first run on a fresh runner is the slowest of all (Chrome and the machine warming up): it used to
+          # land on the home page every time, so it's a throw-away warm-up now.
+          audit "https://virzeen.com/" /tmp/warm-up
+          # Three runs per page; the budget takes the median, as Lighthouse advises for its run-to-run variance.
+          for path in / /shop /portfolio /about /contact; do
+            name=$(echo "$path" | tr '/' '-'); name="page${name%-}"
+            for run in 1 2 3; do audit "https://virzeen.com$path" "reports/$name-$run"; done
           done
 
       - name: Check the budget
@@ -36,12 +44,21 @@ jobs:
             const fs = require("fs");
             // Performance varies between runner machines, so its floor is lower than the others.
             const min = { performance: 0.8, accessibility: 0.95, "best-practices": 0.95, seo: 0.95 };
-            let failed = 0;
+            const pages = {};
             for (const file of fs.readdirSync("reports").filter((f) => f.endsWith(".report.json"))) {
-              const categories = JSON.parse(fs.readFileSync(`reports/${file}`, "utf8")).categories;
-              const scores = Object.keys(min).map((k) => `${k} ${Math.round(categories[k].score * 100)}`);
-              console.log(`${file.replace(".report.json", "")}: ${scores.join(", ")}`);
-              for (const k of Object.keys(min)) if (categories[k].score < min[k]) failed++;
+              const page = file.replace(/-\d\.report\.json$/, "");
+              (pages[page] ??= []).push(JSON.parse(fs.readFileSync(`reports/${file}`, "utf8")).categories);
+            }
+            const median = (values) => values.sort((a, b) => a - b)[Math.floor(values.length / 2)];
+            let failed = 0;
+            for (const [page, runs] of Object.entries(pages)) {
+              const scores = Object.keys(min).map((k) => {
+                const all = runs.map((categories) => categories[k].score);
+                const score = median([...all]);
+                if (score < min[k]) failed++;
+                return `${k} ${Math.round(score * 100)} (${all.map((s) => Math.round(s * 100)).join("/")})`;
+              });
+              console.log(`${page}: ${scores.join(", ")}`);
             }
             if (failed) { console.error(`${failed} score(s) below the budget`); process.exit(1); }
           '
