@@ -15,6 +15,7 @@
 - Server Components by default; client components small and at the leaves.
 - Images: `CloudImage` only, explicit aspect ratio (prevents CLS), `sizes` always set, `priority` only on the single LCP image, Cloudinary `f_auto,q_auto`.
 - Uploads: photos are shrunk in the browser before they go to Cloudinary (`client/lib/shrink-image.ts`: longest side 2400px, WebP at 0.85, JPEG where the browser can't make WebP), so a 5–10 MB phone photo uploads as well under 1 MB. Files under 700 KB go up unchanged.
+- Opening pages (owner request 2026-10-01): `PrefetchOnIntent` (root layout) fetches a whole product, shop, collection or portfolio page as soon as a finger touches its link or the pointer rests on it, so the page is usually ready when the tap ends (about 0.1 s from tap to page in the e2e check). `<Link>` alone prefetches only the loading skeleton of pages that read the database. `staleTimes.dynamic: 30` (next.config.ts) reopens pages visited in the last 30 s from the browser's memory; Server Actions, sign-in and `router.refresh` clear it.
 - Fonts: `next/font`, max 2 families, `display: swap`, subset latin.
 - No heavy libraries on customer pages (charts, editors, date libs) — admin only, and dynamically imported.
 - Motion via CSS or Motion's lightweight APIs; never animate layout properties.

@@ -42,6 +42,10 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     serverActions: { bodySizeLimit: "1mb" },
+    // Pages visited in the last 30 seconds open again from the browser's memory (Back, or the same product twice),
+    // instead of asking the server (owner request 2026-10-01: pages must open fast). Anything that changes data
+    // (Server Actions, sign-in, router.refresh) clears it, so the bag and stock never go stale.
+    staleTimes: { dynamic: 30 },
   },
   async headers() {
     return [
