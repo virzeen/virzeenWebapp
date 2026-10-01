@@ -25,13 +25,12 @@ export const EMAIL_WORDMARK_PATH = "/brand/email-wordmark.png";
 export const EMAIL_WORDMARK_DARK_PATH = "/brand/email-wordmark-dark.png";
 
 /*
- * Dark mode (owner request 2026-10-01: a white wordmark in dark mode, black in light). Mail apps that say they're in
- * dark mode (Apple Mail, iPhone Mail, Outlook for Mac) get the whole email white on ink, the site's tone-inverse,
- * and the white wordmark. Written by hand: react-email's Tailwind inlines `dark:` classes as if always dark. The
- * hooks are `vz-*` classes, the only classes left in the HTML: `vz-page` on the body, `vz-muted`, `vz-surface`,
- * `vz-line` and `vz-button` where the light design uses ink-muted, surface, line and an ink button.
- * Gmail's apps ignore all of this and darken the email by themselves without changing images, so they keep the
- * ink wordmark, whose white halo keeps it readable there.
+ * Dark mode (owner request 2026-10-01: the wordmark white in dark mode and black in light, in every mail app).
+ * Mail apps that say they're in dark mode (Apple Mail, iPhone Mail, Outlook for Mac, Samsung) get the whole email
+ * white on ink, the site's tone-inverse, and the white wordmark. Written by hand: react-email's Tailwind inlines
+ * `dark:` classes as if always dark. The hooks are classes, the only ones left in the HTML: `body` and `vz-page` on
+ * the body, `vz-muted`, `vz-surface`, `vz-line` and `vz-button` where the light design uses ink-muted, surface,
+ * line and an ink button, and `vz-light-only` / `vz-dark-only` on the two wordmarks.
  */
 const darkModeCss = `
 :root { color-scheme: light dark; supported-color-schemes: light dark; }
@@ -63,6 +62,17 @@ const hiddenUntilDark = {
  */
 const outlookDarkCss = `[data-ogsc] .vz-light-only { display: none !important; }
 [data-ogsc] .vz-dark-only { display: block !important; max-height: none !important; }`;
+
+/*
+ * Gmail never says it's in dark mode: its apps darken the email by themselves and never change images. So Gmail
+ * always gets the white wordmark with mix-blend-mode: difference, which takes the colour opposite to whatever is
+ * behind it: black on Gmail's white, white once Gmail has darkened the email. `u + .body` only matches in Gmail
+ * (it turns the doctype into <u></u> and the body into <div class="body">) on the web, iPhone and Android with a
+ * Google account, all of which blend (caniemail). Gmail with another account reads no <style> and keeps the ink
+ * wordmark. Should blending fail anyway, the white wordmark's thin ink halo still outlines it on white.
+ */
+const gmailCss = `u + .body .vz-light-only { display: none !important; }
+u + .body .vz-dark-only { display: block !important; max-height: none !important; mix-blend-mode: difference; }`;
 
 export type EmailLayoutProps = {
   preview: string;
@@ -100,10 +110,12 @@ export function EmailLayout({ preview, siteUrl, invitesReply, children }: EmailL
         <style>{`table, td, p, h1, h2, a { font-family: ${fontStack}; }`}</style>
         <style>{darkModeCss}</style>
         <style>{outlookDarkCss}</style>
+        <style>{gmailCss}</style>
       </Head>
       <Preview>{preview}</Preview>
       <Tailwind config={tailwindConfig}>
-        <Body className="vz-page m-0 bg-canvas font-text text-ink">
+        {/* `body`: Gmail's hook (gmailCss). */}
+        <Body className="body vz-page m-0 bg-canvas font-text text-ink">
           <Container className="max-w-email mx-auto">
             <Row>
               <Column className="px-6 pt-10 pb-12">

@@ -3,8 +3,11 @@
 // - apps/web/public/brand/email-wordmark.png: ink letters on a transparent background, the light design. It has a
 //   thin white halo under the fill: Gmail's apps darken the email in dark mode without telling it, so this image
 //   stays on screen there and the halo keeps it readable (they never change images).
-// - apps/web/public/brand/email-wordmark-dark.png: white letters, no halo. Mail apps that say they're in dark mode
-//   (Apple Mail, iPhone Mail, Outlook) show it instead (owner request 2026-10-01: white in dark mode, black in light).
+// - apps/web/public/brand/email-wordmark-dark.png: white letters with a thin ink halo (owner request 2026-10-01: white
+//   in dark mode, black in light). Mail apps that say they're in dark mode (Apple Mail, iPhone Mail, Outlook) show it
+//   on the dark email, where the halo disappears. Gmail shows it with mix-blend-mode: difference, which draws it black
+//   on a white background and white on a dark one; the halo then turns near-white on white and near-black on dark,
+//   both invisible, and if blending ever fails the halo still outlines the white letters on white.
 // Re-run after replacing the logo files:
 //   node scripts/rasterise-email-wordmark.mjs
 import { readFileSync } from "node:fs";
@@ -46,7 +49,7 @@ const page = await browser.newPage({
 });
 for (const [file, art] of [
   ["email-wordmark.png", { fill: INK, halo: CANVAS }],
-  ["email-wordmark-dark.png", { fill: CANVAS }],
+  ["email-wordmark-dark.png", { fill: CANVAS, halo: INK }],
 ]) {
   const out = `${repo}apps/web/public/brand/${file}`;
   await page.setContent(
