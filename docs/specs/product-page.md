@@ -23,7 +23,7 @@ Layout
 - [x] Desktop (from `lg`): two columns. Left (about 60%): the gallery, sticky under the header while the right column scrolls. Right (max about 28rem): name (h1), category as a subtitle, price, style tiles, size grid, Add to bag, Favourite, the note "Prices include 13% VAT. Free shipping across Nepal…", description, "Colour shown" bullets, "View product details", then accordions.
 - [x] Phone and tablet (below `lg`): name, subtitle and price first, then the gallery, then the rest in the same order. There is one h1 in the page (grid placement, not a copy).
 - [x] Below the two columns, full width: "Features that perform" (when the product has features), then "You may also like" and, since `specs/product-page-v2.md`, "More from Virzeen".
-- [x] The phone sticky Add to bag bar (`data-sticky-cta`) stays. Since 2026-10-01 (owner) it is just the button, floating with no price and no background; the "Shop / {category}" breadcrumb above the name is visually hidden (still in the page for screen readers, shown on keyboard focus; BreadcrumbList data for search).
+- [x] The phone sticky Add to bag bar (`data-sticky-cta`) stays. Since 2026-10-01 (owner) it is just the button, floating with no price and no background, a little taller (56px) and 20% narrower, centred; the "Shop / {category}" breadcrumb above the name is visually hidden (still in the page for screen readers, shown on keyboard focus; BreadcrumbList data for search).
 
 Gallery
 
