@@ -15,7 +15,7 @@ Standard layouts and behaviors. Build new screens from these instead of inventin
 ## 2. Server/client split
 
 - The page and most components are Server Components.
-- Only leaves that need state/events are client components (`AddToBagButton`, `QuantityStepper`, `AddedToBagPanel`, forms).
+- Only leaves that need state/events are client components (`AddToBagButton`, `QuantityStepper`, `CartDrawer`, forms).
 - Pass plain serializable props (ids, strings, numbers) into client components, never Prisma objects or functions from the server.
   Example: `docs/examples/client-add-to-bag.tsx`.
 
@@ -23,7 +23,7 @@ Standard layouts and behaviors. Build new screens from these instead of inventin
 
 1. Client leaf calls a Server Action inside `startTransition` (or a `<form action>`).
 2. Show pending immediately (`Button loading`, disabled).
-3. On `{ ok: true }` → toast/redirect and let `revalidatePath/Tag` refresh data. Add to bag opens the "Added to bag" panel instead of a toast; remove offers an inline Undo (§7).
+3. On `{ ok: true }` → toast/redirect and let `revalidatePath/Tag` refresh data. Add to bag opens the bag drawer (saying "Added to bag") instead of a toast; Favourite opens "Added to favourites"; remove offers an inline Undo (§7).
 4. On `{ ok: false }` → map `error.code` to copy from `content-style.md` and show it (toast or inline).
 5. Never update the UI as if it succeeded before the action returns, except simple optimistic quantity changes via `useOptimistic` with rollback.
 
@@ -69,7 +69,8 @@ Nike-style (`specs/product-page.md`, `specs/product-page-v2.md`). `ProductDetail
 
 Laid out like Nike's bag (owner request 2026-09-30), in our type and colours.
 
-- **"Added to bag"** (`AddedToBagPanel`, a `DropPanel`): drops down after an add, under the header on the right from `md`, across the top on phones. A check and "Added to bag", the line the add went into (photo, name, style/size, price), then "View bag ({n})" (secondary) and "Checkout" (primary) side by side. Modal; it has no trigger of its own, so `open({ returnFocusTo, added: true })` records the Add to bag button and focus goes back there on close. `CartProvider` works out which line the add went into by comparing the bag before and after `setCart`.
+- **The bag drawer after an add** (`CartDrawer`, a right `Sheet`; owner's choice 2026-10-01: "the previous one is better", in place of Nike's drop-down "Added to bag" of 2026-09-30): it slides in from the right, titled "Bag" with "Added to bag · {n} items" under it, and lists the lines as the bag page does (`CartLine inDrawer`: a smaller photo; the heart confirms with a toast, since a panel can't open over the drawer). "Removed {name}. Undo" sits at the top. Footer: Subtotal, "Free shipping across Nepal. Prices include VAT.", "Checkout" (primary) and "View bag" (secondary). Empty: "Your bag is empty." with "Browse the collection". Modal; it has no trigger of its own, so `open({ returnFocusTo, added: true })` records the Add to bag button and focus goes back there on close.
+- **"Added to favourites"** (`AddedToFavouritesProvider`, a `DropPanel`; owner request 2026-10-01, like Nike's): after the product page's Favourite or a bag line's heart saves, a panel drops down under the header on the right from `md`, across the top on phones: a green tick and "Added to favourites", the photo, name, "Category · Style" and price, then "View favourites". Focus goes back to the pressed button on close. Removing is still a toast ("Removed from favourites").
 - **The header bag icon opens `/cart`** (a link, "Bag, {n} items"), as does Bag in the phone menu.
 - **`/cart`**: "Bag" and the lines on the left, "Summary" on the right from `lg` (Subtotal, Shipping Free, Total between hairlines, Checkout). Phones: "Bag" centred with "{n} items | {total}" under it, the summary after the lines and Checkout in a bar fixed to the bottom (`data-sticky-cta`). Empty: "There are no items in your bag." and "Browse the collection".
 - **Lines** (`CartLine`): the photo on the left; the name with the line price on the right, then the style/size in grey, "{Rs X} each" when there are several, a note when "+" stops ("Only N left", "Limit 10 of each", "Out of stock") or "No longer available". Under them the quantity pill (`QuantityStepper` with `onRemove`: at 1 the "−" is a bin that removes the line) and a round heart that saves the product in the style bought (favourites). A line no longer sold shows a "Remove" pill instead of the stepper and no heart.

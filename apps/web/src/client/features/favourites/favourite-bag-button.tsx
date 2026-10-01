@@ -40,7 +40,7 @@ export function FavouriteBagButton({ item }: { item: FavouriteView }) {
 }
 
 /**
- * Adds the one variant; the "Added to bag" panel opens and sends focus back here when it closes. Errors are a toast,
+ * Adds the one variant; the bag drawer opens and sends focus back here when it closes. Errors are a toast,
  * as on the product page; so is "The last one is already in your bag." (the product page has room for it under its
  * button).
  */

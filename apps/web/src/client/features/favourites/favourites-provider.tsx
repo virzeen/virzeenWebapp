@@ -14,6 +14,7 @@ import {
   useTransition,
 } from "react";
 import { mergeFavouritesAction } from "@/server/actions/favourites";
+import { AddedToFavouritesProvider } from "./added-to-favourites";
 import {
   addFavourite,
   FAVOURITES_FULL_MESSAGE,
@@ -149,7 +150,11 @@ export function FavouritesProvider({
     [signedIn, account.keys, account.removed, merging],
   );
 
-  return <FavouritesContext value={value}>{children}</FavouritesContext>;
+  return (
+    <FavouritesContext value={value}>
+      <AddedToFavouritesProvider>{children}</AddedToFavouritesProvider>
+    </FavouritesContext>
+  );
 }
 
 /** This browser's list, and whether it has been read: not while rendering on the server or hydrating. */

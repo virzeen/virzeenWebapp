@@ -24,11 +24,11 @@ The Virzeen look is calm, premium, and product-first: large imagery, generous wh
 
 ## 2. The three layers
 
-| Layer              | Lives in                         | Knows business? | Example                          |
-| ------------------ | -------------------------------- | --------------- | -------------------------------- |
-| Tokens             | `packages/ui/src/tokens`         | No              | `--color-ink`, `--radius-md`     |
-| Primitives         | `packages/ui/src/primitives`     | No              | `Button`, `Sheet`, `Skeleton`    |
-| Feature components | `apps/web/src/client/features/*` | Yes             | `ProductCard`, `AddedToBagPanel` |
+| Layer              | Lives in                         | Knows business? | Example                       |
+| ------------------ | -------------------------------- | --------------- | ----------------------------- |
+| Tokens             | `packages/ui/src/tokens`         | No              | `--color-ink`, `--radius-md`  |
+| Primitives         | `packages/ui/src/primitives`     | No              | `Button`, `Sheet`, `Skeleton` |
+| Feature components | `apps/web/src/client/features/*` | Yes             | `ProductCard`, `CartDrawer`   |
 
 Pages compose feature components → feature components compose primitives → primitives use tokens. Nothing skips a layer. Feature components never restyle primitives with overrides; if a new look is needed, add a variant to the primitive.
 
@@ -62,7 +62,7 @@ Pages compose feature components → feature components compose primitives → p
 - **Loading:** skeleton matching the final layout (`loading.tsx` or `Skeleton`). No full-page spinners.
 - **Empty:** `EmptyState` with message + one action (copy in `content-style.md`).
 - **Error:** `error.tsx` or inline `Alert` with retry. Never show raw error text or codes.
-- **Success:** `Toast` for background actions; the "Added to bag" panel for add to bag; confirmation page for orders.
+- **Success:** `Toast` for background actions; the bag drawer for add to bag ("Added to bag"); the "Added to favourites" panel for Favourite; confirmation page for orders.
 - **Disabled/unavailable:** visible but clearly disabled with a reason ("Out of stock").
 
 ## 7. Accessibility (minimum bar — WCAG 2.2 AA)
@@ -73,7 +73,7 @@ Pages compose feature components → feature components compose primitives → p
 - Images: meaningful `alt`; decorative `alt=""`.
 - Contrast: 4.5:1 text, 3:1 large text and UI boundaries.
 - Touch targets ≥ 44×44px on mobile.
-- Dialog/Sheet focus trap, Escape to close, focus returns to trigger (primitives do this — don't re-implement). A panel opened without a trigger (the "Added to bag" `DropPanel`) sends focus back through `onCloseAutoFocus`.
+- Dialog/Sheet focus trap, Escape to close, focus returns to trigger (primitives do this — don't re-implement). A panel opened without a trigger (the bag drawer, the "Added to favourites" `DropPanel`) sends focus back through `onCloseAutoFocus`.
 - When the focused control disappears (a removed line, a finished step, a moved list item), move focus to the next sensible control instead of letting it fall to the page.
 - Sticky bars mark themselves (`data-sticky-header`, `data-sticky-cta`) so `globals.css` scrolls focused elements clear of them (WCAG 2.4.11).
 - Live updates (cart count, toasts) announced via `aria-live` (built into `Toast`).

@@ -32,7 +32,7 @@ type AddToBagDialogProps = {
  * `Dialog size="split"` with the style's photos on the left (from lg; previous/next buttons), the name, "Category ·
  * Style" and price on the right, the sizes in the product page's boxes (`sizeGridColumns`), then "View full product"
  * and "Add to bag". Focus starts on the first size. Pressed before a size is picked, Add to bag says "Select a size",
- * rings the sizes in red and focuses the first one. Adding closes the popup and opens the "Added to bag" panel, which
+ * rings the sizes in red and focuses the first one. Adding closes the popup and opens the bag drawer, which
  * sends focus back to the card's pill. Errors show inside the popup: behind a modal a toast is hidden from screen
  * readers. While an add runs the popup stays open (no X; Escape and a click outside wait), so its answer shows here.
  */
@@ -45,7 +45,7 @@ export function AddToBagDialog({ item, sizes, added }: AddToBagDialogProps) {
   const [error, setError] = useState<string | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const groupRef = useRef<HTMLDivElement>(null);
-  // The "Added to bag" panel took focus: the closing popup mustn't pull it back to the card.
+  // The bag drawer took focus: the closing popup mustn't pull it back to the card.
   const handedToBag = useRef(false);
   const messageId = useId();
   const { add, pending } = useAddToBag();

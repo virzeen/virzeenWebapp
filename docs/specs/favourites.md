@@ -101,3 +101,12 @@ Decisions while building (2026-10-01):
 - The popup keeps our colours and words: a black "Add to bag" that stays pressable (before a size it explains, instead of a greyed button), "Select a size" without "Please", our size boxes (the picked one filled).
 - Bag page: "You might also like" shows only without favourites, as asked (Nike shows both). The favourites under the bag are the two newest; signed in they're read on the server, a guest's in the browser, so a guest's bag page shows that part once they're looked up.
 - The heart is `Button variant="inverse"` (white, no border, like Nike's); on a white photo only the heart shows.
+
+## "Added to favourites" panel (2026-10-01)
+
+**Owner approval:** owner, 2026-10-01, with a screenshot of Nike's: "when we added to the favourites then automatically the favourites rectangle pops out". Same day, about the bag: "when we add to bag the side panel from the right side pops out same like before … the previous one is better" (the bag drawer is back; `ui/patterns.md` §7).
+
+- [x] Saving with the product page's Favourite, or a bag-page line's heart, opens "Added to favourites" (a `DropPanel` under the header on the right; across the top on phones): a green tick, the style's photo, the name, "Category · Style" (a bag line: the style) and the price, then "View favourites". Escape, the X or a click outside closes it; focus goes back to the pressed button. It replaces the "Added to favourites — View" toast there.
+- [x] Removing still says "Removed from favourites" in a toast. The Favourites page's own hearts keep their Undo bar (no panel).
+- [x] In the bag drawer a line's heart keeps the toast: the panel would open behind the drawer.
+- [x] E2E: the favourites journey checks the panel (name, "Tops · Bone", View favourites) and that focus returns to "Favourited".

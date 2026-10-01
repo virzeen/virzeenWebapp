@@ -8,6 +8,7 @@ import { useId, useLayoutEffect, useRef, useState, useTransition } from "react";
 import { CloudImage } from "@/client/components/shared/cloud-image";
 import { Price } from "@/client/components/shared/price";
 import { QuantityStepper } from "@/client/components/shared/quantity-stepper";
+import { useShowAddedFavourite } from "@/client/features/favourites/added-to-favourites";
 import { useFavourites } from "@/client/features/favourites/favourites-provider";
 import { messageFor } from "@/client/lib/error-messages";
 import {
@@ -38,13 +39,15 @@ type CartLineProps = {
   onRemoved: (removed: RemovedLine) => void;
   /** Focus the product link on mount when focus was lost: this is the line Undo just put back. */
   focusOnMount?: boolean;
+  /** In the bag drawer: a smaller photo, and the heart confirms with a toast (a panel can't open over the drawer). */
+  inDrawer?: boolean;
 };
 
 /**
  * One bag line, laid out like Nike's (patterns.md §7): the photo, then the name with the line price on the right, the
  * style and size in grey; under them the quantity pill (a bin at 1 removes the line, with Undo) and the heart.
  */
-export function CartLine({ line, onRemoved, focusOnMount = false }: CartLineProps) {
+export function CartLine({ line, onRemoved, focusOnMount = false, inDrawer = false }: CartLineProps) {
   const { setCart } = useCart();
   const [isPending, startTransition] = useTransition();
   const linkRef = useRef<HTMLAnchorElement>(null);
@@ -101,7 +104,11 @@ export function CartLine({ line, onRemoved, focusOnMount = false }: CartLineProp
       className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-4 py-6 sm:gap-x-6"
       aria-busy={isPending || undefined}
     >
-      <Link href={`/product/${line.productSlug}`} variant="subtle" className="w-28 sm:w-36 lg:w-40">
+      <Link
+        href={`/product/${line.productSlug}`}
+        variant="subtle"
+        className={inDrawer ? "w-24" : "w-28 sm:w-36 lg:w-40"}
+      >
         <CloudImage src={line.imageUrl} alt={line.imageAlt} sizes="(min-width: 1024px) 160px, 144px" />
       </Link>
       <div className="flex flex-col gap-1">
@@ -142,21 +149,37 @@ export function CartLine({ line, onRemoved, focusOnMount = false }: CartLineProp
             Remove
           </Button>
         )}
-        {line.isAvailable && <FavouriteToggle line={line} />}
+        {line.isAvailable && <FavouriteToggle line={line} inDrawer={inDrawer} />}
       </div>
     </li>
   );
 }
 
-/** The heart beside the quantity, like Nike's bag: saves the product in the style bought (specs/favourites.md). */
-function FavouriteToggle({ line }: { line: Line }) {
+/**
+ * The heart beside the quantity, like Nike's bag: saves the product in the style bought (specs/favourites.md). On the
+ * bag page a save opens "Added to favourites"; in the drawer it's a toast, since the panel would sit behind it.
+ */
+function FavouriteToggle({ line, inDrawer }: { line: Line; inDrawer: boolean }) {
   const { isSaved, toggle } = useFavourites();
+  const showAdded = useShowAddedFavourite();
   const router = useRouter();
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const saved = isSaved(line.productId, line.color);
 
   async function press() {
     const now = await toggle(line.productId, line.color);
-    if (now === true) {
+    if (now === true && !inDrawer) {
+      showAdded(
+        {
+          name: line.productName,
+          details: line.color,
+          imageUrl: line.imageUrl,
+          imageAlt: line.imageAlt,
+          pricePaisa: line.unitPricePaisa,
+        },
+        buttonRef.current,
+      );
+    } else if (now === true) {
       toast.success("Added to favourites", {
         action: { label: "View", onClick: () => router.push("/favourites") },
       });
@@ -167,6 +190,7 @@ function FavouriteToggle({ line }: { line: Line }) {
 
   return (
     <Button
+      ref={buttonRef}
       variant="secondary"
       size="icon"
       shape="pill"

@@ -11,10 +11,19 @@ test.describe("Favourites", () => {
     await page.goto("/product/linen-overshirt");
     await page.getByRole("radio", { name: "Bone", exact: true }).click();
     await page.getByRole("button", { name: "Favourite", exact: true }).click();
-    await expect(page.getByRole("button", { name: "Favourited", exact: true })).toHaveAttribute(
-      "aria-pressed",
-      "true",
+    // "Added to favourites" drops down with the product in the saved style, and "View favourites".
+    const addedPanel = page.getByRole("dialog", { name: "Added to favourites" });
+    await expect(addedPanel.getByText("Linen Overshirt")).toBeVisible();
+    await expect(addedPanel.getByText("Tops · Bone")).toBeVisible();
+    await expect(addedPanel.getByRole("link", { name: "View favourites" })).toHaveAttribute(
+      "href",
+      "/favourites",
     );
+    await page.keyboard.press("Escape");
+    await expect(addedPanel).toBeHidden();
+    const favourited = page.getByRole("button", { name: "Favourited", exact: true });
+    await expect(favourited).toHaveAttribute("aria-pressed", "true");
+    await expect(favourited).toBeFocused();
 
     await page.getByRole("banner").getByRole("link", { name: "Favourites" }).click();
     await expect(page).toHaveURL(/\/favourites$/);
@@ -53,7 +62,7 @@ test.describe("Favourites", () => {
     await popup.getByRole("button", { name: "Add to bag" }).click();
     await expect(popup).toBeHidden();
     const bag = page.getByRole("dialog", { name: "Bag" });
-    await expect(bag.getByText("Added to bag")).toBeVisible();
+    await expect(bag).toHaveAccessibleDescription("Added to bag · 1 item");
     await expect(bag.getByText("Linen Overshirt")).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(bag).toBeHidden();

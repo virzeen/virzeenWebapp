@@ -83,7 +83,7 @@ export function CartPageContent({ notice, favourites, suggestions }: CartPageCon
                   <CartLine
                     line={line}
                     onRemoved={(removedLine) => setRemoved({ line: removedLine, index })}
-                    // Not while the "Added to bag" panel covers the page.
+                    // Not while the bag drawer covers the page.
                     focusOnMount={!isOpen && line.variantId === restoredVariantId}
                   />
                 </Fragment>
