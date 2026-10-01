@@ -69,6 +69,8 @@ Borders are 1px `border-line`. Prefer borders and whitespace over shadows.
 
 Animate only `opacity` and `transform`. No bouncing, no infinite animations except loading skeleton shimmer. Wrap all motion in `motion-safe:` or check `useReducedMotion()`.
 
+Never start a hero or page heading at `opacity: 0`: browsers don't count invisible elements as the page's largest content (LCP), so it shows late in Lighthouse. `reveal` starts at 40% (2026-10-01; it failed the home page's audit at 0).
+
 Named animations (`animate-*`, defined with their keyframes in `tokens.css`): `spin`, `shimmer`, `fade-in`/`fade-out`, `slide-in-*`/`slide-out-*` (right, bottom) and `reveal`, used by the primitives, plus these:
 
 | Token                                                              | Value                                                                                                                 | Use                                                                                                                                                                                                  |
