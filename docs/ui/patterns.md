@@ -43,7 +43,7 @@ Standard layouts and behaviors. Build new screens from these instead of inventin
 
 ## 5. Lists and grids
 
-- Product grid: 2/3/4 columns, image aspect `4/5`, name, `Price`, optional `Badge`. Whole card is one `Link`.
+- Product grid: 2/3/4 columns, image aspect `4/5`, name (`font-medium`), `Price` (`symbol="रु"`, `font-medium`), the style names when there are two or more ("Black, White"), optional `Badge`. Whole card is one `Link`.
 - Empty result → `EmptyState` with an action. Loading → skeleton cards equal to the page size.
 - Pagination: "Load more" button (cursor) on shop pages; numbered pages in admin tables. After "Load more", focus moves to the first new card, and the count reads "{n}+ products" until everything is loaded.
 - Shop filters (bottom `Sheet`): each radio group starts with "Any" (a radio can't be unticked); "Clear all" removes every filter and closes the sheet.

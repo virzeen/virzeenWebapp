@@ -504,6 +504,7 @@ describe("product styles (specs/product-styles.md)", () => {
       imageUrl: "virzeen/products/tee/mountain-front",
       hasStylePhotos: true,
       colorCount: 2,
+      styles: ["Mountain", "River"],
     });
     const forEdit = await adminReads.getProductForEdit(saved.id);
     expect(forEdit.images.at(-1)?.color).toBe("");
