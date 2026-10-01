@@ -1,4 +1,6 @@
-import { favouriteKeySchema, MAX_FAVOURITES, type FavouriteKey } from "@virzeen/validators";
+import type { FavouriteKey } from "@virzeen/validators";
+// The zod-free limits: this file is read on every page, and the schemas would bring zod with them.
+import { MAX_FAVOURITES, toFavouriteKey } from "@virzeen/validators/limits";
 
 // A guest's favourites live in this browser (specs/favourites.md): a list of { productId, color, savedAt }, newest
 // first, at most MAX_FAVOURITES. The list helpers are pure; the storage helpers below them never throw.
@@ -35,10 +37,10 @@ export function parseFavourites(raw: string | null): StoredFavourite[] {
   for (const entry of data as unknown[]) {
     if (typeof entry !== "object" || entry === null) continue;
     const { productId, color, savedAt } = entry as Record<string, unknown>;
-    const key = favouriteKeySchema.safeParse({ productId, color });
-    if (!key.success || typeof savedAt !== "string" || seen.has(keyOf(key.data))) continue;
-    seen.add(keyOf(key.data));
-    list.push({ ...key.data, savedAt });
+    const key = toFavouriteKey(productId, color);
+    if (!key || typeof savedAt !== "string" || seen.has(keyOf(key))) continue;
+    seen.add(keyOf(key));
+    list.push({ ...key, savedAt });
     if (list.length === MAX_FAVOURITES) break;
   }
   return list;

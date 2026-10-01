@@ -1,6 +1,7 @@
 import { Link } from "@virzeen/ui";
 import type { Metadata } from "next";
 import { ContentHeading, ContentPage } from "@/client/components/shared/content-page";
+import { EmailLink } from "@/client/components/shared/email-link";
 import { SITE } from "@/client/lib/site";
 
 export const metadata: Metadata = {
@@ -18,11 +19,10 @@ export default function ContactPage() {
     >
       <ContentHeading>Email</ContentHeading>
       <p>
-        For orders and sizing, email <Link href={`mailto:${SITE.salesEmail}`}>{SITE.salesEmail}</Link>.
+        For orders and sizing, email <EmailLink email={SITE.salesEmail} />.
       </p>
       <p>
-        For collaborations and anything else, email{" "}
-        <Link href={`mailto:${SITE.infoEmail}`}>{SITE.infoEmail}</Link>.
+        For collaborations and anything else, email <EmailLink email={SITE.infoEmail} />.
       </p>
       <p>We reply within one working day.</p>
       <ContentHeading>Instagram</ContentHeading>

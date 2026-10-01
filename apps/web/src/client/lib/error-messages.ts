@@ -1,4 +1,4 @@
-import { MAX_QTY_PER_LINE } from "@virzeen/validators";
+import { MAX_QTY_PER_LINE } from "@virzeen/validators/limits";
 import type { ActionError } from "@/server/actions/result";
 
 // Maps error codes to the exact copy in docs/ui/content-style.md "Standard messages".

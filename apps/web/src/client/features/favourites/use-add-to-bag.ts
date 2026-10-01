@@ -1,6 +1,6 @@
 "use client";
 
-import { MAX_QTY_PER_LINE } from "@virzeen/validators";
+import { MAX_QTY_PER_LINE } from "@virzeen/validators/limits";
 import { useTransition } from "react";
 import { useCart } from "@/client/features/cart/cart-provider";
 import { addToBagMessage, allInBagMessage } from "@/client/lib/error-messages";

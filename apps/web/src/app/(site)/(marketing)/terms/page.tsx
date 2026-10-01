@@ -1,6 +1,7 @@
 import { Link } from "@virzeen/ui";
 import type { Metadata } from "next";
 import { ContentHeading, ContentPage } from "@/client/components/shared/content-page";
+import { EmailLink } from "@/client/components/shared/email-link";
 import { SITE } from "@/client/lib/site";
 
 export const metadata: Metadata = {
@@ -18,7 +19,7 @@ export default function TermsPage() {
       <ContentHeading>Orders</ContentHeading>
       <p>
         Your order is confirmed when we email you an order number. To change or cancel an order, email{" "}
-        <Link href={`mailto:${SITE.salesEmail}`}>{SITE.salesEmail}</Link> before it ships.
+        <EmailLink email={SITE.salesEmail} /> before it ships.
       </p>
       <ContentHeading>Cash on delivery</ContentHeading>
       <p>Pay the courier in cash when your order arrives.</p>
