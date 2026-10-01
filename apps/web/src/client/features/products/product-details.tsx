@@ -74,7 +74,7 @@ export function ProductDetails({ product, styleParam, preview = false }: Product
           </div>
           <div className="flex flex-col gap-8 lg:col-start-2 lg:row-start-2 lg:max-w-md">
             <ProductPurchase
-              productId={product.productId}
+              product={product}
               sizeGuide={product.sizeGuide}
               tiles={tiles}
               preview={preview}

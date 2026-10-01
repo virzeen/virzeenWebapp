@@ -1,6 +1,6 @@
 import "server-only";
 import { db, type Prisma } from "@virzeen/db";
-import { MAX_FAVOURITES, type FavouriteKey, type SetFavouriteInput } from "@virzeen/validators";
+import { MAX_FAVOURITES, sortSizes, type FavouriteKey, type SetFavouriteInput } from "@virzeen/validators";
 import {
   publishedProductWhere,
   summarySelect,
@@ -11,6 +11,18 @@ import { AppError, isUniqueViolation } from "../errors";
 
 // Favourites (specs/favourites.md): a product plus the style picked when saved (`color`, "" without styles).
 // Guests keep theirs in the browser; these methods serve signed-in customers, plus the guest product lookup.
+
+/** A size of the saved style for sale (sold out ones too, with stock 0): the card's Add to bag and Select size. */
+export type FavouriteVariant = {
+  id: string;
+  /** null when the product has no sizes. */
+  size: string | null;
+  stock: number;
+  pricePaisa: number;
+};
+
+/** A photo of the saved style, for the Add to bag popup's gallery. */
+export type FavouritePhoto = { id: string; url: string; alt: string };
 
 /** A saved favourite with the product card it shows. */
 export type FavouriteItem = {
@@ -26,15 +38,28 @@ export type FavouriteItem = {
   savedAt: Date | null;
   /** The card: the saved style's photos, price (the lowest of its sizes) and stock. */
   product: ProductSummary;
+  /** The product's category name, shown with the style ("Tops · Black"). */
+  category: string;
+  /**
+   * The saved style's variants for sale, sizes in shop order (sortSizes, like the product page); a product without
+   * styles: all of them. [] when the style isn't sold any more.
+   */
+  variants: FavouriteVariant[];
+  /**
+   * The saved style's photos in the product page's order (as its gallery shows them); every photo of a product
+   * without styles, or of one whose saved style isn't sold any more.
+   */
+  photos: FavouritePhoto[];
 };
 
-/** The card fields plus every photo with its style, and every variant for sale with its price. */
+/** The card fields plus the category, every photo with its style, and every variant for sale with its price. */
 const favouriteProductSelect = {
   ...summarySelect,
-  images: { select: { url: true, alt: true, color: true }, orderBy: { sortOrder: "asc" } },
+  category: { select: { name: true } },
+  images: { select: { id: true, url: true, alt: true, color: true }, orderBy: { sortOrder: "asc" } },
   variants: {
     where: { isActive: true },
-    select: { stock: true, color: true, pricePaisa: true },
+    select: { id: true, size: true, stock: true, color: true, pricePaisa: true },
     orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
   },
 } satisfies Prisma.ProductSelect;
@@ -54,17 +79,42 @@ function photosForStyle(images: FavouriteProductRow["images"], style: string, st
   return images.filter((image) => image.color === firstWithPhotos);
 }
 
+const toPhoto = ({ id, url, alt }: FavouritePhoto): FavouritePhoto => ({ id, url, alt });
+
+/**
+ * The variants a favourite can add to the bag: the saved style's ("" = the ones without a style, i.e. every variant
+ * of a product without styles), sizes in the product page's order; admin order among the rest.
+ */
+function variantsForStyle(row: FavouriteProductRow, color: string): FavouriteVariant[] {
+  const own = row.variants.filter((variant) => (variant.color ?? "") === color);
+  const order = sortSizes(own.flatMap((variant) => (variant.size ? [variant.size] : [])));
+  const rank = (size: string | null) => (size ? order.indexOf(size) : order.length);
+  return own
+    .map((variant) => ({
+      id: variant.id,
+      size: variant.size || null,
+      stock: variant.stock,
+      pricePaisa: variant.pricePaisa,
+    }))
+    .sort((a, b) => rank(a.size) - rank(b.size));
+}
+
 /**
  * The card for a favourite, like the product page opened in the saved style: that style's first photo (its second on
- * hover), the lowest price of its sizes, and in stock when any size is. A product without styles, or a style not sold
- * any more, shows the product's usual card.
+ * hover), the lowest price of its sizes, and in stock when any size is, plus the category and the style's variants.
+ * A product without styles, or a style not sold any more, shows the product's usual card.
  */
-function summaryForStyle(row: FavouriteProductRow, color: string): Pick<FavouriteItem, "style" | "product"> {
+function summaryForStyle(
+  row: FavouriteProductRow,
+  color: string,
+): Pick<FavouriteItem, "style" | "product" | "category" | "variants" | "photos"> {
   const summary = toSummary(row);
+  const card = { category: row.category.name, variants: variantsForStyle(row, color) };
   const variants = color ? row.variants.filter((variant) => variant.color === color) : [];
-  if (variants.length === 0) return { style: "", product: summary };
+  if (variants.length === 0) return { style: "", product: summary, ...card, photos: row.images.map(toPhoto) };
   const styles = [...new Set(row.variants.flatMap((variant) => (variant.color ? [variant.color] : [])))];
-  const [photo, hover] = photosForStyle(row.images, color, styles);
+  const photos = photosForStyle(row.images, color, styles);
+  const [photo, hover] = photos;
   return {
     style: color,
     product: {
@@ -73,6 +123,8 @@ function summaryForStyle(row: FavouriteProductRow, color: string): Pick<Favourit
       inStock: variants.some((variant) => variant.stock > 0),
       ...(photo ? { imageUrl: photo.url, imageAlt: photo.alt, hoverImageUrl: hover?.url ?? null } : {}),
     },
+    ...card,
+    photos: photos.map(toPhoto),
   };
 }
 

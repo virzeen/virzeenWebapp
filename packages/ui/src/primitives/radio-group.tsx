@@ -13,7 +13,9 @@ const groupVariants = cva("", {
   variants: {
     variant: {
       default: "flex flex-col gap-3",
-      card: "grid grid-cols-[repeat(auto-fill,minmax(4.5rem,1fr))] gap-2",
+      // Invalid (a size is missing): a red line around the whole grid, like Nike's. A ring, since Radix sets an
+      // inline `outline: none` on the group.
+      card: "grid grid-cols-[repeat(auto-fill,minmax(4.5rem,1fr))] gap-2 rounded-sm aria-invalid:ring-1 aria-invalid:ring-danger aria-invalid:ring-offset-4",
       swatch: "flex flex-wrap gap-2",
       segmented: "inline-flex w-fit rounded-full border border-line-strong bg-canvas p-0.5",
     },
@@ -27,9 +29,10 @@ export type RadioGroupProps = Omit<React.ComponentProps<typeof RadioGroupPrimiti
 /**
  * Pick one of 2–4 choices (payment method, shipping option) or a product variant (size/colour).
  * `variant="card"`: bordered option tiles (variant pickers, payment methods). Unavailable options stay visible
- * but disabled with a line-through. `variant="swatch"`: square picture tiles without a caption (product styles): the
- * label is the accessible name and the tile's `title`; the picked tile gets an ink border, not a fill, so the picture
- * stays visible; a disabled tile is dimmed with a diagonal line. `variant="segmented"`: 2–4 short choices joined in one
+ * but disabled with a line-through; `aria-invalid` (or a `FormField` error) draws a red line around the grid.
+ * `variant="swatch"`: square picture tiles without a caption (product styles): the label is the accessible name and
+ * the tile's `title`; the picked tile gets an ink border, not a fill, so the picture stays visible; a disabled tile
+ * is dimmed with a diagonal line. `variant="segmented"`: 2–4 short choices joined in one
  * pill (e.g. cm | in), the picked one filled; 44px tall, 36px from lg. Inside `FormField` the group is labelled by the
  * field label.
  */

@@ -14,6 +14,7 @@ import {
   useTransition,
 } from "react";
 import { mergeFavouritesAction } from "@/server/actions/favourites";
+import { AddedToFavouritesProvider } from "./added-to-favourites";
 import {
   addFavourite,
   FAVOURITES_FULL_MESSAGE,
@@ -60,7 +61,9 @@ export type FavouritesView = {
    * work (a toast has said why and the button shows the old state again).
    */
   toggle: (productId: string, color: string) => Promise<boolean | null>;
-  /** Removes the product and style (the Favourites page's "Remove"); resolves like toggle. */
+  /** Saves the product and style (the Favourites page's heart, pressed again); resolves like toggle. */
+  save: (productId: string, color: string) => Promise<boolean | null>;
+  /** Removes the product and style (the Favourites page's heart); resolves like toggle. */
   remove: (productId: string, color: string) => Promise<boolean | null>;
 };
 
@@ -147,7 +150,11 @@ export function FavouritesProvider({
     [signedIn, account.keys, account.removed, merging],
   );
 
-  return <FavouritesContext value={value}>{children}</FavouritesContext>;
+  return (
+    <FavouritesContext value={value}>
+      <AddedToFavouritesProvider>{children}</AddedToFavouritesProvider>
+    </FavouritesContext>
+  );
 }
 
 /** This browser's list, and whether it has been read: not while rendering on the server or hydrating. */
@@ -201,6 +208,7 @@ export function useFavourites(): FavouritesView {
         ? ctx.accountRemoved.has(keyOf({ productId, color }))
         : !saved.has(keyOf({ productId, color })),
     toggle: (productId, color) => set({ productId, color }),
+    save: (productId, color) => set({ productId, color }, true),
     remove: (productId, color) => set({ productId, color }, false),
   };
 }

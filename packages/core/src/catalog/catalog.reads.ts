@@ -27,7 +27,11 @@ export const summarySelect = {
   fromPricePaisa: true,
   publishedAt: true,
   images: { select: { url: true, alt: true }, orderBy: { sortOrder: "asc" }, take: 2 },
-  variants: { where: { isActive: true }, select: { stock: true, color: true } },
+  variants: {
+    where: { isActive: true },
+    select: { stock: true, color: true },
+    orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+  },
   // Photos tied to a style: the card then says "{n} styles" instead of "{n} colours".
   _count: { select: { images: { where: { color: { not: null } } } } },
 } satisfies Prisma.ProductSelect;
@@ -46,10 +50,13 @@ export type ProductSummary = {
   colorCount: number;
   /** The colours are styles with their own photos (specs/product-styles.md). */
   hasStylePhotos: boolean;
+  /** The style names for sale in style order, as the product page lists them; [] without styles. */
+  styles: string[];
 };
 
 export function toSummary(row: SummaryRow): ProductSummary {
   const [first, second] = row.images;
+  const styles = [...new Set(row.variants.flatMap((v) => (v.color ? [v.color] : [])))];
   return {
     id: row.id,
     slug: row.slug,
@@ -59,8 +66,9 @@ export function toSummary(row: SummaryRow): ProductSummary {
     imageAlt: first?.alt ?? row.name,
     hoverImageUrl: second?.url ?? null,
     inStock: row.variants.some((v) => v.stock > 0),
-    colorCount: new Set(row.variants.map((v) => v.color).filter(Boolean)).size,
+    colorCount: styles.length,
     hasStylePhotos: row._count.images > 0,
+    styles,
   };
 }
 

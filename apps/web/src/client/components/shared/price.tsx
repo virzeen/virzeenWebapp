@@ -6,9 +6,25 @@ const fractionalRupees = new Intl.NumberFormat("en-IN", {
   maximumFractionDigits: 2,
 });
 
+const formatRupees = (paisa: number) =>
+  (paisa % 100 === 0 ? wholeRupees : fractionalRupees).format(paisa / 100);
+
 /** 125000 → "Rs 1,250" (en-IN grouping). Exported for aria labels and admin tables. */
 export function formatPaisa(paisa: number): string {
-  return `Rs ${(paisa % 100 === 0 ? wholeRupees : fractionalRupees).format(paisa / 100)}`;
+  return `Rs ${formatRupees(paisa)}`;
+}
+
+type PriceSymbol = "Rs" | "रु";
+
+/** "रु" is shown, "Rs" is read: English screen reader voices skip or spell out the Devanagari sign. */
+function Amount({ paisa, symbol }: { paisa: number; symbol: PriceSymbol }) {
+  if (symbol === "Rs") return formatPaisa(paisa);
+  return (
+    <>
+      <span aria-hidden="true">रु</span>
+      <span className="sr-only">Rs</span> {formatRupees(paisa)}
+    </>
+  );
 }
 
 type PriceProps = {
@@ -17,6 +33,8 @@ type PriceProps = {
   compareAtPaisa?: number | null;
   /** Prefix "From" for products with several prices. */
   from?: boolean;
+  /** "रु" on product cards (owner request 2026-10-01); "Rs" everywhere else. */
+  symbol?: PriceSymbol;
   className?: string;
 };
 
@@ -25,18 +43,21 @@ type PriceProps = {
  * Each amount stays on one line ("Rs" never ends a line); a narrow slot can still wrap between
  * "From", the price and the old price.
  */
-export function Price({ paisa, compareAtPaisa, from = false, className }: PriceProps) {
+export function Price({ paisa, compareAtPaisa, from = false, symbol = "Rs", className }: PriceProps) {
   const onSale = compareAtPaisa != null && compareAtPaisa > paisa;
   return (
-    <span className={cn("tabular-nums", className)}>
+    // relative: keeps the sr-only labels inside, so a scrolling row (ProductCarousel) still clips them.
+    <span className={cn("relative tabular-nums", className)}>
       {from && <span className="text-ink-muted">From </span>}
-      <span className="whitespace-nowrap">{formatPaisa(paisa)}</span>
+      <span className="whitespace-nowrap">
+        <Amount paisa={paisa} symbol={symbol} />
+      </span>
       {onSale && (
         <>
           {" "}
           <s className="whitespace-nowrap text-ink-muted">
             <span className="sr-only">was </span>
-            {formatPaisa(compareAtPaisa)}
+            <Amount paisa={compareAtPaisa} symbol={symbol} />
           </s>
         </>
       )}

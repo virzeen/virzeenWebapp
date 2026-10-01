@@ -34,7 +34,7 @@ Shop
 - [ ] When any photo belongs to a style, the colour picker becomes square picture tiles (the style's first photo, else the main photo; no caption: the name is the tile's accessible name and `title`), labelled "Style: {name}". Otherwise it stays "Colour: {name}" chips.
 - [ ] Picking a style shows only its photos (Nike-style, `specs/product-page.md`); a style without photos shows the shared ones; the price and sizes follow the style. With no style picked (all sold out) the gallery shows the shared photos, else the first style's.
 - [ ] The bag, checkout and order show the photo of the style bought.
-- [ ] Product cards say "{n} styles" instead of "{n} colours" when the product has style photos.
+- [ ] Product cards list the style names ("Black, White") when there are two or more (owner request 2026-10-01; was "{n} styles").
 
 ## Out of scope
 

@@ -146,3 +146,57 @@ export const LargeWithMedia: Story = {
     await waitFor(() => expect(canvas.getByRole("button", { name: "View product details" })).toHaveFocus());
   },
 };
+
+/**
+ * `size="split"`: the Favourites "Add to bag" popup, like Nike's quick add. From `lg` the photo fills the left half
+ * (with its own previous/next buttons in the app); below `lg` it's hidden and `media` sits beside the title. The
+ * footer holds a link on the left and the main button on the right.
+ */
+export const Split: Story = {
+  render: () => (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="secondary" shape="pill">
+          Add to bag
+        </Button>
+      </DialogTrigger>
+      <DialogContent
+        size="split"
+        title="Linen Overshirt"
+        description="Tops · Bone"
+        aside={<span className="absolute inset-0 bg-ink-muted" />}
+        media={<span className="block aspect-square bg-ink-muted" />}
+        footer={
+          <div className="flex items-center justify-between gap-4">
+            <Button variant="underline">View full product</Button>
+            <Button size="lg" shape="pill">
+              Add to bag
+            </Button>
+          </div>
+        }
+      >
+        <div className="flex flex-col gap-6">
+          <p className="text-body font-medium">Select size</p>
+          <div className="grid grid-cols-5 gap-2">
+            {["XS", "S", "M", "L", "XL"].map((size) => (
+              <span
+                key={size}
+                className="flex h-11 items-center justify-center rounded-sm border border-line"
+              >
+                {size}
+              </span>
+            ))}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  ),
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(canvas.getByRole("button", { name: "Add to bag" }));
+    const dialog = await screen.findByRole("dialog", { name: "Linen Overshirt" });
+    await waitFor(() => expect(dialog).toBeVisible());
+    await expect(dialog).toHaveAccessibleDescription("Tops · Bone");
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() => expect(canvas.getByRole("button", { name: "Add to bag" })).toHaveFocus());
+  },
+};

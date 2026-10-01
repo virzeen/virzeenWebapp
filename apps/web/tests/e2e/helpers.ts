@@ -59,7 +59,7 @@ export async function addToBag(page: Page, slug: string, options: { color?: stri
   if (options.color) await page.getByRole("radio", { name: options.color, exact: true }).click();
   if (options.size) await page.getByRole("radio", { name: options.size, exact: true }).click();
   await page.getByRole("button", { name: "Add to bag" }).click();
-  await expect(page.getByRole("dialog", { name: "Added to bag" })).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Bag" })).toBeVisible();
 }
 
 /** Fills the delivery address form on /checkout (or /account/addresses). */

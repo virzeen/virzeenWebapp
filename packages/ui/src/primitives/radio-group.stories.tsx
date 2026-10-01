@@ -39,6 +39,28 @@ export const SizePicker: Story = {
   },
 };
 
+/** Add to bag before a size was picked: a red line around the sizes and the message under them. */
+export const SizePickerInvalid: Story = {
+  render: () => (
+    <div className="flex max-w-xs flex-col gap-2">
+      <RadioGroup aria-label="Size" aria-invalid aria-describedby="size-error" variant="card">
+        <RadioGroupItem value="S" label="S" />
+        <RadioGroupItem value="M" label="M" />
+        <RadioGroupItem value="L" label="L" />
+        <RadioGroupItem value="XL" label="XL" disabled />
+      </RadioGroup>
+      <p id="size-error" className="pt-2 text-small text-danger">
+        Select a size
+      </p>
+    </div>
+  ),
+  play: async ({ canvas }) => {
+    await expect(canvas.getByRole("radiogroup", { name: "Size" })).toHaveAccessibleDescription(
+      "Select a size",
+    );
+  },
+};
+
 /** A few short choices joined in one pill, e.g. the size guide's units. */
 export const Segmented: Story = {
   render: () => (
