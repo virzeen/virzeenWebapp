@@ -121,7 +121,9 @@ test("admin sets up two-factor, builds a product on its page and it appears in t
   await page.getByRole("button", { name: "Add size chart picture" }).click();
   const customerView = page.getByRole("region", { name: "What customers see" });
   await expect(customerView.getByRole("img", { name: "E2E Bags size chart" })).toBeVisible();
-  await expect(customerView.getByRole("link", { name: /Open full size/ })).toBeVisible();
+  // Only the picture, as in the shop's popup (owner, 2026-10-01): no title, name or "Open full size".
+  await expect(customerView.getByRole("link", { name: /Open full size/ })).toHaveCount(0);
+  await expect(customerView.getByText("E2E Bags", { exact: true })).toHaveCount(0);
   await expect(customerView.getByRole("radiogroup", { name: "Units" })).toHaveCount(0);
   await page.getByRole("button", { name: "Save size guide" }).click();
   await expect(page).toHaveURL(/\/admin\/size-guides\/(?!new)[a-z0-9]+$/);

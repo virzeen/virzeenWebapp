@@ -17,6 +17,8 @@ import { cn } from "../lib/cn";
  * `aside` (a photo with its own controls) fills the left half, and the title, a scrolling body and the `footer` (under
  * a hairline) fill the right. Below `lg` the aside is hidden and `media`, if given, sits left of the title. Its body
  * isn't a focus stop of its own, so it should hold a control (the sizes) or be short.
+ * `hideTitle`: a popup that is just its content, e.g. one picture (the product page's size chart). The title and
+ * description are read by screen readers but not shown, and the body starts under the close button.
  *
  * ```tsx
  * <Dialog open={open} onOpenChange={setOpen}>
@@ -64,6 +66,8 @@ export type DialogContentProps = React.ComponentProps<typeof DialogPrimitive.Con
     media?: React.ReactNode;
     /** `size="split"`: the left pane from `lg`, e.g. the product's photos (fill it: it's as tall as the popup). */
     aside?: React.ReactNode;
+    /** Only screen readers get the title and description (not with `size="split"` or `media`). */
+    hideTitle?: boolean;
   };
 
 export function DialogContent({
@@ -75,6 +79,7 @@ export function DialogContent({
   hideClose = false,
   media,
   aside,
+  hideTitle = false,
   children,
   ...props
 }: DialogContentProps) {
@@ -98,7 +103,7 @@ export function DialogContent({
     <DialogPrimitive.Portal>
       <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-ink/50 data-[state=closed]:animate-fade-out data-[state=open]:animate-fade-in" />
       <DialogPrimitive.Content
-        className={cn(dialogVariants({ size }), className)}
+        className={cn(dialogVariants({ size }), hideTitle && !large && "pt-14", className)}
         {...(description ? {} : { "aria-describedby": undefined })}
         {...props}
       >
@@ -116,22 +121,26 @@ export function DialogContent({
           </>
         ) : (
           <>
-            <div
-              className={cn(
-                "flex flex-col gap-2 pr-8",
-                large && "border-b border-line px-6 pt-6 pr-14 pb-4",
-                media && "flex-row items-center gap-4",
-              )}
-            >
-              {media ? (
-                <>
-                  <div className="w-16 shrink-0 overflow-hidden rounded-sm">{media}</div>
-                  <div className="flex min-w-0 flex-col gap-1">{heading}</div>
-                </>
-              ) : (
-                heading
-              )}
-            </div>
+            {hideTitle ? (
+              <div className="sr-only">{heading}</div>
+            ) : (
+              <div
+                className={cn(
+                  "flex flex-col gap-2 pr-8",
+                  large && "border-b border-line px-6 pt-6 pr-14 pb-4",
+                  media && "flex-row items-center gap-4",
+                )}
+              >
+                {media ? (
+                  <>
+                    <div className="w-16 shrink-0 overflow-hidden rounded-sm">{media}</div>
+                    <div className="flex min-w-0 flex-col gap-1">{heading}</div>
+                  </>
+                ) : (
+                  heading
+                )}
+              </div>
+            )}
             {large ? (
               <div
                 // Focusable, so keyboard users can scroll it even when nothing inside takes focus (WCAG 2.1.1, axe
@@ -140,7 +149,10 @@ export function DialogContent({
                 tabIndex={0}
                 role="region"
                 aria-labelledby={titleTextId}
-                className="min-h-0 flex-1 overflow-y-auto p-6 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus focus-visible:outline-solid"
+                className={cn(
+                  "min-h-0 flex-1 overflow-y-auto p-6 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus focus-visible:outline-solid",
+                  hideTitle && "pt-14",
+                )}
               >
                 {children}
               </div>

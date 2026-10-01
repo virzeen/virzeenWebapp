@@ -1,10 +1,8 @@
 "use client";
 
-import { cn, Link } from "@virzeen/ui";
-import { ExternalLink } from "lucide-react";
+import { cn } from "@virzeen/ui";
 import { useEffect, useRef, useState } from "react";
 import { CloudImage } from "@/client/components/shared/cloud-image";
-import imageLoader from "@/client/lib/image-loader";
 import { closestShape, UNKNOWN_SHAPE } from "./picture-shape";
 import type { SizeGuideView } from "./product-details-data";
 import { SizeGuideTable } from "./size-guide-table";
@@ -18,9 +16,10 @@ type SizeGuideContentProps = {
 };
 
 /**
- * The whole size chart picture across the popup's width, and a link to it at full size in a new tab (Accessories).
- * Its box takes the closest shape to the picture's own once it has loaded (square until then), so a tall phone
- * screenshot or a wide table fills the width instead of sitting small in a square.
+ * The whole size chart picture across the popup's width (Accessories), on its own (owner, 2026-10-01: "shows only
+ * the picture"; it had an "Open full size" link under it). Its box takes the closest shape to the picture's own once
+ * it has loaded (square until then), so a tall phone screenshot or a wide table fills the width instead of sitting
+ * small in a square.
  */
 function SizeChartPicture({ guide, src }: { guide: SizeGuideView; src: string }) {
   const boxRef = useRef<HTMLDivElement>(null);
@@ -40,27 +39,15 @@ function SizeChartPicture({ guide, src }: { guide: SizeGuideView; src: string })
   }, [src]);
 
   return (
-    <div className="flex flex-col gap-2">
-      <div ref={boxRef}>
-        <CloudImage
-          src={src}
-          alt={guide.imageAlt?.trim() || `${guide.name} size chart`.trim()}
-          ratio="none"
-          sizes="(min-width: 640px) 40rem, 100vw"
-          className={cn("w-full rounded-md", shape)}
-          imageClassName="object-contain"
-        />
-      </div>
-      <Link
-        href={imageLoader({ src, width: 1600 })}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex min-h-11 items-center gap-2 self-end text-small"
-      >
-        Open full size
-        <ExternalLink className="size-4" strokeWidth={1.5} aria-hidden />
-        <span className="sr-only">(opens in a new tab)</span>
-      </Link>
+    <div ref={boxRef}>
+      <CloudImage
+        src={src}
+        alt={guide.imageAlt?.trim() || `${guide.name} size chart`.trim()}
+        ratio="none"
+        sizes="(min-width: 640px) 40rem, 100vw"
+        className={cn("w-full rounded-md", shape)}
+        imageClassName="object-contain"
+      />
     </div>
   );
 }

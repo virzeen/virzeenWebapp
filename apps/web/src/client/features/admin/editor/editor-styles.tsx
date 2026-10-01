@@ -4,6 +4,7 @@ import { FormField, RadioGroup, RadioGroupItem } from "@virzeen/ui";
 import { useRef, useState } from "react";
 import { useWatch } from "react-hook-form";
 import { CloudImage } from "@/client/components/shared/cloud-image";
+import { SizeGuideDialog } from "@/client/features/products/size-guide-dialog";
 import { hasStylePhotos, tilePhotoFor } from "@/client/features/products/style-photos";
 import { AddStyle } from "./buybox-add-style";
 import { EditStyle } from "./buybox-edit-style";
@@ -14,11 +15,16 @@ import { useProductEditor } from "./editor-context";
  * The style tiles, as on the shop page (style-picker.tsx): square picture tiles when any style has photos, else
  * "Colour: {name}" chips; picking one shows its photos, price and stock (nothing is ever disabled here). A + adds a
  * style; the pencil beside "Style: {name}" (or a double-click on the tile) edits the picked one
- * (specs/product-editor-on-page.md "Style tiles"). A product without styles shows only Add style.
+ * (specs/product-editor-on-page.md "Style tiles"). A product without styles shows only Add style. A product with a
+ * size guide but no sizes shows "Size guide" before the pencil, as the shop does (editor-sizes.tsx has it otherwise).
  */
 export function EditorStyles() {
-  const { form, styles, style, selectStyle } = useProductEditor();
-  const images = useWatch({ control: form.control, name: "images" });
+  const { form, styles, style, selectStyle, variantOptions, options } = useProductEditor();
+  const [images, sizeGuideId] = useWatch({ control: form.control, name: ["images", "sizeGuideId"] });
+  const guide =
+    variantOptions.options.sizes.length === 0
+      ? options.sizeGuides.find((option) => option.id === sizeGuideId)
+      : undefined;
   const [editing, setEditing] = useState(false);
   const pencilRef = useRef<HTMLButtonElement>(null);
   const addRef = useRef<HTMLButtonElement>(null);
@@ -45,12 +51,15 @@ export function EditorStyles() {
         <FormField
           label={`${tiles ? "Style" : "Colour"}: ${style}`}
           labelAside={
-            <EditPencil
-              ref={pencilRef}
-              label={`style ${style}`}
-              className="-my-2"
-              onClick={() => setEditing(true)}
-            />
+            <div className="flex items-center gap-2">
+              {guide && <SizeGuideDialog guide={guide} />}
+              <EditPencil
+                ref={pencilRef}
+                label={`style ${style}`}
+                className="-my-2"
+                onClick={() => setEditing(true)}
+              />
+            </div>
           }
         >
           <div ref={groupRef} className={tiles ? "flex flex-wrap gap-2" : "flex flex-col gap-2"}>

@@ -8,18 +8,20 @@ import { styleHasStock } from "./selection";
 type StylePickerProps = {
   /** Styles with their own photos: each style's tile picture (specs/product-styles.md). */
   tiles?: Record<string, string | null>;
+  /** On the right of the label: "Size guide" when the product has no sizes to put it beside. */
+  labelAside?: React.ReactNode;
 };
 
 /**
  * The style picker (specs/product-page.md): square picture tiles when photos belong to styles, otherwise
  * "Colour: {name}" chips. A style with nothing in stock stays visible but can't be picked.
  */
-export function StylePicker({ tiles }: StylePickerProps) {
+export function StylePicker({ tiles, labelAside }: StylePickerProps) {
   const { variants, colors, style, pickStyle } = useProductSelection();
   if (colors.length === 0) return null;
 
   return (
-    <FormField label={`${tiles ? "Style" : "Colour"}${style ? `: ${style}` : ""}`}>
+    <FormField label={`${tiles ? "Style" : "Colour"}${style ? `: ${style}` : ""}`} labelAside={labelAside}>
       <RadioGroup
         variant={tiles ? "swatch" : "card"}
         value={style ?? ""}

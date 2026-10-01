@@ -6,8 +6,10 @@ import type { SizeGuideView } from "./product-details-data";
 import { SizeGuideContent } from "./size-guide-content";
 
 /**
- * "Size guide" (ruler and text) and the popup it opens (specs/size-guides.md): next to "Select size" and inside the
- * "Size and fit" section. Escape, the X and a click outside close it; focus returns to the button.
+ * "Size guide" (ruler and text) and the popup it opens (specs/size-guides.md): next to "Select size" (or, for a
+ * product without sizes, next to "Style") and inside the "Size and fit" section. A picture guide's popup shows only
+ * the picture: its title and the guide's name are for screen readers (owner, 2026-10-01). Escape, the X and a click
+ * outside close it; focus returns to the button.
  */
 export function SizeGuideDialog({ guide }: { guide: SizeGuideView }) {
   return (
@@ -18,7 +20,12 @@ export function SizeGuideDialog({ guide }: { guide: SizeGuideView }) {
           Size guide
         </Button>
       </DialogTrigger>
-      <DialogContent size="lg" title="Size guide" description={guide.name}>
+      <DialogContent
+        size="lg"
+        title="Size guide"
+        description={guide.name}
+        hideTitle={guide.kind === "PICTURE"}
+      >
         <SizeGuideContent guide={guide} />
       </DialogContent>
     </Dialog>
