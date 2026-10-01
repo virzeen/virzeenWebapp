@@ -53,7 +53,8 @@ type ProductSummary = {
   hoverImageUrl: string | null;
   inStock: boolean;
   colorCount: number;
-  hasStylePhotos: boolean; // the colours are styles with their own photos ("{n} styles"), specs/product-styles.md
+  hasStylePhotos: boolean; // the colours are styles with their own photos, specs/product-styles.md
+  styles: string[]; // the style names for sale in style order (the product card lists them); [] without styles
 };
 type ProductDetail = {
   id: string;

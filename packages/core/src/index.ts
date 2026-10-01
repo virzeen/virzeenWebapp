@@ -30,7 +30,12 @@ export {
   type ProductSummary,
 } from "./catalog/catalog.reads";
 export { catalogService, type SavedProduct } from "./catalog/catalog.service";
-export { favouriteService, type FavouriteItem } from "./favourites/favourite.service";
+export {
+  favouriteService,
+  type FavouriteItem,
+  type FavouritePhoto,
+  type FavouriteVariant,
+} from "./favourites/favourite.service";
 export { notifications, PAYMENT_METHOD_LABELS } from "./notifications/notifications";
 export {
   checkoutService,

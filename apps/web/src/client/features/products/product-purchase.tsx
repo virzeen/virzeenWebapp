@@ -6,16 +6,19 @@ import { useRef, useState, useTransition } from "react";
 import { Price } from "@/client/components/shared/price";
 import { StockLabel } from "@/client/components/shared/stock-label";
 import { useCart } from "@/client/features/cart/cart-provider";
+import { favouriteDetails } from "@/client/features/favourites/favourite-bag";
 import { FavouriteButton } from "@/client/features/favourites/favourite-button";
-import { addToBagMessage } from "@/client/lib/error-messages";
+import { addToBagMessage, allInBagMessage } from "@/client/lib/error-messages";
 import { addToCartAction } from "@/server/actions/cart";
-import type { SizeGuideView } from "./product-details-data";
+import type { ProductDetailsData, SizeGuideView } from "./product-details-data";
 import { useProductSelection } from "./product-selection";
 import { SizePicker } from "./size-picker";
+import { galleryFor } from "./style-photos";
 import { StylePicker } from "./style-picker";
 
 type ProductPurchaseProps = {
-  productId: string;
+  /** The product: its id, plus the name, category and photos that "Added to favourites" shows. */
+  product: Pick<ProductDetailsData, "productId" | "name" | "category" | "images">;
   sizeGuide: SizeGuideView | null;
   /** Styles with their own photos: each style's tile picture (specs/product-styles.md). */
   tiles?: Record<string, string | null>;
@@ -23,18 +26,12 @@ type ProductPurchaseProps = {
   preview?: boolean;
 };
 
-/** Why Add to bag stops: the bag already holds every piece left, or the per-line cap. */
-function allInBagMessage(limit: number): string {
-  if (limit === MAX_QTY_PER_LINE) return `Limit ${limit} of each — you already have ${limit} in your bag.`;
-  return limit === 1 ? "The last one is already in your bag." : `All ${limit} left are already in your bag.`;
-}
-
 /**
  * Style tiles, sizes, stock, "Add to bag" and "Favourite" (patterns.md §6). Unavailable options stay visible but
  * disabled. On phones Add to bag sits in a sticky bottom bar (`data-sticky-cta`: globals.css keeps focus and the
  * footer clear of it). Pressed before a size is chosen, it points to the sizes instead of doing nothing.
  */
-export function ProductPurchase({ productId, sizeGuide, tiles, preview = false }: ProductPurchaseProps) {
+export function ProductPurchase({ product, sizeGuide, tiles, preview = false }: ProductPurchaseProps) {
   const { cart, setCart, open } = useCart();
   const [isPending, startTransition] = useTransition();
   const { variants, colors, sizes, style, size, selected, price } = useProductSelection();
@@ -78,6 +75,9 @@ export function ProductPurchase({ productId, sizeGuide, tiles, preview = false }
   }
 
   const buttonLabel = soldOut ? "Out of stock" : sizeMissing ? "Select a size" : "Add to bag";
+  const favouriteStyle = style ?? colors[0] ?? "";
+  // The style's first photo, as the gallery shows it.
+  const [photo] = galleryFor(product.images, favouriteStyle || null, colors);
 
   return (
     <Stack gap={6}>
@@ -116,7 +116,18 @@ export function ProductPurchase({ productId, sizeGuide, tiles, preview = false }
           </div>
         </div>
         {/* Saves the style picked now ("" for a product without styles; the first style when all are sold out). */}
-        <FavouriteButton productId={productId} color={style ?? colors[0] ?? ""} preview={preview} />
+        <FavouriteButton
+          productId={product.productId}
+          color={favouriteStyle}
+          summary={{
+            name: product.name,
+            details: favouriteDetails({ category: product.category.name, style: favouriteStyle }),
+            imageUrl: photo?.url ?? null,
+            imageAlt: photo?.alt ?? product.name,
+            pricePaisa: price.paisa,
+          }}
+          preview={preview}
+        />
       </Stack>
     </Stack>
   );

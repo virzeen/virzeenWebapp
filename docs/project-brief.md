@@ -63,7 +63,7 @@ What customers need from us: honest prices (VAT included, shipping shown before 
 - Shop: category and collection pages, product grid, filters (category, size, color, availability), "Load more".
 - Product page: image gallery, name, price, variant pickers (size/color), stock label, sticky "Add to bag" on mobile, description, care info, size guide, related products.
 - Favourites: "Favourite" on the product page and a Favourites page; guests keep them in the browser and they move to the account on sign-in (`specs/favourites.md`; moved from phase 2 by the owner on 2026-09-29).
-- Cart ("bag"): an "Added to bag" panel after each add + the full bag page (both like Nike's since 2026-09-30), quantity changes, remove with undo, subtotal.
+- Cart ("bag"): the bag drawer slides in from the right after each add (brought back 2026-10-01, owner's choice) + the full bag page (like Nike's since 2026-09-30), quantity changes, remove with undo, subtotal.
 - Checkout: sign-in required (guest cart merges on login), address book, order summary with shipping by zone, payment by COD / eSewa / Khalti.
 - Order confirmation page and email.
 
@@ -101,7 +101,7 @@ Reviews, coupons/discounts, gift cards, staff role, SMS notifications, automated
 
 1. **Discover** — lands on home or a portfolio story (from social media), sees the brand, taps a product.
 2. **Decide** — product page shows price (VAT included), sizes with stock, delivery info, returns note.
-3. **Add to bag** — picks a size, taps "Add to bag", an "Added to bag" panel drops down confirming it. Works as a guest (cart stored by a secure cookie).
+3. **Add to bag** — picks a size, taps "Add to bag", the bag drawer slides in from the right confirming it. Works as a guest (cart stored by a secure cookie).
 4. **Sign in** — at checkout, signs in with Google or a 6-digit email code. Guest bag merges into their account.
 5. **Checkout** — chooses/adds an address (Nepal provinces/districts, 10-digit mobile), sees subtotal + shipping + total calculated by the server.
 6. **Pay**

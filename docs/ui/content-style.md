@@ -33,7 +33,7 @@ Errors say what to do next: "Choose your district", "Keep the name under 120 cha
 
 | Situation                                                           | Message                                                                                          |
 | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| Added to bag (the "Added to bag" panel drops down; no toast)        | Added to bag — [View bag ({n})] [Checkout]                                                       |
+| Added to bag (the bag drawer slides in and says so; no toast)       | Bag, with Added to bag · {n} item / Added to bag · {n} items under it — [Checkout] [View bag]    |
 | Removed a bag line (inline row where the line was; no toast)        | Removed {productName}. — [Undo]                                                                  |
 | Empty bag                                                           | There are no items in your bag. — [Browse the collection]                                        |
 | No orders                                                           | You haven't placed any orders yet. — [Start shopping]                                            |
@@ -78,21 +78,26 @@ Inputs say "Enter", choices (Select, radios) say "Choose".
 
 ## Bag and product page
 
-| Situation                                                                | Text                                                   |
-| ------------------------------------------------------------------------ | ------------------------------------------------------ |
-| Add to bag before a size is chosen (pressing it points to "Select size") | Select a size                                          |
-| Add to bag when the variant is sold out                                  | Out of stock                                           |
-| Under Add to bag: the bag already holds the last piece                   | The last one is already in your bag.                   |
-| Under Add to bag: the bag already holds every piece left                 | All {n} left are already in your bag.                  |
-| Under Add to bag: the bag already holds the per-line cap                 | Limit 10 of each — you already have 10 in your bag.    |
-| Bag line, quantity over 1 (under the variant)                            | {Rs X} each                                            |
-| Bag line, "+" stopped by stock                                           | Only {n} left                                          |
-| Bag line, "+" stopped by the per-line cap                                | Limit 10 of each                                       |
-| Bag line, variant sold out since it was added                            | Out of stock                                           |
-| Bag line, product no longer sold                                         | No longer available                                    |
-| Bag page, under the title on phones                                      | {n} item \| {total} / {n} items \| {total}             |
-| Bag summary                                                              | Summary: Subtotal · Shipping Free · Total — [Checkout] |
-| Undo failed (replaces "Removed {productName}.")                          | The error's standard message (above)                   |
+| Situation                                                                | Text                                                                            |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| Add to bag before a size is chosen (pressing it points to "Select size") | Select a size                                                                   |
+| Add to bag when the variant is sold out                                  | Out of stock                                                                    |
+| Under Add to bag: the bag already holds the last piece                   | The last one is already in your bag.                                            |
+| Under Add to bag: the bag already holds every piece left                 | All {n} left are already in your bag.                                           |
+| Under Add to bag: the bag already holds the per-line cap                 | Limit 10 of each — you already have 10 in your bag.                             |
+| Bag line, quantity over 1 (under the variant)                            | {Rs X} each                                                                     |
+| Bag line, "+" stopped by stock                                           | Only {n} left                                                                   |
+| Bag line, "+" stopped by the per-line cap                                | Limit 10 of each                                                                |
+| Bag line, variant sold out since it was added                            | Out of stock                                                                    |
+| Bag line, product no longer sold                                         | No longer available                                                             |
+| Bag drawer description (otherwise)                                       | {n} item / {n} items                                                            |
+| Bag drawer footer                                                        | Free shipping across Nepal. Prices include VAT.                                 |
+| Bag drawer, empty                                                        | Your bag is empty. — [Browse the collection]                                    |
+| Bag page, under the title on phones                                      | {n} item \| {total} / {n} items \| {total}                                      |
+| Bag page, under the bag (customer has favourites)                        | Favourites (h2) · [View more favourites] when there are more than the two shown |
+| Bag page, under the bag (no favourites)                                  | You might also like (h2) · Previous products / Next products                    |
+| Bag summary                                                              | Summary: Subtotal · Shipping Free · Total — [Checkout]                          |
+| Undo failed (replaces "Removed {productName}.")                          | The error's standard message (above)                                            |
 
 ## Product page (`/product/{slug}`)
 
@@ -101,7 +106,7 @@ Nike-style layout (`specs/product-page.md`, `specs/product-page-v2.md`). The sam
 | Where                                                      | Text                                                                                                                                                                                                                                                                          |
 | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Style picker, with style photos                            | Style: {name} (label above square picture tiles; no caption: each tile's name is its radio's name and its `title`)                                                                                                                                                            |
-| Style picker, without style photos                         | Colour: {name} (label above chips) · product card "{n} styles" / "{n} colours"                                                                                                                                                                                                |
+| Style picker, without style photos                         | Colour: {name} (label above chips) · product card lists the style names: "Black, White"                                                                                                                                                                                       |
 | Sizes                                                      | Select size (the radio group's name) · [Size guide] on the right of it, with a ruler icon (only when the product has a size guide)                                                                                                                                            |
 | Buttons                                                    | [Add to bag] · under it [Favourite] / [Favourited] (heart outline / filled, `aria-pressed`)                                                                                                                                                                                   |
 | Note under the buttons                                     | Prices include 13% VAT. Free shipping across Nepal and 7-day free returns. Pay in cash when it arrives.                                                                                                                                                                       |
@@ -120,18 +125,26 @@ Nike-style layout (`specs/product-page.md`, `specs/product-page-v2.md`). The sam
 
 ## Favourites (`/favourites`)
 
-| Situation                                                          | Text                                                                                                                                       |
-| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| Saved / removed on the product page (toasts)                       | Added to favourites — [View] (goes to `/favourites`) · Removed from favourites                                                             |
-| List full (`CONFLICT`; guests get the same words from the browser) | You can save up to 100 favourites. Remove one to add another.                                                                              |
-| Product no longer on sale when saving (`NOT_FOUND`)                | This product isn't available.                                                                                                              |
-| Page (h1, count)                                                   | Favourites · 1 item / {n} items                                                                                                            |
-| Empty                                                              | No favourites yet — Tap Favourite on a product to save it here. [Start shopping]                                                           |
-| Card                                                               | The saved style's photo, name and price, then the style's name (none when the style isn't sold any more) · "Out of stock" badge · [Remove] |
-| Remove button (screen readers)                                     | Remove {name}, {style} (Remove {name} without styles, or when the style isn't sold any more)                                               |
-| After Remove (status line, screen readers)                         | Removed {name}, {style}.                                                                                                                   |
-| A guest's list didn't load                                         | The error's standard message in a danger `Alert` — [Try again]                                                                             |
-| Privacy page, "What we store"                                      | The products you save as favourites. If you aren't signed in, they stay only in your browser.                                              |
+| Situation                                                          | Text                                                                                                                                                                                                                                                                           |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Saved / removed on the product page or a bag line                  | Saved: the "Added to favourites" panel (black tick, photo, {name}, {category} · {style}, price) — [View favourites] (in the bag drawer: the toast Added to favourites — [View]) · Removed: toast Removed from favourites                                                       |
+| List full (`CONFLICT`; guests get the same words from the browser) | You can save up to 100 favourites. Remove one to add another.                                                                                                                                                                                                                  |
+| Product no longer on sale when saving (`NOT_FOUND`)                | This product isn't available.                                                                                                                                                                                                                                                  |
+| Page (h1)                                                          | Favourites (top left)                                                                                                                                                                                                                                                          |
+| Count (screen readers only)                                        | 1 item / {n} items                                                                                                                                                                                                                                                             |
+| Empty                                                              | Items added to your Favourites will be saved here. [Shop] (goes to `/shop`)                                                                                                                                                                                                    |
+| Card                                                               | The saved style's square photo · {name} with {category} · {style} in grey under it on the left, the price on the right (under them on phones; just the category without a style)                                                                                               |
+| Heart on the photo (screen readers, `aria-pressed`)                | Favourite {name}, {style} (Favourite {name} without styles, or when the style isn't sold any more)                                                                                                                                                                             |
+| Card button (outlined pill)                                        | [Add to bag] (one variant: adds it; sizes: opens the Add to bag popup) · once the bag holds the style: [✓ Added] (screen readers: Added to bag. Add another) · [Sold out] (disabled) · [View product] (a link: the saved style isn't sold any more, another style is in stock) |
+| Add to bag from a card                                             | The bag drawer slides in (no toast) · an error: a toast with the standard message ("Only {n} left")                                                                                                                                                                            |
+| Add to bag popup                                                   | Title {name}, {category} · {style} under it · the price (the picked size's) · the sizes (the radio group's name: Select size) · [View full product] (link) · [Add to bag] · photos: Previous photo / Next photo (screen readers: Photo {n} of {total})                         |
+| Add to bag popup, Add to bag before a size                         | Select a size (under the sizes, which get a red ring; focus goes to the first size)                                                                                                                                                                                            |
+| Add to bag popup, add failed                                       | The error's standard message, under the sizes (not a toast: behind the popup it can't be read)                                                                                                                                                                                 |
+| Add to bag when the bag already holds every piece left (not sent)  | The product page's words: The last one is already in your bag. · All {n} left are already in your bag. · Limit 10 of each — you already have 10 in your bag. (a toast from a card, under the sizes in the popup)                                                               |
+| Heart pressed (card dims; bar on the photo for 5 seconds)          | Removed from favourites [Undo]                                                                                                                                                                                                                                                 |
+| After the heart (status line, screen readers)                      | Removed {name}, {style} from favourites. · Added {name}, {style} to favourites.                                                                                                                                                                                                |
+| A guest's list didn't load                                         | The error's standard message in a danger `Alert` — [Try again]                                                                                                                                                                                                                 |
+| Privacy page, "What we store"                                      | The products you save as favourites. If you aren't signed in, they stay only in your browser.                                                                                                                                                                                  |
 
 ## Shop listing
 
@@ -409,7 +422,7 @@ Frame and rules: backend-policies.md §9. The sign-in code email's heading is th
 
 ## Formatting
 
-- Money: `Rs 1,250` (via `<Price>`, which keeps each amount on one line), never "NPR 1250" or "Rs.1250". Where only text fits (an accordion title, an aria-label), use `formatPaisa()`.
+- Money: `Rs 1,250` (via `<Price>`, which keeps each amount on one line), never "NPR 1250" or "Rs.1250". Product cards show `रु 1,250` (`<Price symbol="रु">`, owner request 2026-10-01; screen readers still hear "Rs"). Where only text fits (an accordion title, an aria-label), use `formatPaisa()`.
 - Dates: `28 Sep 2026`; with time `28 Sep 2026, 3:45 PM` (Asia/Kathmandu).
 - Order numbers shown exactly as stored: `VZ-260928-0042`.
 - Counts take the right plural: "1 product", "2 products". Never "product(s)".

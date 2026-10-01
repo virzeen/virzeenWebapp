@@ -1,7 +1,12 @@
 "use server";
 
 import "server-only";
-import { favouriteService, type ProductSummary } from "@virzeen/core";
+import {
+  favouriteService,
+  type FavouritePhoto,
+  type FavouriteVariant,
+  type ProductSummary,
+} from "@virzeen/core";
 import {
   favouriteProductsSchema,
   mergeFavouritesSchema,
@@ -28,6 +33,12 @@ export type FavouriteView = {
   /** When the account saved it; null for a guest's (the browser keeps its own time). */
   savedAt: string | null;
   product: ProductSummary;
+  /** The product's category name ("Tops"). */
+  category: string;
+  /** The saved style's variants for sale (stock 0 when sold out), sizes in shop order; [] when the style is gone. */
+  variants: FavouriteVariant[];
+  /** The saved style's photos, for the Add to bag popup (every photo without a style, or when it isn't sold). */
+  photos: FavouritePhoto[];
 };
 
 /** Save (`saved: true`) or remove one favourite for the signed-in customer. Idempotent. */

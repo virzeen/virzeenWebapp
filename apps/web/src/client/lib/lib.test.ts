@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { addToBagMessage, messageFor } from "./error-messages";
+import { MAX_QTY_PER_LINE } from "@virzeen/validators";
+import { addToBagMessage, allInBagMessage, messageFor } from "./error-messages";
 import { formatDate, formatDateTime } from "./format";
 import imageLoader from "./image-loader";
 import { orderStatus, paymentStatus, timelineLabel } from "./order-labels";
@@ -30,6 +31,16 @@ describe("messageFor", () => {
 
   it("shows the precise stock message when adding to the bag", () => {
     expect(addToBagMessage({ code: "OUT_OF_STOCK", message: "Only 2 left" })).toBe("Only 2 left");
+  });
+});
+
+describe("allInBagMessage", () => {
+  it("says the bag already holds every piece left, or the per-line limit", () => {
+    expect(allInBagMessage(1)).toBe("The last one is already in your bag.");
+    expect(allInBagMessage(3)).toBe("All 3 left are already in your bag.");
+    expect(allInBagMessage(MAX_QTY_PER_LINE)).toBe(
+      `Limit ${MAX_QTY_PER_LINE} of each — you already have ${MAX_QTY_PER_LINE} in your bag.`,
+    );
   });
 });
 

@@ -20,16 +20,17 @@ test.describe("Add to bag", () => {
     await page.getByRole("radio", { name: "M", exact: true }).click();
     await page.getByRole("button", { name: "Add to bag" }).click();
 
-    // Nike's "Added to bag": what went in, then View bag and Checkout.
-    const added = page.getByRole("dialog", { name: "Added to bag" });
-    await expect(added).toBeVisible();
-    await expect(added.getByText("Linen Overshirt")).toBeVisible();
-    await expect(added.getByText("Rs 4,500")).toBeVisible();
-    await expect(added.getByRole("link", { name: "Checkout" })).toHaveAttribute("href", "/checkout");
+    // The bag drawer slides in from the right and says "Added to bag".
+    const bag = page.getByRole("dialog", { name: "Bag" });
+    await expect(bag).toHaveAccessibleDescription("Added to bag · 1 item");
+    await expect(bag.getByText("Linen Overshirt")).toBeVisible();
+    await expect(bag.getByTestId("cart-subtotal")).toContainText("Rs 4,500");
+    await expect(bag.getByRole("link", { name: "Checkout" })).toHaveAttribute("href", "/checkout");
 
-    // The panel is modal (the page behind it is hidden from assistive tech), so close it first.
+    // The drawer is modal (the page behind it is hidden from assistive tech), so close it first; focus goes back.
     await page.keyboard.press("Escape");
-    await expect(added).toBeHidden();
+    await expect(bag).toBeHidden();
+    await expect(page.getByTestId("add-to-bag")).toBeFocused();
     await expect(page.getByTestId("open-bag")).toHaveAccessibleName("Bag, 1 item");
 
     await page.getByTestId("open-bag").click();
@@ -45,10 +46,10 @@ test.describe("Add to bag", () => {
   test("the bag page keeps quantity changes and removal with undo", async ({ page }) => {
     await page.goto("/product/logo-cap");
     await page.getByRole("button", { name: "Add to bag" }).click();
-    await page
-      .getByRole("dialog", { name: "Added to bag" })
-      .getByRole("link", { name: "View bag (1)" })
-      .click();
+    const drawer = page.getByRole("dialog", { name: "Bag" });
+    await drawer.getByRole("link", { name: "View bag" }).click();
+    // The drawer slides closed before the page's own lines are the only ones.
+    await expect(drawer).toBeHidden();
     await expect(page.getByRole("heading", { level: 1, name: "Bag" })).toBeVisible();
 
     const quantity = page.getByRole("group", { name: "Quantity of Logo Cap" });
