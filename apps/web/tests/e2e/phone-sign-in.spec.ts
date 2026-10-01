@@ -9,6 +9,14 @@ import { readEmail, uniqueEmail } from "./helpers";
 const { userAgent, viewport, deviceScaleFactor, isMobile, hasTouch } = devices["Pixel 7"];
 test.use({ userAgent, viewport, deviceScaleFactor, isMobile, hasTouch });
 
+/**
+ * Its own visitor address (a documentation range, as Railway's edge would pass it on), so these sign-ins don't
+ * use up the 10-codes-per-address limit (rate-limit.ts "otp:ip") the rest of the suite shares.
+ */
+async function ownAddress(page: import("@playwright/test").Page, n: number) {
+  await page.setExtraHTTPHeaders({ "X-Forwarded-For": `203.0.113.${n}` });
+}
+
 /** Pretends the site runs as the installed app (display-mode: standalone). */
 async function asInstalledApp(page: import("@playwright/test").Page) {
   await page.addInitScript(() => {
@@ -31,6 +39,7 @@ async function asInstalledApp(page: import("@playwright/test").Page) {
 
 test.describe("Phone sign-in", () => {
   test("the menu's Sign in opens the sign-in page and the code signs in to the account", async ({ page }) => {
+    await ownAddress(page, 11);
     await page.goto("/product/linen-overshirt");
     await page.getByRole("button", { name: "Open menu" }).click();
     await page.getByRole("dialog", { name: "Menu" }).getByRole("link", { name: "Sign in" }).click();
@@ -47,6 +56,7 @@ test.describe("Phone sign-in", () => {
   });
 
   test("the installed app comes back to the code screen after a trip to the mail app", async ({ page }) => {
+    await ownAddress(page, 12);
     await asInstalledApp(page);
     await page.goto("/login");
     const email = uniqueEmail("phone-app");
@@ -70,6 +80,7 @@ test.describe("Phone sign-in", () => {
   });
 
   test("a browser tab is never sent back to the code screen", async ({ page }) => {
+    await ownAddress(page, 13);
     await page.goto("/login");
     await page.getByLabel(/Email/).fill(uniqueEmail("phone-tab"));
     await page.getByRole("button", { name: "Continue with email" }).click();
