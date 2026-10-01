@@ -12,11 +12,11 @@ export function OtpEmail({ otp, siteUrl }: OtpEmailProps) {
         Your VIRZEEN Member Profile Code
       </Heading>
       <Text className="m-0 mt-4 text-body">Here&apos;s the one-time code you asked for:</Text>
-      <Hr className="mt-8 mb-0 border-line" />
+      <Hr className="vz-line mt-8 mb-0 border-line" />
       <Text className="mx-0 my-8 text-center text-display font-normal tracking-widest">{otp}</Text>
-      <Hr className="mt-0 mb-8 border-line" />
+      <Hr className="vz-line mt-0 mb-8 border-line" />
       <Text className="m-0 text-body">This code expires in 10 minutes.</Text>
-      <Text className="m-0 mt-4 text-small text-ink-muted">
+      <Text className="vz-muted m-0 mt-4 text-small text-ink-muted">
         If you didn&apos;t ask for this code, you can ignore this email. Nobody can sign in without it.
       </Text>
     </EmailLayout>
