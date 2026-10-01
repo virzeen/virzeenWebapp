@@ -93,14 +93,19 @@ export function ProductPurchase({ product, sizeGuide, tiles, preview = false }: 
       <Stack gap={3}>
         {/*
           Phones: only the Add to bag button floats over the bottom of the page, with nothing behind it (owner,
-          2026-10-01: no price, "the bg need to be opacity 0"). From md it sits in the column as usual.
+          2026-10-01: no price, "the bg need to be opacity 0"), a little taller and 20% narrower than the screen's
+          width, centred (owner, same day). Taps on the bar's empty sides reach the page under it. From md it sits in
+          the column as usual.
         */}
-        <div data-sticky-cta className="fixed inset-x-0 bottom-0 z-10 px-4 pb-4 md:static md:p-0">
+        <div
+          data-sticky-cta
+          className="pointer-events-none fixed inset-x-0 bottom-0 z-10 px-4 pb-4 md:pointer-events-auto md:static md:p-0"
+        >
           <Button
             ref={buttonRef}
             size="lg"
             shape="pill"
-            className="w-full"
+            className="pointer-events-auto mx-auto flex h-14 w-4/5 md:h-12 md:w-full"
             loading={isPending}
             disabled={soldOut}
             onClick={addToBag}
@@ -111,7 +116,7 @@ export function ProductPurchase({ product, sizeGuide, tiles, preview = false }: 
           <div role="status">
             {allInBag && (
               // With nothing behind the bar on phones, the note gets its own backing to stay readable.
-              <p className="mt-2 rounded-sm bg-canvas px-2 py-1 text-small text-ink-muted md:mt-0 md:p-0 md:pt-2">
+              <p className="pointer-events-auto mx-auto mt-2 w-4/5 rounded-sm bg-canvas px-2 py-1 text-small text-ink-muted md:mt-0 md:w-auto md:p-0 md:pt-2">
                 {allInBagMessage(limit)}
               </p>
             )}
