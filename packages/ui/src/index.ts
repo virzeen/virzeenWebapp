@@ -36,7 +36,7 @@ export {
   type GridProps,
   type StackProps,
 } from "./primitives/layout";
-export { ButtonLink, Link, type ButtonLinkProps, type LinkProps } from "./primitives/link";
+export { ButtonLink, Link, linkVariants, type ButtonLinkProps, type LinkProps } from "./primitives/link";
 export {
   Popover,
   PopoverClose,
