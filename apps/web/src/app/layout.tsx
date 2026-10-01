@@ -2,7 +2,9 @@ import { Toaster } from "@virzeen/ui";
 import { colors } from "@virzeen/ui/tokens";
 import type { Metadata, Viewport } from "next";
 import { Inter, Inter_Tight } from "next/font/google";
+import { PrefetchOnIntent } from "@/client/components/shared/prefetch-on-intent";
 import { ServiceWorker } from "@/client/components/shared/service-worker";
+import { ResumeSignIn } from "@/client/features/auth/resume-sign-in";
 import "./globals.css";
 
 // ◆ Brand fonts are placeholders until the brand guide is final (docs/ui/design-tokens.md §2).
@@ -36,6 +38,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {children}
         <Toaster />
         <ServiceWorker />
+        <PrefetchOnIntent />
+        <ResumeSignIn />
       </body>
     </html>
   );

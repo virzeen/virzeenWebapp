@@ -4,9 +4,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Alert, Button, FormField, Input, Stack } from "@virzeen/ui";
 import { requestOtpSchema, type RequestOtpInput } from "@virzeen/validators";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { authClient } from "@/client/lib/auth-client";
+import { rememberPendingSignIn } from "@/client/lib/pending-sign-in";
 import { authErrorMessage } from "./auth-errors";
 import { GoogleIcon } from "./google-icon";
 
@@ -24,10 +25,20 @@ export function LoginForm({ next, googleEnabled }: LoginFormProps) {
   });
   const { errors, isSubmitting } = form.formState;
 
+  // Back on this page after signing in somewhere else (Google opens in the browser, outside the installed app):
+  // ask the server again, and the page moves on to `next` if this phone is now signed in.
+  useEffect(() => {
+    const onVisible = () => document.visibilityState === "visible" && router.refresh();
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [router]);
+
   async function onSubmit({ email }: RequestOtpInput) {
     setFormError(null);
     const { error } = await authClient.emailOtp.sendVerificationOtp({ email, type: "sign-in" });
     if (error) return setFormError(authErrorMessage(error, email));
+    // So the installed app can come back to the code screen after a trip to the mail app (ResumeSignIn).
+    rememberPendingSignIn(email, next);
     router.push(`/verify?email=${encodeURIComponent(email)}&next=${encodeURIComponent(next)}`);
   }
 
