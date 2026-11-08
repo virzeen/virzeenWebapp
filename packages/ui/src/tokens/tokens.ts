@@ -13,7 +13,7 @@ export const colors = {
   success: "#2e7d4f",
   warning: "#8a5a00",
   danger: "#b3261e",
-  focus: "#2f6feb",
+  focus: "#141414",
 } as const;
 
 /**
