@@ -1,7 +1,8 @@
 "use client";
 
 import { ButtonLink, cn, Container, Link } from "@virzeen/ui";
-import { Heart, UserRound } from "lucide-react";
+import { UserRound } from "lucide-react";
+import { HeartIcon } from "@/client/components/shared/header-icons";
 import { usePathname } from "next/navigation";
 import { BagButton } from "@/client/features/cart/bag-button";
 import { SearchPanel } from "@/client/features/search/search-panel";
@@ -52,7 +53,7 @@ export function SiteHeader({ isSignedIn, firstName, categories }: SiteHeaderProp
         <div className="flex items-center justify-end gap-1">
           <SearchPanel categories={categories} />
           <ButtonLink href="/favourites" variant="ghost" size="icon" shape="pill" aria-label="Favourites">
-            <Heart className="size-5" strokeWidth={1.5} aria-hidden />
+            <HeartIcon />
           </ButtonLink>
           <ButtonLink
             href={isSignedIn ? "/account" : "/login"}
