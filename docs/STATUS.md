@@ -3,19 +3,22 @@
 > Update this file at the end of every task. Keep it under 150 lines.
 > Newest entries at the top of "Log".
 
-**Phase:** 1 — domestic shop, **public launch 2026-10-05 (fallback 2026-10-06; moved from 2026-10-02 by the owner on 2026-09-30 so the product work lands first), cash on delivery only**
+**Phase:** 1 — domestic shop, **public launch 2027-01-01 (moved from 2026-10-05 by the owner on 2026-11-08), cash on delivery only until about March 2027**
 **Environment:** production on Railway at https://virzeen.com since 2026-09-28 (behind Cloudflare since 2026-09-30); local for development. Domain: `virzeen.com`
 **Owner:** Virzeen founder
 **Branch:** `feat/phase-1-foundation` → PR #1 (https://github.com/virzeen/virzeenWebapp/pull/1)
 
-## Launch plan (COD only, launch 2026-10-05)
+## Launch plan (COD only, launch 2027-01-01)
 
-Working back from launch (owner, 2026-09-30):
+Owner, 2026-11-08: launch on **2027-01-01**; eSewa and Khalti wait until about March 2027. Four feature weeks, then launch prep and a freeze. Every feature gets a spec for owner approval first; SMS codes and discount codes also get the security review (discounts follow `payment-change`).
 
-- [ ] ~2026-10-03: `feat/product-styles` tested, pushed, PR merged; the owner adds real products on the live site.
-- [ ] 2026-10-03: "Install the Virzeen app" button (phone menu + footer; another session, after the merge), then data caching.
-- [ ] 2026-10-04: Lighthouse and the live smoke test (a real COD order, plus Refused at door), then fixes.
-- [ ] 2026-10-05: public launch (fallback 2026-10-06).
+- [ ] Week 1 (11-09 → 11-15): site back online, not announced (owner subscribes to Railway Hobby); search in the header; data caching; fix the daily Lighthouse audit; look into the Railway config move (due 12-01, item under Day 2).
+- [ ] Week 2 (11-16 → 11-22): SMS (order confirmed/shipped, plus a one-time code to confirm the phone before a COD order); "Notify me when it's back" on sold-out sizes; reviews with photos (delivered orders only).
+- [ ] Week 3 (11-23 → 11-29): Shop the look (tappable dots on portfolio photos open the product); drops (countdown, on sale at a set time, same "Notify me"); QR codes on style photos ("Later" below).
+- [ ] Week 4 (11-30 → 12-06): discount codes (first order, campaign codes); admin low-stock alerts and best sellers; dark mode.
+- [ ] Launch prep (12-07 → 12-22): owner adds real products; replace Gmail "Send mail as" (ends January 2027); Google sign-in published; `www` record; Resend plan decided; full test pass and a real COD order on the live site.
+- [ ] Freeze (12-23 → 12-31): fixes only. **2027-01-01: public launch.**
+- If time allows: "Find my size", recently viewed, Nepali language, courier tracking (Pathao/NCM), staff accounts, Google Shopping / Instagram product listings (check they accept Nepal-based shops).
 
 Original day-by-day plan:
 
@@ -37,16 +40,16 @@ Original day-by-day plan:
   - [x] Cloudflare proxy on (verified 2026-09-30 from an outside server): `virzeen.com` resolves to Cloudflare IPs (TTL 300), responses say `Server: cloudflare`, `/cdn-cgi/trace` answers 200, http→https is a Cloudflare 301, and pages return 200 with all security headers (SSL Full or Full (strict), no redirect loop). The client IP code handles it (`server/security/client-ip.ts`). On the dev PC the VPN routes `virzeen.com` straight to Railway, so check Cloudflare from outside, not with local curl.
   - [ ] `www.virzeen.com` has no DNS record (NXDOMAIN). Owner: add a proxied `www` CNAME and the Cloudflare "Redirect from WWW to root" rule.
   - [x] Backups (2026-09-29): the Postgres public TCP proxy and `DATABASE_PUBLIC_URL` are removed, so the database is private-only. Nightly backups run from the Railway cron service `db-backup` (`ops/db-backup`, PRs #11/#12, PostgreSQL 18) to the owner's private Backblaze B2 bucket (US West; owner approved B2 2026-09-29). First run succeeded 2026-09-29 20:16 UTC (57 KB). Runbook: `docs/runbooks/database-backups.md`. Railway health check path `/api/health` is set in the dashboard.
-  - [ ] Railway plan: the account is on the free trial ("29 days or $4.90 left" on 2026-09-29, usage about $0.10 a day). Owner: move to Hobby ($5/month, needs a card) before about 2026-10-28, or the site stops.
+  - [ ] Railway plan: the free trial ran out and the site has been down since 2026-10-30 (Railway answers 404 "Application not found"; the `db-backup` cron stopped with it). Owner: subscribe to Hobby ($5/month) the week of 2026-11-09, then check the database still has its data and a backup runs again.
   - [ ] Railway ignored the `deploy` section of `railway.json` (no pre-deploy migrations, no health check), so `pnpm start` applies migrations itself. Look into it when moving to `.railway/railway.ts` before 2026-12-01; that needs the `railway` npm SDK added to the repo.
-- [ ] Day 3 (now ~2026-10-03): owner enters real products/photos in `/admin`; speed checks, policy pages final.
+- [ ] Day 3 (now in launch prep, 12-07 → 12-22): owner enters real products/photos in `/admin`; speed checks, policy pages final.
   - [x] WordPress-style product editor for this (owner request 2026-09-29, `specs/admin-product-editor.md`, branch `feat/admin-product-editor`, rebased on `main` after PR #10 and #11 merged): many photos at once, one price, sizes × colours → stock grid, Publish box with checklist, Duplicate, status filters. Not pushed yet.
   - [x] Replaced 2026-09-30 by the on-page product editor (owner request, `specs/product-editor-on-page.md`, branch `feat/product-styles`): the owners edit a product on a page that looks like the shop's product page, and it saves by itself.
-- [ ] Day 4 (now 2026-10-04/05): smoke test on the live site (real COD order), fixes, launch on 2026-10-05.
+- [ ] Day 4 (now in launch prep): smoke test on the live site (real COD order), fixes; launch on 2027-01-01.
 
 ## After launch (planned, owner will confirm timing)
 
-- **~1 month after launch: eSewa and Khalti.** Built and tested (unit + e2e against mocks) but switched off: no keys set, so checkout shows cash on delivery only. To turn on: merchant keys + live URLs in Railway (`docs/runbooks/service-setup.md`), the Railway `cron` service for `/api/cron/reconcile-payments`, one small real payment each, then restore wallet wording on home/about/product/shop/footer/privacy/terms/returns pages (removed 2026-09-28).
+- **About March 2027: eSewa and Khalti** (owner, 2026-11-08; was "~1 month after launch"). Built and tested (unit + e2e against mocks) but switched off: no keys set, so checkout shows cash on delivery only. To turn on: merchant keys + live URLs in Railway (`docs/runbooks/service-setup.md`), the Railway `cron` service for `/api/cron/reconcile-payments`, one small real payment each, then restore wallet wording on home/about/product/shop/footer/privacy/terms/returns pages (removed 2026-09-28).
 - COD limit review (currently none) once online payments exist.
 - **By December 2026: replace Gmail "Send mail as"** for `info@`/`sales@` — Google ends it for outside addresses in January 2027 (options in `docs/runbooks/email-setup.md`). Receiving is not affected.
 
@@ -93,6 +96,7 @@ Original day-by-day plan:
 
 ## Log
 
+- 2026-11-08 — **Plan to launch** (owner, after a break since 2026-10-01): public launch moved to 2027-01-01; eSewa and Khalti wait until about March 2027, so COD stays the only payment; the four-week feature plan, launch prep and freeze are in "Launch plan" above. Found on return: virzeen.com has answered Railway's 404 "Application not found" since 2026-10-30 (trial ended); the daily Lighthouse audit had already failed 2026-10-13 → 10-29 with "Something went wrong with recording the trace" while the site was up.
 - 2026-10-01 — **Size guide beside Style; picture guides show only the picture** (owner request, the Forma Twist vase). A product without sizes now has "Size guide" on the right of "Style: {name}" (shop and the admin editor); with sizes it stays beside "Select size". An Accessories (picture) guide's popup shows just the picture: "Size guide" and the guide's name are read by screen readers but not shown (new `Dialog hideTitle`, with a story), and "Open full size" is gone; the admin's "What customers see" matches. Clothing guides are unchanged.
 - 2026-10-01 — **Home LCP**: the live audit with the median method gave home 74, shop 78, the rest 80–89, and 100 for accessibility, best practices and SEO everywhere. Chrome recorded no early largest-content candidate on the home page: the hero heading's `reveal` started at opacity 0 and the full-screen hero photo isn't a candidate. `reveal` now starts at 40% (heading counted at first paint: 996 → 656 ms on the dev server; local Lighthouse home 74–77 → 77–79).
 - 2026-10-01 — **Emails, take two**: after deploy Cloudflare still rewrote the `mailto:%40` links and injected its blocked decoder (the text was fine). `EmailLink` is now a client component: the HTML has the split address in a link without `href`, and `mailto:` is added once the page runs (`useSyncExternalStore`); `@virzeen/ui` exports `linkVariants` for it. Checked on contact, privacy and terms: plain `mailto:` links, no console errors.
