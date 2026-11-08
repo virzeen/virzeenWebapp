@@ -40,14 +40,25 @@ export function OrderSummaryLines({ items, arrives }: { items: SummaryLine[]; ar
 }
 
 type OrderSummaryTotalsProps = {
-  totals: { subtotalPaisa: number; shippingPaisa: number; totalPaisa: number; vatPaisa: number };
+  totals: {
+    subtotalPaisa: number;
+    shippingPaisa: number;
+    discountPaisa: number;
+    discountCode: string | null;
+    totalPaisa: number;
+    totalBeforeShippingPaisa: number;
+    vatPaisa: number;
+  };
   /** Shipping and the total depend on the delivery address, so they wait for one. */
   hasAddress: boolean;
-  /** Only the summary next to the steps carries the test id. */
+  /** Only the summary next to the steps carries the test ids. */
   totalTestId?: string;
 };
 
-/** Subtotal, shipping, the total between hairlines, and the VAT it includes (server-calculated amounts). */
+/**
+ * Subtotal, shipping, a discount code's line, the total between hairlines, and the VAT it includes (all
+ * server-calculated amounts).
+ */
 export function OrderSummaryTotals({ totals, hasAddress, totalTestId }: OrderSummaryTotalsProps) {
   return (
     <div className="flex flex-col gap-3">
@@ -68,10 +79,20 @@ export function OrderSummaryTotals({ totals, hasAddress, totalTestId }: OrderSum
             )}
           </dd>
         </div>
+        {totals.discountPaisa > 0 && (
+          <div className="flex justify-between gap-4">
+            <dt className="wrap-anywhere">
+              Discount{totals.discountCode ? ` (${totals.discountCode})` : ""}
+            </dt>
+            <dd className="whitespace-nowrap" data-testid={totalTestId ? "checkout-discount" : undefined}>
+              −<Price paisa={totals.discountPaisa} />
+            </dd>
+          </div>
+        )}
         <div className="mt-3 flex justify-between gap-4 border-y border-line py-4 font-medium">
           <dt>Total</dt>
           <dd data-testid={totalTestId}>
-            <Price paisa={hasAddress ? totals.totalPaisa : totals.subtotalPaisa} />
+            <Price paisa={hasAddress ? totals.totalPaisa : totals.totalBeforeShippingPaisa} />
           </dd>
         </div>
       </dl>

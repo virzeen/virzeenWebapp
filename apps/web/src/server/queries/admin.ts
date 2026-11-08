@@ -3,6 +3,7 @@ import "@/server/bootstrap";
 import {
   adminReads,
   catalogReads,
+  discountService,
   orderService,
   portfolioService,
   reviewService,
@@ -27,6 +28,7 @@ export const listAdminCollections = () => adminReads.listCollections();
 export const listAdminSizeGuides = () => adminReads.listSizeGuides();
 export const listAdminCustomers = (page: number) => adminReads.listCustomers(page);
 export const listAdminReviews = (filters: AdminReviewFilters) => reviewService.listForAdmin(filters);
+export const listAdminDiscounts = () => discountService.listForAdmin();
 export const listAdminPortfolio = () => portfolioService.listForAdmin();
 export const listProductOptions = () => adminReads.listProductOptions();
 export const uploadsEnabled = () => features.cloudinary;

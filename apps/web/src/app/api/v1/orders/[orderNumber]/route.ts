@@ -19,6 +19,8 @@ export const GET = apiHandler<Context>("v1.orders.detail", async (_request, { pa
     paymentMethod: order.paymentMethod,
     subtotalPaisa: order.subtotalPaisa,
     shippingPaisa: order.shippingPaisa,
+    discountPaisa: order.discountPaisa,
+    discountCode: order.discountCode,
     totalPaisa: order.totalPaisa,
     createdAt: order.createdAt.toISOString(),
     address: order.address,

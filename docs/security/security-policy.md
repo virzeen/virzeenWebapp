@@ -46,6 +46,7 @@
 | Add to cart                                                                    | 60 / min per session                     |
 | Favourites                                                                     | 60 / min per user, or per IP for guests  |
 | Checkout                                                                       | 10 / 10 min per user                     |
+| Discount code checks (apply, summary with a code, order with a code)           | 10 / 10 min per user, 30 / 10 min per IP |
 | Payment callbacks                                                              | 30 / min per IP                          |
 | `/api/v1/*` general                                                            | 120 / min per IP                         |
 | Shop "Load more" and live search results (`api` bucket, shared with `/api/v1`) | 120 / min per IP                         |

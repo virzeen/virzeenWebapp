@@ -27,6 +27,12 @@ export {
   type SizeGuideForEdit,
 } from "./admin/admin-reads";
 export { cartService, type CartOwner } from "./cart/cart.service";
+export {
+  ADMIN_DISCOUNTS_SHOWN,
+  discountService,
+  type AdminDiscountRow,
+  type DiscountStatus,
+} from "./discounts/discount.service";
 export { type CartLine, type CartSummary } from "./cart/cart-summary";
 export {
   catalogReads,

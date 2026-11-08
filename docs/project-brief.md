@@ -96,7 +96,7 @@ What customers need from us: honest prices (VAT included, shipping shown before 
 
 ### Explicitly NOT in phase 1
 
-Coupons/discounts, gift cards, staff role, SMS notifications, automated courier integration, automated refunds, international shipping/currency, native app store builds.
+Gift cards, staff role, SMS notifications, automated courier integration, automated refunds, international shipping/currency, native app store builds. (Discount codes moved into phase 1 by the owner, 2026-11-08: `specs/discount-codes.md`.)
 
 ## 4. The customer journey
 

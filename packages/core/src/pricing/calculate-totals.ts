@@ -1,5 +1,6 @@
 import type { ShippingZone } from "@virzeen/db";
 import { AppError } from "../errors";
+import { discountAmount, type DiscountRule } from "./discounts";
 import { shippingFor } from "./shipping-rates";
 
 export type PricedLine = { unitPricePaisa: number; quantity: number };
@@ -7,6 +8,8 @@ export type PricedLine = { unitPricePaisa: number; quantity: number };
 export type Totals = {
   subtotalPaisa: number;
   shippingPaisa: number;
+  /** Taken off the subtotal by a discount code; 0 without one (payment-policy.md §2). */
+  discountPaisa: number;
   totalPaisa: number;
   /** VAT portion included in the total (prices are VAT-inclusive, payment-policy.md §2). */
   vatPaisa: number;
@@ -28,10 +31,18 @@ export function calculateSubtotal(lines: readonly PricedLine[]): number {
   }, 0);
 }
 
-/** The only place order totals are computed. Inputs come from the database, never the client. */
-export function calculateTotals(lines: readonly PricedLine[], zone: ShippingZone): Totals {
+/**
+ * The only place order totals are computed. Inputs come from the database, never the client. A discount comes off
+ * the subtotal (never more than it), so the total can't go below the shipping.
+ */
+export function calculateTotals(
+  lines: readonly PricedLine[],
+  zone: ShippingZone,
+  discount: DiscountRule | null = null,
+): Totals {
   const subtotalPaisa = calculateSubtotal(lines);
   const shippingPaisa = lines.length === 0 ? 0 : shippingFor(zone);
-  const totalPaisa = subtotalPaisa + shippingPaisa;
-  return { subtotalPaisa, shippingPaisa, totalPaisa, vatPaisa: vatIncluded(totalPaisa) };
+  const discountPaisa = discount ? discountAmount(subtotalPaisa, discount) : 0;
+  const totalPaisa = subtotalPaisa - discountPaisa + shippingPaisa;
+  return { subtotalPaisa, shippingPaisa, discountPaisa, totalPaisa, vatPaisa: vatIncluded(totalPaisa) };
 }

@@ -11,6 +11,9 @@ export type OrderDetailView = {
   paymentMethod: string;
   subtotalPaisa: number;
   shippingPaisa: number;
+  /** Discount code money off (0 without one) and the code as applied (specs/discount-codes.md). */
+  discountPaisa: number;
+  discountCode: string | null;
   totalPaisa: number;
   courierName: string | null;
   trackingNumber: string | null;
@@ -128,6 +131,16 @@ export function OrderDetail({ order, reviewLinks = false }: OrderDetailProps) {
             <span>Shipping</span>
             <ShippingPrice paisa={order.shippingPaisa} />
           </div>
+          {order.discountPaisa > 0 && (
+            <div className="flex justify-between gap-4 text-body" data-testid="order-discount">
+              <span className="wrap-anywhere">
+                Discount{order.discountCode ? ` (${order.discountCode})` : ""}
+              </span>
+              <span className="whitespace-nowrap">
+                −<Price paisa={order.discountPaisa} />
+              </span>
+            </div>
+          )}
           <Separator />
           <div className="flex justify-between text-h3">
             <span>Total</span>

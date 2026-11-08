@@ -37,6 +37,8 @@ const detailSelect = {
   paymentMethod: true,
   subtotalPaisa: true,
   shippingPaisa: true,
+  discountPaisa: true,
+  discountCode: true,
   totalPaisa: true,
   shippingZone: true,
   addressSnapshot: true,

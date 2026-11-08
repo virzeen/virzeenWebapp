@@ -48,7 +48,7 @@ A signed-in customer in Nepal can buy the items in their bag and pay with Cash o
 
 ## Out of scope (phase 1)
 
-Coupons, gift cards, saved payment methods, international addresses, split shipments.
+Gift cards, saved payment methods, international addresses, split shipments. Discount codes: `specs/discount-codes.md`.
 
 ## UI
 

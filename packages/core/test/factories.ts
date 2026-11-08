@@ -14,6 +14,7 @@ export async function resetDatabase() {
     db.payment.deleteMany(),
     db.orderItem.deleteMany(),
     db.order.deleteMany(),
+    db.discountCode.deleteMany(),
     db.orderNumberCounter.deleteMany(),
     db.cartItem.deleteMany(),
     db.cart.deleteMany(),

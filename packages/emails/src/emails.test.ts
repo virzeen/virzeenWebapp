@@ -91,6 +91,8 @@ describe("renderOrderConfirmationEmail", () => {
       ],
       subtotalPaisa: 450_000,
       shippingPaisa: 10_000,
+      discountPaisa: 0,
+      discountCode: null,
       totalPaisa: 460_000,
       vatPaisa: 52_920,
       address: {
@@ -111,5 +113,42 @@ describe("renderOrderConfirmationEmail", () => {
     expect(email.html).toContain('href="https://virzeen.com/privacy"');
     expect(email.html).toContain("brand/email-wordmark.png");
     expect(email.html).not.toMatch(/[0-9]rem/);
+    expect(email.text).not.toContain("Discount");
+  });
+
+  it("shows a discount code's line between shipping and the total", async () => {
+    const email = await renderOrderConfirmationEmail({
+      siteUrl: "https://virzeen.com",
+      orderNumber: "VZ-260928-0043",
+      customerName: "Asha",
+      placedAt: new Date("2026-09-28T06:00:00Z"),
+      paymentMethodLabel: "Cash on delivery",
+      items: [
+        {
+          id: "i1",
+          productName: "Linen Overshirt",
+          variantLabel: "Black / M",
+          quantity: 1,
+          lineTotalPaisa: 450_000,
+        },
+      ],
+      subtotalPaisa: 450_000,
+      shippingPaisa: 0,
+      discountPaisa: 45_000,
+      discountCode: "WELCOME10",
+      totalPaisa: 405_000,
+      vatPaisa: 46_593,
+      address: {
+        fullName: "Asha Shrestha",
+        street: "Jhamsikhel Road",
+        city: "Lalitpur",
+        district: "Lalitpur",
+        province: "Bagmati",
+        phone: "9812345678",
+      },
+    });
+    expect(email.text).toMatch(
+      /Shipping[\s\S]*Discount \(WELCOME10\)[\s\S]*−Rs 450[\s\S]*Total[\s\S]*Rs 4,050/,
+    );
   });
 });

@@ -34,11 +34,13 @@ Changing a shape here requires updating this doc in the same PR. Breaking change
 
 ### Checkout & orders
 
-| Method | Path                          | Auth         | Body                                                     | Returns                                                                                                    |
-| ------ | ----------------------------- | ------------ | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| POST   | `/api/v1/checkout`            | user         | `{ addressId, paymentMethod: "ESEWA"\|"KHALTI"\|"COD" }` | `{ orderNumber, next: { type: "redirect", url } \| { type: "form", action, fields } \| { type: "done" } }` |
-| GET    | `/api/v1/orders`              | user         | `cursor?, limit?`                                        | `OrderSummary[]`                                                                                           |
-| GET    | `/api/v1/orders/:orderNumber` | user (owner) | —                                                        | `OrderDetail`                                                                                              |
+| Method | Path                          | Auth         | Body                                                                    | Returns                                                                                                    |
+| ------ | ----------------------------- | ------------ | ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| POST   | `/api/v1/checkout`            | user         | `{ addressId, paymentMethod: "ESEWA"\|"KHALTI"\|"COD", discountCode? }` | `{ orderNumber, next: { type: "redirect", url } \| { type: "form", action, fields } \| { type: "done" } }` |
+| GET    | `/api/v1/orders`              | user         | `cursor?, limit?`                                                       | `OrderSummary[]`                                                                                           |
+| GET    | `/api/v1/orders/:orderNumber` | user (owner) | —                                                                       | `OrderDetail`                                                                                              |
+
+`discountCode` (optional, any case; specs/discount-codes.md) is checked on the server inside the order transaction. A code that can't be used answers `VALIDATION_FAILED` with `fields.discountCode` holding the reason ("This code has ended.") and no order is created. Code checks count against the `discount:user` and `discount:ip` rate limits.
 
 ## Shapes
 
@@ -130,6 +132,8 @@ type OrderDetail = Omit<OrderSummary, "itemCount"> & {
   items: OrderItemSnapshot[];
   subtotalPaisa: number;
   shippingPaisa: number;
+  discountPaisa: number; // 0 without a discount code; totalPaisa already has it off
+  discountCode: string | null; // the code as applied, e.g. "WELCOME10"
   address: AddressSnapshot;
   courierName: string | null;
   trackingNumber: string | null;
