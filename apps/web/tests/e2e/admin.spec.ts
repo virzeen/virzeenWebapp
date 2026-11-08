@@ -83,6 +83,13 @@ test("admin sets up two-factor, builds a product on its page and it appears in t
   await page.getByRole("button", { name: "Verify" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Dashboard" })).toBeVisible();
 
+  // Low stock and best sellers (specs/admin-stock-insights.md): the seed has a sold-out size, which links to its
+  // product's editor.
+  const lowStock = page.getByRole("table", { name: "Low stock" });
+  await expect(lowStock.getByText("Out of stock").first()).toBeVisible();
+  await expect(lowStock.getByRole("link").first()).toHaveAttribute("href", /^\/admin\/products\/\w+$/);
+  await expect(page.getByRole("heading", { level: 2, name: "Best sellers" })).toBeVisible();
+
   // A size guide (specs/size-guides.md): two measurements and two sizes in cm, picked on the product below.
   await page.getByRole("navigation", { name: "Admin" }).getByRole("link", { name: "Size guides" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Size guides" })).toBeVisible();

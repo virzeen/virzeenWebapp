@@ -1,6 +1,5 @@
 import { cn } from "@virzeen/ui";
-
-export const LOW_STOCK_THRESHOLD = 3;
+import { LOW_STOCK_THRESHOLD } from "@virzeen/validators/limits";
 
 /** "In stock" / "Only N left" / "Out of stock" from a number (content-style.md). */
 export function StockLabel({ stock, className }: { stock: number; className?: string }) {

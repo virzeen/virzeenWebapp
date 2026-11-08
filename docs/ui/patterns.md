@@ -108,6 +108,8 @@ Function over form: `DataTable` with search, filters, status `Badge`s; forms in 
 - `error.tsx`: an h1 "Something went wrong on our side.", then a danger `Alert` with "Try again" (`retry()`).
 - `not-found.tsx`: missing items and mistyped `/admin` addresses (`[...missing]`), with "Back to dashboard". Non-admins get the root 404 instead.
 
+**Dashboard** (`/admin`): today's two tiles and the three to-do tiles, then "Low stock" and "Best sellers" side by side from `lg` (`dashboard-stock.tsx`, `specs/admin-stock-insights.md`; each product name opens its editor), then "Recent orders".
+
 **Settings** (`/admin/settings`, the last nav item): three sections, each a `<section aria-labelledby>` with an h2. "Your account" is the same `ProfileForm` as `/account/settings`. "Sign-in security" only reads: the authenticator status, when the next code is asked for (`getAdminVerifiedUntil()`), and how a lost phone is handled. It has no reset, disable or new-QR buttons, because admin rights and authenticator resets happen only with `pnpm admin` (security-policy.md §2). "Sign out" ends this device's session.
 
 **Product editor** (`ProductEditor`, `specs/product-editor-on-page.md`, `/admin/products/[id]`): the product page as customers see it (the same grid, order and pieces as `ProductDetails`, §6) with everything edited in place, and a `loading.tsx` skeleton of the same layout. `ProductEditorProvider` owns the one react-hook-form form over `ProductInput` and its only `images` and `variants` field arrays; style state and handlers live in `useVariantOptions`.

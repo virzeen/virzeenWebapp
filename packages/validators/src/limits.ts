@@ -17,6 +17,9 @@ export const SEARCH_QUERY_MAX = 60;
 /** The header search panel asks for live results from this many characters (`productSearchSchema`). */
 export const SEARCH_QUERY_MIN = 2;
 
+/** At or under this, the shop says "Only {n} left" and the admin dashboard lists the size under "Low stock". */
+export const LOW_STOCK_THRESHOLD = 3;
+
 /** zod's `cuid2()`: what `idSchema` accepts. */
 const CUID2 = /^[0-9a-z]+$/;
 
