@@ -1,6 +1,6 @@
 "use client";
 
-import { Alert, Button, ButtonLink, EmptyState, Link, Skeleton } from "@virzeen/ui";
+import { Alert, Button, ButtonLink, EmptyState, Grid, Link, Skeleton } from "@virzeen/ui";
 import { useId } from "react";
 import { ProductCard, type ProductCardData } from "@/client/features/products/product-card";
 import { resultLabel } from "@/client/features/products/shop-toolbar";
@@ -14,8 +14,7 @@ type SearchResultsProps = {
   onRetry: () => void;
 };
 
-const RESULTS_GRID = "grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-4";
-const SKELETONS = ["a", "b", "c", "d"];
+const SKELETONS = ["a", "b", "c", "d", "e", "f"];
 const CHIP =
   "inline-flex min-h-11 items-center rounded-full bg-surface px-5 text-body text-ink transition-colors duration-150 ease-standard hover:bg-line hover:text-ink";
 
@@ -23,7 +22,7 @@ export const searchHref = (query: string) => `/shop?q=${encodeURIComponent(query
 
 /**
  * What the search panel shows under the box (specs/search.md, Nike's layout): "Popular search terms" chips before
- * typing, then up to 4 product cards with "See all results", the no-results message, or an error with "Try again".
+ * typing, then up to 6 product cards (the shop's grid: 2 a row, 3 from lg) with "See all results", the no-results message, or an error with "Try again".
  * A hidden status line reads the count.
  */
 export function SearchResults({ state, categories, onNavigate, onRetry }: SearchResultsProps) {
@@ -53,15 +52,15 @@ export function SearchResults({ state, categories, onNavigate, onRetry }: Search
       )}
 
       {state.status === "loading" && !items && (
-        <div className={RESULTS_GRID}>
+        <Grid columns="products" gap={4}>
           {SKELETONS.map((id) => (
             <div key={id} className="flex flex-col gap-3">
-              <Skeleton shape="image" />
+              <Skeleton shape="square" />
               <Skeleton shape="text" className="w-3/4" />
               <Skeleton shape="text" className="w-1/3" />
             </div>
           ))}
-        </div>
+        </Grid>
       )}
 
       {state.status === "done" && state.items.length === 0 && (
@@ -78,13 +77,13 @@ export function SearchResults({ state, categories, onNavigate, onRetry }: Search
 
       {items && items.length > 0 && (
         <>
-          <ul className={RESULTS_GRID} aria-label="Products">
+          <Grid columns="products" gap={4} role="list" aria-label="Products">
             {items.map((product) => (
-              <li key={product.id}>
+              <div key={product.id} role="listitem">
                 <ProductCard product={product} onNavigate={onNavigate} />
-              </li>
+              </div>
             ))}
-          </ul>
+          </Grid>
           <ButtonLink
             href={searchHref(query)}
             variant="secondary"

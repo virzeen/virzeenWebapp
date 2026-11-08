@@ -12,7 +12,7 @@ Customers find a product by typing what they remember: a name ("overshirt"), a k
 
 1. A search icon ("Search") sits in the header on every storefront page, phones included, left of Favourites.
 2. It opens a panel laid out like Nike's (owner, 2026-11-08): it drops from the top, as tall as its content from `md` with the page dimmed below, the whole screen on phones. The top row holds the wordmark (from `md`), a rounded grey box with a magnifier and "Search" inside, and "Cancel". Before typing it shows "Popular search terms" as grey pills; until searches are counted, the terms are the categories, and each one searches for its name.
-3. From 2 characters, up to 4 matching products show as product cards (one row from `md`, 2 × 2 on phones), newest first, a moment after typing stops. "See all results" opens `/shop?q={query}`.
+3. From 2 characters, up to 6 matching products show as product cards in the shop's grid, as wide as the shop (2 rows of 3 from `md`, 3 rows of 2 on phones; owner 2026-11-08), newest first, a moment after typing stops. "See all results" opens `/shop?q={query}`.
 4. Enter opens `/shop?q={query}`: the shop listing titled `Results for "{query}"`, with the toolbar's filters, sort and Load more.
 
 ## Acceptance criteria

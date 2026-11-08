@@ -87,7 +87,7 @@ export function ProductGrid() {
 
   return (
     <div className="flex flex-col gap-12">
-      <Grid ref={gridRef} columns="listing" gap={4} className="gap-y-10">
+      <Grid ref={gridRef} columns="products" gap={4}>
         {items.map((product, index) => (
           <ProductCard key={product.id} product={product} priority={index < 2} />
         ))}

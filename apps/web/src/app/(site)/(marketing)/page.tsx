@@ -3,7 +3,7 @@ import { PORTFOLIO_KIND_LABELS } from "@virzeen/validators";
 import type { Metadata } from "next";
 import { CloudImage } from "@/client/components/shared/cloud-image";
 import { JsonLd } from "@/client/components/shared/json-ld";
-import { ProductCard } from "@/client/features/products/product-card";
+import { ProductCarousel } from "@/client/features/products/product-carousel";
 import { siteUrl } from "@/server/env";
 import { listCollections, listNewArrivals, listPortfolioProjects } from "@/server/queries/catalog";
 import { HOME_DESCRIPTION, HOME_TITLE, siteJsonLd } from "@/server/seo";
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 
 export default async function HomePage() {
   const [arrivals, collections, projects] = await Promise.all([
-    listNewArrivals(8),
+    listNewArrivals(12),
     listCollections(true),
     listPortfolioProjects(3),
   ]);
@@ -58,33 +58,18 @@ export default async function HomePage() {
         </Container>
       </section>
 
-      {/* New arrivals */}
+      {/* New arrivals: a row of cards to swipe, like "You might also like" (owner 2026-11-08). */}
       {arrivals.length > 0 && (
-        <Container
-          as="section"
-          className="flex flex-col gap-8 py-16 lg:py-24"
-          aria-labelledby="arrivals-heading"
-        >
-          <div className="flex items-end justify-between gap-4">
-            <div className="flex flex-col gap-2">
-              <p className="text-caption text-ink-muted uppercase">New in</p>
-              <h2 id="arrivals-heading" className="font-display text-h2">
-                The latest pieces
-              </h2>
-            </div>
-            <Link
-              href="/shop"
-              variant="default"
-              className="-mb-3 inline-flex min-h-11 shrink-0 items-center text-small"
-            >
-              Shop all
-            </Link>
-          </div>
-          <Grid columns="products" gap={4} className="gap-y-10">
-            {arrivals.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </Grid>
+        <Container className="py-16 lg:py-24">
+          <ProductCarousel
+            title="New and Featured"
+            products={arrivals}
+            action={
+              <Link href="/shop" variant="default" className="inline-flex min-h-11 items-center text-small">
+                Shop all
+              </Link>
+            }
+          />
         </Container>
       )}
 

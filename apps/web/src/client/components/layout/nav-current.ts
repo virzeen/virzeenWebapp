@@ -1,3 +1,6 @@
+/** The header's "Sale" link: a collection with this slug, shown once it's live (owner 2026-11-08). */
+export const SALE_COLLECTION = "sale";
+
 /** True on the link's own page and the pages under it (/portfolio marks /portfolio/light-studies too). */
 export function isCurrent(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);

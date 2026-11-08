@@ -55,6 +55,7 @@ type ProductSummary = {
   colorCount: number;
   hasStylePhotos: boolean; // the colours are styles with their own photos, specs/product-styles.md
   styles: string[]; // the style names for sale in style order (the product card lists them); [] without styles
+  categoryName: string; // the card's grey line when there are fewer than two styles
 };
 type ProductDetail = {
   id: string;

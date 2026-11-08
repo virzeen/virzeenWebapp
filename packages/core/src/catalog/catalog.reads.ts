@@ -27,6 +27,7 @@ export const summarySelect = {
   name: true,
   fromPricePaisa: true,
   publishedAt: true,
+  category: { select: { name: true } },
   images: { select: { url: true, alt: true }, orderBy: { sortOrder: "asc" }, take: 2 },
   variants: {
     where: { isActive: true },
@@ -53,6 +54,8 @@ export type ProductSummary = {
   hasStylePhotos: boolean;
   /** The style names for sale in style order, as the product page lists them; [] without styles. */
   styles: string[];
+  /** The card's grey line when the product has fewer than two styles (Nike's subtitle). */
+  categoryName: string;
 };
 
 export function toSummary(row: SummaryRow): ProductSummary {
@@ -70,6 +73,7 @@ export function toSummary(row: SummaryRow): ProductSummary {
     colorCount: styles.length,
     hasStylePhotos: row._count.images > 0,
     styles,
+    categoryName: row.category.name,
   };
 }
 
@@ -327,6 +331,14 @@ export const catalogReads = {
       where: { slug, archivedAt: null },
       select: { id: true, slug: true, name: true },
     });
+  },
+
+  /** Whether a collection is live in the shop (not archived, with a published product): the header's "Sale" link. */
+  async hasLiveCollection(slug: string): Promise<boolean> {
+    const count = await db.collection.count({
+      where: { slug, archivedAt: null, products: { some: publishedProductWhere } },
+    });
+    return count > 0;
   },
 
   async listCollections(options: { featuredOnly?: boolean } = {}) {

@@ -32,18 +32,18 @@ export const Nav: Story = {
   ),
 };
 
-/** The site header's page links (Inter Tight, light). */
+/** The site header's links, like Nike's: 16px medium, the current page (`aria-current`) not marked on screen. */
 export const Header: Story = {
   render: () => (
-    <nav aria-label="Example" className="flex gap-8">
+    <nav aria-label="Example" className="flex gap-6">
       <Link variant="header" href="/shop" aria-current="page">
-        Shop
+        New and Featured
       </Link>
-      <Link variant="header" href="/portfolio">
-        Portfolio
+      <Link variant="header" href="/collections/sale">
+        Sale
       </Link>
-      <Link variant="header" href="/about">
-        About
+      <Link variant="header" href="/shop/vwear">
+        VWear
       </Link>
     </nav>
   ),
@@ -52,12 +52,12 @@ export const Header: Story = {
 /** `header` inside `tone-inverse` (white on a photo, the home page header before scrolling). */
 export const HeaderOnPhoto: Story = {
   render: () => (
-    <nav aria-label="Example" className="flex gap-8 bg-ink p-6 tone-inverse">
+    <nav aria-label="Example" className="flex gap-6 bg-ink p-6 tone-inverse">
       <Link variant="header" href="/shop">
-        Shop
+        New and Featured
       </Link>
-      <Link variant="header" href="/portfolio">
-        Portfolio
+      <Link variant="header" href="/shop/vwear">
+        VWear
       </Link>
     </nav>
   ),

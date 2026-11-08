@@ -56,20 +56,23 @@ export function Stack({ className, gap = 4, direction = "column", align = "stret
 }
 
 const gridColumns = {
-  products: "grid-cols-2 md:grid-cols-3 lg:grid-cols-4",
-  /** The shop listing (owner 2026-11-08, Nike's): 2 a row, 3 from lg beside the filters. */
-  listing: "grid-cols-2 lg:grid-cols-3",
+  /**
+   * Every grid of product cards (owner 2026-11-08, Nike's): 2 a row on phones, 3 from md, with Nike's room between
+   * rows. The row gap is part of the variant, so pass only `gap` (the space between columns).
+   */
+  products: "grid-cols-2 gap-y-10 md:grid-cols-3 md:gap-y-12",
   two: "grid-cols-1 md:grid-cols-2",
   three: "grid-cols-1 md:grid-cols-2 lg:grid-cols-3",
 } as const;
 
 export type GridProps = React.ComponentProps<"div"> & {
-  /** `products`: 2 / 3 / 4 columns (docs/ui/design-tokens.md §6). `listing`: 2, then 3 from lg (the shop listing). */
+  /** `products`: product cards, 2 a row on phones and 3 from md (docs/ui/design-tokens.md §6). */
   columns?: keyof typeof gridColumns;
   gap?: Gap;
 };
 
 /** Responsive grid for cards and sections. */
 export function Grid({ className, columns = "products", gap = 4, ...props }: GridProps) {
-  return <div className={cn("grid", gridColumns[columns], gapVariants[gap], className)} {...props} />;
+  // The columns come after the gap, so `products`' row gap wins over `gap`'s.
+  return <div className={cn("grid", gapVariants[gap], gridColumns[columns], className)} {...props} />;
 }

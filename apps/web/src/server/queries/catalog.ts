@@ -7,6 +7,7 @@ import { cache } from "react";
 // Read-only data for pages (backend-policies.md §1). Memoised per request with React cache().
 
 export const listCategories = cache(() => catalogReads.listCategories());
+export const hasLiveCollection = cache((slug: string) => catalogReads.hasLiveCollection(slug));
 export const listProducts = (filters: ShopFilters) => catalogReads.listProducts(filters);
 export const getProductBySlug = cache((slug: string) => catalogReads.getProductBySlug(slug));
 /**

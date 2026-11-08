@@ -7,7 +7,10 @@ const meta = {
   title: "Primitives/Popover",
   component: PopoverContent,
   tags: ["autodocs"],
-  argTypes: { align: { control: "select", options: ["start", "center", "end"] } },
+  argTypes: {
+    align: { control: "select", options: ["start", "center", "end"] },
+    elevation: { control: "inline-radio", options: ["raised", "flat"] },
+  },
 } satisfies Meta<typeof PopoverContent>;
 
 export default meta;
@@ -56,4 +59,28 @@ export const OpenByDefault: Story = {
       </PopoverContent>
     </Popover>
   ),
+};
+
+/** `elevation="flat"`: no border and no shadow, like Nike's "Sort By" list (the shop's `SortMenu`). */
+export const Flat: Story = {
+  render: () => (
+    <Popover defaultOpen>
+      <PopoverTrigger asChild>
+        <Button variant="ghost" shape="pill">
+          Sort By
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent elevation="flat" align="end" aria-label="Sort by">
+        <ul className="flex min-w-44 flex-col text-right">
+          <li className="flex min-h-11 items-center justify-end font-medium">Newest</li>
+          <li className="flex min-h-11 items-center justify-end">Price: High-Low</li>
+          <li className="flex min-h-11 items-center justify-end">Price: Low-High</li>
+        </ul>
+      </PopoverContent>
+    </Popover>
+  ),
+  play: async () => {
+    const panel = await screen.findByRole("dialog", { name: "Sort by" });
+    await waitFor(() => expect(getComputedStyle(panel).boxShadow).toBe("none"));
+  },
 };

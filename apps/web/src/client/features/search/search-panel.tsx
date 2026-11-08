@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Input, Link, Sheet, SheetClose, SheetContent, SheetTrigger } from "@virzeen/ui";
+import { Button, Container, Input, Link, Sheet, SheetClose, SheetContent, SheetTrigger } from "@virzeen/ui";
 import { SEARCH_QUERY_MAX } from "@virzeen/validators/limits";
 import { Search } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
@@ -107,13 +107,16 @@ export function SearchPanel({ categories }: SearchPanelProps) {
           </div>
         }
       >
-        <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 pt-4 pb-8 md:pt-8 md:pb-12">
-          <SearchResults
-            state={search.state}
-            categories={categories}
-            onNavigate={() => setOpen(false)}
-            onRetry={search.retry}
-          />
+        {/* The results are as wide as the shop: the page's Container, out of the sheet's own side padding. */}
+        <div className="-mx-6">
+          <Container className="flex flex-col gap-8 pt-4 pb-8 md:pt-8 md:pb-12">
+            <SearchResults
+              state={search.state}
+              categories={categories}
+              onNavigate={() => setOpen(false)}
+              onRetry={search.retry}
+            />
+          </Container>
         </div>
       </SheetContent>
     </Sheet>

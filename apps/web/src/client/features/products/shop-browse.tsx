@@ -2,11 +2,12 @@
 
 import { Button, cn } from "@virzeen/ui";
 import { SlidersHorizontal } from "lucide-react";
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { SortMenu } from "./sort-menu";
+import { useStuck } from "./use-stuck";
 
 type ShopBrowseProps = {
-  /** The h1 with the total, e.g. "Shop (12)". */
+  /** The h1 with the total, e.g. "Shop (12)". It shrinks to `text-h3` while the bar is stuck (`group/bar`). */
   heading: React.ReactNode;
   intro?: string | null | undefined;
   /** Below lg: the category chips and the toolbar (Filters sheet and sort). */
@@ -18,21 +19,27 @@ type ShopBrowseProps = {
 };
 
 /**
- * The shop listing laid out like Nike's from lg (owner 2026-11-08): the title with the total on the left, "Hide
- * Filters" and "Sort By" on the right, the filters in a sticky column on the left and the products 3 a row. "Hide
- * Filters" gives the grid the whole width (still 3 a row, larger). Below lg: chips, the toolbar and 2 a row.
+ * The shop listing laid out like Nike's from lg (owner 2026-11-08): a 64px title bar with the title and the total on
+ * the left, "Show Filters" and "Sort By" on the right, then the products 3 a row. The filters start hidden; "Show
+ * Filters" puts them in a column on the left. While scrolling, the bar sticks to the top (under the site header
+ * when it comes back, globals.css) with a smaller title, and the filters column sticks under it and scrolls on its
+ * own. Below lg: chips, the toolbar and 2 a row.
  */
 export function ShopBrowse({ heading, intro, phoneBar, sidebar, children }: ShopBrowseProps) {
-  const [filtersShown, setFiltersShown] = useState(true);
+  const [filtersShown, setFiltersShown] = useState(false);
   const sidebarId = useId();
+  const barRef = useRef<HTMLDivElement>(null);
+  const stuck = useStuck(barRef);
 
   return (
     <>
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="flex flex-col gap-3">
-          {heading}
-          {intro && <p className="max-w-prose text-body-lg text-ink-muted">{intro}</p>}
-        </div>
+      <div
+        ref={barRef}
+        data-listing-bar
+        data-stuck={stuck ? "" : undefined}
+        className="group/bar flex items-center justify-between gap-4 lg:sticky lg:z-10 lg:h-16 lg:bg-canvas lg:transition-all lg:duration-150 lg:ease-standard"
+      >
+        {heading}
         <div className="hidden items-center gap-1 lg:flex">
           <Button
             variant="ghost"
@@ -47,6 +54,7 @@ export function ShopBrowse({ heading, intro, phoneBar, sidebar, children }: Shop
           <SortMenu />
         </div>
       </div>
+      {intro && <p className="max-w-prose text-body-lg text-ink-muted">{intro}</p>}
 
       <div className="flex flex-col gap-4 lg:hidden">{phoneBar}</div>
 
@@ -56,10 +64,16 @@ export function ShopBrowse({ heading, intro, phoneBar, sidebar, children }: Shop
           filtersShown && "lg:grid-cols-[15rem_minmax(0,1fr)]",
         )}
       >
+        {/* Scrolls on its own (globals.css sets its top and height); the small inset keeps focus rings unclipped. */}
         <aside
           id={sidebarId}
           aria-label="Filters"
-          className={cn("hidden", filtersShown && "lg:sticky lg:top-24 lg:block")}
+          data-listing-filters
+          className={cn(
+            "hidden",
+            filtersShown &&
+              "lg:sticky lg:-mx-1 lg:block lg:overflow-y-auto lg:px-1 lg:pb-6 lg:transition-all lg:duration-150 lg:ease-standard",
+          )}
         >
           {sidebar}
         </aside>

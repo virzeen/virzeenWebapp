@@ -7,7 +7,8 @@ import { SORT_OPTIONS, useListingUrl } from "./listing-url";
 
 /**
  * Nike's "Sort By" (owner 2026-11-08): a text button with a chevron ("Sort By: Price: Low-High" once changed) that
- * opens a short list on the right. Each choice is a link to the same listing sorted that way.
+ * opens a short list on the right: a plain white panel, no border or shadow. Each choice is a link to the same listing
+ * sorted that way.
  */
 export function SortMenu() {
   const [open, setOpen] = useState(false);
@@ -26,7 +27,7 @@ export function SortMenu() {
           />
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" aria-label="Sort by">
+      <PopoverContent elevation="flat" align="end" aria-label="Sort by">
         <ul className="flex min-w-44 flex-col">
           {SORT_OPTIONS.map((option) => (
             <li key={option.value}>

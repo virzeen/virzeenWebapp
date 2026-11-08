@@ -29,7 +29,8 @@ const CHIP =
 
 /**
  * Shared layout for /shop, /shop/[category] and /collections/[slug] (patterns.md §5), like Nike's listing from lg
- * (owner 2026-11-08): "{title} ({total})", Hide Filters and Sort By, the filters on the left, 3 products a row.
+ * (owner 2026-11-08): "{title} ({total})" in a bar that sticks while scrolling, Show Filters and Sort By, 3 products
+ * a row.
  */
 export function ShopListing({ data, title, intro, filters, params, activeCategory }: ShopListingProps) {
   const { page, total, categories, options } = data;
@@ -88,11 +89,11 @@ export function ShopListing({ data, title, intro, filters, params, activeCategor
   );
 
   return (
-    <Container className="flex flex-col gap-6 py-8 lg:gap-8 lg:py-10">
+    <Container className="flex flex-col gap-6 py-8 lg:gap-8 lg:pt-6 lg:pb-10">
       <ProductResults initialItems={page.items} initialCursor={page.nextCursor} filters={params}>
         <ShopBrowse
           heading={
-            <h1 className="font-display text-h2 font-medium">
+            <h1 className="font-display text-h2 font-medium lg:group-data-stuck/bar:text-h3">
               {title} <span className="whitespace-nowrap">({total})</span>
             </h1>
           }
@@ -122,25 +123,21 @@ export function ShopListing({ data, title, intro, filters, params, activeCategor
 
 const CHIP_SKELETONS = ["a", "b", "c", "d", "e"];
 const CARD_SKELETONS = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l"];
-const FILTER_SKELETONS = ["a", "b", "c", "d", "e", "f"];
-
 /**
- * Loading state for `ShopListing` (ui-discipline.md §6): the title bar, then below lg the chips and toolbar, from lg
- * the filters column, and one page of square cards (2 a row, 3 from lg).
+ * Loading state for `ShopListing` (ui-discipline.md §6): the title bar, then below lg the chips and toolbar, and one
+ * page of square cards (2 a row, 3 from lg; the filters start hidden).
  */
 export function ShopListingSkeleton({ intro = false }: { intro?: boolean }) {
   return (
-    <Container className="flex flex-col gap-6 py-8 lg:gap-8 lg:py-10" aria-busy>
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="flex flex-col gap-3">
-          <Skeleton className="h-9 w-48 lg:h-11" />
-          {intro && <Skeleton shape="text" className="w-full max-w-prose" />}
-        </div>
+    <Container className="flex flex-col gap-6 py-8 lg:gap-8 lg:pt-6 lg:pb-10" aria-busy>
+      <div className="flex items-center justify-between gap-4 lg:h-16">
+        <Skeleton className="h-9 w-48" />
         <div className="hidden items-center gap-2 lg:flex">
           <Skeleton className="h-11 w-36 rounded-full" />
           <Skeleton className="h-11 w-28 rounded-full" />
         </div>
       </div>
+      {intro && <Skeleton shape="text" className="w-full max-w-prose" />}
       <div className="flex flex-col gap-4 lg:hidden">
         <div className="flex flex-wrap gap-2">
           {CHIP_SKELETONS.map((id) => (
@@ -155,22 +152,16 @@ export function ShopListingSkeleton({ intro = false }: { intro?: boolean }) {
           </div>
         </div>
       </div>
-      <div className="lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] lg:items-start lg:gap-x-12">
-        <div className="hidden flex-col gap-3 lg:flex">
-          {FILTER_SKELETONS.map((id) => (
-            <Skeleton key={id} shape="text" className="w-32" />
-          ))}
-        </div>
-        <Grid columns="listing" gap={4} className="gap-y-10">
-          {CARD_SKELETONS.map((id) => (
-            <div key={id} className="flex flex-col gap-3">
-              <Skeleton shape="square" />
-              <Skeleton shape="text" className="w-3/4" />
-              <Skeleton shape="text" className="w-1/3" />
-            </div>
-          ))}
-        </Grid>
-      </div>
+      <Grid columns="products" gap={4}>
+        {CARD_SKELETONS.map((id) => (
+          <div key={id} className="flex flex-col gap-3">
+            <Skeleton shape="square" />
+            <Skeleton shape="text" className="w-3/4" />
+            <Skeleton shape="text" className="w-1/2" />
+            <Skeleton shape="text" className="w-1/3" />
+          </div>
+        ))}
+      </Grid>
     </Container>
   );
 }

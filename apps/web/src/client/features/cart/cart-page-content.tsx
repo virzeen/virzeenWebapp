@@ -47,8 +47,9 @@ export function CartPageContent({ notice, favourites, suggestions }: CartPageCon
   );
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-16">
-      <div className="grid grid-cols-1 gap-12 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-16">
+    // The bag keeps its narrower column; the product row under it is as wide as the shop (owner 2026-11-08).
+    <div className="flex flex-col gap-16">
+      <div className="mx-auto grid w-full max-w-5xl grid-cols-1 gap-12 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-16">
         <section aria-labelledby="bag-heading" className="flex flex-col">
           <div className="flex flex-col gap-1 pb-2 text-center lg:text-left">
             <h1 id="bag-heading" className="font-display text-h2">

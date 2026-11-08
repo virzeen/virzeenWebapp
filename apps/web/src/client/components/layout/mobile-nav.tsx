@@ -55,7 +55,7 @@ export function MobileNav({ categories, isSignedIn, firstName }: MobileNavProps)
       }}
     >
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" shape="pill" aria-label="Open menu" className="md:hidden">
+        <Button variant="ghost" size="icon" shape="pill" aria-label="Open menu" className="xl:hidden">
           <Menu className="size-5" strokeWidth={1.5} aria-hidden />
         </Button>
       </SheetTrigger>
