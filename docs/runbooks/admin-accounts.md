@@ -15,7 +15,7 @@ By default it uses `DATABASE_URL` from `apps/web/.env.local` (your local databas
 
 The production database has no public address. Reach it through a Railway tunnel.
 
-1. Install the Railway CLI, run `railway link` in the repo folder (project `abundant-harmony`), then `railway connect Postgres --tunnel-only`. It prints a local connection URL and keeps the tunnel open until Ctrl+C.
+1. Install the Railway CLI, run `railway link` in the repo folder (project `adorable-caring`), then `railway connect Postgres --tunnel-only`. It prints a local connection URL and keeps the tunnel open until Ctrl+C. The tunnel runs over SSH, so the PC needs an SSH key (`ssh-keygen -t ed25519`); the CLI says so when it's missing.
 2. In a second terminal at the repo root (PowerShell):
    ```powershell
    $env:DATABASE_URL = "<URL printed by the tunnel>"

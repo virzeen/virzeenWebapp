@@ -25,20 +25,20 @@ Free up to 10 GB with no payment card. The bucket lives in Backblaze's US West r
 
 Railway no longer lets new services use a config file (`railway.json`) and stops reading existing ones on 2026-12-01, so the dashboard settings below are what count. `ops/db-backup/railway.json` records the same build and schedule settings.
 
-1. Project `abundant-harmony` → **New → GitHub Repo** → `virzeen/virzeenWebapp`. Railway starts a first build with the website's settings straight away. It fails without the variables; ignore it.
+1. Project `adorable-caring` → **New → GitHub Repo** → `virzeen/virzeenWebapp`. Railway starts a first build with the website's settings straight away. It fails without the variables; ignore it. (Rebuilt 2026-11-09 with the Railway CLI instead: an empty service first, then the variables and settings below, then the GitHub source, so the first build already used the Dockerfile.)
 2. Service → **Settings**:
 
-   | Setting                              | Value                                                           |
-   | ------------------------------------ | --------------------------------------------------------------- |
-   | Service name                         | `db-backup`                                                     |
-   | Source → Branch                      | `main`                                                          |
-   | Source → Root Directory              | empty (the build needs the whole repo)                          |
-   | Config-as-code → Railway Config File | `/ops/db-backup/railway.json`, only if Railway offers the field |
-   | Build → Watch Paths                  | `/ops/db-backup/**` (other changes don't rebuild the job)       |
-   | Deploy → Cron Schedule               | `15 20 * * *` (UTC = 02:00 Nepal time)                          |
-   | Deploy → Restart Policy              | **Never**                                                       |
-   | Deploy → Region                      | the same as Postgres (Singapore)                                |
-   | Networking                           | nothing: no public domain                                       |
+   | Setting                              | Value                                                                                                                        |
+   | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+   | Service name                         | `db-backup`                                                                                                                  |
+   | Source → Branch                      | `main`                                                                                                                       |
+   | Source → Root Directory              | empty (the build needs the whole repo)                                                                                       |
+   | Config-as-code → Railway Config File | `/ops/db-backup/railway.json`, only if Railway offers the field (it refused it on 2026-11-09; the Dockerfile path is enough) |
+   | Build → Watch Paths                  | `/ops/db-backup/**` (other changes don't rebuild the job)                                                                    |
+   | Deploy → Cron Schedule               | `15 20 * * *` (UTC = 02:00 Nepal time)                                                                                       |
+   | Deploy → Restart Policy              | **Never**                                                                                                                    |
+   | Deploy → Region                      | the same as Postgres (Singapore)                                                                                             |
+   | Networking                           | nothing: no public domain                                                                                                    |
 
 3. Service → **Variables** (type the keys yourself; don't paste them anywhere else):
 
