@@ -148,14 +148,18 @@ Nike-style layout (`specs/product-page.md`, `specs/product-page-v2.md`). The sam
 
 ## Shop listing
 
-| Situation                                 | Text                                                                                                 |
-| ----------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Result count                              | 1 product · {n} products · {n}+ products (while Load more has more) · No products                    |
-| Filters sheet, first Size / Colour option | Any (the default; removes that filter)                                                               |
-| Filters sheet buttons                     | Clear all (removes every filter and closes the sheet) · Show results                                 |
-| Nothing matches the filters               | Nothing matches these filters. Try removing a filter or browse all products. — [Browse all products] |
-| No products at all                        | New pieces are on their way. Check back soon — or explore our portfolio. — [View the portfolio]      |
-| Gallery list name (screen readers)        | {productName} images                                                                                 |
+| Situation                                 | Text                                                                                                      |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Result count                              | 1 product · {n} products · {n}+ products (while Load more has more) · No products                         |
+| Filters sheet, first Size / Colour option | Any (the default; removes that filter)                                                                    |
+| Filters sheet buttons                     | Clear all (removes every filter and closes the sheet) · Show results                                      |
+| Listing title (h1)                        | {title} ({total}), e.g. Shop (12) · Tops (4) · Results for "black" (3)                                    |
+| Desktop controls                          | Hide Filters / Show Filters · Sort By (Sort By: {choice} once changed)                                    |
+| Sort choices                              | Newest · Price: High-Low · Price: Low-High                                                                |
+| Filters column                            | All products · {category} · Size · Colour · Availability ("In stock only"); "Size (1)" when one is picked |
+| Nothing matches the filters               | Nothing matches these filters. Try removing a filter or browse all products. — [Browse all products]      |
+| No products at all                        | New pieces are on their way. Check back soon — or explore our portfolio. — [View the portfolio]           |
+| Gallery list name (screen readers)        | {productName} images                                                                                      |
 
 ## Search (`specs/search.md`)
 

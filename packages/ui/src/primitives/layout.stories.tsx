@@ -26,6 +26,19 @@ export const ProductGrid: Story = {
   ),
 };
 
+/** `columns="listing"`: the shop listing, 2 a row and 3 from lg, with square photos (Nike's). */
+export const ListingGrid: Story = {
+  render: () => (
+    <Container className="py-8">
+      <Grid columns="listing" gap={4}>
+        {cards.slice(0, 6).map((id) => (
+          <Skeleton key={id} shape="square" />
+        ))}
+      </Grid>
+    </Container>
+  ),
+};
+
 export const StackColumn: Story = {
   render: () => (
     <Container width="narrow" className="py-8">

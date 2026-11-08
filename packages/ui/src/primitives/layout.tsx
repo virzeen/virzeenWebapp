@@ -57,12 +57,14 @@ export function Stack({ className, gap = 4, direction = "column", align = "stret
 
 const gridColumns = {
   products: "grid-cols-2 md:grid-cols-3 lg:grid-cols-4",
+  /** The shop listing (owner 2026-11-08, Nike's): 2 a row, 3 from lg beside the filters. */
+  listing: "grid-cols-2 lg:grid-cols-3",
   two: "grid-cols-1 md:grid-cols-2",
   three: "grid-cols-1 md:grid-cols-2 lg:grid-cols-3",
 } as const;
 
 export type GridProps = React.ComponentProps<"div"> & {
-  /** `products`: 2 / 3 / 4 columns (docs/ui/design-tokens.md §6). */
+  /** `products`: 2 / 3 / 4 columns (docs/ui/design-tokens.md §6). `listing`: 2, then 3 from lg (the shop listing). */
   columns?: keyof typeof gridColumns;
   gap?: Gap;
 };

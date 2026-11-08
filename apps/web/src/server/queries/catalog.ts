@@ -28,12 +28,13 @@ export const listSitemapEntries = () => catalogReads.listSitemapEntries();
 
 /** Everything a shop listing page needs, in one round trip. */
 export async function loadShopListing(filters: ShopFilters) {
-  const [page, categories, options] = await Promise.all([
+  const [page, total, categories, options] = await Promise.all([
     listProducts(filters),
+    catalogReads.countProducts(filters),
     listCategories(),
     getFilterOptions({ category: filters.category, collection: filters.collection }),
   ]);
-  return { page, categories, options };
+  return { page, total, categories, options };
 }
 
 export type ShopListingData = Awaited<ReturnType<typeof loadShopListing>>;

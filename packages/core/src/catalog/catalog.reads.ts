@@ -143,27 +143,35 @@ function orderFor(sort: ShopFilters["sort"]): Prisma.ProductOrderByWithRelationI
   }
 }
 
+/** The shop listing's `where`: published, for sale, and matching the filters and search (cursor and sort aside). */
+function listingWhere(filters: ShopFilters): Prisma.ProductWhereInput {
+  const variantFilter: Prisma.ProductVariantWhereInput = {
+    isActive: true,
+    ...(filters.size ? { size: filters.size } : {}),
+    ...(filters.color ? { color: filters.color } : {}),
+    ...(filters.inStock ? { stock: { gt: 0 } } : {}),
+  };
+  const hasVariantFilter = Boolean(filters.size || filters.color || filters.inStock);
+  const search = filters.q ? searchWhere(filters.q) : null;
+  return {
+    ...publishedProductWhere,
+    ...search,
+    ...(filters.category ? { category: { slug: filters.category, archivedAt: null } } : {}),
+    ...(filters.collection ? { collections: { some: { slug: filters.collection, archivedAt: null } } } : {}),
+    variants: { some: hasVariantFilter ? variantFilter : { isActive: true } },
+  };
+}
+
 export const catalogReads = {
+  /** How many products the listing holds in all (the "Shop (12)" title), whatever "Load more" has shown. */
+  countProducts(filters: ShopFilters): Promise<number> {
+    return db.product.count({ where: listingWhere(filters) });
+  },
+
   /** Shop listing with filters, the search query (specs/search.md) and cursor pagination ("Load more"). */
   async listProducts(filters: ShopFilters, limit = PAGE_SIZE): Promise<ProductPage> {
-    const variantFilter: Prisma.ProductVariantWhereInput = {
-      isActive: true,
-      ...(filters.size ? { size: filters.size } : {}),
-      ...(filters.color ? { color: filters.color } : {}),
-      ...(filters.inStock ? { stock: { gt: 0 } } : {}),
-    };
-    const hasVariantFilter = Boolean(filters.size || filters.color || filters.inStock);
-    const search = filters.q ? searchWhere(filters.q) : null;
     const rows = await db.product.findMany({
-      where: {
-        ...publishedProductWhere,
-        ...search,
-        ...(filters.category ? { category: { slug: filters.category, archivedAt: null } } : {}),
-        ...(filters.collection
-          ? { collections: { some: { slug: filters.collection, archivedAt: null } } }
-          : {}),
-        variants: { some: hasVariantFilter ? variantFilter : { isActive: true } },
-      },
+      where: listingWhere(filters),
       select: summarySelect,
       orderBy: orderFor(filters.sort),
       take: limit + 1,

@@ -32,10 +32,12 @@ export function ProductCard({ product, priority = false, onNavigate }: ProductCa
       className="group flex flex-col gap-3 text-ink hover:text-ink"
     >
       <div className="relative">
+        {/* Square photos, like Nike's cards (owner 2026-11-08). */}
         <CloudImage
           src={product.imageUrl}
           alt={product.imageAlt}
-          sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"
+          ratio="square"
+          sizes="(min-width: 1024px) 33vw, 50vw"
           priority={priority}
           imageClassName="transition-transform duration-400 ease-standard motion-safe:group-hover:scale-102"
         />

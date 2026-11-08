@@ -15,15 +15,8 @@ import {
 import { SlidersHorizontal } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
+import { FILTER_KEYS, SORT_OPTIONS } from "./listing-url";
 import { useProductResults } from "./product-grid";
-
-const SORT_OPTIONS = [
-  { value: "newest", label: "Newest" },
-  { value: "price-asc", label: "Price: low to high" },
-  { value: "price-desc", label: "Price: high to low" },
-];
-
-const FILTER_KEYS = ["size", "color", "inStock"] as const;
 
 type Draft = { size: string; color: string; inStock: boolean };
 

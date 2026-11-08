@@ -76,6 +76,17 @@ describe("catalogReads.listProducts with a search query", () => {
     expect(await search("drop")).toEqual([]);
   });
 
+  it("counts every product the listing holds, with the same filters and search", async () => {
+    await product("Oversized Tee", "Black");
+    await product("Oversized Tee White", "White");
+    await product("Linen Overshirt", "Black");
+    await product("Draft Tee", "Black", { published: false });
+
+    expect(await catalogReads.countProducts({ sort: "newest", inStock: false })).toBe(3);
+    expect(await catalogReads.countProducts({ q: "tee", sort: "newest", inStock: false })).toBe(2);
+    expect(await catalogReads.countProducts({ color: "Black", sort: "newest", inStock: false })).toBe(2);
+  });
+
   it("never shows drafts", async () => {
     await product("Linen Overshirt", "Black", { published: false });
 

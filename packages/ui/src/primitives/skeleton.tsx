@@ -8,6 +8,7 @@ const skeletonVariants = cva("bg-surface motion-safe:animate-shimmer", {
       text: "h-4 rounded-sm",
       circle: "rounded-full",
       image: "aspect-4/5 w-full rounded-sm",
+      square: "aspect-square w-full rounded-sm",
     },
   },
   defaultVariants: { shape: "block" },
@@ -17,7 +18,8 @@ export type SkeletonProps = React.ComponentProps<"div"> & VariantProps<typeof sk
 
 /**
  * Loading placeholder that matches the final layout (no full-page spinners).
- * Size it with width/height classes; `shape="image"` is the 4:5 product image ratio.
+ * Size it with width/height classes; `shape="image"` is the 4:5 product image ratio, `shape="square"` the square
+ * photo of a product card.
  */
 export function Skeleton({ className, shape, ...props }: SkeletonProps) {
   return <div aria-hidden className={cn(skeletonVariants({ shape }), className)} {...props} />;
