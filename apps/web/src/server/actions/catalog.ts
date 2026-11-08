@@ -7,7 +7,7 @@ import { runAction } from "@/server/actions/result";
 import { clientIp, rateLimit } from "@/server/security/rate-limit";
 
 /** How many products the header search panel shows while typing (specs/search.md). */
-const SEARCH_PANEL_RESULTS = 6;
+const SEARCH_PANEL_RESULTS = 4;
 
 /** The header search panel's live results: the newest matches; `nextCursor` says there are more. */
 export async function searchProductsAction(input: unknown) {

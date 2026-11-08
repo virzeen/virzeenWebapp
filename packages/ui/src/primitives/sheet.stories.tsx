@@ -10,7 +10,7 @@ const meta = {
   component: SheetContent,
   tags: ["autodocs"],
   args: { title: "Bag" },
-  argTypes: { side: { control: "select", options: ["right", "bottom"] } },
+  argTypes: { side: { control: "select", options: ["right", "bottom", "top", "drop"] } },
 } satisfies Meta<typeof SheetContent>;
 
 export default meta;
@@ -98,6 +98,47 @@ export const Top: Story = {
     await expect(dialog.getBoundingClientRect().width).toBe(window.innerWidth);
     await userEvent.click(within(dialog).getByRole("button", { name: "Close menu" }));
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "Menu" })).toBeNull());
+    await waitFor(() => expect(trigger).toHaveFocus());
+  },
+};
+
+/**
+ * `side="drop"` with `header`: the header search. From md it is only as tall as its content and the page shows
+ * dimmed below it; on phones it is the whole screen like `top`.
+ */
+export const Drop: Story = {
+  render: () => (
+    <Sheet>
+      <SheetTrigger asChild>
+        <Button variant="secondary">Search</Button>
+      </SheetTrigger>
+      <SheetContent
+        side="drop"
+        title="Search"
+        header={
+          <SheetClose asChild>
+            <Button variant="ghost" shape="pill" className="ml-auto">
+              Cancel
+            </Button>
+          </SheetClose>
+        }
+      >
+        <p className="text-body text-ink-muted">Suggestions and results appear here.</p>
+      </SheetContent>
+    </Sheet>
+  ),
+  play: async ({ canvas, userEvent }) => {
+    const trigger = canvas.getByRole("button", { name: "Search" });
+    await userEvent.click(trigger);
+    const dialog = await screen.findByRole("dialog", { name: "Search" });
+    await waitFor(() => expect(dialog).toBeVisible());
+    await expect(dialog.getBoundingClientRect().width).toBe(window.innerWidth);
+    // From md the panel is shorter than the window, so the dimmed page shows below it.
+    if (window.innerWidth >= 768) {
+      await expect(dialog.getBoundingClientRect().height).toBeLessThan(window.innerHeight);
+    }
+    await userEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Search" })).toBeNull());
     await waitFor(() => expect(trigger).toHaveFocus());
   },
 };

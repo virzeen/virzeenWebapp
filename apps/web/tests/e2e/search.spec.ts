@@ -9,7 +9,9 @@ test.describe("Search", () => {
     const panel = page.getByRole("dialog", { name: "Search" });
     const box = panel.getByRole("searchbox", { name: "Search products" });
     await expect(box).toBeFocused();
-    await expect(panel.getByRole("link", { name: "All products" })).toBeVisible();
+    // Before typing: "Popular search terms" chips, each a search for its term.
+    const terms = panel.getByRole("navigation", { name: "Popular search terms" });
+    await expect(terms.getByRole("link", { name: "tops" })).toHaveAttribute("href", "/shop?q=tops");
 
     // Live results: a name word and a colour must both match.
     await box.pressSequentially("black tee");

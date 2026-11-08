@@ -1,19 +1,23 @@
 "use client";
 
-import { Button, FormField, Input, Sheet, SheetClose, SheetContent, SheetTrigger } from "@virzeen/ui";
+import { Button, Input, Link, Sheet, SheetClose, SheetContent, SheetTrigger } from "@virzeen/ui";
 import { SEARCH_QUERY_MAX } from "@virzeen/validators/limits";
-import { Search, X } from "lucide-react";
+import { Search } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useRef, useState } from "react";
+import { Wordmark } from "@/client/components/layout/wordmark";
 import { SearchResults, searchHref } from "./search-results";
 import { useProductSearch } from "./use-product-search";
 
 type SearchPanelProps = { categories: { slug: string; name: string }[] };
 
 /**
- * The header's search (specs/search.md): an icon that opens a top Sheet over the whole screen with the box focused.
- * Results show while typing; Enter or Search opens every match on `/shop?q=`. A link inside closes it as it
- * navigates, and so does any page change (browser Back); focus goes back to the icon.
+ * The header's search (specs/search.md, laid out like Nike's; owner 2026-11-08): the magnifier opens a panel that
+ * drops from the top (`Sheet side="drop"`: as tall as its content from md, the whole screen on phones) with the
+ * rounded box focused, "Cancel" on the right and the wordmark on the left from md. The box shows only "Search" and
+ * the magnifier; its label is for screen readers (an owner exception to visible labels). Results show while typing;
+ * Enter opens every match on `/shop?q=`. A link inside closes it as it navigates, and so does any page change
+ * (browser Back); focus goes back to the magnifier.
  */
 export function SearchPanel({ categories }: SearchPanelProps) {
   const router = useRouter();
@@ -53,34 +57,34 @@ export function SearchPanel({ categories }: SearchPanelProps) {
         </Button>
       </SheetTrigger>
       <SheetContent
-        side="top"
+        side="drop"
         title="Search"
         onOpenAutoFocus={(event) => {
           event.preventDefault();
           inputRef.current?.focus();
         }}
         header={
-          <SheetClose asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              shape="pill"
-              aria-label="Close search"
-              className="-mr-2 ml-auto"
+          // Nike's top row: the wordmark (from md), the search box in the middle column, Cancel on the right.
+          <div className="grid w-full grid-cols-[1fr_auto] items-center gap-4 md:grid-cols-[1fr_minmax(0,56rem)_1fr]">
+            <Link
+              href="/"
+              variant="subtle"
+              aria-label="Virzeen home"
+              onNavigate={() => setOpen(false)}
+              className="hidden min-h-11 items-center justify-self-start text-ink hover:text-ink md:inline-flex"
             >
-              <X className="size-6" strokeWidth={1.5} aria-hidden />
-            </Button>
-          </SheetClose>
-        }
-      >
-        <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 pb-8">
-          {/* action="/shop" keeps the form working before the page's scripts load. */}
-          <form role="search" action="/shop" onSubmit={submit} className="flex items-end gap-2">
-            <FormField label="Search products" className="min-w-0 flex-1">
+              <Wordmark className="h-5 w-auto" title="Virzeen" />
+            </Link>
+            {/* action="/shop" keeps the form working before the page's scripts load. */}
+            <form role="search" action="/shop" onSubmit={submit} className="min-w-0">
               <Input
                 ref={inputRef}
                 name="q"
                 type="search"
+                variant="pill"
+                startIcon={<Search className="size-5" strokeWidth={1.5} />}
+                aria-label="Search products"
+                placeholder="Search"
                 inputMode="search"
                 enterKeyHint="search"
                 autoComplete="off"
@@ -94,11 +98,16 @@ export function SearchPanel({ categories }: SearchPanelProps) {
                   search.change(event.target.value);
                 }}
               />
-            </FormField>
-            <Button type="submit" shape="pill">
-              Search
-            </Button>
-          </form>
+            </form>
+            <SheetClose asChild>
+              <Button variant="ghost" shape="pill" className="justify-self-end">
+                Cancel
+              </Button>
+            </SheetClose>
+          </div>
+        }
+      >
+        <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 pt-4 pb-8 md:pt-8 md:pb-12">
           <SearchResults
             state={search.state}
             categories={categories}

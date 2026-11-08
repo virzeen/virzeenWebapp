@@ -14,15 +14,17 @@ type SearchResultsProps = {
   onRetry: () => void;
 };
 
-const RESULTS_GRID = "grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-3 lg:grid-cols-6";
-const SKELETONS = ["a", "b", "c", "d", "e", "f"];
+const RESULTS_GRID = "grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-4";
+const SKELETONS = ["a", "b", "c", "d"];
+const CHIP =
+  "inline-flex min-h-11 items-center rounded-full bg-surface px-5 text-body text-ink transition-colors duration-150 ease-standard hover:bg-line hover:text-ink";
 
 export const searchHref = (query: string) => `/shop?q=${encodeURIComponent(query)}`;
 
 /**
- * What the search panel shows under the box (specs/search.md): the categories before typing, then up to 6 product
- * cards with "See all results", the no-results message, or an error with "Try again". A hidden status line reads
- * the count.
+ * What the search panel shows under the box (specs/search.md, Nike's layout): "Popular search terms" chips before
+ * typing, then up to 4 product cards with "See all results", the no-results message, or an error with "Try again".
+ * A hidden status line reads the count.
  */
 export function SearchResults({ state, categories, onNavigate, onRetry }: SearchResultsProps) {
   const items: ProductCardData[] | null =
@@ -35,7 +37,7 @@ export function SearchResults({ state, categories, onNavigate, onRetry }: Search
         {state.status === "done" ? resultLabel(state.items.length, state.hasMore) : ""}
       </p>
 
-      {state.status === "idle" && <CategoryLinks categories={categories} onNavigate={onNavigate} />}
+      {state.status === "idle" && <PopularTerms categories={categories} onNavigate={onNavigate} />}
 
       {state.status === "error" && (
         <Alert
@@ -98,23 +100,28 @@ export function SearchResults({ state, categories, onNavigate, onRetry }: Search
   );
 }
 
-function CategoryLinks({ categories, onNavigate }: Pick<SearchResultsProps, "categories" | "onNavigate">) {
+/**
+ * "Popular search terms" as grey pills (Nike's). Until searches are counted, the terms are the shop's categories;
+ * each one searches for its name.
+ */
+function PopularTerms({ categories, onNavigate }: Pick<SearchResultsProps, "categories" | "onNavigate">) {
   const headingId = useId();
+  if (categories.length === 0) return null;
   return (
-    <nav aria-labelledby={headingId} className="flex flex-col gap-2">
-      <h2 id={headingId} className="text-small text-ink-muted">
-        Shop by category
+    <nav aria-labelledby={headingId} className="flex flex-col gap-4">
+      <h2 id={headingId} className="text-body text-ink-muted">
+        Popular search terms
       </h2>
-      <ul className="flex flex-col">
-        <li>
-          <Link href="/shop" variant="menuSmall" onNavigate={onNavigate}>
-            All products
-          </Link>
-        </li>
+      <ul className="flex flex-wrap gap-3">
         {categories.map((category) => (
           <li key={category.slug}>
-            <Link href={`/shop/${category.slug}`} variant="menuSmall" onNavigate={onNavigate}>
-              {category.name}
+            <Link
+              href={searchHref(category.name.toLowerCase())}
+              variant="subtle"
+              className={CHIP}
+              onNavigate={onNavigate}
+            >
+              {category.name.toLowerCase()}
             </Link>
           </li>
         ))}

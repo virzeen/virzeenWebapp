@@ -159,16 +159,16 @@ Nike-style layout (`specs/product-page.md`, `specs/product-page-v2.md`). The sam
 
 ## Search (`specs/search.md`)
 
-| Where                         | Text                                                                                             |
-| ----------------------------- | ------------------------------------------------------------------------------------------------ |
-| Header icon (screen readers)  | Search                                                                                           |
-| The panel (screen readers)    | Search (the dialog's name; no visible title) · Close search (the X) · Products (the result list) |
-| The box and its button        | Search products (label) · [Search]                                                               |
-| Before typing                 | Shop by category · All products · {category name}                                                |
-| Results                       | the product cards · [See all results] · the count for screen readers as in "Shop listing"        |
-| Results page h1 / browser tab | Results for "{query}" · Results for "{query}" \| Virzeen                                         |
-| No match (panel and page)     | the standard "No search results" message above                                                   |
-| The live results didn't load  | The error's standard message in a danger `Alert` — [Try again]                                   |
+| Where                         | Text                                                                                      |
+| ----------------------------- | ----------------------------------------------------------------------------------------- |
+| Header icon (screen readers)  | Search                                                                                    |
+| The panel (screen readers)    | Search (the dialog's name; no visible title) · Products (the result list)                 |
+| The top row                   | Search (placeholder; label for screen readers: Search products) · [Cancel]                |
+| Before typing                 | Popular search terms · {category name in lower case} (pills)                              |
+| Results                       | the product cards · [See all results] · the count for screen readers as in "Shop listing" |
+| Results page h1 / browser tab | Results for "{query}" · Results for "{query}" \| Virzeen                                  |
+| No match (panel and page)     | the standard "No search results" message above                                            |
+| The live results didn't load  | The error's standard message in a danger `Alert` — [Try again]                            |
 
 ## Checkout
 

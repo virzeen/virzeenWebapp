@@ -11,9 +11,9 @@ Customers find a product by typing what they remember: a name ("overshirt"), a k
 ## User flow
 
 1. A search icon ("Search") sits in the header on every storefront page, phones included, left of Favourites.
-2. It opens a panel over the whole screen (a top `Sheet`, like the phone menu) with the box focused. Before typing, it lists the categories ("Shop by category").
-3. From 2 characters, up to 6 matching products show as product cards, newest first, a moment after typing stops. "See all results" opens `/shop?q={query}`.
-4. Enter (or the Search button) opens `/shop?q={query}`: the shop listing titled `Results for "{query}"`, with the toolbar's filters, sort and Load more.
+2. It opens a panel laid out like Nike's (owner, 2026-11-08): it drops from the top, as tall as its content from `md` with the page dimmed below, the whole screen on phones. The top row holds the wordmark (from `md`), a rounded grey box with a magnifier and "Search" inside, and "Cancel". Before typing it shows "Popular search terms" as grey pills; until searches are counted, the terms are the categories, and each one searches for its name.
+3. From 2 characters, up to 4 matching products show as product cards (one row from `md`, 2 × 2 on phones), newest first, a moment after typing stops. "See all results" opens `/shop?q={query}`.
+4. Enter opens `/shop?q={query}`: the shop listing titled `Results for "{query}"`, with the toolbar's filters, sort and Load more.
 
 ## Acceptance criteria
 
@@ -21,7 +21,7 @@ Customers find a product by typing what they remember: a name ("overshirt"), a k
 - [x] Each word must match at least one of: the product name, its category's name, a collection's name (not archived), a style name (an active variant's colour), a style's colour shown or a style number. "black tee" finds a black tee, not every black product.
 - [x] A word over 3 letters ending in "s" also matches without it: "tops" finds "Top", "tees" finds "Tee".
 - [x] Drafts, archived products, products in an archived category and products with nothing for sale never show.
-- [x] The panel shows at most 6 cards; "See all results" and Enter go to `/shop?q=` with the same query.
+- [x] The panel shows at most 4 cards; "See all results" and Enter go to `/shop?q=` with the same query.
 - [x] `/shop?q=` keeps `q` when sorting, filtering or loading more; "Clear all" keeps it (it is not a filter).
 - [x] No match: `Nothing matches "{query}".` with "Try a different word or browse all products." and [Show all products] (to `/shop`), in the panel and on the page.
 - [x] `/shop?q=` is `noindex, follow` with the canonical `/shop`, and its tab reads `Results for "{query}" | Virzeen` when the page is opened directly (a shared link, a search engine). **Known issue:** after a search inside the site, the production build keeps the tab title (and head) of the `/shop` page it prefetched from the header's Shop link or the panel's "All products"; the h1 and results are right. Seen in e2e on 2026-11-08, not in `pnpm dev`. Crawlers always load the page directly, so indexing isn't affected.
@@ -37,8 +37,8 @@ Customers find a product by typing what they remember: a name ("overshirt"), a k
 ## UI
 
 - Screens/components affected: `SiteHeader` (the icon), new `SearchPanel` and `SearchResults` (`client/features/search`), `/shop` page title, empty state and metadata.
-- Primitives needed: `Sheet side="top"` with `header`, `FormField`, `Input`, `Button`, `ButtonLink`, `Link`, `Skeleton`, `EmptyState`, `Alert`. No new primitive.
-- States: before typing → "Shop by category" links; typing → skeleton cards; results → cards + "See all results"; none → the no-results copy; error → danger `Alert` with the standard message and [Try again]. A hidden status line reads the count ("1 product", "{n} products", "{n}+ products", "No products").
+- Primitives needed: `Sheet side="drop"` with `header` (new), `Input variant="pill"` with `startIcon` (new), `Button`, `ButtonLink`, `Link`, `Skeleton`, `EmptyState`, `Alert`. No new primitive.
+- States: before typing → "Popular search terms" pills; typing → skeleton cards; results → cards + "See all results"; none → the no-results copy; error → danger `Alert` with the standard message and [Try again]. A hidden status line reads the count ("1 product", "{n} products", "{n}+ products", "No products").
 
 ## Data & API
 
