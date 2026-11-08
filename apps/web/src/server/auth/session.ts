@@ -21,6 +21,8 @@ export type SessionUser = {
   name: string;
   role: string;
   twoFactorEnabled: boolean;
+  /** When the account was made (the profile's "Member since"). */
+  createdAt: Date;
 };
 
 function toUser(session: NonNullable<Awaited<ReturnType<typeof getSession>>>): SessionUser {
@@ -31,6 +33,8 @@ function toUser(session: NonNullable<Awaited<ReturnType<typeof getSession>>>): S
     name: user.name,
     role: user.role ?? "CUSTOMER",
     twoFactorEnabled: Boolean(user.twoFactorEnabled),
+    // A cached session can carry it as a string.
+    createdAt: new Date(user.createdAt),
   };
 }
 

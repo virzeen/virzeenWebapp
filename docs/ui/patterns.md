@@ -87,6 +87,8 @@ Laid out like Nike's bag (owner request 2026-09-30), in our type and colours.
 
 After −, + or Remove, focus returns to the pressed button, or to the other stepper button when a limit disabled it.
 
+**Account** (owner 2026-11-08, like Nike's member pages): `AccountNav` tabs in a centred row (Profile, Orders, Favourites, Settings; the current one grey, `Link variant="tab"`), then the page with its own h1. Profile (`/account`): a round grey initial, the name (or the email) as the h1 and "Member since {September 2026}", then "Favourites" as a `ProductCarousel` (one card per product, up to 12) with "View all", or the Favourites empty state. Orders: "Orders" h1 over the list. Settings (`/account/settings`, `/account/addresses`): `SettingsShell`, "Settings" over a list of sections with icons on the left (Account details, Delivery addresses), the open section's h2 and content on the right.
+
 ## 8. Checkout
 
 Single page laid out like Nike's checkout (owner request 2026-09-30): the title centred, then the steps on the left (Delivery address → Delivery → Payment, divided by hairlines) ending with the one primary button, "Place order". From `lg` the order summary sits on the right, plain (no card): Subtotal, Shipping, Total between hairlines, the VAT it includes, "Arrives in {estimate}" and the lines (photo, name, Qty, style/size, price). Below `lg` a collapsed "Order summary · {total}" (an `AccordionItem` with `headingLevel={2}`) opens the page and holds the same. See `docs/specs/checkout.md`.

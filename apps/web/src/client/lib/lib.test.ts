@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { MAX_QTY_PER_LINE } from "@virzeen/validators";
 import { addToBagMessage, allInBagMessage, messageFor } from "./error-messages";
-import { formatDate, formatDateTime } from "./format";
+import { formatDate, formatDateTime, formatMonthYear } from "./format";
 import imageLoader from "./image-loader";
 import { orderStatus, paymentStatus, timelineLabel } from "./order-labels";
 
@@ -10,6 +10,14 @@ describe("formatDate / formatDateTime", () => {
     // 18:30 UTC on the 27th is 00:15 on the 28th in Kathmandu (UTC+5:45).
     expect(formatDate(new Date("2026-09-27T18:30:00Z"))).toBe("28 Sep 2026");
     expect(formatDateTime("2026-09-28T09:15:00Z")).toBe("28 Sep 2026, 3:00 PM");
+  });
+});
+
+describe("formatMonthYear", () => {
+  it("names the month in full, in Nepal time", () => {
+    // 31 Aug 2026 20:00 UTC is already 1 September in Kathmandu.
+    expect(formatMonthYear(new Date("2026-08-31T20:00:00Z"))).toBe("September 2026");
+    expect(formatMonthYear("2027-01-15T00:00:00Z")).toBe("January 2027");
   });
 });
 

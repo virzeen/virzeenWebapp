@@ -24,6 +24,27 @@ export function formatDate(date: Date | string): string {
   return `${p.day} ${MONTHS[Number(p.month) - 1]} ${p.year}`;
 }
 
+const LONG_MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+] as const;
+
+/** "September 2026" (Asia/Kathmandu): the profile's "Member since". */
+export function formatMonthYear(date: Date | string): string {
+  const p = parts(date);
+  return `${LONG_MONTHS[Number(p.month) - 1]} ${p.year}`;
+}
+
 /** "28 Sep 2026, 3:45 PM" (Asia/Kathmandu) */
 export function formatDateTime(date: Date | string): string {
   const p = parts(date);

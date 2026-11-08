@@ -39,7 +39,7 @@ test("a customer reviews a product once it has been delivered", async ({ page })
   // The delivered order links each line to its review page.
   await page.goto(`/account/orders/${orderNumber}`);
   await page.getByRole("link", { name: "Write a review of Logo Cap" }).click();
-  await expect(page.getByRole("heading", { level: 2, name: "Write a review" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Write a review" })).toBeVisible();
 
   // Stars are required.
   await page.getByRole("button", { name: "Submit review" }).click();

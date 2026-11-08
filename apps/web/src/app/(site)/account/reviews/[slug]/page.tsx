@@ -33,7 +33,7 @@ export default async function ReviewPage({ params }: Props) {
           <div className="w-16 shrink-0">
             <CloudImage src={product.imageUrl} alt={product.imageAlt} sizes="64px" />
           </div>
-          <h2 className="font-display text-h2">{review ? "Edit your review" : "Write a review"}</h2>
+          <h1 className="font-display text-h2">{review ? "Edit your review" : "Write a review"}</h1>
         </div>
       </div>
       {!canReview ? (

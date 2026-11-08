@@ -35,7 +35,7 @@ Menu panel
 
 Account wording
 
-- [x] The account area's heading and page title read "My profile" instead of "Account"; the desktop header's account icon is labelled "My profile" (guests: "Sign in").
+- [x] The account area's page title reads "My profile" instead of "Account"; the desktop header's account icon is labelled "My profile" (guests: "Sign in"). Since 2026-11-08 the account pages carry their own h1 under Nike-style tabs (patterns.md "Account").
 
 ## Out of scope
 

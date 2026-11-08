@@ -14,6 +14,8 @@ const linkVariants = cva(
         // The site header's links, like Nike's (owner 2026-11-08): 16px medium; the current page isn't marked on
         // screen (it still carries aria-current).
         header: "inline-flex min-h-11 items-center text-body font-medium text-ink hover:text-ink-muted",
+        // Tabs of pages, like Nike's member pages (owner 2026-11-08): 16px medium, the current page grey.
+        tab: "inline-flex min-h-11 shrink-0 items-center text-body font-medium text-ink hover:text-ink-muted aria-[current=page]:text-ink-muted",
         // Full-width menu rows (the phone menu): large main links, and small links beside a 20px icon.
         menu: "flex min-h-14 w-full items-center justify-between gap-4 py-2 font-display text-h2 font-medium text-ink hover:text-ink-muted active:text-ink-muted",
         menuSmall:

@@ -9,18 +9,13 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 
+/** Like Nike's member pages (owner 2026-11-08): the tabs in a centred row, then the page with its own h1. */
 export default async function AccountLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUserPage("/account");
   return (
-    <Container className="flex flex-col gap-8 py-12 lg:py-16">
-      <header className="flex flex-col gap-1">
-        <h1 className="font-display text-h1">My profile</h1>
-        <p className="text-body text-ink-muted">{user.email}</p>
-      </header>
-      <div className="grid gap-8 md:grid-cols-[12rem_1fr] md:gap-12">
-        <AccountNav isAdmin={user.role === "ADMIN"} />
-        <div className="min-w-0">{children}</div>
-      </div>
+    <Container className="flex flex-col gap-10 pt-4 pb-16 lg:gap-16 lg:pb-24">
+      <AccountNav isAdmin={user.role === "ADMIN"} />
+      <div className="min-w-0">{children}</div>
     </Container>
   );
 }

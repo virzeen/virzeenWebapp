@@ -49,6 +49,26 @@ export const Header: Story = {
   ),
 };
 
+/** Tabs of pages, like Nike's member pages: the current page (`aria-current`) is grey, the others ink. */
+export const Tab: Story = {
+  render: () => (
+    <nav aria-label="Example" className="flex gap-6">
+      <Link variant="tab" href="/account" aria-current="page">
+        Profile
+      </Link>
+      <Link variant="tab" href="/account/orders">
+        Orders
+      </Link>
+      <Link variant="tab" href="/favourites">
+        Favourites
+      </Link>
+      <Link variant="tab" href="/account/settings">
+        Settings
+      </Link>
+    </nav>
+  ),
+};
+
 /** `header` inside `tone-inverse` (white on a photo, the home page header before scrolling). */
 export const HeaderOnPhoto: Story = {
   render: () => (
