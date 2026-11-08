@@ -36,7 +36,7 @@ export default async function OrderPage({ params }: Props) {
           it&apos;s done.
         </Alert>
       )}
-      <OrderDetail order={order} />
+      <OrderDetail order={order} reviewLinks={order.status === "DELIVERED"} />
     </Stack>
   );
 }

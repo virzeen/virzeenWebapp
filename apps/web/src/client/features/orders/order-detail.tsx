@@ -32,12 +32,19 @@ export type OrderDetailView = {
     imageUrl: string | null;
     unitPricePaisa: number;
     quantity: number;
+    productSlug?: string;
   }[];
   events: { id: string; type: string; to: string; createdAt: Date; reason: string | null }[];
 };
 
+type OrderDetailProps = {
+  order: OrderDetailView;
+  /** The account's delivered orders: each line links to its review page (specs/reviews.md). */
+  reviewLinks?: boolean;
+};
+
 /** Order lines, totals, delivery address and status timeline (account, checkout success, admin). */
-export function OrderDetail({ order }: { order: OrderDetailView }) {
+export function OrderDetail({ order, reviewLinks = false }: OrderDetailProps) {
   const status = orderStatus(order.status);
   const payment = paymentStatus(order.paymentStatus, order.paymentMethod);
   const timeline = order.events.filter((event) => event.type === "ORDER_STATUS");
@@ -79,6 +86,14 @@ export function OrderDetail({ order }: { order: OrderDetailView }) {
                     <p className="text-small text-ink-muted">
                       {item.variantLabel} · Qty {item.quantity}
                     </p>
+                    {reviewLinks && item.productSlug && (
+                      <Link
+                        href={`/account/reviews/${item.productSlug}`}
+                        className="inline-flex min-h-11 items-center text-small"
+                      >
+                        Write a review<span className="sr-only"> of {item.productName}</span>
+                      </Link>
+                    )}
                   </div>
                   <Price paisa={item.unitPricePaisa * item.quantity} className="text-body" />
                 </div>

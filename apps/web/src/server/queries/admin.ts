@@ -1,7 +1,14 @@
 import "server-only";
 import "@/server/bootstrap";
-import { adminReads, catalogReads, orderService, portfolioService, stockInsights } from "@virzeen/core";
-import type { AdminOrderFilters, AdminProductFilters } from "@virzeen/validators";
+import {
+  adminReads,
+  catalogReads,
+  orderService,
+  portfolioService,
+  reviewService,
+  stockInsights,
+} from "@virzeen/core";
+import type { AdminOrderFilters, AdminProductFilters, AdminReviewFilters } from "@virzeen/validators";
 import { cache } from "react";
 import { features } from "@/server/env";
 
@@ -19,6 +26,7 @@ export const listAdminCategories = () => adminReads.listCategories();
 export const listAdminCollections = () => adminReads.listCollections();
 export const listAdminSizeGuides = () => adminReads.listSizeGuides();
 export const listAdminCustomers = (page: number) => adminReads.listCustomers(page);
+export const listAdminReviews = (filters: AdminReviewFilters) => reviewService.listForAdmin(filters);
 export const listAdminPortfolio = () => portfolioService.listForAdmin();
 export const listProductOptions = () => adminReads.listProductOptions();
 export const uploadsEnabled = () => features.cloudinary;

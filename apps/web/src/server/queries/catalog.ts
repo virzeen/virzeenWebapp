@@ -1,6 +1,6 @@
 import "server-only";
 import "@/server/bootstrap";
-import { catalogReads, portfolioService } from "@virzeen/core";
+import { catalogReads, portfolioService, reviewService } from "@virzeen/core";
 import type { ShopFilters } from "@virzeen/validators";
 import { cache } from "react";
 
@@ -21,6 +21,10 @@ export const getCollectionBySlug = cache((slug: string) => catalogReads.getColle
 export const listCollections = (featuredOnly = false) => catalogReads.listCollections({ featuredOnly });
 export const getFilterOptions = (scope: { category?: string | undefined; collection?: string | undefined }) =>
   catalogReads.getFilterOptions(scope);
+
+/** A product's visible reviews: count and average (specs/reviews.md). */
+export const getReviewSummary = cache((productId: string) => reviewService.summary(productId));
+export const listProductReviews = (productId: string) => reviewService.listForProduct(productId);
 
 export const listPortfolioProjects = (limit?: number) => portfolioService.listPublished(limit);
 export const getPortfolioProject = cache((slug: string) => portfolioService.getPublishedBySlug(slug));

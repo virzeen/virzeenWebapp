@@ -105,6 +105,7 @@ model User {
   twoFactors       TwoFactor[]
   addresses        Address[]
   favourites       Favourite[]
+  reviews          Review[]
   cart             Cart?
   orders           Order[]
   auditLogs        AuditLog[]
@@ -209,6 +210,30 @@ model Favourite {
   @@index([productId])
 }
 
+/// A customer's review of a product they received (specs/reviews.md). One per customer and product; editable.
+model Review {
+  id           String    @id @default(cuid(2))
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId    String
+  product      Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  /// 1–5 stars (reviewSchema).
+  rating       Int
+  /// Optional; "" when left blank.
+  title        String    @default("")
+  body         String    @default("")
+  /// What they received, e.g. "Black / M", from their delivered order line.
+  variantLabel String    @default("")
+  /// Set by an admin: a hidden review shows nowhere in the shop and leaves the average.
+  hiddenAt     DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([userId, productId])
+  @@index([productId, hiddenAt, createdAt])
+  @@index([hiddenAt, createdAt])
+}
+
 // ───────────────────────────── Catalog ─────────────────────────────
 
 model Category {
@@ -278,6 +303,7 @@ model Product {
   styles            ProductStyle[]
   features          ProductFeature[]
   favourites        Favourite[]
+  reviews           Review[]
   collections       Collection[]
   portfolioProjects PortfolioProject[]
   createdAt         DateTime           @default(now())
