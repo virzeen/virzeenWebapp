@@ -4,6 +4,7 @@ import { ButtonLink, cn, Container, Link } from "@virzeen/ui";
 import { Heart, UserRound } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { BagButton } from "@/client/features/cart/bag-button";
+import { SearchPanel } from "@/client/features/search/search-panel";
 import { MobileNav } from "./mobile-nav";
 import { NavLinks } from "./nav-links";
 import { useScrolled } from "./use-scrolled";
@@ -18,7 +19,8 @@ type SiteHeaderProps = {
 
 /**
  * Global header, sticky. The wordmark on the left; from md the page links in the middle (Inter Tight, light) and
- * Favourites, My profile and Bag on the right; phones show Favourites, Bag and Menu (the account is in the menu).
+ * Search, Favourites, My profile and Bag on the right; phones show Search, Favourites, Bag and Menu (the account is
+ * in the menu).
  * On the home page it lies over the hero photo (owner, 2026-09-30): no background and white until the page scrolls,
  * then a 70% white, blurred background with black text; no border there, so the photo reaches the top edge (a 1px
  * border would leave a white line above it). Other pages keep the white header with its line.
@@ -48,6 +50,7 @@ export function SiteHeader({ isSignedIn, firstName, categories }: SiteHeaderProp
         </Link>
         <NavLinks />
         <div className="flex items-center justify-end gap-1">
+          <SearchPanel categories={categories} />
           <ButtonLink href="/favourites" variant="ghost" size="icon" shape="pill" aria-label="Favourites">
             <Heart className="size-5" strokeWidth={1.5} aria-hidden />
           </ButtonLink>

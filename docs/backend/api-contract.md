@@ -18,10 +18,10 @@ Changing a shape here requires updating this doc in the same PR. Breaking change
 
 ### Catalog
 
-| Method | Path                     | Auth   | Body / Query                              | Returns            |
-| ------ | ------------------------ | ------ | ----------------------------------------- | ------------------ |
-| GET    | `/api/v1/products`       | public | `category?, collection?, cursor?, limit?` | `ProductSummary[]` |
-| GET    | `/api/v1/products/:slug` | public | —                                         | `ProductDetail`    |
+| Method | Path                     | Auth   | Body / Query                                                                   | Returns            |
+| ------ | ------------------------ | ------ | ------------------------------------------------------------------------------ | ------------------ |
+| GET    | `/api/v1/products`       | public | `q?, category?, collection?, cursor?, limit?` (`q`: search, `specs/search.md`) | `ProductSummary[]` |
+| GET    | `/api/v1/products/:slug` | public | —                                                                              | `ProductDetail`    |
 
 ### Cart
 

@@ -39,7 +39,7 @@ export function ShopListing({ data, title, intro, filters, params, activeCategor
             <Link
               href="/shop"
               variant="subtle"
-              aria-current={!activeCategory && !filters.collection ? "page" : undefined}
+              aria-current={!activeCategory && !filters.collection && !filters.q ? "page" : undefined}
               className={CHIP}
             >
               All
@@ -62,7 +62,17 @@ export function ShopListing({ data, title, intro, filters, params, activeCategor
       <ProductResults initialItems={page.items} initialCursor={page.nextCursor} filters={params}>
         <ShopToolbar sizes={options.sizes} colors={options.colors} />
 
-        {page.items.length === 0 ? (
+        {page.items.length === 0 && filters.q ? (
+          <EmptyState
+            title={`Nothing matches "${filters.q}".`}
+            description="Try a different word or browse all products."
+            action={
+              <ButtonLink href="/shop" shape="pill">
+                Show all products
+              </ButtonLink>
+            }
+          />
+        ) : page.items.length === 0 ? (
           <EmptyState
             title={hasFilters ? "Nothing matches these filters." : "New pieces are on their way."}
             description={

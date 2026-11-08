@@ -9,7 +9,7 @@ PostgreSQL on Railway, accessed only through Prisma (`packages/db`).
 - Timestamps: every model has `createdAt DateTime @default(now())` and `updatedAt DateTime @updatedAt`.
 - Soft delete for catalog data (`archivedAt DateTime?`). Orders are never deleted.
 - Order items and orders store **snapshots** (name, SKU, price, address) so later edits never change history.
-- Every relation declares `onDelete` explicitly. Every foreign key and every field used in `where`/`orderBy` is indexed. Known exception (2026-09-30, tiny table): `SizeGuide.name` is filtered and sorted without an index, as `Category.name` is as a second sort key.
+- Every relation declares `onDelete` explicitly. Every foreign key and every field used in `where`/`orderBy` is indexed. Known exception (2026-09-30, tiny table): `SizeGuide.name` is filtered and sorted without an index, as `Category.name` is as a second sort key. Known exception (2026-11-08, `specs/search.md`): search matches product, category and collection names, variant colours, colours shown and style numbers with `ILIKE '%word%'`, which no B-tree index serves; fine for a catalogue of a few hundred products. Past a few thousand, or if search gets slow, add `pg_trgm` GIN indexes in a migration.
 - Enums for closed sets (statuses, roles, payment methods).
 - No raw SQL except in reviewed migrations. Never `$queryRawUnsafe`.
 

@@ -11,6 +11,12 @@ export const MAX_FAVOURITES = 100;
 /** Longest style name a favourite keeps (favourites.ts `favouriteKeySchema`). */
 export const MAX_FAVOURITE_COLOR = 40;
 
+/** Longest search query (catalog.ts `shopFiltersSchema.q`, `productSearchSchema`; specs/search.md). */
+export const SEARCH_QUERY_MAX = 60;
+
+/** The header search panel asks for live results from this many characters (`productSearchSchema`). */
+export const SEARCH_QUERY_MIN = 2;
+
 /** zod's `cuid2()`: what `idSchema` accepts. */
 const CUID2 = /^[0-9a-z]+$/;
 

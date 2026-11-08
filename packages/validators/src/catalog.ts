@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { idSchema, slugSchema } from "./common";
+import { SEARCH_QUERY_MAX, SEARCH_QUERY_MIN } from "./limits";
 
 export const SHOP_SORTS = ["newest", "price-asc", "price-desc"] as const;
 export type ShopSort = (typeof SHOP_SORTS)[number];
@@ -8,6 +9,8 @@ const optionalFilter = z.string().trim().min(1).max(40).optional().catch(undefin
 
 /** Shop filters come from the URL, so every field falls back instead of throwing. */
 export const shopFiltersSchema = z.object({
+  /** The search query (specs/search.md); not a filter, so "Clear all" keeps it. */
+  q: z.string().trim().min(1).max(SEARCH_QUERY_MAX).optional().catch(undefined),
   category: slugSchema.optional().catch(undefined),
   collection: slugSchema.optional().catch(undefined),
   size: optionalFilter,
@@ -21,6 +24,12 @@ export const shopFiltersSchema = z.object({
   cursor: idSchema.optional().catch(undefined),
 });
 export type ShopFilters = z.output<typeof shopFiltersSchema>;
+
+/** The header search panel's live results (specs/search.md): asked from 2 characters. */
+export const productSearchSchema = z
+  .object({ q: z.string().trim().min(SEARCH_QUERY_MIN).max(SEARCH_QUERY_MAX) })
+  .strict();
+export type ProductSearchInput = z.output<typeof productSearchSchema>;
 
 const SIZE_ORDER = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL", "FREE", "ONE SIZE"];
 

@@ -95,6 +95,16 @@ html:has([data-sticky-header]) {
 }
 
 /*
+ * The header search box (search-panel.tsx, `type="search"`): no browser clear button. Chrome and Safari draw it in
+ * blue, and the brand is black and white only.
+ */
+@utility search-cancel-none {
+  &::-webkit-search-cancel-button {
+    appearance: none;
+  }
+}
+
+/*
  * The home page hero on phones: the 16:9 photo is cropped to a tall frame around the man reading, who sits left of
  * the middle (from md the whole photo shows).
  */

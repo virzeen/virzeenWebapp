@@ -15,11 +15,19 @@ export type ProductCardData = {
   styles: string[];
 };
 
+type ProductCardProps = {
+  product: ProductCardData;
+  priority?: boolean;
+  /** Runs as the link starts navigating (the search panel closes itself); client components only. */
+  onNavigate?: () => void;
+};
+
 /** Product grid card: the whole card is one link (patterns.md §5). */
-export function ProductCard({ product, priority = false }: { product: ProductCardData; priority?: boolean }) {
+export function ProductCard({ product, priority = false, onNavigate }: ProductCardProps) {
   return (
     <Link
       href={`/product/${product.slug}`}
+      onNavigate={onNavigate}
       variant="subtle"
       className="group flex flex-col gap-3 text-ink hover:text-ink"
     >

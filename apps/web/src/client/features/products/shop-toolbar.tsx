@@ -34,7 +34,8 @@ const draftFrom = (params: URLSearchParams): Draft => ({
 });
 
 /** "12 products", or "12+ products" while "Load more" has more to show. */
-function resultLabel(count: number, hasMore: boolean) {
+/** "1 product", "{n} products", "{n}+ products" or "No products" (content-style.md "Shop listing"). */
+export function resultLabel(count: number, hasMore: boolean) {
   if (count === 0) return "No products";
   if (hasMore) return `${count}+ products`;
   return count === 1 ? "1 product" : `${count} products`;

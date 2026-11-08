@@ -9,6 +9,7 @@ import {
   type SizeGuideKind,
 } from "@virzeen/validators";
 import { stylesForShop } from "./product-styles";
+import { searchWhere } from "./search";
 
 // Read models shared by web queries and /api/v1 (docs/backend/api-contract.md "Shapes").
 
@@ -143,7 +144,7 @@ function orderFor(sort: ShopFilters["sort"]): Prisma.ProductOrderByWithRelationI
 }
 
 export const catalogReads = {
-  /** Shop listing with filters and cursor pagination ("Load more"). */
+  /** Shop listing with filters, the search query (specs/search.md) and cursor pagination ("Load more"). */
   async listProducts(filters: ShopFilters, limit = PAGE_SIZE): Promise<ProductPage> {
     const variantFilter: Prisma.ProductVariantWhereInput = {
       isActive: true,
@@ -152,9 +153,11 @@ export const catalogReads = {
       ...(filters.inStock ? { stock: { gt: 0 } } : {}),
     };
     const hasVariantFilter = Boolean(filters.size || filters.color || filters.inStock);
+    const search = filters.q ? searchWhere(filters.q) : null;
     const rows = await db.product.findMany({
       where: {
         ...publishedProductWhere,
+        ...search,
         ...(filters.category ? { category: { slug: filters.category, archivedAt: null } } : {}),
         ...(filters.collection
           ? { collections: { some: { slug: filters.collection, archivedAt: null } } }
