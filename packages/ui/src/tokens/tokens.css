@@ -21,7 +21,8 @@
   --color-success: #2e7d4f;
   --color-warning: #8a5a00;
   --color-danger: #b3261e;
-  --color-focus: #2f6feb;
+  /* Keyboard focus rings: ink, not blue (owner 2026-11-09). */
+  --color-focus: #141414;
 
   /* ── 2. Typography ── (families are loaded with next/font and passed in as variables) */
   --font-*: initial;
@@ -191,9 +192,17 @@
 /*
  * White-on-dark for everything inside (the home page header over the hero photo): the colour tokens are swapped for
  * this element and its children, so text-ink turns white, bg-ink (e.g. the bag count) turns dark with light text,
- * and hover tints stay faint. Focus rings keep --color-focus.
+ * and hover tints stay faint. Focus rings turn white too.
  */
+/*
+ * No focus rings, not even for Tab (owner decision 2026-11-09, design-tokens.md §1 "Focus"): the variant never
+ * matches, so every `focus-visible:` style in the primitives is off, and the base layer removes the browser's own
+ * outline. Text fields still show focus with their ink border (`focus:` classes in Input and Select).
+ */
+@custom-variant focus-visible (&:focus-visible:not(*));
+
 @utility tone-inverse {
+  --color-focus: #ffffff;
   --color-ink: #ffffff;
   --color-ink-muted: rgb(255 255 255 / 0.72);
   --color-canvas: #141414;

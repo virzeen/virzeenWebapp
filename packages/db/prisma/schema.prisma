@@ -53,6 +53,11 @@ enum ShippingZone {
   OUTSIDE_VALLEY
 }
 
+enum DiscountKind {
+  PERCENT
+  FIXED
+}
+
 enum OrderEventType {
   ORDER_STATUS
   PAYMENT_STATUS
@@ -461,7 +466,14 @@ model Order {
   paymentMethod   PaymentMethod
   subtotalPaisa   Int
   shippingPaisa   Int
+  /// Taken off the subtotal by the discount code (specs/discount-codes.md); totalPaisa already has it off.
+  discountPaisa   Int           @default(0)
   totalPaisa      Int
+  /// The discount code used, if any. Codes are never deleted, so the link stays.
+  discountCodeId  String?
+  discount        DiscountCode? @relation(fields: [discountCodeId], references: [id], onDelete: Restrict)
+  /// Snapshot of the code's text as applied, e.g. "WELCOME10".
+  discountCode    String?
   shippingZone    ShippingZone
   /// Snapshot of the delivery address at purchase time.
   addressSnapshot Json
@@ -486,6 +498,33 @@ model Order {
   @@index([status, createdAt])
   @@index([paymentStatus])
   @@index([reservedUntil])
+  @@index([createdAt])
+  @@index([discountCodeId, userId])
+}
+
+/// A code the owners make in /admin/discounts (specs/discount-codes.md, payment-policy.md §2).
+model DiscountCode {
+  id               String       @id @default(cuid(2))
+  /// Upper-case letters, numbers and hyphens (discountCodeSchema); customers may type any case. Fixed once made.
+  code             String       @unique
+  kind             DiscountKind
+  /// PERCENT codes: 1–100.
+  percentOff       Int?
+  /// FIXED codes: whole rupees.
+  amountOffPaisa   Int?
+  /// The bag subtotal (before the discount) must reach this.
+  minSubtotalPaisa Int?
+  /// Works until this moment: the end of the chosen day in Nepal time.
+  endsAt           DateTime?
+  maxUses          Int?
+  /// Orders holding the code that aren't cancelled. Claimed and released with conditional updates.
+  usedCount        Int          @default(0)
+  oncePerCustomer  Boolean      @default(false)
+  isActive         Boolean      @default(true)
+  orders           Order[]
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
   @@index([createdAt])
 }
 

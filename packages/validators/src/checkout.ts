@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { idSchema, orderNumberSchema } from "./common";
+import { discountCodeInputSchema } from "./discounts";
 
 export const PAYMENT_METHODS = ["COD", "ESEWA", "KHALTI"] as const;
 export type PaymentMethodInput = (typeof PAYMENT_METHODS)[number];
@@ -7,6 +8,14 @@ export type PaymentMethodInput = (typeof PAYMENT_METHODS)[number];
 export const checkoutSchema = z.strictObject({
   addressId: idSchema,
   paymentMethod: z.enum(PAYMENT_METHODS, { error: "Choose a payment method" }),
+  /** The code the customer applied (specs/discount-codes.md); the server checks it again before saving the order. */
+  discountCode: discountCodeInputSchema.optional(),
+});
+
+/** The checkout summary's totals for the chosen address and, optionally, a discount code. */
+export const checkoutPreviewSchema = z.strictObject({
+  addressId: idSchema.nullable(),
+  discountCode: discountCodeInputSchema.optional(),
 });
 export type CheckoutInput = z.infer<typeof checkoutSchema>;
 

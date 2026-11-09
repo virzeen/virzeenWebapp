@@ -409,6 +409,32 @@ test("admin sets up two-factor, builds a product on its page and it appears in t
   ).toBeVisible();
   await page.getByRole("button", { name: "OK" }).click();
 
+  // Discounts (specs/discount-codes.md): add a code, a second with the same code is refused, switch it off.
+  await page.getByRole("navigation", { name: "Admin" }).getByRole("link", { name: "Discounts" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Discounts" })).toBeVisible();
+  const addCode = page.getByRole("form", { name: "Add a discount code" });
+  await addCode.getByLabel(/^Code/).fill("e2e-admin15");
+  await addCode.getByLabel(/^Percentage off/).fill("15");
+  await addCode.getByLabel(/^Minimum order/).fill("1,000");
+  await addCode.getByRole("button", { name: "Add code" }).click();
+  await expect(page.getByText("Discount code saved")).toBeVisible();
+  const codeRow = page.getByRole("listitem").filter({ hasText: "E2E-ADMIN15" });
+  await expect(codeRow).toContainText("15% off");
+  await expect(codeRow).toContainText("Min Rs 1,000");
+  await expect(codeRow).toContainText("0 used");
+  await expect(codeRow.getByText("Active", { exact: true })).toBeVisible();
+  await addCode.getByLabel(/^Code/).fill("E2E-Admin15");
+  await addCode.getByLabel(/^Percentage off/).fill("10");
+  await addCode.getByRole("button", { name: "Add code" }).click();
+  await expect(addCode.getByText("This code is already used")).toBeVisible();
+  await codeRow.getByRole("button", { name: "Edit E2E-ADMIN15" }).click();
+  const editCode = page.getByRole("form", { name: "Edit E2E-ADMIN15" });
+  await expect(editCode.getByLabel(/^Code/)).toHaveAttribute("readonly", "");
+  await editCode.getByRole("switch", { name: /^Active/ }).click();
+  await editCode.getByRole("button", { name: "Save" }).click();
+  await expect(codeRow.getByText("Off", { exact: true })).toBeVisible();
+  await expect(codeRow.getByRole("button", { name: "Edit E2E-ADMIN15" })).toBeFocused();
+
   // A mistyped admin address stays inside the admin frame, with a way back.
   await page.goto("/admin/no-such-page");
   await expect(

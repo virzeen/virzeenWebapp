@@ -5,7 +5,7 @@ This is the most important doc in the repo. Mistakes here lose real money or wro
 
 ## 1. Principles
 
-1. The server decides the amount. It comes from `order.totalPaisa`, computed by `pricing/calculate-totals.ts` at order creation.
+1. The server decides the amount. It comes from `order.totalPaisa`, computed by `pricing/calculate-totals.ts` at order creation (after any discount code, §2).
 2. The provider's redirect is a hint, never proof. Proof is a server-to-server verification call.
 3. Verified amount must equal `order.totalPaisa` exactly, else → `PAYMENT_AMOUNT_MISMATCH`, order stays unpaid, alert the owner.
 4. Every state change is idempotent and goes through `orders/order-state.ts`.
@@ -16,6 +16,7 @@ This is the most important doc in the repo. Mistakes here lose real money or wro
 - Product prices are **VAT-inclusive** (13%) as displayed. The invoice shows the VAT portion: `vat = round(total × 13 / 113)`.
 - Shipping (owner decision 2026-09-28): each product has a shipping price (`Product.shippingPaisa`, set in admin) that is **included in every variant's `pricePaisa`**. Customers see one price and "Free shipping"; checkout adds nothing (`pricing/shipping-rates.ts` zone rates are 0). Zones still set the delivery-time promise.
 - If a price or stock changed between cart and checkout, checkout fails with `PRICE_CHANGED`/`OUT_OF_STOCK` and the cart is refreshed. Never silently charge a different amount.
+- Discount codes (owner approval 2026-11-09, `specs/discount-codes.md`): at most one code per order, checked on the server against the database when it's applied and again inside the order transaction. A percentage takes `floor(subtotal × percent / 100)` rounded down to whole rupees; a fixed code takes its amount; the discount is never more than the subtotal. `total = subtotal − discount + shipping`, so it can't go below Rs 0, and VAT is worked out from that total. The order stores the code and `discountPaisa`. If the code stopped working before the order is saved, checkout fails with the reason and nothing is ordered. A cancelled order (any reason, refusal at the door included) gives its use back in the same transaction; a returned order doesn't. An order with a Rs 0 total can only use cash on delivery.
 
 ## 3. Order and payment state machine
 
@@ -54,7 +55,7 @@ Flow:
 
 1. Checkout creates the order (`PENDING`) and a `Payment` row with `providerRef = transaction_uuid` (format `VZ-<orderNumber>-<attempt>`, alphanumeric and hyphens only).
 2. Server builds the form fields and signs `total_amount,transaction_uuid,product_code` with HMAC-SHA256 (secret `ESEWA_SECRET_KEY`), base64-encoded. The client only auto-submits the prepared form.
-3. `total_amount` is rupees with two decimals (`(totalPaisa / 100).toFixed(2)`). Conversion happens only in `payments/esewa.ts`.
+3. `total_amount` is rupees with two decimals (`(totalPaisa / 100).toFixed(2)`). `amount` is the subtotal minus any discount and `product_delivery_charge` the shipping, so they add up to `total_amount`. Conversion happens only in `payments/esewa.ts`.
 4. eSewa redirects to `/api/payments/esewa/success?data=<base64 JSON>` or `/failure`.
 5. Success handler: decode `data` → recompute the signature over `signed_field_names` and compare with a timing-safe comparison → reject if invalid.
 6. Then call the eSewa **status check API** with `product_code`, `total_amount`, `transaction_uuid`. Only `status: "COMPLETE"` with matching amount → mark PAID.
@@ -64,7 +65,7 @@ Flow:
 
 Flow:
 
-1. Checkout creates the order and calls `POST /api/v2/epayment/initiate/` server-side with `amount` in **paisa**, `purchase_order_id = orderNumber`, `return_url`, `website_url`, customer info. Header `Authorization: Key <KHALTI_SECRET_KEY>`.
+1. Checkout creates the order and calls `POST /api/v2/epayment/initiate/` server-side with `amount` in **paisa**, `purchase_order_id = orderNumber`, `return_url`, `website_url`, customer info, and an `amount_breakdown` (Items = subtotal minus any discount, Shipping) that adds up to `amount`. Header `Authorization: Key <KHALTI_SECRET_KEY>`.
 2. Store the returned `pidx` as `providerRef`; redirect the customer to `payment_url`. The link expires (60 min by default).
 3. Khalti redirects to `/api/payments/khalti/callback?pidx=...&status=...`. Treat every query param as untrusted.
 4. Call `POST /api/v2/epayment/lookup/` with the `pidx`. Only `status: "Completed"` with `total_amount === order.totalPaisa` → PAID.
@@ -93,7 +94,7 @@ Flow:
 
 ## 10. Refunds
 
-- Returns (owner decision 2026-09-28): **7 days from delivery, no fee** (free pickup, full price refunded; shipping is part of the price). Items unworn, tags on, original packaging; free size exchange if in stock.
+- Returns (owner decision 2026-09-28): **7 days from delivery, no fee** (free pickup, full price refunded; shipping is part of the price). With a discount code, the refund is what the customer paid (`totalPaisa`), not the price before the discount. Items unworn, tags on, original packaging; free size exchange if in stock.
 - Phase 1: refunds are paid manually by the owner (COD orders: bank transfer or wallet; online payments later: the eSewa/Khalti merchant dashboards), then recorded in admin (`REFUNDED` + reason). No automated refund API calls in phase 1.
 - Customer-facing refund/return rules live on the `/returns` page; keep it consistent with this section.
 

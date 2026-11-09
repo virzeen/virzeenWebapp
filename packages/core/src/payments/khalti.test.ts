@@ -6,6 +6,7 @@ const order = {
   orderNumber: "VZ-260928-0001",
   subtotalPaisa: 450_000,
   shippingPaisa: 10_000,
+  discountPaisa: 0,
   totalPaisa: 460_000,
   customer: { name: "Asha", email: "asha@example.com", phone: "9812345678" },
 };
@@ -37,6 +38,35 @@ describe("khaltiProvider.initiate", () => {
     await expect(khaltiProvider.initiate({ ...order, totalPaisa: 999 }, 1)).rejects.toMatchObject({
       code: "PAYMENT_FAILED",
     });
+  });
+
+  it("sends the discounted total, with an items line after the discount so the breakdown adds up", async () => {
+    let sent: Record<string, unknown> = {};
+    mockProvider(async (_url, init) => {
+      sent = JSON.parse(String(init?.body)) as Record<string, unknown>;
+      return json({ pidx: "p1", payment_url: "https://test-pay.khalti.com/?pidx=p1" });
+    });
+    await khaltiProvider.initiate({ ...order, discountPaisa: 45_000, totalPaisa: 415_000 }, 1);
+    expect(sent).toMatchObject({
+      amount: 415_000,
+      amount_breakdown: [
+        { label: "Items", amount: 405_000 },
+        { label: "Shipping", amount: 10_000 },
+      ],
+    });
+  });
+
+  it("refuses amounts that don't add up before calling Khalti", async () => {
+    let called = false;
+    mockProvider(() => {
+      called = true;
+      return json({});
+    });
+    // The total ignores the discount: Khalti would show one amount and charge another.
+    await expect(khaltiProvider.initiate({ ...order, discountPaisa: 45_000 }, 1)).rejects.toMatchObject({
+      code: "INTERNAL",
+    });
+    expect(called).toBe(false);
   });
 });
 

@@ -52,6 +52,7 @@ describe("buildEsewaForm", () => {
       transactionUuid: "VZ-260928-0001-1",
       subtotalPaisa: 450_000,
       shippingPaisa: 10_000,
+      discountPaisa: 0,
       totalPaisa: 460_000,
       successUrl: "https://virzeen.test/api/payments/esewa/success",
       failureUrl: "https://virzeen.test/api/payments/esewa/failure",
@@ -72,11 +73,45 @@ describe("buildEsewaForm", () => {
         transactionUuid: "x",
         subtotalPaisa: 1,
         shippingPaisa: 1,
+        discountPaisa: 0,
         totalPaisa: 3,
         successUrl: "s",
         failureUrl: "f",
       }),
     ).toThrow();
+  });
+
+  it("sends the items after a discount code, so amount + delivery = total_amount (and signs that total)", () => {
+    const form = buildEsewaForm({
+      transactionUuid: "VZ-260928-0002-1",
+      subtotalPaisa: 450_000,
+      shippingPaisa: 10_000,
+      discountPaisa: 45_000,
+      totalPaisa: 415_000,
+      successUrl: "https://virzeen.test/api/payments/esewa/success",
+      failureUrl: "https://virzeen.test/api/payments/esewa/failure",
+    });
+    expect(form.fields).toMatchObject({
+      amount: "4050.00",
+      product_delivery_charge: "100.00",
+      total_amount: "4150.00",
+    });
+    const message = `total_amount=4150.00,transaction_uuid=VZ-260928-0002-1,product_code=${TEST_ESEWA.productCode}`;
+    expect(form.fields.signature).toBe(signEsewa(message, TEST_ESEWA.secretKey));
+  });
+
+  it("refuses a total that ignores the discount", () => {
+    expect(() =>
+      buildEsewaForm({
+        transactionUuid: "x",
+        subtotalPaisa: 450_000,
+        shippingPaisa: 10_000,
+        discountPaisa: 45_000,
+        totalPaisa: 460_000,
+        successUrl: "s",
+        failureUrl: "f",
+      }),
+    ).toThrow("eSewa amounts don't add up.");
   });
 });
 

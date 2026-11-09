@@ -7,7 +7,7 @@ import { useFormFieldControl } from "./form-field";
 // Focus thickens the border to 2px in ink: an outline just inside the 1px border, so no blue ring, no layout
 // shift, and it stays visible in Windows contrast themes. `outline-solid` overrides the base `:focus-visible` reset.
 const fieldVariants = cva(
-  "w-full rounded-sm border bg-canvas px-3 font-text text-body text-ink transition-colors duration-150 ease-standard placeholder:text-ink-muted focus-visible:border-ink focus-visible:outline-1 focus-visible:-outline-offset-2 focus-visible:outline-ink focus-visible:outline-solid disabled:cursor-not-allowed disabled:bg-surface disabled:opacity-60",
+  "w-full rounded-sm border bg-canvas px-3 font-text text-body text-ink transition-colors duration-150 ease-standard placeholder:text-ink-muted focus:border-ink focus:outline-1 focus:-outline-offset-2 focus:outline-ink focus:outline-solid disabled:cursor-not-allowed disabled:bg-surface disabled:opacity-60",
   {
     variants: {
       variant: {

@@ -36,16 +36,19 @@ export function buildEsewaForm(input: {
   transactionUuid: string;
   subtotalPaisa: number;
   shippingPaisa: number;
+  /** A discount code's money off: eSewa gets the items after it, so amount + delivery still equals the total. */
+  discountPaisa: number;
   totalPaisa: number;
   successUrl: string;
   failureUrl: string;
 }) {
   const { esewa } = getCoreConfig();
-  if (input.subtotalPaisa + input.shippingPaisa !== input.totalPaisa) {
+  const itemsPaisa = input.subtotalPaisa - input.discountPaisa;
+  if (input.discountPaisa < 0 || itemsPaisa < 0 || itemsPaisa + input.shippingPaisa !== input.totalPaisa) {
     throw new AppError("INTERNAL", "eSewa amounts don't add up.");
   }
   const fields: Record<string, string> = {
-    amount: toEsewaAmount(input.subtotalPaisa),
+    amount: toEsewaAmount(itemsPaisa),
     tax_amount: "0",
     product_service_charge: "0",
     product_delivery_charge: toEsewaAmount(input.shippingPaisa),
@@ -124,6 +127,7 @@ export const esewaProvider: PaymentProvider = {
       transactionUuid,
       subtotalPaisa: order.subtotalPaisa,
       shippingPaisa: order.shippingPaisa,
+      discountPaisa: order.discountPaisa,
       totalPaisa: order.totalPaisa,
       successUrl: `${siteUrl}/api/payments/esewa/success`,
       failureUrl: `${siteUrl}/api/payments/esewa/failure?ref=${encodeURIComponent(transactionUuid)}`,

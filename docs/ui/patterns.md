@@ -97,6 +97,7 @@ Single page laid out like Nike's checkout (owner request 2026-09-30): the title 
 - "Place order" is disabled until an address and a method are chosen, with the reason under it.
 - A form error shows just above "Place order", then scrolls into view and takes focus.
 - Address section focus: "Add a new address" → the section heading; Cancel → "Add a new address"; after saving → the new address.
+- Discount code (`specs/discount-codes.md`): "Add a discount code" at the end of the Payment step opens the field (focused) and Apply; the server returns the totals or the reason under the field. Applied → "{CODE} applied" with Remove (focused); Remove → back to the link. The summary adds "Discount ({CODE}) −Rs X" between Shipping and Total; "Place order" waits while a code is being checked. If the code stopped working by the time the order is placed, it comes off and the reason shows in the form error.
 
 ## 9. Portfolio pages
 

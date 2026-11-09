@@ -192,22 +192,33 @@ Nike-style layout (`specs/product-page.md`, `specs/product-page-v2.md`). The sam
 
 ## Checkout
 
-| Situation                                                      | Text                                                                      |
-| -------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| Delivery section before an address is chosen                   | Choose an address to see the delivery time.                               |
-| Delivery section with an address                               | Free shipping. Arrives in {estimate}.                                     |
-| Checkout step headings                                         | Delivery address · Delivery · Payment                                     |
-| Shipping line before an address is chosen                      | — (unless shipping is free)                                               |
-| Under Place order: no saved address (the address form is open) | Add a delivery address to continue.                                       |
-| Under Place order: adding a new address while others are saved | Save the new address to continue.                                         |
-| Under Place order: saved addresses, none chosen                | Choose a delivery address to continue.                                    |
-| Under Place order: 2+ payment methods, none chosen             | Choose a payment method to continue.                                      |
-| The chosen address was deleted elsewhere (`NOT_FOUND`)         | That address is no longer saved. Choose another address or add a new one. |
-| Cash on delivery option                                        | Cash on delivery — Pay the courier when your order arrives                |
-| Cash on delivery over its limit                                | Cash on delivery is available for orders up to {Rs X}.                    |
-| Collapsed summary at the top (below `lg`)                      | Order summary · {total}                                                   |
-| Summary heading (from `lg`)                                    | Order summary                                                             |
-| Confirmation page tab title                                    | Order confirmed · Order cancelled · Confirming your payment               |
+| Situation                                                          | Text                                                                      |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------- |
+| Delivery section before an address is chosen                       | Choose an address to see the delivery time.                               |
+| Delivery section with an address                                   | Free shipping. Arrives in {estimate}.                                     |
+| Checkout step headings                                             | Delivery address · Delivery · Payment                                     |
+| Shipping line before an address is chosen                          | — (unless shipping is free)                                               |
+| Under Place order: no saved address (the address form is open)     | Add a delivery address to continue.                                       |
+| Under Place order: adding a new address while others are saved     | Save the new address to continue.                                         |
+| Under Place order: saved addresses, none chosen                    | Choose a delivery address to continue.                                    |
+| Under Place order: 2+ payment methods, none chosen                 | Choose a payment method to continue.                                      |
+| The chosen address was deleted elsewhere (`NOT_FOUND`)             | That address is no longer saved. Choose another address or add a new one. |
+| Cash on delivery option                                            | Cash on delivery — Pay the courier when your order arrives                |
+| Cash on delivery over its limit                                    | Cash on delivery is available for orders up to {Rs X}.                    |
+| Collapsed summary at the top (below `lg`)                          | Order summary · {total}                                                   |
+| Summary heading (from `lg`)                                        | Order summary                                                             |
+| Confirmation page tab title                                        | Order confirmed · Order cancelled · Confirming your payment               |
+| Discount code link in the Payment step (`specs/discount-codes.md`) | Add a discount code                                                       |
+| Discount code field · button                                       | Discount code · Apply                                                     |
+| A code applied                                                     | {CODE} applied · Remove (screen readers: "Remove discount code {CODE}")   |
+| Summary, order page and order email line                           | Discount ({CODE}) · −{Rs X}                                               |
+| Code field empty                                                   | Enter a discount code                                                     |
+| Code unknown, switched off or impossible                           | This code isn't valid.                                                    |
+| Code past its end date                                             | This code has ended.                                                      |
+| Code out of uses                                                   | This code has been fully used.                                            |
+| Bag under the code's minimum                                       | Spend {Rs X} or more to use this code.                                    |
+| Once-per-customer code already used on an order                    | You've already used this code.                                            |
+| Rs 0 total with an online payment method                           | Choose cash on delivery for this order                                    |
 
 ## Addresses (account and checkout)
 
@@ -391,6 +402,22 @@ The editor is the product page with a pencil on every text (`specs/product-edito
 | What customers see (h2)               | The Size guide popup on the product page, as you type. · Size guide · Your guide's name (until one is typed) · Your size chart picture shows here. (Accessories without a picture)                                                                                                                                                                                                                                                                       |
 | Save                                  | [Save size guide] → toast "Size guide saved", then the edit page                                                                                                                                                                                                                                                                                                                                                                                         |
 | Name taken (on save)                  | There's already a size guide with this name                                                                                                                                                                                                                                                                                                                                                                                                              |
+
+### Discounts (`/admin/discounts`, `specs/discount-codes.md`)
+
+| Situation       | Text                                                                                                                                                                                                                                      |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Page            | Discounts · Codes customers type at checkout. A cancelled order gives its use back.                                                                                                                                                       |
+| Form heading    | Add a discount code · Edit {CODE}                                                                                                                                                                                                         |
+| Code field      | Code · new: "Letters, numbers and hyphens, e.g. WELCOME10. Customers can type it in any case." · edit (read-only): "A code can't be changed once it's made."                                                                              |
+| Type            | Type · Percentage / Fixed amount                                                                                                                                                                                                          |
+| Amount fields   | Percentage off · Amount off (Rs) · Minimum order (Rs) "Optional" · editing (type and amount read-only): "Fixed once the code is made. To change it, switch this code off and make a new one."                                             |
+| Limits          | Ends on "Optional. The code works until the end of that day." · Total uses "Optional. Leave blank for no limit."                                                                                                                          |
+| Switches        | Once per customer "Each customer can use it on one order." · Active "Switch it off to stop the code working."                                                                                                                             |
+| Buttons · toast | Add code / Save · Cancel · "Discount code saved"                                                                                                                                                                                          |
+| Errors          | Use 3 to 24 letters, numbers or hyphens · This code is already used · Enter a percentage from 1 to 100 · Enter an amount in rupees, e.g. 500 · Enter whole rupees · Enter at least Rs 1 · Choose a date · Enter a whole number, 1 or more |
+| List row        | {CODE} · 10% off / Rs 500 off · badge Active / Off / Ended / Used up · Min Rs 2,000 · Ends 31 Dec 2026 · Once per customer · 3 used / 3 of 100 used · [Edit]                                                                              |
+| Empty           | No discount codes yet. · Make one for a launch, a campaign or a first order.                                                                                                                                                              |
 
 ### Settings (`/admin/settings`)
 

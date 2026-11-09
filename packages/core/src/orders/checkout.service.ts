@@ -4,11 +4,12 @@ import { cartService } from "../cart/cart.service";
 import { imageForColor } from "../catalog/style-images";
 import { cartLineSelect, isLineAvailable, variantLabelOf } from "../cart/cart-summary";
 import { getCoreConfig } from "../config";
+import { checkDiscount, claimDiscount } from "../discounts/discount.service";
 import { AppError } from "../errors";
 import { reserveStock } from "../inventory/stock";
 import { notifications } from "../notifications/notifications";
 import { COD_MAX_TOTAL_PAISA, isCodAvailable } from "../pricing/cod-rules";
-import { calculateTotals, type Totals } from "../pricing/calculate-totals";
+import { calculateSubtotal, calculateTotals, type Totals } from "../pricing/calculate-totals";
 import { DELIVERY_ESTIMATES, shippingZoneFor } from "../pricing/shipping-rates";
 import { providerFor } from "../payments/payment.service";
 import type { CheckoutNext } from "../payments/provider";
@@ -26,12 +27,18 @@ export type PlaceOrderInput = {
   cartId: string;
   addressId: string;
   paymentMethod: PaymentMethod;
+  /** Upper-case, as checkoutSchema normalises it. Checked again and claimed inside the order transaction. */
+  discountCode?: string;
   now?: Date;
 };
 
 export type PlaceOrderResult = { orderNumber: string; next: CheckoutNext };
 
 export type CheckoutPreview = Totals & {
+  /** The code whose discount is in these totals, or null. */
+  discountCode: string | null;
+  /** The total without shipping: what the summary shows before an address is chosen. */
+  totalBeforeShippingPaisa: number;
   zone: "KATHMANDU_VALLEY" | "OUTSIDE_VALLEY";
   deliveryEstimate: string;
   isCodAvailable: boolean;
@@ -57,23 +64,36 @@ async function loadAddress(userId: string, addressId: string) {
 }
 
 export const checkoutService = {
-  /** Server-calculated totals for the checkout summary (shipping depends on the chosen address). */
+  /**
+   * Server-calculated totals for the checkout summary (shipping depends on the chosen address). With a discount
+   * code, a code that can't be used throws its reason as a field error and nothing changes.
+   */
   async preview(input: {
     userId: string;
     cartId: string;
     addressId: string | null;
+    discountCode?: string;
+    now?: Date;
   }): Promise<CheckoutPreview> {
     const summary = await cartService.getSummary({ userId: input.userId });
     const district = input.addressId
       ? (await loadAddress(input.userId, input.addressId)).district
       : "Kathmandu";
     const zone = shippingZoneFor(district);
-    const totals = calculateTotals(
-      summary.items.filter((item) => item.isAvailable),
-      zone,
-    );
+    const lines = summary.items.filter((item) => item.isAvailable);
+    const discount = input.discountCode
+      ? await checkDiscount(db, {
+          code: input.discountCode,
+          userId: input.userId,
+          subtotalPaisa: calculateSubtotal(lines),
+          now: input.now ?? new Date(),
+        })
+      : null;
+    const totals = calculateTotals(lines, zone, discount);
     return {
       ...totals,
+      discountCode: discount?.code ?? null,
+      totalBeforeShippingPaisa: totals.totalPaisa - totals.shippingPaisa,
       zone,
       deliveryEstimate: DELIVERY_ESTIMATES[zone],
       isCodAvailable: isCodAvailable(totals.totalPaisa),
@@ -117,12 +137,34 @@ export const checkoutService = {
         }
       }
 
+      // Empty the bag first, by the lines read above: a second checkout from the same bag (another tab, a double
+      // submit) then finds them gone and stops with CART_EMPTY before it can take stock or a discount code's use.
+      // A line added meanwhile stays in the bag.
+      const cleared = await tx.cartItem.deleteMany({
+        where: { cartId: input.cartId, id: { in: rows.map((row) => row.id) } },
+      });
+      if (cleared.count !== rows.length) throw new AppError("CART_EMPTY", "Your bag is empty.");
+
       const zone = shippingZoneFor(address.district);
       const lines = rows.map((row) => ({ unitPricePaisa: row.variant.pricePaisa, quantity: row.quantity }));
-      const totals = calculateTotals(lines, zone);
+      // The code is checked again here and one use is taken; if it stopped working, nothing is ordered.
+      const discount = input.discountCode
+        ? await claimDiscount(tx, {
+            code: input.discountCode,
+            userId: input.userId,
+            subtotalPaisa: calculateSubtotal(lines),
+            now,
+          })
+        : null;
+      const totals = calculateTotals(lines, zone, discount);
       if (input.paymentMethod === "COD" && !isCodAvailable(totals.totalPaisa)) {
         throw new AppError("VALIDATION_FAILED", "Cash on delivery isn't available for this order total.", {
           fields: { paymentMethod: "Choose eSewa or Khalti for this order" },
+        });
+      }
+      if (input.paymentMethod !== "COD" && totals.totalPaisa === 0) {
+        throw new AppError("VALIDATION_FAILED", "Choose cash on delivery for this order.", {
+          fields: { paymentMethod: "Choose cash on delivery for this order" },
         });
       }
 
@@ -141,7 +183,10 @@ export const checkoutService = {
           paymentMethod: input.paymentMethod,
           subtotalPaisa: totals.subtotalPaisa,
           shippingPaisa: totals.shippingPaisa,
+          discountPaisa: totals.discountPaisa,
           totalPaisa: totals.totalPaisa,
+          discountCodeId: discount?.id ?? null,
+          discountCode: discount?.code ?? null,
           shippingZone: zone,
           addressSnapshot: address as Prisma.InputJsonValue,
           reservedUntil: isOnline ? new Date(now.getTime() + RESERVATION_MINUTES * 60_000) : null,
@@ -169,10 +214,6 @@ export const checkoutService = {
         },
         select: { id: true },
       });
-      // Empty the bag. If another checkout already emptied it, this one must not create a second order.
-      const cleared = await tx.cartItem.deleteMany({ where: { cartId: input.cartId } });
-      if (cleared.count !== rows.length) throw new AppError("CART_EMPTY", "Your bag is empty.");
-
       const actor = `customer:${input.userId}`;
       if (input.paymentMethod === "COD") {
         const payment = await tx.payment.create({
@@ -203,7 +244,11 @@ export const checkoutService = {
       return { orderId: order.id, orderNumber, totals };
     });
 
-    logger.info("order created", { orderNumber: created.orderNumber, method: input.paymentMethod });
+    logger.info("order created", {
+      orderNumber: created.orderNumber,
+      method: input.paymentMethod,
+      ...(created.totals.discountPaisa > 0 ? { discountPaisa: created.totals.discountPaisa } : {}),
+    });
 
     if (input.paymentMethod === "COD") {
       await notifications.orderConfirmed(created.orderId);

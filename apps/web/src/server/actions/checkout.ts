@@ -2,24 +2,30 @@
 
 import "server-only";
 import { AppError, checkoutService } from "@virzeen/core";
-import { checkoutSchema, idSchema } from "@virzeen/validators";
+import { checkoutPreviewSchema, checkoutSchema } from "@virzeen/validators";
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
 import { runAction } from "@/server/actions/result";
 import { ensureCart, requireUser } from "@/server/auth/session";
 import { features } from "@/server/env";
-import { rateLimit } from "@/server/security/rate-limit";
+import { rateLimit, rateLimitDiscountCheck } from "@/server/security/rate-limit";
 
-const previewSchema = z.strictObject({ addressId: idSchema.nullable() });
-
-/** Server-calculated totals for the chosen address (the client never sends a price). */
+/**
+ * Server-calculated totals for the chosen address and, optionally, a discount code (the client never sends a price).
+ * A code that can't be used comes back as a field error for `discountCode`.
+ */
 export async function previewCheckoutAction(input: unknown) {
   return runAction("previewCheckout", async () => {
     const user = await requireUser();
     await rateLimit("account", `user:${user.id}`);
-    const { addressId } = previewSchema.parse(input);
+    const { addressId, discountCode } = checkoutPreviewSchema.parse(input);
+    if (discountCode) await rateLimitDiscountCheck(user.id);
     const { cartId } = await ensureCart();
-    return checkoutService.preview({ userId: user.id, cartId, addressId });
+    return checkoutService.preview({
+      userId: user.id,
+      cartId,
+      addressId,
+      ...(discountCode ? { discountCode } : {}),
+    });
   });
 }
 
@@ -35,6 +41,7 @@ export async function placeOrderAction(input: unknown) {
     const user = await requireUser(); // 1. authenticate
     await rateLimit("checkout", `user:${user.id}`); // 2. rate-limit
     const data = checkoutSchema.parse(input); // 3. validate
+    if (data.discountCode) await rateLimitDiscountCheck(user.id);
     if (!METHOD_ENABLED[data.paymentMethod]()) {
       throw new AppError("VALIDATION_FAILED", "This payment method isn't available right now.", {
         fields: { paymentMethod: "Choose another payment method" },
@@ -48,6 +55,7 @@ export async function placeOrderAction(input: unknown) {
       cartId,
       addressId: data.addressId,
       paymentMethod: data.paymentMethod,
+      ...(data.discountCode ? { discountCode: data.discountCode } : {}),
     });
     revalidatePath("/", "layout");
     return result;

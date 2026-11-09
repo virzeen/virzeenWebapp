@@ -19,6 +19,9 @@ export type OrderEmailData = {
   items: OrderEmailItem[];
   subtotalPaisa: number;
   shippingPaisa: number;
+  /** Discount code money off (0 without one) and the code, e.g. "WELCOME10". */
+  discountPaisa: number;
+  discountCode: string | null;
   totalPaisa: number;
   vatPaisa: number;
   address: {
@@ -66,6 +69,18 @@ function OrderSummary({ order }: { order: OrderEmailData }) {
           </Text>
         </Column>
       </Row>
+      {order.discountPaisa > 0 && (
+        <Row>
+          <Column>
+            <Text className="vz-muted m-0 text-body text-ink-muted">
+              Discount{order.discountCode ? ` (${order.discountCode})` : ""}
+            </Text>
+          </Column>
+          <Column className="text-right whitespace-nowrap">
+            <Text className="m-0 text-body">−{formatPaisa(order.discountPaisa)}</Text>
+          </Column>
+        </Row>
+      )}
       <Row>
         <Column>
           <Text className="m-0 text-h2">Total</Text>

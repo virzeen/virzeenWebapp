@@ -19,13 +19,18 @@ import type { AddressView } from "@/client/features/account/address-book";
 import { useCart } from "@/client/features/cart/cart-provider";
 import { messageFor } from "@/client/lib/error-messages";
 import { placeOrderAction, previewCheckoutAction } from "@/server/actions/checkout";
+import { DiscountCodeField } from "./discount-code-field";
 import { OrderSummaryLines, OrderSummaryTotals } from "./order-summary-lines";
 import { submitProviderForm } from "./submit-provider-form";
 
 type Totals = {
   subtotalPaisa: number;
   shippingPaisa: number;
+  discountPaisa: number;
+  /** The code whose discount is in these totals (specs/discount-codes.md), or null. */
+  discountCode: string | null;
   totalPaisa: number;
+  totalBeforeShippingPaisa: number;
   vatPaisa: number;
   deliveryEstimate: string;
   isCodAvailable: boolean;
@@ -113,8 +118,11 @@ export function CheckoutForm({
   const [method, setMethod] = useState<Method | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [isRefreshing, startRefresh] = useTransition();
+  const [isApplying, setApplying] = useState(false);
   const [isPlacing, startPlacing] = useTransition();
   const [redirecting, setRedirecting] = useState(false);
+  // The applied code is whatever the server last put in the totals.
+  const discountCode = totals.discountCode;
   // A form error shows just above "Place order", at the end of the steps.
   const errorRef = useRef<HTMLDivElement>(null);
   const focusTarget = useRef<FocusTarget | null>(null);
@@ -171,19 +179,60 @@ export function CheckoutForm({
     router.refresh();
   }
 
+  /** Totals without a discount code, after the server said the applied one no longer works. */
+  async function refreshWithoutCode(id: string | null) {
+    const result = await previewCheckoutAction({ addressId: id });
+    if (result.ok) setTotals(result.data);
+  }
+
   function chooseAddress(id: string) {
     setAddressId(id);
     setFormError(null);
     startRefresh(async () => {
-      const result = await previewCheckoutAction({ addressId: id });
+      const result = await previewCheckoutAction({
+        addressId: id,
+        ...(discountCode ? { discountCode } : {}),
+      });
       if (result.ok) {
         setTotals(result.data);
       } else if (result.error.code === "NOT_FOUND") {
         dropDeletedAddress();
         toast.error(ADDRESS_GONE);
+      } else if (result.error.fields?.discountCode) {
+        toast.error(result.error.fields.discountCode);
+        await refreshWithoutCode(id);
       } else {
         toast.error(messageFor(result.error));
       }
+    });
+  }
+
+  /** Resolves to the reason the code can't be used (shown under the field), or null once it's in the totals. */
+  async function applyDiscount(code: string): Promise<string | null> {
+    setFormError(null);
+    setApplying(true);
+    try {
+      const result = await previewCheckoutAction({ addressId, discountCode: code });
+      if (result.ok) {
+        setTotals(result.data);
+        return null;
+      }
+      if (result.error.code === "NOT_FOUND") {
+        dropDeletedAddress();
+        return ADDRESS_GONE;
+      }
+      return result.error.fields?.discountCode ?? messageFor(result.error);
+    } finally {
+      setApplying(false);
+    }
+  }
+
+  function removeDiscount() {
+    setFormError(null);
+    startRefresh(async () => {
+      const result = await previewCheckoutAction({ addressId });
+      if (result.ok) setTotals(result.data);
+      else toast.error(messageFor(result.error));
     });
   }
 
@@ -191,13 +240,23 @@ export function CheckoutForm({
     if (!addressId || !selected) return;
     setFormError(null);
     startPlacing(async () => {
-      const result = await placeOrderAction({ addressId, paymentMethod: selected.value });
+      const result = await placeOrderAction({
+        addressId,
+        paymentMethod: selected.value,
+        ...(discountCode ? { discountCode } : {}),
+      });
       if (!result.ok) {
         const notice = BAG_NOTICES[result.error.code];
         if (notice) return router.push(`/cart?notice=${notice}`);
         if (result.error.code === "NOT_FOUND") {
           dropDeletedAddress();
           return setFormError(ADDRESS_GONE);
+        }
+        // The code stopped working since it was applied: nothing was ordered. Take it off and say why.
+        const discountRefusal = result.error.fields?.discountCode;
+        if (discountRefusal) {
+          await refreshWithoutCode(addressId);
+          return setFormError(discountRefusal);
         }
         setFormError(messageFor(result.error));
         return;
@@ -210,7 +269,8 @@ export function CheckoutForm({
     });
   }
 
-  const summaryTotal = addressId ? totals.totalPaisa : totals.subtotalPaisa;
+  const summaryTotal = addressId ? totals.totalPaisa : totals.totalBeforeShippingPaisa;
+  const isBusy = isRefreshing || isApplying;
   const arrives = addressId ? totals.deliveryEstimate : null;
 
   return (
@@ -317,6 +377,12 @@ export function CheckoutForm({
                 Cash on delivery is available for orders up to <Price paisa={totals.codLimitPaisa} />.
               </p>
             )}
+            <DiscountCodeField
+              applied={discountCode}
+              onApply={applyDiscount}
+              onRemove={removeDiscount}
+              disabled={isRefreshing || isPlacing}
+            />
           </section>
 
           <div className="flex flex-col gap-3 py-8">
@@ -330,7 +396,7 @@ export function CheckoutForm({
               shape="pill"
               className="w-full"
               loading={isPlacing || redirecting}
-              disabled={hint !== null || isRefreshing}
+              disabled={hint !== null || isBusy}
               aria-describedby={hint ? "place-order-hint" : undefined}
               onClick={placeOrder}
               data-testid="place-order"
@@ -348,7 +414,7 @@ export function CheckoutForm({
 
       <aside
         aria-labelledby="summary-heading"
-        aria-busy={isRefreshing || undefined}
+        aria-busy={isBusy || undefined}
         className="hidden flex-col gap-6 lg:sticky lg:top-24 lg:flex lg:self-start"
       >
         <h2 id="summary-heading" className="font-display text-h3">

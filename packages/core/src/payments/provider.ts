@@ -12,6 +12,8 @@ export type OrderForPayment = {
   orderNumber: string;
   subtotalPaisa: number;
   shippingPaisa: number;
+  /** Discount code money off the subtotal (payment-policy.md §2): total = subtotal − discount + shipping. */
+  discountPaisa: number;
   totalPaisa: number;
   customer: { name: string; email: string; phone: string };
 };

@@ -1,7 +1,67 @@
 import { expect, test } from "@playwright/test";
+import { createDbClient } from "@virzeen/db";
+import { E2E_DATABASE_URL } from "./env";
 import { addToBag, checkoutWith, completeEmailSignIn, readEmail, uniqueEmail } from "./helpers";
 
 // Journeys 2–5 (testing-strategy.md §2). eSewa and Khalti are the mock providers from mock-providers.mjs.
+
+/**
+ * Test set-up in the throwaway e2e database: a 10% code as the admin's Discounts page makes it. The admin journey
+ * covers that page; here it would add a two-factor sign-in for nothing.
+ */
+async function createTenPercentCode(code: string) {
+  const db = createDbClient(E2E_DATABASE_URL);
+  try {
+    await db.discountCode.upsert({
+      where: { code },
+      create: { code, kind: "PERCENT", percentOff: 10 },
+      update: { isActive: true, usedCount: 0, maxUses: null, endsAt: null },
+    });
+  } finally {
+    await db.$disconnect();
+  }
+}
+
+test("a discount code takes money off at checkout and stays on the order", async ({ page }) => {
+  // Its own visitor address (a documentation range, as Railway's edge would pass it on), so this sign-in doesn't use
+  // up the 10-codes-per-address limit (rate-limit.ts "otp:ip") the rest of the suite shares; see phone-sign-in.spec.
+  await page.setExtraHTTPHeaders({ "X-Forwarded-For": "198.51.100.10" });
+  await createTenPercentCode("E2E-WELCOME10");
+  await addToBag(page, "monochrome-oversized-tee", { color: "Black", size: "M" });
+  await page.goto("/login?next=/checkout");
+  await completeEmailSignIn(page, uniqueEmail("discount"));
+  await checkoutWith(page, /Cash on delivery/);
+  await expect(page.getByTestId("checkout-total")).toHaveText("Rs 2,450");
+
+  await page.getByRole("button", { name: "Add a discount code" }).click();
+  const field = page.getByLabel("Discount code");
+  await expect(field).toBeFocused();
+  await field.fill("nope");
+  await page.getByRole("button", { name: "Apply" }).click();
+  await expect(page.getByText("This code isn't valid.")).toBeVisible();
+  await expect(page.getByTestId("checkout-total")).toHaveText("Rs 2,450");
+
+  // Any case works; the server works out 10% of Rs 2,450, rounded down to whole rupees.
+  await field.fill(" e2e-welcome10 ");
+  await field.press("Enter");
+  await expect(page.getByTestId("discount-applied")).toHaveText("E2E-WELCOME10 applied");
+  await expect(page.getByTestId("checkout-discount")).toHaveText("−Rs 245");
+  await expect(page.getByTestId("checkout-total")).toHaveText("Rs 2,205");
+
+  // Remove takes it off; applying it again puts it back.
+  await page.getByRole("button", { name: "Remove discount code E2E-WELCOME10" }).click();
+  await expect(page.getByTestId("checkout-total")).toHaveText("Rs 2,450");
+  await page.getByRole("button", { name: "Add a discount code" }).click();
+  await page.getByLabel("Discount code").fill("E2E-WELCOME10");
+  await page.getByRole("button", { name: "Apply" }).click();
+  await expect(page.getByTestId("checkout-total")).toHaveText("Rs 2,205");
+
+  await page.getByRole("button", { name: "Place order" }).click();
+  await expect(page).toHaveURL(/\/checkout\/success\?order=VZ-\d{6}-\d{4}/);
+  const discountLine = page.getByTestId("order-discount");
+  await expect(discountLine).toContainText("Discount (E2E-WELCOME10)");
+  await expect(discountLine).toContainText("−Rs 245");
+});
 
 test("guest bag is merged into the account at sign-in", async ({ page }) => {
   await addToBag(page, "structured-tote");

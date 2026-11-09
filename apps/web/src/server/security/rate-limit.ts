@@ -16,6 +16,8 @@ const LIMITS = {
   "cart:add": [60, "1 m"],
   "cart:write": [120, "1 m"],
   checkout: [10, "10 m"],
+  "discount:user": [10, "10 m"],
+  "discount:ip": [30, "10 m"],
   "payment:callback": [30, "1 m"],
   api: [120, "1 m"],
   "admin:totp": [5, "10 m"],
@@ -78,4 +80,13 @@ export async function rateLimit(name: LimitName, key: string): Promise<void> {
 export async function clientIp(): Promise<string> {
   const ip = trustedClientIp(await headers());
   return ip ? ipRateLimitKey(ip) : "unknown";
+}
+
+/**
+ * Every discount code check (applying, a summary refresh with a code, placing an order with one) counts per customer
+ * and per IP, so codes can't be found by trying them (specs/discount-codes.md, security-policy.md §6).
+ */
+export async function rateLimitDiscountCheck(userId: string): Promise<void> {
+  await rateLimit("discount:user", `user:${userId}`);
+  await rateLimit("discount:ip", await clientIp());
 }

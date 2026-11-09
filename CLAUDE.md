@@ -58,7 +58,7 @@ Reviewers: `security-reviewer`, `ui-reviewer` agents.
 4. **Server first.** Pages and most components are Server Components. `"use client"` only on small interactive leaves, never on `page.tsx`/`layout.tsx`.
 5. **Every view has states:** loading (skeleton), empty (`EmptyState`), error (friendly + retry), success (toast/confirmation).
 6. **Money** only via `<Price paisa>`. **Images** only via `<CloudImage>` with `alt`. **Copy** from `content-style.md`.
-7. **Accessible by default:** real buttons/links, visible labels, focus ring, 44px touch targets, `aria-label` on icon buttons.
+7. **Accessible by default:** real buttons/links, visible labels, 44px touch targets, `aria-label` on icon buttons. No focus rings, not even for Tab (owner decision 2026-11-09); text fields keep their ink focus border.
 8. **Mobile first:** verify at 360, 768, 1280px with Playwright MCP. No horizontal scroll.
 9. `scripts/check-ui.mjs` enforces most of this automatically. Fix what it reports; `ui-allow: <reason>` only with owner approval.
 
