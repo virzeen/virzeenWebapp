@@ -12,6 +12,14 @@ export { AppError, ERROR_CODES, isAppError, type ErrorCode } from "./errors";
 
 export { addressService, MAX_ADDRESSES, type SavedAddress } from "./addresses/address.service";
 export { adminAccounts, type AdminAccount } from "./admin/admin-accounts";
+export { stockInsights, type BestSellerRow, type LowStockRow } from "./admin/stock-insights";
+export {
+  ADMIN_REVIEWS_PAGE_SIZE,
+  REVIEWS_SHOWN,
+  reviewService,
+  type ReviewSummary,
+  type ReviewView,
+} from "./reviews/review.service";
 export {
   adminReads,
   DEFAULT_COUNTRY_OF_ORIGIN,

@@ -148,14 +148,47 @@ Nike-style layout (`specs/product-page.md`, `specs/product-page-v2.md`). The sam
 
 ## Shop listing
 
-| Situation                                 | Text                                                                                                 |
-| ----------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Result count                              | 1 product · {n} products · {n}+ products (while Load more has more) · No products                    |
-| Filters sheet, first Size / Colour option | Any (the default; removes that filter)                                                               |
-| Filters sheet buttons                     | Clear all (removes every filter and closes the sheet) · Show results                                 |
-| Nothing matches the filters               | Nothing matches these filters. Try removing a filter or browse all products. — [Browse all products] |
-| No products at all                        | New pieces are on their way. Check back soon — or explore our portfolio. — [View the portfolio]      |
-| Gallery list name (screen readers)        | {productName} images                                                                                 |
+| Situation                                 | Text                                                                                                      |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Result count                              | 1 product · {n} products · {n}+ products (while Load more has more) · No products                         |
+| Filters sheet, first Size / Colour option | Any (the default; removes that filter)                                                                    |
+| Filters sheet buttons                     | Clear all (removes every filter and closes the sheet) · Show results                                      |
+| Listing title (h1)                        | {title} ({total}), e.g. Shop (12) · Tops (4) · Results for "black" (3)                                    |
+| Desktop controls                          | Hide Filters / Show Filters · Sort By (Sort By: {choice} once changed)                                    |
+| Sort choices                              | Newest · Price: High-Low · Price: Low-High                                                                |
+| Filters column                            | All products · {category} · Size · Colour · Availability ("In stock only"); "Size (1)" when one is picked |
+| Nothing matches the filters               | Nothing matches these filters. Try removing a filter or browse all products. — [Browse all products]      |
+| No products at all                        | New pieces are on their way. Check back soon — or explore our portfolio. — [View the portfolio]           |
+| Gallery list name (screen readers)        | {productName} images                                                                                      |
+
+## Reviews (`specs/reviews.md`)
+
+| Where                  | Text                                                                                                                                                                                                                                                                                                                                       |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Product page section   | Reviews (h2) · {average} · 1 review / {n} reviews · [Write a review] · stars read as "Rated {n} out of 5"                                                                                                                                                                                                                                  |
+| A review               | {title} · {text} · {first name} · {style / size} · {date} · Verified buyer                                                                                                                                                                                                                                                                 |
+| No reviews             | No reviews yet. Bought this? Tell others what you think.                                                                                                                                                                                                                                                                                   |
+| More than shown        | Showing the newest {shown} of {n} reviews.                                                                                                                                                                                                                                                                                                 |
+| Order line (delivered) | Write a review (screen readers: Write a review of {product})                                                                                                                                                                                                                                                                               |
+| Review page            | ← {product} · Write a review / Edit your review (h2) · Your rating (5 stars … 1 star) · Title — Optional, e.g. Soft and true to size · Your review — Optional. How did it fit, feel and wash? · [Submit review] / [Save review]                                                                                                            |
+| Not delivered yet      | You can review this once it has been delivered to you. — Reviews come only from customers who received the product. — [Back to the product]                                                                                                                                                                                                |
+| Hidden by an admin     | Your review is hidden from the shop. Questions? Write to us from the contact page.                                                                                                                                                                                                                                                         |
+| Errors                 | Choose a rating · Keep your title under 80 characters · Keep your review under 1,000 characters                                                                                                                                                                                                                                            |
+| Saved (toast)          | Thanks for your review.                                                                                                                                                                                                                                                                                                                    |
+| Admin list             | Reviews — Customers can review a product once it's delivered. A hidden review leaves the shop and its average. · All · Shown · Hidden · columns Review · Customer · Date · Status (Shown / Hidden) · Action [Hide] / [Show] · empty: No reviews yet. / No hidden reviews. · toasts: Review hidden from the shop / Review shown in the shop |
+
+## Search (`specs/search.md`)
+
+| Where                         | Text                                                                                      |
+| ----------------------------- | ----------------------------------------------------------------------------------------- |
+| Header icon (screen readers)  | Search                                                                                    |
+| The panel (screen readers)    | Search (the dialog's name; no visible title) · Products (the result list)                 |
+| The top row                   | Search (placeholder; label for screen readers: Search products) · [Cancel]                |
+| Before typing                 | Popular search terms · {category name in lower case} (pills)                              |
+| Results                       | the product cards · [See all results] · the count for screen readers as in "Shop listing" |
+| Results page h1 / browser tab | Results for "{query}" · Results for "{query}" \| Virzeen                                  |
+| No match (panel and page)     | the standard "No search results" message above                                            |
+| The live results didn't load  | The error's standard message in a danger `Alert` — [Try again]                            |
 
 ## Checkout
 
@@ -262,6 +295,8 @@ Too many requests and anything unexpected use the standard `RATE_LIMITED` and `I
 | Missing item or mistyped `/admin` address (h1) | This page doesn't exist, or the item was archived. — [Back to dashboard] (tab title: Not found)                                                                                                                                                 |
 | Dashboard tiles                                | Orders today · Sales today · To pack · To ship · Payments pending                                                                                                                                                                               |
 | Dashboard tile link (visible · screen readers) | View · View orders to pack / View orders to ship / View orders with payment pending                                                                                                                                                             |
+| Dashboard, Low stock                           | Low stock — Sizes for sale with 3 or fewer left, sold out first. · columns Product · Style / size · Stock (Out of stock / Only {n} left) · empty: Every size has more than 3 left. · under it: {n} more sizes are low. [See products]           |
+| Dashboard, Best sellers                        | Best sellers — Last 30 days, by pieces sold. Cancelled orders don't count. · columns Product · Sold · Sales · empty: No sales in the last 30 days.                                                                                              |
 | Order history, "Change" column                 | Order placed · {from} → {to} (e.g. Confirmed → Being packed) · Payment: {from} → {to} (e.g. Payment: Unpaid → Pay on delivery)                                                                                                                  |
 | Order page, actions group (screen readers)     | Order actions                                                                                                                                                                                                                                   |
 | Customers, no name                             | —                                                                                                                                                                                                                                               |

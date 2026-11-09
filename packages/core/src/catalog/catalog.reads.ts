@@ -9,6 +9,7 @@ import {
   type SizeGuideKind,
 } from "@virzeen/validators";
 import { stylesForShop } from "./product-styles";
+import { searchWhere } from "./search";
 
 // Read models shared by web queries and /api/v1 (docs/backend/api-contract.md "Shapes").
 
@@ -26,6 +27,7 @@ export const summarySelect = {
   name: true,
   fromPricePaisa: true,
   publishedAt: true,
+  category: { select: { name: true } },
   images: { select: { url: true, alt: true }, orderBy: { sortOrder: "asc" }, take: 2 },
   variants: {
     where: { isActive: true },
@@ -52,6 +54,8 @@ export type ProductSummary = {
   hasStylePhotos: boolean;
   /** The style names for sale in style order, as the product page lists them; [] without styles. */
   styles: string[];
+  /** The card's grey line when the product has fewer than two styles (Nike's subtitle). */
+  categoryName: string;
 };
 
 export function toSummary(row: SummaryRow): ProductSummary {
@@ -69,6 +73,7 @@ export function toSummary(row: SummaryRow): ProductSummary {
     colorCount: styles.length,
     hasStylePhotos: row._count.images > 0,
     styles,
+    categoryName: row.category.name,
   };
 }
 
@@ -142,25 +147,35 @@ function orderFor(sort: ShopFilters["sort"]): Prisma.ProductOrderByWithRelationI
   }
 }
 
+/** The shop listing's `where`: published, for sale, and matching the filters and search (cursor and sort aside). */
+function listingWhere(filters: ShopFilters): Prisma.ProductWhereInput {
+  const variantFilter: Prisma.ProductVariantWhereInput = {
+    isActive: true,
+    ...(filters.size ? { size: filters.size } : {}),
+    ...(filters.color ? { color: filters.color } : {}),
+    ...(filters.inStock ? { stock: { gt: 0 } } : {}),
+  };
+  const hasVariantFilter = Boolean(filters.size || filters.color || filters.inStock);
+  const search = filters.q ? searchWhere(filters.q) : null;
+  return {
+    ...publishedProductWhere,
+    ...search,
+    ...(filters.category ? { category: { slug: filters.category, archivedAt: null } } : {}),
+    ...(filters.collection ? { collections: { some: { slug: filters.collection, archivedAt: null } } } : {}),
+    variants: { some: hasVariantFilter ? variantFilter : { isActive: true } },
+  };
+}
+
 export const catalogReads = {
-  /** Shop listing with filters and cursor pagination ("Load more"). */
+  /** How many products the listing holds in all (the "Shop (12)" title), whatever "Load more" has shown. */
+  countProducts(filters: ShopFilters): Promise<number> {
+    return db.product.count({ where: listingWhere(filters) });
+  },
+
+  /** Shop listing with filters, the search query (specs/search.md) and cursor pagination ("Load more"). */
   async listProducts(filters: ShopFilters, limit = PAGE_SIZE): Promise<ProductPage> {
-    const variantFilter: Prisma.ProductVariantWhereInput = {
-      isActive: true,
-      ...(filters.size ? { size: filters.size } : {}),
-      ...(filters.color ? { color: filters.color } : {}),
-      ...(filters.inStock ? { stock: { gt: 0 } } : {}),
-    };
-    const hasVariantFilter = Boolean(filters.size || filters.color || filters.inStock);
     const rows = await db.product.findMany({
-      where: {
-        ...publishedProductWhere,
-        ...(filters.category ? { category: { slug: filters.category, archivedAt: null } } : {}),
-        ...(filters.collection
-          ? { collections: { some: { slug: filters.collection, archivedAt: null } } }
-          : {}),
-        variants: { some: hasVariantFilter ? variantFilter : { isActive: true } },
-      },
+      where: listingWhere(filters),
       select: summarySelect,
       orderBy: orderFor(filters.sort),
       take: limit + 1,
@@ -316,6 +331,14 @@ export const catalogReads = {
       where: { slug, archivedAt: null },
       select: { id: true, slug: true, name: true },
     });
+  },
+
+  /** Whether a collection is live in the shop (not archived, with a published product): the header's "Sale" link. */
+  async hasLiveCollection(slug: string): Promise<boolean> {
+    const count = await db.collection.count({
+      where: { slug, archivedAt: null, products: { some: publishedProductWhere } },
+    });
+    return count > 0;
   },
 
   async listCollections(options: { featuredOnly?: boolean } = {}) {

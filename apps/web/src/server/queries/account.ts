@@ -1,6 +1,12 @@
 import "server-only";
 import "@/server/bootstrap";
-import { addressService, favouriteService, orderService, type FavouriteItem } from "@virzeen/core";
+import {
+  addressService,
+  favouriteService,
+  orderService,
+  reviewService,
+  type FavouriteItem,
+} from "@virzeen/core";
 import type { FavouriteView } from "@/server/actions/favourites";
 
 // Every read is scoped to the signed-in user id (security-policy.md §3).
@@ -8,6 +14,9 @@ import type { FavouriteView } from "@/server/actions/favourites";
 export const listMyOrders = (userId: string, cursor?: string) =>
   orderService.listForUser(userId, { cursor, limit: 20 });
 export const listMyAddresses = (userId: string) => addressService.list(userId);
+/** The review page (specs/reviews.md): the product, whether this customer may review it, and their review. */
+export const getMyReviewPage = (userId: string, productSlug: string) =>
+  reviewService.forCustomer(userId, productSlug);
 
 /** A favourite as client components get it (the time as an ISO string). */
 export const toFavouriteView = (item: FavouriteItem): FavouriteView => ({

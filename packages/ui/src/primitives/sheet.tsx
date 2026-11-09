@@ -8,7 +8,8 @@ import { cn } from "../lib/cn";
 /**
  * A panel that slides in over the page and holds content or a flow.
  * `side="right"`: side panels (the product editor's Settings). `side="bottom"`: mobile filters. `side="top"`: the
- * phone menu, the whole screen, dropping down from the top like apple.com's.
+ * phone menu, the whole screen, dropping down from the top like apple.com's. `side="drop"`: the same drop, the whole
+ * screen on phones but only as tall as its content from md, with the page dimmed below (the header search, Nike's).
  * Critical yes/no confirmations use `Dialog` instead.
  *
  * `header` replaces the title bar (and its close button) with your own top row, e.g. a back button and an X made
@@ -30,6 +31,7 @@ const sheetVariants = cva("fixed z-40 flex flex-col bg-canvas shadow-md outline-
       bottom:
         "inset-x-0 bottom-0 max-h-5/6 rounded-t-md data-[state=closed]:animate-slide-out-bottom data-[state=open]:animate-slide-in-bottom",
       top: "inset-x-0 top-0 h-dvh w-full shadow-none data-[state=closed]:animate-lift-up data-[state=open]:animate-drop-down",
+      drop: "inset-x-0 top-0 h-dvh w-full shadow-none data-[state=closed]:animate-lift-up data-[state=open]:animate-drop-down md:h-auto md:max-h-dvh md:shadow-md",
     },
   },
   defaultVariants: { side: "right" },

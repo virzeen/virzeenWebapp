@@ -4,7 +4,13 @@ import { Suspense } from "react";
 import { JsonLd } from "@/client/components/shared/json-ld";
 import { ProductDetails } from "@/client/features/products/product-details";
 import { RelatedProducts } from "@/client/features/products/related-products";
-import { getProductBySlug, listRecommendations } from "@/server/queries/catalog";
+import { ProductReviews } from "@/client/features/reviews/product-reviews";
+import {
+  getProductBySlug,
+  getReviewSummary,
+  listProductReviews,
+  listRecommendations,
+} from "@/server/queries/catalog";
 import { siteUrl } from "@/server/env";
 import { flattenSearchParams, type SearchParams } from "@/server/queries/params";
 import { absoluteImageUrl, breadcrumbJsonLd, productDescription, productTitle } from "@/server/seo";
@@ -43,6 +49,15 @@ async function Recommendations({ product }: { product: { id: string; categoryId:
   return <RelatedProducts recommendations={await listRecommendations(product)} />;
 }
 
+/** "Reviews" under the product (specs/reviews.md), streamed in the same way. */
+async function Reviews({ product }: { product: { id: string; slug: string } }) {
+  const [summary, reviews] = await Promise.all([
+    getReviewSummary(product.id),
+    listProductReviews(product.id),
+  ]);
+  return <ProductReviews slug={product.slug} summary={summary} reviews={reviews} />;
+}
+
 export default async function ProductPage({ params, searchParams }: Props) {
   const product = await getProductBySlug((await params).slug);
   if (!product) notFound();
@@ -50,10 +65,15 @@ export default async function ProductPage({ params, searchParams }: Props) {
   const { style } = flattenSearchParams(await searchParams);
   const lowestPrice = Math.min(...product.variants.map((v) => v.pricePaisa));
   const image = product.images[0] ? absoluteImageUrl(product.images[0].url, siteUrl) : null;
+  const rating = await getReviewSummary(product.id);
 
   return (
     <>
       <ProductDetails product={{ ...product, productId: product.id }} styleParam={style} />
+
+      <Suspense fallback={null}>
+        <Reviews product={product} />
+      </Suspense>
 
       <Suspense fallback={null}>
         <Recommendations product={product} />
@@ -77,6 +97,17 @@ export default async function ProductPage({ params, searchParams }: Props) {
           sku: product.variants[0]?.sku,
           brand: { "@type": "Brand", name: "Virzeen" },
           category: product.category.name,
+          ...(rating.count > 0 && rating.average !== null
+            ? {
+                aggregateRating: {
+                  "@type": "AggregateRating",
+                  ratingValue: rating.average,
+                  reviewCount: rating.count,
+                  bestRating: 5,
+                  worstRating: 1,
+                },
+              }
+            : {}),
           offers: {
             "@type": "AggregateOffer",
             priceCurrency: "NPR",

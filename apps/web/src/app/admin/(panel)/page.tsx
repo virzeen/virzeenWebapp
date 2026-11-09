@@ -1,17 +1,23 @@
 import { Badge, ButtonLink, cn, DataTable, EmptyState, Link } from "@virzeen/ui";
 import { Price } from "@/client/components/shared/price";
 import { AdminPageHeader } from "@/client/features/admin/admin-page-header";
+import { BestSellersSection, LowStockSection } from "@/client/features/admin/dashboard-stock";
 import { formatDateTime } from "@/client/lib/format";
 import { orderStatus, paymentStatus } from "@/client/lib/order-labels";
 import { requireAdminPage } from "@/server/auth/session";
-import { getDashboardStats, listAdminOrders } from "@/server/queries/admin";
+import { getBestSellers, getDashboardStats, getLowStock, listAdminOrders } from "@/server/queries/admin";
 
 export const metadata = { title: "Dashboard" };
 
 export default async function AdminDashboardPage() {
   await requireAdminPage();
   // Tiles that link to a filtered list count with that same filter, so the number matches the list it opens.
-  const [stats, recent] = await Promise.all([getDashboardStats(), listAdminOrders({ page: 1 })]);
+  const [stats, recent, lowStock, bestSellers] = await Promise.all([
+    getDashboardStats(),
+    listAdminOrders({ page: 1 }),
+    getLowStock(),
+    getBestSellers(),
+  ]);
   // `linkContext` finishes the "View" link's name for screen readers, which list the three links side by side.
   const tiles = [
     { label: "Orders today", value: String(stats.todayOrders), today: true },
@@ -59,6 +65,11 @@ export default async function AdminDashboardPage() {
             )}
           </div>
         ))}
+      </div>
+      {/* Side by side from lg; stacked on phones and tablets, low stock first (it needs acting on). */}
+      <div className="grid gap-10 lg:grid-cols-2">
+        <LowStockSection rows={lowStock.rows} total={lowStock.total} />
+        <BestSellersSection rows={bestSellers} />
       </div>
       <section className="flex flex-col gap-4" aria-labelledby="recent-orders">
         <div className="flex items-center justify-between">

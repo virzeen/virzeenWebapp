@@ -14,15 +14,24 @@ type ProductCarouselProps = {
   products: ProductCardData[];
   /** The cards open in a new tab, so the page they sit on stays open (the product editor). */
   newTab?: boolean;
+  /** A link on the right, before the previous/next buttons ("Shop all" on the home page). */
+  action?: React.ReactNode;
 };
 
 /**
- * A row of product cards under a product page (specs/product-page-v2.md "Recommendations"): only whole cards, 2 per
- * view on phones (swipe), 3 from md, 4 from lg, snapping to a card. From md, round previous/next buttons sit on the
+ * A row of product cards (under a product page, specs/product-page-v2.md "Recommendations"; the bag; the home page's
+ * new arrivals, owner 2026-11-08): only whole cards, 2 per
+ * view on phones (swipe), 3 from md like every product grid (`Grid columns="products"`), snapping to a card. From md, round previous/next buttons sit on the
  * right of the heading, disabled at the ends and hidden when every card fits; each press moves one card. The row
  * takes focus, so arrow keys scroll it. Nothing when there are no products.
  */
-export function ProductCarousel({ title, description, products, newTab = false }: ProductCarouselProps) {
+export function ProductCarousel({
+  title,
+  description,
+  products,
+  newTab = false,
+  action,
+}: ProductCarouselProps) {
   const headingId = useId();
   const rowRef = useRef<HTMLUListElement>(null);
   const previousRef = useRef<HTMLButtonElement>(null);
@@ -86,36 +95,39 @@ export function ProductCarousel({ title, description, products, newTab = false }
           </h2>
           {description && <p className="text-small text-ink-muted">{description}</p>}
         </div>
-        {!fits && (
-          <div className="flex shrink-0 gap-2 max-md:hidden">
-            <Button
-              ref={previousRef}
-              variant="secondary"
-              size="icon"
-              shape="pill"
-              aria-label="Previous products"
-              disabled={edges.start}
-              onClick={() => scrollByCard(-1)}
-            >
-              <ChevronLeft className="size-5" strokeWidth={1.5} aria-hidden />
-            </Button>
-            <Button
-              ref={nextRef}
-              variant="secondary"
-              size="icon"
-              shape="pill"
-              aria-label="Next products"
-              disabled={edges.end}
-              onClick={() => scrollByCard(1)}
-            >
-              <ChevronRight className="size-5" strokeWidth={1.5} aria-hidden />
-            </Button>
-          </div>
-        )}
+        <div className="flex shrink-0 items-center gap-4">
+          {action}
+          {!fits && (
+            <div className="flex gap-2 max-md:hidden">
+              <Button
+                ref={previousRef}
+                variant="secondary"
+                size="icon"
+                shape="pill"
+                aria-label="Previous products"
+                disabled={edges.start}
+                onClick={() => scrollByCard(-1)}
+              >
+                <ChevronLeft className="size-5" strokeWidth={1.5} aria-hidden />
+              </Button>
+              <Button
+                ref={nextRef}
+                variant="secondary"
+                size="icon"
+                shape="pill"
+                aria-label="Next products"
+                disabled={edges.end}
+                onClick={() => scrollByCard(1)}
+              >
+                <ChevronRight className="size-5" strokeWidth={1.5} aria-hidden />
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
       {/*
         Each card carries its gap as right padding (the row's negative margin puts the last one in the page gutter),
-        so 2, 3 or 4 whole cards fill the row exactly, with no half card at the edge. It scrolls sideways, so it
+        so 2 or 3 whole cards fill the row exactly, with no half card at the edge. It scrolls sideways, so it
         takes keyboard focus (arrow keys scroll it).
       */}
       <ul
@@ -125,7 +137,7 @@ export function ProductCarousel({ title, description, products, newTab = false }
         className="-mr-4 flex snap-x snap-mandatory scrollbar-none overflow-x-auto overscroll-x-contain focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus focus-visible:outline-solid"
       >
         {products.map((product) => (
-          <li key={product.id} className="w-1/2 shrink-0 snap-start pr-4 md:w-1/3 lg:w-1/4">
+          <li key={product.id} className="w-1/2 shrink-0 snap-start pr-4 md:w-1/3">
             <ProductCard product={product} />
           </li>
         ))}

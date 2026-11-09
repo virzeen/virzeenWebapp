@@ -89,7 +89,7 @@ export default async function PortfolioProjectPage({ params }: Props) {
             <h2 id="shop-the-story" className="font-display text-h2">
               Shop the story
             </h2>
-            {/* Same "Shop all" as the home page's latest pieces. */}
+            {/* Same "Shop all" as the home page's New and Featured. */}
             <Link
               href="/shop"
               variant="default"

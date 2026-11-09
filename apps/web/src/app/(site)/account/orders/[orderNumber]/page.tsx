@@ -28,7 +28,7 @@ export default async function OrderPage({ params }: Props) {
         >
           ← All orders
         </Link>
-        <h2 className="font-mono text-h2">{order.orderNumber}</h2>
+        <h1 className="font-mono text-h2">{order.orderNumber}</h1>
       </div>
       {order.paymentStatus === "PENDING" && (
         <Alert variant="info">
@@ -36,7 +36,7 @@ export default async function OrderPage({ params }: Props) {
           it&apos;s done.
         </Alert>
       )}
-      <OrderDetail order={order} />
+      <OrderDetail order={order} reviewLinks={order.status === "DELIVERED"} />
     </Stack>
   );
 }

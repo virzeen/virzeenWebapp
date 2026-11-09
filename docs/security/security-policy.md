@@ -39,15 +39,16 @@
 
 ## 6. Rate limits (Upstash)
 
-| Endpoint            | Limit                                    |
-| ------------------- | ---------------------------------------- |
-| OTP request         | 3 / 10 min per email, 10 / 10 min per IP |
-| Login verify        | 5 / 10 min per email                     |
-| Add to cart         | 60 / min per session                     |
-| Favourites          | 60 / min per user, or per IP for guests  |
-| Checkout            | 10 / 10 min per user                     |
-| Payment callbacks   | 30 / min per IP                          |
-| `/api/v1/*` general | 120 / min per IP                         |
+| Endpoint                                                                       | Limit                                    |
+| ------------------------------------------------------------------------------ | ---------------------------------------- |
+| OTP request                                                                    | 3 / 10 min per email, 10 / 10 min per IP |
+| Login verify                                                                   | 5 / 10 min per email                     |
+| Add to cart                                                                    | 60 / min per session                     |
+| Favourites                                                                     | 60 / min per user, or per IP for guests  |
+| Checkout                                                                       | 10 / 10 min per user                     |
+| Payment callbacks                                                              | 30 / min per IP                          |
+| `/api/v1/*` general                                                            | 120 / min per IP                         |
+| Shop "Load more" and live search results (`api` bucket, shared with `/api/v1`) | 120 / min per IP                         |
 
 The OTP limits run in `app/api/auth/[...all]/route.ts` before Better Auth. Better Auth's own limiter stays on for its other endpoints (60 / min per IP); its built-in OTP rules are switched off because they are per IP only and would block real customers signing in at the same time.
 

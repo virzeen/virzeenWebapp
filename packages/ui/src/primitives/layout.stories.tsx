@@ -12,14 +12,22 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-const cards = ["a", "b", "c", "d", "e", "f", "g", "h"];
+const cards = ["a", "b", "c", "d", "e", "f"];
 
+/**
+ * `columns="products"`: every grid of product cards (the shop, the home page, Favourites, search), 2 a row on phones and 3
+ * from md, with square photos, like Nike's.
+ */
 export const ProductGrid: Story = {
   render: () => (
     <Container className="py-8">
       <Grid columns="products" gap={4}>
         {cards.map((id) => (
-          <Skeleton key={id} shape="image" />
+          <div key={id} className="flex flex-col gap-3">
+            <Skeleton shape="square" />
+            <Skeleton shape="text" className="w-3/4" />
+            <Skeleton shape="text" className="w-1/3" />
+          </div>
         ))}
       </Grid>
     </Container>

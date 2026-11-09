@@ -13,22 +13,43 @@ const fieldVariants = cva(
       variant: {
         default: "border-line-strong aria-invalid:border-danger",
         error: "border-danger",
+        // A rounded grey box without a line (the header search, Nike's); focus still draws the 2px ink line.
+        pill: "rounded-full border-transparent bg-surface px-5 aria-invalid:border-danger",
       },
     },
     defaultVariants: { variant: "default" },
   },
 );
 
-export type InputProps = React.ComponentProps<"input"> & VariantProps<typeof fieldVariants>;
+export type InputProps = React.ComponentProps<"input"> &
+  VariantProps<typeof fieldVariants> & {
+    /** A decorative icon inside the box at the start (a magnifier on a search box); the text starts after it. */
+    startIcon?: React.ReactNode;
+  };
 
 /**
  * Single-line text input. Place inside `FormField` for the label, helper and error wiring.
  * Always set `type`, `inputMode` and `autoComplete` (e.g. `type="tel" inputMode="numeric"`).
+ * `variant="pill"` with a `startIcon`: the header search box (a rounded grey box with a magnifier).
  */
-export function Input({ className, variant, type = "text", ...props }: InputProps) {
+export function Input({ className, variant, type = "text", startIcon, ...props }: InputProps) {
   const { labelId: _labelId, ...field } = useFormFieldControl();
+  const input = (
+    <input
+      type={type}
+      className={cn(fieldVariants({ variant }), "h-11", startIcon ? "pl-12" : undefined, className)}
+      {...field}
+      {...props}
+    />
+  );
+  if (!startIcon) return input;
   return (
-    <input type={type} className={cn(fieldVariants({ variant }), "h-11", className)} {...field} {...props} />
+    <span className="relative flex w-full items-center">
+      <span aria-hidden className="pointer-events-none absolute left-4 flex text-ink">
+        {startIcon}
+      </span>
+      {input}
+    </span>
   );
 }
 

@@ -13,6 +13,53 @@ html:has([data-sticky-header]) {
 }
 
 /*
+ * Shop listing from lg, like Nike's (owner 2026-11-08). Scrolling down slides the site header up out of view
+ * (`data-slide-away`, site-header.tsx) and the 64px title bar with Show Filters and Sort By (`data-listing-bar`,
+ * shop-browse.tsx) sticks to the very top; scrolling up brings the header back with the bar under it, both moving
+ * together (150ms). The filters column (`data-listing-filters`) sticks under the bar and scrolls on its own.
+ * Anything scrolled into view stops below the header and the bar (WCAG 2.4.11).
+ */
+html:has([data-listing-bar]) {
+  @variant lg {
+    scroll-padding-top: --spacing(36);
+  }
+}
+
+html:has([data-listing-bar]) [data-sticky-header][data-slide-away] {
+  @variant lg {
+    translate: 0 -100%;
+  }
+}
+
+[data-listing-bar] {
+  @variant lg {
+    top: --spacing(16);
+  }
+}
+
+[data-listing-filters] {
+  @variant lg {
+    top: --spacing(32);
+    max-height: calc(100dvh - --spacing(32));
+  }
+}
+
+html:has([data-sticky-header][data-slide-away]) {
+  & [data-listing-bar] {
+    @variant lg {
+      top: 0;
+    }
+  }
+
+  & [data-listing-filters] {
+    @variant lg {
+      top: --spacing(16);
+      max-height: calc(100dvh - --spacing(16));
+    }
+  }
+}
+
+/*
  * Rows that scroll with their own controls (the product gallery's thumbnail strip and phone photos, "Features that
  * perform"): no scrollbar. They still scroll with touch, the wheel, the keyboard and their buttons.
  */
@@ -92,6 +139,16 @@ html:has([data-sticky-header]) {
  */
 @utility callout-none {
   -webkit-touch-callout: none;
+}
+
+/*
+ * The header search box (search-panel.tsx, `type="search"`): no browser clear button. Chrome and Safari draw it in
+ * blue, and the brand is black and white only.
+ */
+@utility search-cancel-none {
+  &::-webkit-search-cancel-button {
+    appearance: none;
+  }
 }
 
 /*

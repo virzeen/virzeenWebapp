@@ -66,6 +66,7 @@ What customers need from us: honest prices (VAT included, shipping shown before 
 - Cart ("bag"): the bag drawer slides in from the right after each add (brought back 2026-10-01, owner's choice) + the full bag page (like Nike's since 2026-09-30), quantity changes, remove with undo, subtotal.
 - Checkout: sign-in required (guest cart merges on login), address book, order summary with shipping by zone, payment by COD / eSewa / Khalti.
 - Order confirmation page and email.
+- Reviews: customers review a product once it's delivered; admins can hide a review (`specs/reviews.md`; moved from phase 2 by the owner on 2026-11-08).
 
 **Portfolio**
 
@@ -95,7 +96,7 @@ What customers need from us: honest prices (VAT included, shipping shown before 
 
 ### Explicitly NOT in phase 1
 
-Reviews, coupons/discounts, gift cards, staff role, SMS notifications, automated courier integration, automated refunds, international shipping/currency, native app store builds.
+Coupons/discounts, gift cards, staff role, SMS notifications, automated courier integration, automated refunds, international shipping/currency, native app store builds.
 
 ## 4. The customer journey
 

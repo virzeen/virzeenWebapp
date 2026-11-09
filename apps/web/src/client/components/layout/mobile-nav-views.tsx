@@ -10,12 +10,14 @@ import {
   UserRound,
 } from "lucide-react";
 import type { Ref } from "react";
-import { PRIMARY_NAV } from "./nav-links";
 
 export type MenuCategory = { slug: string; name: string };
 
-/** Portfolio and About: Shop opens its own panel instead of being a link. */
-const PAGES = PRIMARY_NAV.filter((item) => item.href !== "/shop");
+/** The large links after Home and Shop (Shop opens its own panel instead of being a link). */
+const PAGES = [
+  { href: "/portfolio", label: "Portfolio" },
+  { href: "/about", label: "About" },
+] as const;
 
 type Shortcut = { href: string; label: string; icon: LucideIcon; signedInOnly?: boolean };
 

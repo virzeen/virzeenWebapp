@@ -1,4 +1,4 @@
-import { firstName } from "@/client/components/layout/nav-current";
+import { firstName, SALE_COLLECTION } from "@/client/components/layout/nav-current";
 import { SiteFooter } from "@/client/components/layout/site-footer";
 import { SiteHeader } from "@/client/components/layout/site-header";
 import { CartDrawer } from "@/client/features/cart/cart-drawer";
@@ -7,7 +7,7 @@ import { FavouritesProvider } from "@/client/features/favourites/favourites-prov
 import { getUser } from "@/server/auth/session";
 import { listMyFavouriteKeys } from "@/server/queries/account";
 import { getCartView } from "@/server/queries/cart";
-import { listCategories } from "@/server/queries/catalog";
+import { hasLiveCollection, listCategories } from "@/server/queries/catalog";
 
 /** A signed-in customer's favourites, for every Favourite button; guests keep theirs in the browser. */
 async function favouriteKeys() {
@@ -17,11 +17,12 @@ async function favouriteKeys() {
 
 /** Customer-facing shell: header, bag drawer, footer. The admin area has its own layout. */
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
-  const [user, cart, categories, favourites] = await Promise.all([
+  const [user, cart, categories, favourites, hasSale] = await Promise.all([
     getUser(),
     getCartView(),
     listCategories(),
     favouriteKeys(),
+    hasLiveCollection(SALE_COLLECTION),
   ]);
   return (
     <CartProvider initialCart={cart}>
@@ -35,7 +36,12 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
         {/* At least one screen tall, with main taking the slack, so a short page's footer sits at the bottom.
           The skip link's target stays clear of the sticky header through globals.css (scroll-padding-top). */}
         <div className="flex min-h-dvh flex-col">
-          <SiteHeader isSignedIn={Boolean(user)} firstName={firstName(user?.name)} categories={categories} />
+          <SiteHeader
+            isSignedIn={Boolean(user)}
+            firstName={firstName(user?.name)}
+            categories={categories}
+            hasSale={hasSale}
+          />
           <main id="main" className="flex-1">
             {children}
           </main>

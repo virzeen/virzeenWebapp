@@ -14,6 +14,12 @@ export const HOME_DESCRIPTION =
   "Virzeen is a monochrome fashion label from Nepal: black and white, aesthetic pieces for everyday. Free shipping across Nepal and cash on delivery.";
 export const SHOP_TITLE = "Shop Virzeen | Monochrome, black & white fashion in Nepal";
 
+/** The shop page's h1 for a search (specs/search.md): `Results for "black tee"`. */
+export const searchHeading = (query: string) => `Results for "${query}"`;
+
+/** `Results for "black tee" | Virzeen`: the tab of a search, which search engines don't index. */
+export const searchTitle = (query: string) => `${searchHeading(query)} | Virzeen`;
+
 /** "Vases by Virzeen" */
 export const categoryTitle = (category: string) => `${category} by Virzeen`;
 

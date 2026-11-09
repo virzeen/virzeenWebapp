@@ -1,7 +1,14 @@
 import "server-only";
 import "@/server/bootstrap";
-import { adminReads, catalogReads, orderService, portfolioService } from "@virzeen/core";
-import type { AdminOrderFilters, AdminProductFilters } from "@virzeen/validators";
+import {
+  adminReads,
+  catalogReads,
+  orderService,
+  portfolioService,
+  reviewService,
+  stockInsights,
+} from "@virzeen/core";
+import type { AdminOrderFilters, AdminProductFilters, AdminReviewFilters } from "@virzeen/validators";
 import { cache } from "react";
 import { features } from "@/server/env";
 
@@ -9,6 +16,9 @@ import { features } from "@/server/env";
 // request with React cache(): generateMetadata and the page both read the item.
 
 export const getDashboardStats = () => orderService.dashboardStats();
+/** The dashboard's "Low stock" (the first 8 sizes) and "Best sellers" (last 30 days, top 5). */
+export const getLowStock = () => stockInsights.lowStock(8);
+export const getBestSellers = () => stockInsights.bestSellers();
 export const listAdminOrders = (filters: AdminOrderFilters) => orderService.listForAdmin(filters);
 export const listAdminProducts = ({ q, status }: AdminProductFilters) => adminReads.listProducts(q, status);
 export const getProductStatusCounts = () => adminReads.productStatusCounts();
@@ -16,6 +26,7 @@ export const listAdminCategories = () => adminReads.listCategories();
 export const listAdminCollections = () => adminReads.listCollections();
 export const listAdminSizeGuides = () => adminReads.listSizeGuides();
 export const listAdminCustomers = (page: number) => adminReads.listCustomers(page);
+export const listAdminReviews = (filters: AdminReviewFilters) => reviewService.listForAdmin(filters);
 export const listAdminPortfolio = () => portfolioService.listForAdmin();
 export const listProductOptions = () => adminReads.listProductOptions();
 export const uploadsEnabled = () => features.cloudinary;
