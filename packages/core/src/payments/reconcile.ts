@@ -3,6 +3,7 @@ import { db } from "@virzeen/db";
 import { getCoreConfig } from "../config";
 import { notifications } from "../notifications/notifications";
 import { cancelOrderAndRestock } from "../orders/cancellation";
+import { stockAlertService } from "../stock-alerts/stock-alert.service";
 import { paymentService, type VerifyOutcome } from "./payment.service";
 
 // Reconciliation cron, every 10 minutes (payment-policy.md §8). Idempotent and safe to run concurrently:
@@ -65,6 +66,7 @@ export async function reconcilePayments(now = new Date()): Promise<ReconcileSumm
       }),
     );
     if (result.changed) summary.expiredUnpaid += 1;
+    await stockAlertService.notifyAvailable(result.variantIds);
   }
 
   // 3. Payments still unresolved after 24h go to the owner once — never auto-resolved.

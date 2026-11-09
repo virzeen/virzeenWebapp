@@ -29,10 +29,12 @@ export type RadioGroupProps = Omit<React.ComponentProps<typeof RadioGroupPrimiti
 /**
  * Pick one of 2–4 choices (payment method, shipping option) or a product variant (size/colour).
  * `variant="card"`: bordered option tiles (variant pickers, payment methods). Unavailable options stay visible
- * but disabled with a line-through; `aria-invalid` (or a `FormField` error) draws a red line around the grid.
+ * but disabled with a line-through, or, with `unavailable` instead of `disabled`, look the same but can still be
+ * picked (a sold-out size for "Notify me when it's back"); `aria-invalid` (or a `FormField` error) draws a red line
+ * around the grid.
  * `variant="swatch"`: square picture tiles without a caption (product styles): the label is the accessible name and
  * the tile's `title`; the picked tile gets an ink border, not a fill, so the picture stays visible; a disabled tile
- * is dimmed with a diagonal line. `variant="segmented"`: 2–4 short choices joined in one
+ * is dimmed with a diagonal line (an `unavailable` one too, but it can be picked). `variant="segmented"`: 2–4 short choices joined in one
  * pill (e.g. cm | in), the picked one filled; 44px tall, 36px from lg. Inside `FormField` the group is labelled by the
  * field label.
  */
@@ -60,7 +62,23 @@ export type RadioGroupItemProps = Omit<React.ComponentProps<typeof RadioGroupPri
   aside?: React.ReactNode;
   /** Swatch variant: the picture that fills the tile (decorative: the label names the option). */
   media?: React.ReactNode;
+  /**
+   * Card and swatch variants: sold out but still pickable (specs/notify-me.md). Drawn like a disabled option
+   * (struck through / crossed out); picked, it gets an ink outline instead of the fill. Screen readers hear
+   * "{label}, sold out". Sets `data-unavailable`.
+   */
+  unavailable?: boolean;
 };
+
+/**
+ * "{label}, sold out" for screen readers (the strike-through alone says nothing to them): an `aria-label` for a text
+ * label (a hidden span would be read with a stray space before the comma), else a hidden span after the label.
+ */
+function soldOutName(label: React.ReactNode, unavailable: boolean) {
+  if (!unavailable) return { props: {}, suffix: null };
+  if (typeof label === "string") return { props: { "aria-label": `${label}, sold out` }, suffix: null };
+  return { props: {}, suffix: <span className="sr-only">, sold out</span> };
+}
 
 /** One option inside `RadioGroup`. */
 export function RadioGroupItem({
@@ -69,9 +87,12 @@ export function RadioGroupItem({
   description,
   aside,
   media,
+  unavailable = false,
   ...props
 }: RadioGroupItemProps) {
   const variant = useContext(VariantContext);
+  const soldOut = soldOutName(label, unavailable);
+  const unavailableProps = unavailable ? { "data-unavailable": "", ...soldOut.props } : {};
 
   if (variant === "swatch") {
     return (
@@ -81,16 +102,20 @@ export function RadioGroupItem({
           "group relative size-16 shrink-0 overflow-hidden rounded-sm border border-line bg-surface transition-colors duration-150 ease-standard hover:border-ink-muted focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:hover:border-line data-[state=checked]:border-ink data-[state=checked]:outline-1 data-[state=checked]:-outline-offset-2 data-[state=checked]:outline-ink data-[state=checked]:outline-solid",
           className,
         )}
+        {...unavailableProps}
         {...props}
       >
-        <span className="block size-full group-disabled:opacity-50">{media}</span>
+        <span className="block size-full group-disabled:opacity-50 group-data-unavailable:opacity-50">
+          {media}
+        </span>
         <span className="sr-only">{label}</span>
+        {soldOut.suffix}
         {/* Sold out: a line from corner to corner, like a struck-through size. */}
         <svg
           aria-hidden
           viewBox="0 0 100 100"
           preserveAspectRatio="none"
-          className="absolute inset-0 hidden size-full text-ink-muted group-disabled:block"
+          className="absolute inset-0 hidden size-full text-ink-muted group-disabled:block group-data-unavailable:block"
         >
           <line
             x1="0"
@@ -126,12 +151,19 @@ export function RadioGroupItem({
         className={cn(
           "group relative flex min-h-11 items-center justify-between gap-3 rounded-sm border border-line-strong bg-canvas px-3 py-2 text-left text-body text-ink transition-colors duration-150 ease-standard hover:border-ink focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:border-line disabled:text-ink-muted disabled:line-through data-[state=checked]:border-ink data-[state=checked]:bg-ink data-[state=checked]:text-canvas",
           description ? "py-3" : "justify-center",
+          // Sold out but pickable: drawn like a disabled option; picked, an ink outline keeps the strike-through readable.
+          unavailable &&
+            "border-line text-ink-muted line-through hover:border-ink-muted data-[state=checked]:border-ink data-[state=checked]:bg-canvas data-[state=checked]:text-ink-muted data-[state=checked]:outline-1 data-[state=checked]:-outline-offset-2 data-[state=checked]:outline-ink data-[state=checked]:outline-solid",
           className,
         )}
+        {...unavailableProps}
         {...props}
       >
         <span className="flex flex-col gap-1">
-          <span className="font-medium">{label}</span>
+          <span className="font-medium">
+            {label}
+            {soldOut.suffix}
+          </span>
           {description && (
             <span className="text-small text-ink-muted group-aria-checked:text-canvas/80">{description}</span>
           )}

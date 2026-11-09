@@ -96,21 +96,22 @@ enum SizeGuideKind {
 // Shape required by Better Auth; ids are generated as cuid2 by the auth config.
 
 model User {
-  id               String      @id
+  id               String       @id
   name             String
-  email            String      @unique
-  emailVerified    Boolean     @default(false)
+  email            String       @unique
+  emailVerified    Boolean      @default(false)
   image            String?
-  role             Role        @default(CUSTOMER)
-  twoFactorEnabled Boolean     @default(false)
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
+  role             Role         @default(CUSTOMER)
+  twoFactorEnabled Boolean      @default(false)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
   sessions         Session[]
   accounts         Account[]
   twoFactors       TwoFactor[]
   addresses        Address[]
   favourites       Favourite[]
   reviews          Review[]
+  stockAlerts      StockAlert[]
   cart             Cart?
   orders           Order[]
   auditLogs        AuditLog[]
@@ -196,6 +197,24 @@ model Address {
   updatedAt DateTime @updatedAt
 
   @@index([userId])
+}
+
+/// "Notify me when it's back" (specs/notify-me.md): a signed-in customer waiting for a sold-out variant. One email
+/// when it's back in stock, then `notifiedAt` is set; asking again for the same variant starts a new wait.
+model StockAlert {
+  id         String         @id @default(cuid(2))
+  userId     String
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  variantId  String
+  variant    ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  /// When the "back in stock" email was claimed for sending; null = still waiting.
+  notifiedAt DateTime?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  @@unique([userId, variantId])
+  @@index([userId, notifiedAt, createdAt])
+  @@index([variantId, notifiedAt])
 }
 
 /// A product (and style) a customer saved with "Favourite" (specs/favourites.md). Deleted when removed.
@@ -400,21 +419,22 @@ model ProductFeature {
 }
 
 model ProductVariant {
-  id         String      @id @default(cuid(2))
-  productId  String
-  product    Product     @relation(fields: [productId], references: [id], onDelete: Restrict)
-  sku        String      @unique
-  size       String?
-  color      String?
+  id          String       @id @default(cuid(2))
+  productId   String
+  product     Product      @relation(fields: [productId], references: [id], onDelete: Restrict)
+  sku         String       @unique
+  size        String?
+  color       String?
   /// What the customer pays for one unit: product price + the product's shippingPaisa, VAT included.
-  pricePaisa Int
-  stock      Int         @default(0)
-  isActive   Boolean     @default(true)
-  sortOrder  Int         @default(0)
-  cartItems  CartItem[]
-  orderItems OrderItem[]
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+  pricePaisa  Int
+  stock       Int          @default(0)
+  isActive    Boolean      @default(true)
+  sortOrder   Int          @default(0)
+  cartItems   CartItem[]
+  orderItems  OrderItem[]
+  stockAlerts StockAlert[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 
   @@index([productId, sortOrder])
   @@index([size])

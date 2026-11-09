@@ -23,6 +23,8 @@ type ProductSelectionProviderProps = {
   colors: string[];
   sizes: string[];
   initialStyle: string | null;
+  /** The size `?size=` names ("back in stock" email, the way back from sign-in), checked by the caller. */
+  initialSize?: string | null;
   /** Shop page: a picked style goes into the address as `?style=` (not in the admin preview). */
   syncUrl: boolean;
   children: React.ReactNode;
@@ -38,6 +40,7 @@ export function ProductSelectionProvider({
   colors,
   sizes,
   initialStyle,
+  initialSize = null,
   syncUrl,
   children,
 }: ProductSelectionProviderProps) {
@@ -47,7 +50,7 @@ export function ProductSelectionProvider({
   const [pickedStyle, setStyle] = useState(() =>
     syncUrl ? styleFromParam(params.get("style") ?? undefined, variants, colors) : initialStyle,
   );
-  const [pickedSize, setSize] = useState<string | null>(null);
+  const [pickedSize, setSize] = useState<string | null>(initialSize);
   // The admin preview follows the editor: a picked style or size renamed or removed there falls back to the usual.
   const style = pickedStyle !== null && colors.includes(pickedStyle) ? pickedStyle : initialStyle;
   const size = pickedSize !== null && sizes.includes(pickedSize) ? pickedSize : null;

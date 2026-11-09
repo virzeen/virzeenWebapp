@@ -2,6 +2,7 @@ import "server-only";
 import { db } from "@virzeen/db";
 import {
   renderAdminAlertEmail,
+  renderBackInStockEmail,
   renderOrderCancelledEmail,
   renderOrderConfirmationEmail,
   renderOrderShippedEmail,
@@ -129,6 +130,12 @@ export const notifications = {
       wasPaidOnline: order.paymentStatus === "PAID",
     });
     await send(order.customerEmail, email, { orderNumber: order.orderNumber, kind: "order.cancelled" });
+  },
+
+  /** "Notify me when it's back" (specs/notify-me.md): the size a customer waited for is in stock again. */
+  async backInStock(to: string, alert: { productName: string; variantLabel: string; url: string }) {
+    const email = await renderBackInStockEmail({ siteUrl: getCoreConfig().siteUrl, ...alert });
+    await send(to, email, { kind: "stock.back" });
   },
 
   /** Emails the owner (payment amount mismatch, payment still ambiguous after 24h...). */

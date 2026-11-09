@@ -1,7 +1,12 @@
 import { notFound } from "next/navigation";
 import { ProductEditor } from "@/client/features/admin/editor/product-editor";
 import { requireAdminPage } from "@/server/auth/session";
-import { getProductForEdit, getProductFormOptions, uploadsEnabled } from "@/server/queries/admin";
+import {
+  getProductForEdit,
+  getProductFormOptions,
+  getWaitingCounts,
+  uploadsEnabled,
+} from "@/server/queries/admin";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -15,9 +20,11 @@ export async function generateMetadata({ params }: Props) {
 /** The product editor on the page (specs/product-editor-on-page.md): it looks like the shop's product page. */
 export default async function EditProductPage({ params }: Props) {
   await requireAdminPage();
-  const [product, options] = await Promise.all([
-    getProductForEdit((await params).id),
+  const { id } = await params;
+  const [product, options, waiting] = await Promise.all([
+    getProductForEdit(id),
     getProductFormOptions(),
+    getWaitingCounts(id),
   ]);
   if (!product) notFound();
 
@@ -33,7 +40,7 @@ export default async function EditProductPage({ params }: Props) {
       }}
       // The form's values as core reads them (styles with their numbers too), the same shape a save returns.
       values={product.values}
-      options={{ ...options, uploadsEnabled: uploadsEnabled() }}
+      options={{ ...options, uploadsEnabled: uploadsEnabled(), waiting }}
     />
   );
 }

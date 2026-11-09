@@ -7,20 +7,23 @@ type Variant = { color: string | null; stock: number };
 const styleHasStock = (variants: readonly Variant[], style: string) =>
   variants.some((v) => v.color === style && v.stock > 0);
 
-/** The style picked when the page opens: the first one with stock (none when all are sold out). */
+/**
+ * The style picked when the page opens: the first one with stock; when all are sold out, the first one, so its sizes
+ * can offer "Notify me when it's back" (specs/notify-me.md). None for a product without styles.
+ */
 export const initialStyle = (variants: readonly Variant[], styles: readonly string[]) =>
-  styles.find((style) => styleHasStock(variants, style)) ?? null;
+  styles.find((style) => styleHasStock(variants, style)) ?? styles[0] ?? null;
 
 /**
- * The style a `?style=` link asks for (a shared link or a favourite), when the product has it and it's in stock;
- * otherwise the usual first style with stock.
+ * The style a `?style=` link asks for (a shared link, a favourite, a "back in stock" email or the way back from
+ * sign-in), when the product has it, even sold out (its sizes then offer "Notify me"); otherwise the usual first style.
  */
 export function styleFromParam(
   param: string | undefined,
   variants: readonly Variant[],
   styles: readonly string[],
 ) {
-  if (param && styles.includes(param) && styleHasStock(variants, param)) return param;
+  if (param && styles.includes(param)) return param;
   return initialStyle(variants, styles);
 }
 

@@ -17,7 +17,8 @@ type SizePickerProps = {
 
 /**
  * "Select size" with "Size guide" on the right (when the product has a guide), then a grid of size boxes as wide as the
- * longest size name needs, up to 5 in a row. Sizes sold out in the picked style stay visible, struck through and disabled.
+ * longest size name needs, up to 5 in a row. Sizes sold out in the picked style stay visible and struck through, but
+ * can be picked for "Notify me when it's back" (specs/notify-me.md); a size the style doesn't come in is disabled.
  */
 export function SizePicker({ ref, error, onPick, sizeGuide }: SizePickerProps) {
   const { variants, colors, sizes, style, size, pickSize } = useProductSelection();
@@ -46,7 +47,8 @@ export function SizePicker({ ref, error, onPick, sizeGuide }: SizePickerProps) {
               key={s}
               value={s}
               label={s}
-              disabled={!variant || variant.stock <= 0}
+              disabled={!variant}
+              unavailable={variant !== undefined && variant.stock <= 0}
               // A name longer than its box wraps instead of running over the border.
               className="text-center wrap-anywhere"
             />

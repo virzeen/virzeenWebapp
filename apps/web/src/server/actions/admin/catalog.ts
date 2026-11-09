@@ -1,7 +1,7 @@
 "use server";
 
 import "server-only";
-import { catalogReads, catalogService } from "@virzeen/core";
+import { catalogReads, catalogService, stockAlertService } from "@virzeen/core";
 import {
   archiveSchema,
   categorySchema,
@@ -14,6 +14,7 @@ import {
   uploadSignatureSchema,
 } from "@virzeen/validators";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { signUpload } from "@/server/services/cloudinary";
 import { runAdminAction } from "./guard";
 
@@ -32,6 +33,8 @@ export async function saveProductAction(input: unknown) {
     const { id, product } = saveProductSchema.parse(input);
     const saved = await catalogService.saveProduct(admin.id, { id, product });
     refreshCatalog(saved.slug);
+    // Sizes back in stock email the customers waiting for them, after the reply (specs/notify-me.md).
+    after(() => stockAlertService.notifyProduct(saved.id));
     return saved;
   });
 }
@@ -75,6 +78,8 @@ export async function archiveProductAction(input: unknown) {
     const { id } = archiveSchema.parse(input);
     const result = await catalogService.archiveProduct(admin.id, id);
     refreshCatalog();
+    // Its waiting "Notify me" requests end without an email (specs/notify-me.md).
+    after(() => stockAlertService.notifyProduct(id));
     return result;
   });
 }

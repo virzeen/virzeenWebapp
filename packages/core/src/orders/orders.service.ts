@@ -5,6 +5,7 @@ import { recordAudit } from "../audit/audit";
 import { AppError } from "../errors";
 import { notifications } from "../notifications/notifications";
 import { paymentService } from "../payments/payment.service";
+import { stockAlertService } from "../stock-alerts/stock-alert.service";
 import { cancelOrderAndRestock } from "./cancellation";
 import { transitionOrder, transitionPayment } from "./order-state";
 
@@ -179,6 +180,7 @@ export const orderService = {
         select: { status: true, paymentStatus: true },
       });
       let emailCancelled: string | null = null;
+      let restocked: string[] = [];
       switch (input.to) {
         case "PROCESSING":
           await transitionOrder(tx, { orderId, to: "PROCESSING", actor, reason: "Packing started" });
@@ -223,6 +225,7 @@ export const orderService = {
             });
           }
           if (result.changed) emailCancelled = input.reason;
+          restocked = result.variantIds;
           break;
         }
       }
@@ -233,11 +236,12 @@ export const orderService = {
         entityId: orderId,
         diff: { from: current.status, to: input.to },
       });
-      return { emailCancelled };
+      return { emailCancelled, restocked };
     });
 
     if (input.to === "SHIPPED") await notifications.orderShipped(orderId);
     if (effects.emailCancelled) await notifications.orderCancelled(orderId, effects.emailCancelled);
+    await stockAlertService.notifyAvailable(effects.restocked);
     return { orderNumber: input.orderNumber };
   },
 
@@ -264,12 +268,12 @@ export const orderService = {
   async markRefusedAtDoor(actorId: string, orderNumber: string, note: string) {
     const orderId = await findOrderId(orderNumber);
     const actor = `admin:${actorId}`;
-    await db.$transaction(async (tx) => {
+    const restocked = await db.$transaction(async (tx) => {
       const current = await tx.order.findUniqueOrThrow({
         where: { id: orderId },
         select: { status: true, paymentMethod: true, paymentStatus: true },
       });
-      if (current.status === "CANCELLED") return; // already recorded (double click)
+      if (current.status === "CANCELLED") return []; // already recorded (double click)
       if (
         current.status !== "SHIPPED" ||
         current.paymentMethod !== "COD" ||
@@ -281,7 +285,7 @@ export const orderService = {
           { meta: { from: current.status, paymentStatus: current.paymentStatus } },
         );
       }
-      await cancelOrderAndRestock(tx, {
+      const cancelled = await cancelOrderAndRestock(tx, {
         orderId,
         actor,
         reason: `Refused at delivery: ${note}`,
@@ -302,7 +306,9 @@ export const orderService = {
         entityId: orderId,
         diff: { from: current.status, to: "CANCELLED" },
       });
+      return cancelled.variantIds;
     });
+    await stockAlertService.notifyAvailable(restocked);
     return { orderNumber };
   },
 

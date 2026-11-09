@@ -5,6 +5,7 @@ import { AppError, isAppError } from "../errors";
 import { notifications } from "../notifications/notifications";
 import { cancelOrderAndRestock } from "../orders/cancellation";
 import { transitionOrder, transitionPayment } from "../orders/order-state";
+import { stockAlertService } from "../stock-alerts/stock-alert.service";
 import { decodeEsewaCallback, esewaProvider } from "./esewa";
 import { khaltiProvider } from "./khalti";
 import type { PaymentProvider, ProviderVerdict } from "./provider";
@@ -124,7 +125,7 @@ async function markUnsuccessful(
   raw: unknown,
   now: Date,
 ) {
-  await db.$transaction(async (tx) => {
+  const restocked = await db.$transaction(async (tx) => {
     const moved = await transitionPayment(tx, {
       orderId: payment.order.id,
       paymentId: payment.id,
@@ -133,15 +134,21 @@ async function markUnsuccessful(
       reason,
       paymentData: { lastCheckedAt: now, lastIssue: to, rawResponse: toJson(raw) },
     });
-    if (!moved.changed) return;
+    if (!moved.changed) return [];
     const order = await tx.order.findUniqueOrThrow({
       where: { id: payment.order.id },
       select: { status: true },
     });
-    if (order.status === "PENDING") {
-      await cancelOrderAndRestock(tx, { orderId: payment.order.id, actor, reason, restoreToCart: true });
-    }
+    if (order.status !== "PENDING") return [];
+    const cancelled = await cancelOrderAndRestock(tx, {
+      orderId: payment.order.id,
+      actor,
+      reason,
+      restoreToCart: true,
+    });
+    return cancelled.variantIds;
   });
+  await stockAlertService.notifyAvailable(restocked);
 }
 
 async function flagOnce(payment: PaymentRow, title: string, lines: string[]) {

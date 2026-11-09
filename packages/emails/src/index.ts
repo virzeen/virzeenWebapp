@@ -11,8 +11,15 @@ import {
   type OrderShippedEmailData,
 } from "./templates/order";
 import { OtpEmail } from "./templates/otp";
+import { BackInStockEmail, type BackInStockEmailData } from "./templates/stock";
 
-export type { AdminAlertEmailData, OrderCancelledEmailData, OrderEmailData, OrderShippedEmailData };
+export type {
+  AdminAlertEmailData,
+  BackInStockEmailData,
+  OrderCancelledEmailData,
+  OrderEmailData,
+  OrderShippedEmailData,
+};
 export { formatPaisa } from "./money";
 export { EMAIL_WORDMARK_DARK_PATH, EMAIL_WORDMARK_PATH } from "./templates/layout";
 
@@ -51,4 +58,8 @@ export function renderOrderCancelledEmail(order: OrderCancelledEmailData) {
 
 export function renderAdminAlertEmail(alert: AdminAlertEmailData) {
   return renderBoth(`[Virzeen admin] ${alert.title}`, createElement(AdminAlertEmail, { alert }));
+}
+
+export function renderBackInStockEmail(alert: BackInStockEmailData) {
+  return renderBoth(`${alert.productName} is back in stock`, createElement(BackInStockEmail, { alert }));
 }

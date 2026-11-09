@@ -13,8 +13,9 @@ const BOX =
 
 /** A row's stock (and price) boxes: the form value, saved when the box is left. */
 function useRowInputs(index: number) {
-  const { form, commit } = useProductEditor();
+  const { form, commit, options } = useProductEditor();
   const price = useWatch({ control: form.control, name: `variants.${index}.pricePaisa` });
+  const variantId = useWatch({ control: form.control, name: `variants.${index}.id` });
   const { errors } = useFormState({ control: form.control, name: `variants.${index}` });
   const row = errors.variants?.[index];
   return {
@@ -27,7 +28,15 @@ function useRowInputs(index: number) {
     },
     stockError: row?.stock?.message,
     priceError: row?.pricePaisa?.message,
+    // Customers waiting for this size to come back (specs/notify-me.md), so the owners know what to restock.
+    waiting: (variantId && options.waiting?.[variantId]) || 0,
   };
+}
+
+/** "{n} waiting" under a size's stock: customers who asked to be emailed when it's back. */
+function WaitingNote({ count }: { count: number }) {
+  if (count === 0) return null;
+  return <p className="text-center text-small text-ink-muted">{count} waiting</p>;
 }
 
 type SizeStockProps = { cell: SizeCell; style: string | null; showPrice: boolean };
@@ -85,6 +94,7 @@ function SizeStockInputs({
         aria-describedby={errorId}
         {...inputs.stock}
       />
+      <WaitingNote count={inputs.waiting} />
       {showPrice && (
         <RupeesInput
           aria-label={`Price in rupees, ${name}`}
@@ -117,7 +127,7 @@ export function SingleStock({
     <div className="grid gap-4 sm:grid-cols-2">
       <FormField
         label={style ? `Stock, ${style}` : "Stock"}
-        helper="How many you have."
+        helper={inputs.waiting > 0 ? `How many you have. ${inputs.waiting} waiting.` : "How many you have."}
         error={inputs.stockError}
       >
         <Input type="number" inputMode="numeric" min={0} {...inputs.stock} />
