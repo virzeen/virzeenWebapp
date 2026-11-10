@@ -71,17 +71,18 @@ export function ProductCarousel({
     rowRef.current?.querySelectorAll("a[href]").forEach((link) => link.setAttribute("target", "_blank"));
   }, [newTab, products]);
 
-  // One card per press. A card's width includes its gap, so the row lands on the next card's start (and the snap
-  // tidies up any rounding).
+  // One card per press: from a card's start to the next one's (the card and the gap after it), so the row lands on
+  // the next card's start (and the snap tidies up any rounding).
   function scrollByCard(direction: 1 | -1) {
     const row = rowRef.current;
     const card = row?.firstElementChild;
     if (!row || !card) return;
+    const next = card.nextElementSibling;
+    const step = next
+      ? next.getBoundingClientRect().left - card.getBoundingClientRect().left
+      : card.getBoundingClientRect().width;
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    row.scrollBy({
-      left: direction * card.getBoundingClientRect().width,
-      behavior: reduceMotion ? "auto" : "smooth",
-    });
+    row.scrollBy({ left: direction * step, behavior: reduceMotion ? "auto" : "smooth" });
   }
 
   if (products.length === 0) return null;

@@ -134,14 +134,15 @@ test.describe("Product page", () => {
     await expect(previous).toBeDisabled();
     await expect(next).toBeEnabled();
     const row = more.getByRole("list", { name: "More from Virzeen" });
-    const cardWidth = await row
-      .locator(":scope > li")
-      .first()
-      .evaluate((card) => card.getBoundingClientRect().width);
+    // One press moves one card: from a card's left edge to the next one's (the card and the gap after it).
+    const step = await row.evaluate((list) => {
+      const [first, second] = [...list.children].map((card) => card.getBoundingClientRect().left);
+      return (second ?? 0) - (first ?? 0);
+    });
     await next.click();
     await expect(previous).toBeEnabled();
     await expect
-      .poll(async () => Math.abs((await row.evaluate((list) => list.scrollLeft)) - cardWidth))
+      .poll(async () => Math.abs((await row.evaluate((list) => list.scrollLeft)) - step))
       .toBeLessThanOrEqual(1);
   });
 
