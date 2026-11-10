@@ -21,6 +21,7 @@ export async function resetDatabase() {
     db.auditLog.deleteMany(),
     db.address.deleteMany(),
     db.favourite.deleteMany(),
+    db.stockAlert.deleteMany(),
     db.review.deleteMany(),
     db.productFeature.deleteMany(),
     db.productImage.deleteMany(),

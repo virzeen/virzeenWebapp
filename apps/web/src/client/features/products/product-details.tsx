@@ -13,6 +13,10 @@ type ProductDetailsProps = {
   product: ProductDetailsData;
   /** The page's `?style=` (a shared link or a favourite); ignored unless the product sells that style. */
   styleParam?: string | undefined;
+  /** The page's `?size=` (a "back in stock" email, the way back from sign-in); ignored unless the product has it. */
+  sizeParam?: string | undefined;
+  /** The variants the signed-in customer waits for ("Notify me when it's back", specs/notify-me.md). */
+  waitingVariantIds?: readonly string[];
   preview?: boolean;
 };
 
@@ -24,7 +28,13 @@ type ProductDetailsProps = {
  * Shared by the shop's product page and the admin preview (specs/admin-product-editor.md "Preview"), so the preview
  * always looks like the real page: no server-only imports here.
  */
-export function ProductDetails({ product, styleParam, preview = false }: ProductDetailsProps) {
+export function ProductDetails({
+  product,
+  styleParam,
+  sizeParam,
+  waitingVariantIds,
+  preview = false,
+}: ProductDetailsProps) {
   const firstStyle = styleFromParam(styleParam, product.variants, product.colors);
   // Styles with their own photos get picture tiles: each style's first photo, else the main photo.
   const tiles = hasStylePhotos(product.images, product.colors)
@@ -67,6 +77,7 @@ export function ProductDetails({ product, styleParam, preview = false }: Product
         colors={product.colors}
         sizes={product.sizes}
         initialStyle={firstStyle}
+        initialSize={sizeParam && product.sizes.includes(sizeParam) ? sizeParam : null}
         syncUrl={!preview}
       >
         {/* Row 1 on the right holds the name; the gallery spans both rows; row 2 takes the rest of the height. */}
@@ -85,6 +96,7 @@ export function ProductDetails({ product, styleParam, preview = false }: Product
               sizeGuide={product.sizeGuide}
               tiles={tiles}
               preview={preview}
+              waitingVariantIds={waitingVariantIds}
             />
             <p className="text-small text-ink-muted">
               Prices include 13% VAT. Free shipping across Nepal and 7-day free returns. Pay in cash when it

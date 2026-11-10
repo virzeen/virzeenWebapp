@@ -7,6 +7,12 @@ import { StockLabel } from "@/client/components/shared/stock-label";
 import { useCart } from "@/client/features/cart/cart-provider";
 import { favouriteDetails } from "@/client/features/favourites/favourite-bag";
 import { FavouriteButton } from "@/client/features/favourites/favourite-button";
+import { useFavourites } from "@/client/features/favourites/favourites-provider";
+import {
+  NotifyMeButton,
+  StopNotifyButton,
+  useNotifyMe,
+} from "@/client/features/stock-alerts/notify-me-button";
 import { addToBagMessage, allInBagMessage } from "@/client/lib/error-messages";
 import { addToCartAction } from "@/server/actions/cart";
 import type { ProductDetailsData, SizeGuideView } from "./product-details-data";
@@ -24,15 +30,29 @@ type ProductPurchaseProps = {
   tiles?: Record<string, string | null>;
   /** Admin preview of an unsaved product: Add to bag and Favourite only say so (its variants may not exist yet). */
   preview?: boolean;
+  /** The product's variants the signed-in customer already waits for ("Notify me when it's back"). */
+  waitingVariantIds?: readonly string[];
 };
 
+/** The main button, floating on phones: Add to bag or Notify me (the same size, so they can't drift apart). */
+const STICKY_BUTTON = "pointer-events-auto mx-auto flex h-14 w-4/5 md:h-12 md:w-full";
+
 /**
- * Style tiles, sizes, stock, "Add to bag" and "Favourite" (patterns.md §6). Unavailable options stay visible but
- * disabled. On phones Add to bag floats alone at the bottom of the screen (`data-sticky-cta`: globals.css keeps focus and the
- * footer clear of it). Pressed before a size is chosen, it points to the sizes instead of doing nothing.
+ * Style tiles, sizes, stock, "Add to bag" and "Favourite" (patterns.md §6). Sold-out styles and sizes stay visible,
+ * struck through, and can be picked: Add to bag then becomes "Notify me when it's back" (specs/notify-me.md). On phones
+ * the main button floats alone at the bottom of the screen (`data-sticky-cta`: globals.css keeps focus and the footer
+ * clear of it). Pressed before a size is chosen, it points to the sizes instead of doing nothing.
  */
-export function ProductPurchase({ product, sizeGuide, tiles, preview = false }: ProductPurchaseProps) {
+export function ProductPurchase({
+  product,
+  sizeGuide,
+  tiles,
+  preview = false,
+  waitingVariantIds = [],
+}: ProductPurchaseProps) {
   const { cart, setCart, open } = useCart();
+  // The site layout knows who is signed in; Favourites shares it with every client leaf.
+  const { signedIn } = useFavourites();
   const [isPending, startTransition] = useTransition();
   const { variants, colors, sizes, style, size, selected, price } = useProductSelection();
   const [sizeError, setSizeError] = useState(false);
@@ -40,17 +60,25 @@ export function ProductPurchase({ product, sizeGuide, tiles, preview = false }: 
   const [allInBagId, setAllInBagId] = useState<string | null>(null);
   const sizeGroupRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const notifyMe = useNotifyMe({ waitingVariantIds, signedIn, preview, buttonRef });
 
   const anyInStock = variants.some((v) => v.stock > 0);
   const sizeMissing = sizes.length > 0 && !size;
-  const soldOut = !anyInStock || (!sizeMissing && (!selected || selected.stock <= 0));
+  // The picked size (or a product without sizes) is sold out: "Notify me when it's back" takes Add to bag's place.
+  const notify = selected !== undefined && selected.stock <= 0;
+  const soldOut = !sizeMissing && !selected;
   const limit = selected ? Math.min(selected.stock, MAX_QTY_PER_LINE) : 0;
   const inBag = cart.items.find((item) => item.variantId === selected?.id)?.quantity ?? 0;
   const allInBag = selected !== undefined && allInBagId === selected.id && inBag >= limit;
+  const waitingForSelected = notify && notifyMe.isWaiting(selected.id);
 
   function pointToSizes() {
     setSizeError(true);
-    const first = sizeGroupRef.current?.querySelector<HTMLElement>('[role="radio"]:not(:disabled)');
+    // The first size in stock, else the first one that can be picked (sold out, for "Notify me").
+    const group = sizeGroupRef.current;
+    const first =
+      group?.querySelector<HTMLElement>('[role="radio"]:not(:disabled):not([data-unavailable])') ??
+      group?.querySelector<HTMLElement>('[role="radio"]:not(:disabled)');
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     first?.scrollIntoView({ block: "center", behavior: reduceMotion ? "auto" : "smooth" });
     first?.focus({ preventScroll: true });
@@ -106,18 +134,28 @@ export function ProductPurchase({ product, sizeGuide, tiles, preview = false }: 
           data-sticky-cta
           className="pointer-events-none fixed inset-x-0 bottom-0 z-10 px-4 pb-4 md:pointer-events-auto md:static md:p-0"
         >
-          <Button
-            ref={buttonRef}
-            size="lg"
-            shape="pill"
-            className="pointer-events-auto mx-auto flex h-14 w-4/5 md:h-12 md:w-full"
-            loading={isPending}
-            disabled={soldOut}
-            onClick={addToBag}
-            data-testid="add-to-bag"
-          >
-            {buttonLabel}
-          </Button>
+          {notify ? (
+            <NotifyMeButton
+              ref={buttonRef}
+              waiting={waitingForSelected}
+              isPending={notifyMe.isPending}
+              onPress={() => notifyMe.ask(selected.id, style, size)}
+              className={STICKY_BUTTON}
+            />
+          ) : (
+            <Button
+              ref={buttonRef}
+              size="lg"
+              shape="pill"
+              className={STICKY_BUTTON}
+              loading={isPending}
+              disabled={soldOut}
+              onClick={addToBag}
+              data-testid="add-to-bag"
+            >
+              {buttonLabel}
+            </Button>
+          )}
           <div role="status">
             {allInBag && (
               // With nothing behind the bar on phones, the note gets its own backing to stay readable.
@@ -127,6 +165,9 @@ export function ProductPurchase({ product, sizeGuide, tiles, preview = false }: 
             )}
           </div>
         </div>
+        {waitingForSelected && (
+          <StopNotifyButton disabled={notifyMe.isPending} onPress={() => notifyMe.stop(selected.id)} />
+        )}
         {/* Saves the style picked now ("" for a product without styles; the first style when all are sold out). */}
         <FavouriteButton
           productId={product.productId}

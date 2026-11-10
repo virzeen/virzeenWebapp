@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 // Describes what is stored and why (security-policy.md §9). Mirrors the schema (User, Session, Address,
-// Order, Favourite) and the services in docs/architecture.md; update both when either changes.
+// Order, Favourite, StockAlert) and the services in docs/architecture.md; update both when either changes.
 export default function PrivacyPage() {
   return (
     <ContentPage eyebrow="Legal" title="Privacy">
@@ -22,6 +22,7 @@ export default function PrivacyPage() {
         <li>
           The products you save as favourites. If you aren&apos;t signed in, they stay only in your browser.
         </li>
+        <li>The sold-out items you ask us to email you about when they&apos;re back.</li>
         <li>For each device you sign in on, its IP address and browser type, to keep your account secure.</li>
       </ul>
       <p>We don&apos;t collect card or wallet details: you pay in cash when your order arrives.</p>

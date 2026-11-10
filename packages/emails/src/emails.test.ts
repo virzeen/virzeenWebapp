@@ -1,6 +1,6 @@
 import { fontStack } from "@virzeen/ui/tokens";
 import { describe, expect, it } from "vitest";
-import { formatPaisa, renderOrderConfirmationEmail, renderOtpEmail } from "./index";
+import { formatPaisa, renderBackInStockEmail, renderOrderConfirmationEmail, renderOtpEmail } from "./index";
 
 describe("formatPaisa", () => {
   it("formats paisa as rupees with Indian grouping", () => {
@@ -150,5 +150,20 @@ describe("renderOrderConfirmationEmail", () => {
     expect(email.text).toMatch(
       /Shipping[\s\S]*Discount \(WELCOME10\)[\s\S]*−Rs 450[\s\S]*Total[\s\S]*Rs 4,050/,
     );
+  });
+});
+
+describe("renderBackInStockEmail", () => {
+  it("names the product and size and links to that style and size", async () => {
+    const email = await renderBackInStockEmail({
+      siteUrl: "https://virzeen.com",
+      productName: "Linen Overshirt",
+      variantLabel: "Black / M",
+      url: "https://virzeen.com/product/linen-overshirt?style=Black&size=M",
+    });
+    expect(email.subject).toBe("Linen Overshirt is back in stock");
+    expect(email.text).toContain("Linen Overshirt, Black / M, is back in stock.");
+    expect(email.text).toContain("This is the only email we'll send about it.");
+    expect(email.html).toContain('href="https://virzeen.com/product/linen-overshirt?style=Black&amp;size=M"');
   });
 });

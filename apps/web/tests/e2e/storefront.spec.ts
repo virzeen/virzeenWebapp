@@ -38,9 +38,13 @@ test.describe("Add to bag", () => {
     await expect(page.getByTestId("cart-subtotal")).toContainText("Rs 4,500");
   });
 
-  test("out-of-stock sizes cannot be selected", async ({ page }) => {
+  test("an out-of-stock size can be picked but offers Notify me instead of Add to bag", async ({ page }) => {
     await page.goto("/product/linen-overshirt");
-    await expect(page.getByRole("radio", { name: "XL", exact: true })).toBeDisabled();
+    const xl = page.getByRole("radio", { name: "XL, sold out", exact: true });
+    await xl.click();
+    await expect(xl).toBeChecked();
+    await expect(page.getByRole("button", { name: "Add to bag" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Notify me when it's back" })).toBeVisible();
   });
 
   test("the bag page keeps quantity changes and removal with undo", async ({ page }) => {

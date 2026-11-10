@@ -15,6 +15,11 @@ export type EditorOptions = {
   /** Active size guides, whole, so Preview's Size guide popup can show the picked one. */
   sizeGuides: (SizeGuideView & { id: string })[];
   uploadsEnabled: boolean;
+  /**
+   * Customers waiting for each sold-out variant ("Notify me when it's back", specs/notify-me.md): variant id → count,
+   * as the page loaded. Absent = none.
+   */
+  waiting?: Record<string, number>;
 };
 
 /** The product as last saved (the form holds what the next save sends). */

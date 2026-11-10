@@ -6,6 +6,7 @@ import { NextResponse } from "next/server";
 import { siteUrl } from "@/server/env";
 import { logger } from "@/server/logger";
 import { clientIp, rateLimit } from "@/server/security/rate-limit";
+import { sendDueStockAlerts } from "@/server/services/stock-alerts";
 
 // Provider return URLs are untrusted hints (payment-policy.md §1.2): routes only parse, call core, redirect.
 
@@ -22,6 +23,8 @@ export function redirectFor(result: VerifyResult | null) {
 export async function handleProviderReturn(provider: string, run: () => Promise<VerifyResult | null>) {
   try {
     await rateLimit("payment:callback", await clientIp());
+    // A failed or expired payment returns the order's stock ("Notify me", specs/notify-me.md).
+    sendDueStockAlerts();
     return redirectFor(await run());
   } catch (error) {
     if (!isAppError(error)) Sentry.captureException(error, { tags: { provider } });
