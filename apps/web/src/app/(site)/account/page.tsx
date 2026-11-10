@@ -1,9 +1,10 @@
 import { ButtonLink, EmptyState, Link } from "@virzeen/ui";
 import { Heart } from "lucide-react";
 import { ProductCarousel } from "@/client/features/products/product-carousel";
+import { StockAlertList } from "@/client/features/stock-alerts/stock-alert-list";
 import { formatMonthYear } from "@/client/lib/format";
 import { requireUserPage } from "@/server/auth/session";
-import { listMyFavourites } from "@/server/queries/account";
+import { listMyFavourites, listMyStockAlerts } from "@/server/queries/account";
 
 /** How many favourites the profile's row shows; "View all" opens the rest. */
 const FAVOURITES_SHOWN = 12;
@@ -11,11 +12,11 @@ const FAVOURITES_SHOWN = 12;
 /**
  * The profile, like Nike's member page (owner 2026-11-08): a round initial, the name as the h1 with "Member since
  * {month year}", then the customer's favourites as a row of cards with "View all" (one card per product, newest
- * first).
+ * first), then the sizes they asked to hear about ("Notify me", specs/notify-me.md; only when there are some).
  */
 export default async function ProfilePage() {
   const user = await requireUserPage("/account");
-  const favourites = await listMyFavourites(user.id);
+  const [favourites, alerts] = await Promise.all([listMyFavourites(user.id), listMyStockAlerts(user.id)]);
   const seen = new Set<string>();
   const products = favourites
     .map((favourite) => favourite.product)
@@ -36,14 +37,17 @@ export default async function ProfilePage() {
           {name.charAt(0).toUpperCase()}
         </span>
         <div className="flex max-w-full min-w-0 flex-col gap-1">
+          {/* Focus lands on the name when the last "Notify me" request is removed (tabIndex -1). */}
           {isEmail ? (
-            <h1 className="font-display text-h3 wrap-break-word md:text-h2">
+            <h1 id="profile-name" tabIndex={-1} className="font-display text-h3 wrap-break-word md:text-h2">
               {name.split("@")[0]}
               <wbr />@{name.split("@").slice(1).join("@")}
             </h1>
           ) : (
             // Nike's name size from md; 24px on phones, so a long name stays on a line or two.
-            <h1 className="font-display text-h2 wrap-break-word md:text-h1">{name}</h1>
+            <h1 id="profile-name" tabIndex={-1} className="font-display text-h2 wrap-break-word md:text-h1">
+              {name}
+            </h1>
           )}
           <p className="text-body text-ink-muted">Member since {formatMonthYear(user.createdAt)}</p>
         </div>
@@ -75,6 +79,8 @@ export default async function ProfilePage() {
           />
         </section>
       )}
+
+      <StockAlertList alerts={alerts} emptyFocusId="profile-name" />
     </div>
   );
 }

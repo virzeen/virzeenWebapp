@@ -5,9 +5,13 @@ import {
   favouriteService,
   orderService,
   reviewService,
+  stockAlertService,
+  variantPath,
   type FavouriteItem,
+  type StockAlertItem,
 } from "@virzeen/core";
 import type { FavouriteView } from "@/server/actions/favourites";
+import type { StockAlertRow } from "@/server/actions/stock-alerts";
 
 // Every read is scoped to the signed-in user id (security-policy.md §3).
 
@@ -30,6 +34,21 @@ export const listMyFavourites = async (userId: string) =>
 
 /** Which products and styles the customer saved, for every Favourite button (one indexed query). */
 export const listMyFavouriteKeys = (userId: string) => favouriteService.listKeys(userId);
+
+/** The customer's waiting "Notify me" requests, newest first, as the profile lists them (specs/notify-me.md). */
+export const listMyStockAlerts = async (userId: string): Promise<StockAlertRow[]> =>
+  (await stockAlertService.listForUser(userId)).map((item: StockAlertItem) => ({
+    variantId: item.variantId,
+    productName: item.productName,
+    href: variantPath(item.productSlug, item.color, item.size),
+    variantLabel: item.variantLabel,
+    imageUrl: item.imageUrl,
+    imageAlt: item.imageAlt,
+  }));
+
+/** Which of a product's variants the customer is waiting for (the product page's Notify me button). */
+export const listMyWaitingVariantIds = (userId: string, variantIds: readonly string[]) =>
+  stockAlertService.waitingVariantIds(userId, variantIds);
 
 /** Another customer's order → null (the page shows 404). */
 export async function getMyOrder(userId: string, orderNumber: string) {

@@ -15,6 +15,7 @@ import {
 } from "@virzeen/validators";
 import { revalidatePath } from "next/cache";
 import { signUpload } from "@/server/services/cloudinary";
+import { sendDueStockAlerts } from "@/server/services/stock-alerts";
 import { runAdminAction } from "./guard";
 
 const refreshCatalog = (slug?: string) => {
@@ -32,6 +33,8 @@ export async function saveProductAction(input: unknown) {
     const { id, product } = saveProductSchema.parse(input);
     const saved = await catalogService.saveProduct(admin.id, { id, product });
     refreshCatalog(saved.slug);
+    // Sizes back in stock email the customers waiting for them, after the reply (specs/notify-me.md).
+    sendDueStockAlerts();
     return saved;
   });
 }
@@ -75,6 +78,8 @@ export async function archiveProductAction(input: unknown) {
     const { id } = archiveSchema.parse(input);
     const result = await catalogService.archiveProduct(admin.id, id);
     refreshCatalog();
+    // Its waiting "Notify me" requests end without an email (specs/notify-me.md).
+    sendDueStockAlerts();
     return result;
   });
 }

@@ -2,6 +2,7 @@ import "server-only";
 import { db } from "@virzeen/db";
 import {
   renderAdminAlertEmail,
+  renderBackInStockEmail,
   renderOrderCancelledEmail,
   renderOrderConfirmationEmail,
   renderOrderShippedEmail,
@@ -20,13 +21,16 @@ export const PAYMENT_METHOD_LABELS = {
   KHALTI: "Khalti",
 } as const;
 
-async function send(to: string, email: RenderedEmail, context: Record<string, unknown>) {
+/** Sends one email; true when the mailer took it. Failures are logged, never thrown. */
+async function send(to: string, email: RenderedEmail, context: Record<string, unknown>): Promise<boolean> {
   const { mailer, logger } = getCoreConfig();
   try {
     await mailer.send({ to, ...email });
     logger.info("email sent", { subject: email.subject, ...context });
+    return true;
   } catch (error) {
     logger.error("email failed", { subject: email.subject, error: String(error), ...context });
+    return false;
   }
 }
 
@@ -129,6 +133,15 @@ export const notifications = {
       wasPaidOnline: order.paymentStatus === "PAID",
     });
     await send(order.customerEmail, email, { orderNumber: order.orderNumber, kind: "order.cancelled" });
+  },
+
+  /**
+   * "Notify me when it's back" (specs/notify-me.md): the size a customer waited for is in stock again. Resolves to
+   * whether the mailer took it, so a failed one can wait for the next run.
+   */
+  async backInStock(to: string, alert: { productName: string; variantLabel: string; url: string }) {
+    const email = await renderBackInStockEmail({ siteUrl: getCoreConfig().siteUrl, ...alert });
+    return send(to, email, { kind: "stock.back" });
   },
 
   /** Emails the owner (payment amount mismatch, payment still ambiguous after 24h...). */
