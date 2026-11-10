@@ -61,7 +61,7 @@ export default async function PortfolioProjectPage({ params }: Props) {
           ) : (
             <figure
               key={`image-${block.url}`}
-              className={block.layout === "full" ? "w-full" : "mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8"}
+              className={block.layout === "full" ? "w-full" : "mx-auto w-full max-w-5xl px-gutter"}
             >
               <CloudImage
                 src={block.url}
@@ -70,9 +70,7 @@ export default async function PortfolioProjectPage({ params }: Props) {
                 sizes={block.layout === "full" ? "100vw" : "(min-width: 1024px) 1024px, 100vw"}
               />
               {block.caption && (
-                <figcaption className="px-4 pt-3 text-small text-ink-muted sm:px-6 lg:px-8">
-                  {block.caption}
-                </figcaption>
+                <figcaption className="px-gutter pt-3 text-small text-ink-muted">{block.caption}</figcaption>
               )}
             </figure>
           ),

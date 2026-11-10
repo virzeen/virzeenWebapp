@@ -49,7 +49,7 @@ export function MediaPhone(props: MediaPhoneProps) {
           onIndexChange={props.onIndexChange}
         />
       ) : current ? (
-        <CloudImage src={current.url} alt={alt} sizes={GALLERY_SIZES} className="-mx-4 sm:-mx-6" />
+        <CloudImage src={current.url} alt={alt} sizes={GALLERY_SIZES} className="-mx-gutter" />
       ) : (
         <MediaDropZone uploads={uploads} uploadsEnabled={props.uploadsEnabled} />
       )}

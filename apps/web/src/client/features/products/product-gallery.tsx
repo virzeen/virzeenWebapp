@@ -27,7 +27,7 @@ export function ProductGallery({ images, productName }: { images: GalleryImage[]
         alt={first?.alt ?? productName}
         sizes={GALLERY_SIZES}
         priority={Boolean(first)}
-        className="lg:max-w-gallery-photo -mx-4 sm:-mx-6 lg:mx-0 lg:ml-auto lg:rounded-md"
+        className="lg:max-w-gallery-photo -mx-gutter lg:mx-0 lg:ml-auto lg:rounded-md"
       />
     );
   }

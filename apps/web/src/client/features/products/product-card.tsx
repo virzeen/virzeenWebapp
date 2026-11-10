@@ -42,7 +42,7 @@ export function ProductCard({ product, priority = false, onNavigate }: ProductCa
           src={product.imageUrl}
           alt={product.imageAlt}
           ratio="square"
-          sizes="(min-width: 1024px) 33vw, 50vw"
+          sizes="(min-width: 960px) 33vw, 50vw"
           priority={priority}
           imageClassName="transition-transform duration-400 ease-standard motion-safe:group-hover:scale-102"
         />
@@ -52,8 +52,11 @@ export function ProductCard({ product, priority = false, onNavigate }: ProductCa
           </Badge>
         )}
       </div>
-      {/* Nike's sizes: the name and the grey line 14px on phones and 16px from md, the price 16px. */}
-      <div className="flex flex-col">
+      {/*
+        Nike's sizes: the name and the grey line 14px on phones and 16px from md, the price 16px. Below 960px the
+        photos run to the screen's edges and the text sits 12px in (card-inset).
+      */}
+      <div className="flex flex-col px-card-inset">
         <span className="text-small font-medium md:text-body">{product.name}</span>
         <span className="text-small text-ink-muted md:text-body">
           {product.styles.length > 1 ? product.styles.join(", ") : product.categoryName}

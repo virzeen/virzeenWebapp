@@ -12,7 +12,7 @@ export function FavouritesGridSkeleton({ count = 4 }: { count?: number }) {
           <div className="flex flex-col gap-3">
             <Skeleton className="aspect-square w-full" />
             {/* The name and category on the left, the price on the right (under them on phones), as on the card. */}
-            <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:gap-3">
+            <div className="flex flex-col gap-2 px-card-inset sm:flex-row sm:justify-between sm:gap-3">
               <div className="flex flex-1 flex-col gap-2">
                 <Skeleton shape="text" className="w-2/3" />
                 <Skeleton shape="text" className="w-1/2" />
@@ -20,7 +20,9 @@ export function FavouritesGridSkeleton({ count = 4 }: { count?: number }) {
               <Skeleton shape="text" className="w-1/4" />
             </div>
           </div>
-          <Skeleton shape="circle" className="h-12 w-32" />
+          <div className="px-card-inset">
+            <Skeleton shape="circle" className="h-12 w-32" />
+          </div>
         </div>
       ))}
     </FavouritesGrid>

@@ -44,7 +44,7 @@ Rules: never use Tailwind's default `text-sm`/`text-2xl` in app code — use the
 Tailwind's 4px base. Use only these steps: `1 (4px) · 2 (8) · 3 (12) · 4 (16) · 6 (24) · 8 (32) · 12 (48) · 16 (64) · 24 (96) · 32 (128)`.
 
 - Inside components: 2–6. Between related elements: 4–8. Between sections: 16 mobile, 24 desktop.
-- Page gutters: `px-4` mobile, `px-6` tablet, `px-8` desktop (built into `Container`).
+- Page gutters: `px-gutter`, 24px, and 48px from 960px wide, like nike.com (owner 2026-11-10; built into `Container`). Something that runs to the screen's edge on phones pulls out with `-mx-gutter`. Never `px-4 sm:px-6 lg:px-8` by hand.
 
 ## 4. Radius, borders, shadow
 
@@ -84,8 +84,8 @@ Named animations (`animate-*`, defined with their keyframes in `tokens.css`): `s
 ## 6. Breakpoints and layout
 
 Tailwind defaults: `sm 640px · md 768px · lg 1024px · xl 1280px`. Design mobile first (base = 360px).
-Max content width `max-w-7xl` (1280px) via `Container`. Product cards, everywhere (owner 2026-11-08, Nike's): 2 a row on phones, 3 from `md` (`Grid columns="products"`; `ProductCarousel` matches), square photos.
-`page-edge` (spacing token, e.g. `lg:right-page-edge`): the distance from the screen's right edge to the right edge of
+Page width `max-w-page` (1920px with the gutters, so content is at most 1824px wide, centred) via `Container`, as nike.com measured from 360 to 2560px wide on 2026-11-10. The gutter's 960px step is Nike's large breakpoint and lives only in the `--spacing-gutter` token (tokens.css), not as a Tailwind breakpoint. Product cards, everywhere (owner 2026-11-08, Nike's): 2 a row below 960px, running to the screen's edges 6px apart, 3 from 960px (nike.com, measured 2026-11-10) (`Grid columns="products"`; `ProductCarousel` matches), square photos.
+`page-edge` (spacing token, e.g. `md:right-page-edge`): the distance from the screen's right edge to the right edge of
 `Container`'s content, so a fixed panel under the header lines up with its icons (`DropPanel`).
 
 ## 7. Z-index scale (use only these)

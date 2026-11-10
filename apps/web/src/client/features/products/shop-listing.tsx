@@ -156,9 +156,11 @@ export function ShopListingSkeleton({ intro = false }: { intro?: boolean }) {
         {CARD_SKELETONS.map((id) => (
           <div key={id} className="flex flex-col gap-3">
             <Skeleton shape="square" />
-            <Skeleton shape="text" className="w-3/4" />
-            <Skeleton shape="text" className="w-1/2" />
-            <Skeleton shape="text" className="w-1/3" />
+            <div className="flex flex-col gap-3 px-card-inset">
+              <Skeleton shape="text" className="w-3/4" />
+              <Skeleton shape="text" className="w-1/2" />
+              <Skeleton shape="text" className="w-1/3" />
+            </div>
           </div>
         ))}
       </Grid>

@@ -77,11 +77,12 @@ export function FavouriteCard({ item, priority = false, saved, onToggleSaved, on
           src={product.imageUrl}
           alt={product.imageAlt}
           ratio="square"
-          sizes="(min-width: 768px) 33vw, 50vw"
+          sizes="(min-width: 960px) 33vw, 50vw"
           priority={priority}
           imageClassName="transition-transform duration-400 ease-standard motion-safe:group-hover:scale-102"
         />
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+        {/* Below 960px the photos run to the screen's edges: the text and the pill sit 12px in (card-inset). */}
+        <div className="flex flex-col gap-1 px-card-inset sm:flex-row sm:items-start sm:justify-between sm:gap-3">
           <div className="flex min-w-0 flex-col gap-1">
             {/* A word longer than the space left for it breaks instead of pushing the price out of the card. */}
             <span className="text-body font-medium wrap-break-word">{product.name}</span>

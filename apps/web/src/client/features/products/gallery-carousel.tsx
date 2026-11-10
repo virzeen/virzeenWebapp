@@ -58,7 +58,7 @@ export function GalleryCarousel({
   }
 
   return (
-    <div className={cn("relative -mx-4 overflow-x-clip sm:-mx-6", className)}>
+    <div className={cn("relative -mx-gutter overflow-x-clip", className)}>
       {/* The row scrolls sideways, so it takes keyboard focus (arrow keys scroll it) and shows the focus ring. */}
       <ul
         ref={rowRef}
