@@ -7,5 +7,5 @@
 5. If the provider says completed but verification fails:
    - Amount mismatch → do NOT mark paid. Compare amounts in the provider dashboard and contact the owner.
    - Provider API error → check provider status page, retry later.
-6. If the provider dashboard shows the money received and the owner approves, use "Mark paid (manual)" with the provider reference as the reason. This creates an `OrderEvent` with the admin as actor.
+6. If the provider dashboard shows the money received and the owner approves, find that attempt in the order's **Payment attempts** table (match the provider and reference) and press its **Mark paid**, with the provider reference as the reason. Never mark another attempt: an order can have several open at once (Pay now), and the real payment would then look like a second payment to refund. This creates an `OrderEvent` ("Attempt N: Manual: …") with the admin as actor. Only possible while the order still waits for payment; a payment for a closed order is refunded instead (payment-policy §10).
 7. Reply to the customer with the updated status. Add a note to `docs/STATUS.md` → Known issues if it happened more than once.

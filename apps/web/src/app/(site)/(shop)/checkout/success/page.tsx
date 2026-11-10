@@ -6,7 +6,7 @@ import { cache } from "react";
 import { OrderDetail } from "@/client/features/orders/order-detail";
 import { OrderPaymentState } from "@/client/features/orders/order-payment-state";
 import { requireUserPage } from "@/server/auth/session";
-import { getMyOrder, onlinePaymentMethods, requestTime } from "@/server/queries/account";
+import { getMyOrder } from "@/server/queries/account";
 import { flattenSearchParams, type SearchParams } from "@/server/queries/params";
 
 type Props = { searchParams: SearchParams };
@@ -52,10 +52,18 @@ export default async function CheckoutSuccessPage({ searchParams }: Props) {
           </>
         )}
         {order.status === "CANCELLED" && (
-          <h1 className="font-display text-h1">
-            Order <span className="whitespace-nowrap">{order.orderNumber}</span> was cancelled.
-          </h1>
+          <>
+            <h1 className="font-display text-h1">
+              Order <span className="whitespace-nowrap">{order.orderNumber}</span> was cancelled.
+            </h1>
+            {/* A payment that came after the order was cancelled: being refunded, or refunded. */}
+            <OrderPaymentState order={order} methods={[]} failed={false} now={0} />
+          </>
         )}
+        {/*
+          The provider hasn't confirmed the payment the customer just came back from, so no Pay now here: it would
+          invite a second payment while this one settles (specs/payment-window.md). The order page has Pay now.
+        */}
         {order.status === "PENDING" && (
           <>
             <h1 className="font-display text-h1">We&apos;re confirming your payment.</h1>
@@ -63,13 +71,6 @@ export default async function CheckoutSuccessPage({ searchParams }: Props) {
               This usually takes a minute — you&apos;ll get an email when it&apos;s done. Your order number is{" "}
               <span className="whitespace-nowrap">{order.orderNumber}</span>.
             </Alert>
-            {/* Didn't finish paying after all: the 15 minutes still run (specs/payment-window.md). */}
-            <OrderPaymentState
-              order={order}
-              methods={onlinePaymentMethods()}
-              failed={false}
-              now={requestTime()}
-            />
           </>
         )}
         <div className="flex flex-wrap gap-3">

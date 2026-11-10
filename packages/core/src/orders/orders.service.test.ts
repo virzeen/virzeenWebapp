@@ -190,9 +190,13 @@ describe("orderService — payments", () => {
 
   it("won't mark a COD order paid manually", async () => {
     const { orderNumber, admin } = await placeCod();
+    const cod = await db.payment.findFirstOrThrow({ where: { order: { orderNumber } } });
 
-    await expect(orderService.markPaidManually(admin.id, orderNumber, "ref 123")).rejects.toMatchObject({
-      code: "INVALID_STATE_TRANSITION",
+    await expect(
+      orderService.markPaidManually(admin.id, orderNumber, cod.id, "ref 123"),
+    ).rejects.toMatchObject({ code: "INVALID_STATE_TRANSITION" });
+    await expect(orderService.refundAttempt(admin.id, orderNumber, cod.id, "ref 123")).rejects.toMatchObject({
+      code: "NOT_FOUND",
     });
   });
 });

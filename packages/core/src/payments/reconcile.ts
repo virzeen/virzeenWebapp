@@ -42,7 +42,8 @@ export async function reconcilePayments(now = new Date()): Promise<ReconcileSumm
   };
 
   // 1. Re-verify open payment attempts that have been pending for a while (shared code path with callbacks), also
-  //    those of orders already closed, so a late payment is still seen.
+  //    those of orders already closed, so a late payment is still seen. Never-checked and longest-unchecked first:
+  //    attempts that stay open for hours (a provider that can't answer) take turns instead of filling every batch.
   const pending = await db.payment.findMany({
     where: {
       status: "PENDING",
@@ -50,7 +51,7 @@ export async function reconcilePayments(now = new Date()): Promise<ReconcileSumm
       createdAt: { lt: new Date(now.getTime() - RECHECK_AFTER_MINUTES * MINUTE) },
     },
     select: { id: true },
-    orderBy: { createdAt: "asc" },
+    orderBy: [{ lastCheckedAt: { sort: "asc", nulls: "first" } }, { createdAt: "asc" }],
     take: BATCH,
   });
   for (const { id } of pending) {
@@ -99,6 +100,19 @@ export async function reconcilePayments(now = new Date()): Promise<ReconcileSumm
     take: BATCH,
   });
   for (const { id } of due) {
+    // Not while an attempt may have taken the money: paid → confirmed; a provider that can't answer (a "hold") →
+    // no "Pay now" nudge towards a second payment (payment-policy.md §1.5).
+    try {
+      const checked = await paymentService.verifyOpenAttempts(id, {
+        actor: "cron:reconcile",
+        trigger: "cron",
+        now,
+      });
+      if (checked.paid || !checked.answered) continue;
+    } catch (error) {
+      logger.error("reconcile: reminder check failed", { orderId: id, error: String(error) });
+      continue;
+    }
     const claimed = await db.order.updateMany({
       where: { id, paymentReminderSentAt: null, status: "PENDING" },
       data: { paymentReminderSentAt: now },

@@ -5,6 +5,7 @@ import {
   adminPageSchema,
   ALL_DISTRICTS,
   emailSchema,
+  orderAttemptWithReasonSchema,
   parsePortfolioBody,
   phoneSchema,
   productSchema,
@@ -100,6 +101,20 @@ describe("shopFiltersSchema", () => {
   it("ignores malformed values instead of throwing", () => {
     const filters = shopFiltersSchema.parse({ category: "Bad Slug!", sort: "cheapest", inStock: "yes" });
     expect(filters).toMatchObject({ category: undefined, sort: "newest", inStock: false });
+  });
+});
+
+describe("orderAttemptWithReasonSchema", () => {
+  const valid = { orderNumber: "VZ-260928-0001", paymentId: VALID_ID, reason: "eSewa ref 000AWEO" };
+
+  it("accepts an order number, a payment id and a reason", () => {
+    expect(orderAttemptWithReasonSchema.safeParse(valid).success).toBe(true);
+  });
+
+  it("rejects a malformed payment id, a missing reason and extra fields", () => {
+    expect(orderAttemptWithReasonSchema.safeParse({ ...valid, paymentId: "1; drop" }).success).toBe(false);
+    expect(orderAttemptWithReasonSchema.safeParse({ ...valid, reason: " " }).success).toBe(false);
+    expect(orderAttemptWithReasonSchema.safeParse({ ...valid, amountPaisa: 1 }).success).toBe(false);
   });
 });
 

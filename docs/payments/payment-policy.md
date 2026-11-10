@@ -48,7 +48,7 @@ Every transition writes an `OrderEvent` (from, to, actor, reason).
 
 - On order creation, stock is decremented in the same transaction (conditional update).
 - Online-payment orders set `reservedUntil = now + 15 min` (owner 2026-11-09, `specs/payment-window.md`; was 60).
-- While those 15 minutes run, the order waits: an attempt the customer leaves or cancels ends only that attempt, and the order page offers **Pay now** (a new attempt, the same total, eSewa or Khalti; refused under 2 minutes left or after 5 attempts; open attempts are re-checked first) and **Cancel order** (open attempts re-checked first; then cancelled with stock, discount use and items back in the bag).
+- While those 15 minutes run, the order waits: an attempt the customer leaves or cancels never ends the order. That attempt itself ends only on its provider's final answer (cancelled, expired) or after 70 minutes, so a payment that was made after all is still found (leaving eSewa's page is not proof that nothing was paid). Two attempts can be open at once. The order page offers **Pay now** (a new attempt, the same total, eSewa or Khalti; refused under 2 minutes left or after 5 attempts; open attempts are re-checked first) and **Cancel order** (open attempts re-checked first; then cancelled with stock, discount use and items back in the bag).
 - One reminder email ("Your order is waiting for payment") goes 5 minutes or more after the order while 3 minutes or more are left, claimed with a conditional update (`Order.paymentReminderSentAt`).
 - When the 15 minutes are up, every open attempt is re-checked: paid → confirmed; a provider that can't answer → the order stays `PENDING` (§1.5); otherwise `CANCELLED`, payment `EXPIRED`, stock and discount use restored and items back in the bag, in one transaction.
 - Attempts stay watched after their order closes, until the provider gives a final answer or 70 minutes pass. A payment found then is recorded on the attempt and the owner is emailed once to refund it; the customer's order page says it will be refunded.
@@ -74,7 +74,7 @@ Flow:
 2. Store the returned `pidx` as `providerRef`; redirect the customer to `payment_url`. The link expires (60 min by default).
 3. Khalti redirects to `/api/payments/khalti/callback?pidx=...&status=...`. Treat every query param as untrusted.
 4. Call `POST /api/v2/epayment/lookup/` with the `pidx`. Only `status: "Completed"` with `total_amount === order.totalPaisa` → PAID.
-5. `Pending`/`Initiated` → leave `PENDING` (reconciliation re-checks). `User canceled`/`Expired` → that attempt `FAILED`/`EXPIRED`; the order keeps waiting until its 15 minutes are up (§4). `Refunded`/`Partially Refunded` → mirror status, alert owner.
+5. `Initiated` (link made, nothing paid on it yet) → leave `PENDING` (reconciliation re-checks). `Pending` → **AMBIGUOUS** (Khalti's lookup table: "Hold, do not provide service. And contact Khalti team."): the attempt stays `PENDING`, is never read as unpaid (it doesn't count as an answer at the 15-minute end and isn't ended at 70 minutes) and goes to the owner after 24 hours (§8). `User canceled`/`Expired` → that attempt `FAILED`/`EXPIRED`; the order keeps waiting until its 15 minutes are up (§4). `Refunded`/`Partially Refunded` → mirror status, alert owner.
 6. Khalti has no checkout webhook, so reconciliation (§8) is mandatory.
 
 ## 7. Cash on Delivery
@@ -102,6 +102,8 @@ Flow:
 
 - Returns (owner decision 2026-09-28): **7 days from delivery, no fee** (free pickup, full price refunded; shipping is part of the price). With a discount code, the refund is what the customer paid (`totalPaisa`), not the price before the discount. Items unworn, tags on, original packaging; free size exchange if in stock.
 - Phase 1: refunds are paid manually by the owner (COD orders: bank transfer or wallet; online payments later: the eSewa/Khalti merchant dashboards), then recorded in admin (`REFUNDED` + reason). No automated refund API calls in phase 1.
+- An order paid online can have more than one paid attempt: a payment that came after the order closed, or a second payment for a paid order (`specs/payment-window.md`). The attempt that paid the order is recorded on it (`Order.paidPaymentId`, set by `transitionPayment` in the same update as payment status `PAID`); the order's **Record refund** marks that one. Any other paid attempt is refunded in the provider dashboard and recorded on its own row (admin order page → Payment attempts → **Record refund**): the attempt goes `PAID → REFUNDED`, the order is unchanged. The owner's alert names both attempts, and goes on every late move to `PAID` (once per attempt), whatever alert the attempt had before.
+- **Mark paid (manual)** is on one attempt row: the owner picks the attempt whose money they saw in the dashboard. Only while the order still waits for payment; it confirms the order with that attempt's provider. Pay now is refused, and no reminder email goes, while a provider can't say whether an open attempt took the money (§1.5).
 - Customer-facing refund/return rules live on the `/returns` page; keep it consistent with this section.
 
 ## 11. Security for payment code

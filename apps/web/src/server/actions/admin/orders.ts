@@ -2,7 +2,12 @@
 
 import "server-only";
 import { orderService } from "@virzeen/core";
-import { advanceOrderSchema, orderRefSchema, orderWithReasonSchema } from "@virzeen/validators";
+import {
+  advanceOrderSchema,
+  orderAttemptWithReasonSchema,
+  orderRefSchema,
+  orderWithReasonSchema,
+} from "@virzeen/validators";
 import { revalidatePath } from "next/cache";
 import { sendDueStockAlerts } from "@/server/services/stock-alerts";
 import { runAdminAction } from "./guard";
@@ -65,11 +70,24 @@ export async function reverifyPaymentAction(input: unknown) {
   });
 }
 
-/** Last resort from runbooks/payment-stuck-pending.md step 6, after the owner confirmed the money arrived. */
+/**
+ * Last resort from runbooks/payment-stuck-pending.md step 6, on the one attempt whose money the owner confirmed in
+ * the provider dashboard.
+ */
 export async function markPaidManuallyAction(input: unknown) {
   return runAdminAction("markPaidManually", async (admin) => {
-    const { orderNumber, reason } = orderWithReasonSchema.parse(input);
-    const result = await orderService.markPaidManually(admin.id, orderNumber, reason);
+    const { orderNumber, paymentId, reason } = orderAttemptWithReasonSchema.parse(input);
+    const result = await orderService.markPaidManually(admin.id, orderNumber, paymentId, reason);
+    refresh(orderNumber);
+    return result;
+  });
+}
+
+/** Records the refund of a late or second payment, made in the eSewa/Khalti dashboard (specs/payment-window.md). */
+export async function refundAttemptAction(input: unknown) {
+  return runAdminAction("refundAttempt", async (admin) => {
+    const { orderNumber, paymentId, reason } = orderAttemptWithReasonSchema.parse(input);
+    const result = await orderService.refundAttempt(admin.id, orderNumber, paymentId, reason);
     refresh(orderNumber);
     return result;
   });

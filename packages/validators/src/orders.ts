@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { adminPageSchema, orderNumberSchema } from "./common";
+import { adminPageSchema, idSchema, orderNumberSchema } from "./common";
 
 const reason = z.string().trim().min(3, { error: "Add a short reason" }).max(300);
 
@@ -23,6 +23,14 @@ export type OrderRefInput = z.infer<typeof orderRefSchema>;
 
 export const orderWithReasonSchema = z.strictObject({ orderNumber: orderNumberSchema, reason });
 export type OrderWithReasonInput = z.infer<typeof orderWithReasonSchema>;
+
+/** Admin action on one payment attempt of an order (Mark paid, Record refund); core checks it belongs to the order. */
+export const orderAttemptWithReasonSchema = z.strictObject({
+  orderNumber: orderNumberSchema,
+  paymentId: idSchema,
+  reason,
+});
+export type OrderAttemptWithReasonInput = z.infer<typeof orderAttemptWithReasonSchema>;
 
 export const ORDER_STATUSES = [
   "PENDING",

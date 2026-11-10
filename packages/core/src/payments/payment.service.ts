@@ -146,10 +146,11 @@ async function settlePaid(
           to: "CONFIRMED",
           actor,
           reason: "Payment verified",
-          data: { reservedUntil: null },
+          // The provider that took the money, even when Pay now later switched the order to the other one.
+          data: { reservedUntil: null, paymentMethod: payment.provider },
           now,
         });
-        return { confirmed: confirmed.changed, late: false };
+        return { confirmed: confirmed.changed, late: null };
       }
       // Paid meanwhile: by this same attempt (a duplicate callback, nothing to do) or by another one (this one is
       // a second payment, recorded below for a refund).
@@ -162,7 +163,17 @@ async function settlePaid(
       reason: `Verified with ${payment.provider} after the order closed`,
       paymentData,
     });
-    return { confirmed: false, late: moved.changed };
+    if (!moved.changed) return { confirmed: false, late: null };
+    const closed = await tx.order.findUniqueOrThrow({
+      where: { id: payment.order.id },
+      select: {
+        paymentStatus: true,
+        paidPayment: { select: { id: true, attempt: true, provider: true, providerRef: true } },
+      },
+    });
+    const paidBy =
+      closed.paymentStatus === "PAID" && closed.paidPayment?.id !== payment.id ? closed.paidPayment : null;
+    return { confirmed: false, late: { paidBy } };
   });
 
   if (result.confirmed) {
@@ -170,10 +181,21 @@ async function settlePaid(
     return "PAID";
   }
   if (result.late) {
-    await flagOnce(payment, "Payment received for a closed order", [
-      `Order ${payment.order.orderNumber} was already closed when ${payment.provider} confirmed a payment of ${payment.amountPaisa} paisa.`,
-      `Provider reference: ${payment.providerRef}. Refund it in the ${payment.provider} merchant dashboard, then record it in admin.`,
-    ]);
+    // Name the attempt to refund, and the one that paid the order, so the owner never refunds the wrong one.
+    // Sent on every late move to PAID, which happens once per attempt (the conditional move above). Not through
+    // flagOnce: an earlier alert on this attempt (24 hours unresolved, a provider halt) must not swallow this one.
+    const { paidBy } = result.late;
+    const thisAttempt = `attempt ${payment.attempt} (${payment.provider} ${payment.providerRef})`;
+    await db.payment.updateMany({ where: { id: payment.id, flaggedAt: null }, data: { flaggedAt: now } });
+    await notifications.alertOwner(
+      paidBy ? "Second payment received for a paid order" : "Payment received for a closed order",
+      [
+        paidBy
+          ? `Order ${payment.order.orderNumber} is already paid by attempt ${paidBy.attempt} (${paidBy.provider} ${paidBy.providerRef}). ${payment.provider} also confirmed ${thisAttempt} for ${payment.amountPaisa} paisa.`
+          : `Order ${payment.order.orderNumber} was already closed when ${payment.provider} confirmed ${thisAttempt} for ${payment.amountPaisa} paisa.`,
+        `Refund ${thisAttempt} in the ${payment.provider} merchant dashboard, then record it in admin: the order's Payment attempts → Record refund on attempt ${payment.attempt}.`,
+      ],
+    );
   }
   const paid = await db.order.findUniqueOrThrow({
     where: { id: payment.order.id },
@@ -297,20 +319,26 @@ type AddressSnapshot = { fullName: string; phone: string };
 export const paymentService = {
   /** Re-checks one payment attempt with its provider and applies the result. Safe to call repeatedly. */
   async verifyPayment(paymentId: string, options: VerifyOptions): Promise<VerifyResult> {
+    const isConflict = (error: unknown) => isAppError(error) && error.code === "CONFLICT";
     const payment = await db.payment.findUnique({ where: { id: paymentId }, select: paymentSelect });
     if (!payment) throw new AppError("NOT_FOUND", "Payment not found.");
     try {
       return await verifyRow(payment, options);
     } catch (error) {
-      // A concurrent callback/reconciliation won the race: report whatever state it left behind.
-      if (isAppError(error) && error.code === "CONFLICT") {
-        return {
-          outcome: await orderOutcome(payment.order.id, "PENDING"),
-          orderNumber: payment.order.orderNumber,
-          answered: false,
-        };
-      }
-      throw error;
+      if (!isConflict(error)) throw error;
+    }
+    // Something else changed the order meanwhile (another callback, the 15-minute end, Cancel order). Look once more
+    // from the state it left: a payment that lost to the order's end is recorded as late now, not left looking unpaid.
+    const fresh = await db.payment.findUniqueOrThrow({ where: { id: paymentId }, select: paymentSelect });
+    try {
+      return await verifyRow(fresh, options);
+    } catch (error) {
+      if (!isConflict(error)) throw error;
+      return {
+        outcome: await orderOutcome(fresh.order.id, "PENDING"),
+        orderNumber: fresh.order.orderNumber,
+        answered: false,
+      };
     }
   },
 
@@ -406,6 +434,14 @@ export const paymentService = {
     if (!found) throw new AppError("NOT_FOUND", "Order not found.");
     const checked = await paymentService.verifyOpenAttempts(found.id, { actor, now, trigger: "pay-now" });
     if (checked.paid) return { orderNumber: input.orderNumber, next: { type: "done" } };
+    // eSewa or Khalti couldn't say whether the last attempt took the money (a "hold", or no answer): a new attempt
+    // would invite a second payment (payment-policy.md §1.5).
+    if (!checked.answered) {
+      throw new AppError(
+        "CONFLICT",
+        "We're still checking your last payment. Please try again in a few minutes.",
+      );
+    }
 
     const order = await db.order.findUniqueOrThrow({
       where: { id: found.id },
@@ -467,6 +503,23 @@ export const paymentService = {
     }
     try {
       await db.$transaction(async (tx) => {
+        // Checked again here, conditionally: asking the provider can take seconds, and a payment, the 15-minute end or
+        // Cancel order may have closed the order meanwhile. This also locks the order row until the attempt is saved.
+        const stillWaiting = await tx.order.updateMany({
+          where: {
+            id: found.id,
+            status: "PENDING",
+            paymentStatus: "PENDING",
+            // The real time now: asking the provider took a while since `now`.
+            reservedUntil: {
+              gte: new Date(Math.max(now.getTime(), Date.now()) + PAY_NOW_MIN_LEFT_MINUTES * MINUTE),
+            },
+          },
+          data: { paymentMethod: input.method },
+        });
+        if (stillWaiting.count === 0) {
+          throw new AppError("CONFLICT", "This order isn't waiting for payment.");
+        }
         const payment = await tx.payment.create({
           data: {
             orderId: found.id,
@@ -485,15 +538,10 @@ export const paymentService = {
           actor,
           reason: `Sent to ${input.method}`,
         });
-        if (input.method !== order.paymentMethod) {
-          await tx.order.updateMany({
-            where: { id: found.id, status: "PENDING" },
-            data: { paymentMethod: input.method },
-          });
-        }
       });
     } catch (error) {
-      // Pay now pressed twice at once: the other press already started this attempt (eSewa's reference is unique).
+      // Pay now pressed twice at once: the other press already saved this attempt number (one row per order and
+      // attempt number, whichever provider).
       if (isUniqueViolation(error)) {
         throw new AppError(
           "CONFLICT",
@@ -518,15 +566,16 @@ export const paymentService = {
   },
 
   /**
-   * eSewa failure redirect: re-checks the attempt (it may have been paid after all). Nothing ends early here, so
-   * anyone hitting the URL changes nothing; the customer lands on their order with Pay now.
+   * eSewa failure redirect: re-checks the attempt (it may have been paid after all). Nothing ends early here; the
+   * customer lands on their order with Pay now. The reference is the order number plus the attempt, which anyone
+   * can guess, so for anyone but the order's own customer it's null (one neutral page) and eSewa isn't asked.
    */
-  async handleEsewaFailure(transactionUuid: string): Promise<VerifyResult | null> {
+  async handleEsewaFailure(transactionUuid: string, userId: string | null): Promise<VerifyResult | null> {
     const payment = await db.payment.findUnique({
       where: { providerRef: transactionUuid },
-      select: { id: true, provider: true },
+      select: { id: true, provider: true, order: { select: { userId: true } } },
     });
-    if (!payment || payment.provider !== "ESEWA") return null;
+    if (!payment || payment.provider !== "ESEWA" || !userId || payment.order.userId !== userId) return null;
     return paymentService.verifyPayment(payment.id, { actor: "provider:esewa", trigger: "return-failure" });
   },
 

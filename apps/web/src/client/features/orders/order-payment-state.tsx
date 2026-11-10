@@ -8,8 +8,8 @@ type OrderPaymentStateProps = {
     status: string;
     paymentMethod: string;
     reservedUntil: Date | null;
-    /** A payment that arrived after the order's 15 minutes ran out (the owner refunds it). */
-    paidLate: boolean;
+    /** A payment that arrived after the order was cancelled: still to refund, or refunded (the owner refunds it). */
+    latePayment: "TO_REFUND" | "REFUNDED" | null;
   };
   /** eSewa and Khalti, when switched on. */
   methods: ("ESEWA" | "KHALTI")[];
@@ -20,16 +20,22 @@ type OrderPaymentStateProps = {
 };
 
 /**
- * What an online order's page says about paying (specs/payment-window.md): the late payment being refunded; while
- * the order waits, the Pay now panel; once its 15 minutes are up but reconciliation hasn't cancelled it yet, that it's
- * being cancelled. Nothing for paid, cash on delivery or closed orders.
+ * What an online order's page says about paying (specs/payment-window.md): a late payment being (or already)
+ * refunded; while the order waits, the Pay now panel; once its 15 minutes are up but reconciliation hasn't cancelled
+ * it yet, that it's being cancelled. Nothing for paid, cash on delivery or closed orders.
  */
 export function OrderPaymentState({ order, methods, failed, now }: OrderPaymentStateProps) {
-  if (order.paidLate) {
+  if (order.latePayment === "TO_REFUND") {
     return (
       <Alert variant="warning">
-        Your payment arrived after the 15 minutes ran out, so this order was cancelled. We&apos;ll refund it
-        in full.
+        Your payment arrived after this order was cancelled. We&apos;ll refund it in full.
+      </Alert>
+    );
+  }
+  if (order.latePayment === "REFUNDED") {
+    return (
+      <Alert variant="info">
+        Your payment arrived after this order was cancelled. We&apos;ve refunded it in full.
       </Alert>
     );
   }

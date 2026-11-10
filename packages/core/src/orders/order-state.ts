@@ -130,20 +130,46 @@ export async function transitionPayment(
     });
   }
 
+  // The attempt row moves with the order, by its own rules and only from the status it was read in.
+  const attempt = input.paymentId
+    ? await tx.payment.findFirst({
+        where: { id: input.paymentId, orderId: input.orderId },
+        select: { status: true, attempt: true },
+      })
+    : null;
+  if (input.paymentId) {
+    if (!attempt) throw new AppError("NOT_FOUND", "Payment not found.");
+    if (attempt.status !== input.to && !ATTEMPT_TRANSITIONS[attempt.status].includes(input.to)) {
+      throw new AppError(
+        "INVALID_STATE_TRANSITION",
+        `A payment attempt can't move from ${attempt.status} to ${input.to}.`,
+        { meta: { from: attempt.status, to: input.to } },
+      );
+    }
+  }
+
   const updated = await tx.order.updateMany({
     where: { id: input.orderId, paymentStatus: from },
-    data: { paymentStatus: input.to },
+    data: {
+      paymentStatus: input.to,
+      // Which attempt paid the order, recorded with the payment itself: any other paid attempt is one to refund.
+      ...(input.to === "PAID" && input.paymentId ? { paidPaymentId: input.paymentId } : {}),
+    },
   });
   if (updated.count === 0) {
     throw new AppError("CONFLICT", "The payment changed while we were updating it. Please try again.");
   }
 
-  if (input.paymentId) {
+  let attemptNumber: number | null = null;
+  if (input.paymentId && attempt) {
     const paymentUpdated = await tx.payment.updateMany({
-      where: { id: input.paymentId, orderId: input.orderId },
+      where: { id: input.paymentId, orderId: input.orderId, status: attempt.status },
       data: { ...input.paymentData, status: input.to },
     });
-    if (paymentUpdated.count === 0) throw new AppError("NOT_FOUND", "Payment not found.");
+    if (paymentUpdated.count === 0) {
+      throw new AppError("CONFLICT", "The payment changed while we were updating it. Please try again.");
+    }
+    attemptNumber = attempt.attempt;
   }
 
   await tx.orderEvent.create({
@@ -153,10 +179,15 @@ export async function transitionPayment(
       from,
       to: input.to,
       actor: input.actor,
-      reason: input.reason ?? null,
+      reason: attemptNumber === null ? (input.reason ?? null) : withAttempt(attemptNumber, input.reason),
     },
   });
   return { changed: true, from };
+}
+
+/** "Attempt 2: Verified with ESEWA (COMPLETE)": the timeline says which attempt each payment change was. */
+function withAttempt(attempt: number, reason: string | undefined) {
+  return `Attempt ${attempt}${reason ? `: ${reason}` : ""}`;
 }
 
 /**
@@ -219,7 +250,7 @@ export async function transitionAttempt(
       from,
       to: input.to,
       actor: input.actor,
-      reason: `Attempt ${payment.attempt}${input.reason ? `: ${input.reason}` : ""}`,
+      reason: withAttempt(payment.attempt, input.reason),
     },
   });
   return { changed: true, from };

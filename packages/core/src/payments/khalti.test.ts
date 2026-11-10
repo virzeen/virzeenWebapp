@@ -34,6 +34,13 @@ describe("khaltiProvider.initiate", () => {
     await expect(khaltiProvider.initiate(order, 1)).rejects.toMatchObject({ code: "PAYMENT_FAILED" });
   });
 
+  it("refuses a payment link that isn't on Khalti's own site", async () => {
+    for (const url of ["https://evil.example/?pidx=p1", "http://test-pay.khalti.com/?pidx=p1", "not a url"]) {
+      mockProvider(() => json({ pidx: "p1", payment_url: url }));
+      await expect(khaltiProvider.initiate(order, 1)).rejects.toMatchObject({ code: "PAYMENT_FAILED" });
+    }
+  });
+
   it("refuses orders under Rs 10", async () => {
     await expect(khaltiProvider.initiate({ ...order, totalPaisa: 999 }, 1)).rejects.toMatchObject({
       code: "PAYMENT_FAILED",
@@ -83,7 +90,8 @@ describe("khaltiProvider.verify", () => {
   });
 
   it.each([
-    ["Pending", "PENDING"],
+    // Khalti: "Hold, do not provide service. And contact Khalti team." Never read as unpaid.
+    ["Pending", "AMBIGUOUS"],
     ["Initiated", "PENDING"],
     ["User canceled", "CANCELLED"],
     ["Expired", "EXPIRED"],

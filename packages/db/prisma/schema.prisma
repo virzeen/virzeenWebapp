@@ -503,6 +503,10 @@ model Order {
   reservedUntil         DateTime?
   /// The one "waiting for payment" reminder email was claimed for sending (specs/payment-window.md).
   paymentReminderSentAt DateTime?
+  /// The payment attempt that paid the order, set in the same transaction as payment status PAID. Any other paid
+  /// attempt is a late or second payment the owner refunds (specs/payment-window.md).
+  paidPaymentId         String?       @unique
+  paidPayment           Payment?      @relation("OrderPaidPayment", fields: [paidPaymentId], references: [id], onDelete: Restrict)
   courierName           String?
   trackingNumber        String?
   cancelReason          String?
@@ -511,7 +515,7 @@ model Order {
   deliveredAt           DateTime?
   cancelledAt           DateTime?
   items                 OrderItem[]
-  payments              Payment[]
+  payments              Payment[]     @relation("OrderPayments")
   events                OrderEvent[]
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
@@ -573,7 +577,9 @@ model OrderItem {
 model Payment {
   id            String        @id @default(cuid(2))
   orderId       String
-  order         Order         @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  order         Order         @relation("OrderPayments", fields: [orderId], references: [id], onDelete: Restrict)
+  /// The order this attempt paid, if it did (`Order.paidPaymentId`).
+  paidOrder     Order?        @relation("OrderPaidPayment")
   provider      PaymentMethod
   /// eSewa transaction_uuid, Khalti pidx, or COD-<orderNumber>.
   providerRef   String        @unique
@@ -592,6 +598,8 @@ model Payment {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
+  /// One row per attempt number: two Pay now presses at once can't both start attempt N (specs/payment-window.md).
+  @@unique([orderId, attempt])
   @@index([orderId])
   @@index([status, createdAt])
 }
