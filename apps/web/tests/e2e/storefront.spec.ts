@@ -190,7 +190,7 @@ test.describe("Product page", () => {
 
 // specs/mobile-menu.md: the phone menu (below md), like Nike's.
 test.describe("Phone menu", () => {
-  test("a guest opens the menu, goes into Shop and opens a category @mobile", async ({ page }) => {
+  test("a guest opens the menu and goes to a category from the header's links @mobile", async ({ page }) => {
     // The desktop project runs @mobile tests too, and the menu button only shows below md.
     const viewport = page.viewportSize();
     if (!viewport || viewport.width >= 768) await page.setViewportSize({ width: 390, height: 844 });
@@ -204,31 +204,29 @@ test.describe("Phone menu", () => {
     const menu = page.getByRole("dialog", { name: "Menu" });
     await expect(menu).toBeVisible();
 
-    // Guests: "Sign in" comes first and takes focus.
+    // Guests: "Sign in" comes first and takes focus. The large rows are the header's links (owner 2026-11-10).
     await expect(menu.getByRole("link", { name: "Sign in" })).toBeFocused();
-    for (const name of ["Home", "Portfolio", "About", "Favourites", "Bag", "Orders", "Help"]) {
+    for (const name of ["New and Featured", "Tops", "Accessories", "Favourites", "Bag", "Orders", "Help"]) {
       await expect(menu.getByRole("link", { name, exact: true })).toBeVisible();
     }
-    await expect(menu.getByRole("link", { name: "Settings" })).toHaveCount(0);
-    await expect(menu.getByRole("link", { name: "Home", exact: true })).toHaveAttribute(
-      "aria-current",
-      "page",
-    );
+    for (const name of ["Home", "Portfolio", "About", "Settings"]) {
+      await expect(menu.getByRole("link", { name, exact: true })).toHaveCount(0);
+    }
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 
-    // Shop opens its own panel; "All" goes back with focus on Shop.
-    const shop = menu.getByRole("button", { name: "Shop", exact: true });
-    await shop.click();
-    await expect(menu.getByRole("heading", { name: "Shop" })).toBeFocused();
-    await expect(menu.getByRole("link", { name: "All products" })).toBeVisible();
-    await menu.getByRole("button", { name: "All", exact: true }).click();
-    await expect(shop).toBeFocused();
-
-    await shop.click();
     await menu.getByRole("link", { name: "Accessories", exact: true }).click();
     await expect(page).toHaveURL(/\/shop\/accessories$/);
     await expect(menu).toBeHidden();
     await expect(page.getByRole("heading", { level: 1, name: "Accessories" })).toBeVisible();
+
+    // On a category's page, its row is the current one.
+    await openMenu.click();
+    await expect(menu.getByRole("link", { name: "Accessories", exact: true })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    await page.keyboard.press("Escape");
+    await expect(menu).toBeHidden();
 
     // Escape closes it and focus returns to the menu button.
     await openMenu.click();

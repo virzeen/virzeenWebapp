@@ -2,7 +2,7 @@
 
 import { Link } from "@virzeen/ui";
 import { usePathname } from "next/navigation";
-import { currentHref, SALE_COLLECTION } from "./nav-current";
+import { currentHref, shopNavItems } from "./nav-current";
 
 type NavLinksProps = {
   categories: { slug: string; name: string }[];
@@ -17,11 +17,7 @@ type NavLinksProps = {
  */
 export function NavLinks({ categories, hasSale }: NavLinksProps) {
   const pathname = usePathname();
-  const items = [
-    { href: "/shop", label: "New and Featured" },
-    ...(hasSale ? [{ href: `/collections/${SALE_COLLECTION}`, label: "Sale" }] : []),
-    ...categories.map((category) => ({ href: `/shop/${category.slug}`, label: category.name })),
-  ];
+  const items = shopNavItems(categories, hasSale);
   const current = currentHref(
     pathname,
     items.map((item) => item.href),
