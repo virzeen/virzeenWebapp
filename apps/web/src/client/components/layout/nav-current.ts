@@ -1,6 +1,19 @@
 /** The header's "Sale" link: a collection with this slug, shown once it's live (owner 2026-11-08). */
 export const SALE_COLLECTION = "sale";
 
+/**
+ * The shop's main links, like Nike's (owner 2026-11-08): New and Featured (the shop, newest first), Sale (the "sale"
+ * collection, once it's live), then every category (VHome, VWear…). The header shows them from xl, and the phone menu
+ * as its large rows (owner 2026-11-10).
+ */
+export function shopNavItems(categories: readonly { slug: string; name: string }[], hasSale: boolean) {
+  return [
+    { href: "/shop", label: "New and Featured" },
+    ...(hasSale ? [{ href: `/collections/${SALE_COLLECTION}`, label: "Sale" }] : []),
+    ...categories.map((category) => ({ href: `/shop/${category.slug}`, label: category.name })),
+  ];
+}
+
 /** True on the link's own page and the pages under it (/portfolio marks /portfolio/light-studies too). */
 export function isCurrent(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);

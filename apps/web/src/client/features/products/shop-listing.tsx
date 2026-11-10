@@ -91,9 +91,10 @@ export function ShopListing({ data, title, intro, filters, params, activeCategor
   return (
     <Container className="flex flex-col gap-6 py-8 lg:gap-8 lg:pt-6 lg:pb-10">
       <ProductResults initialItems={page.items} initialCursor={page.nextCursor} filters={params}>
+        {/* Nike's listing title: 20px on phones, 24px from lg (smaller again once the bar sticks). */}
         <ShopBrowse
           heading={
-            <h1 className="font-display text-h2 font-medium lg:group-data-stuck/bar:text-h3">
+            <h1 className="font-display text-h3 lg:text-h2 lg:group-data-stuck/bar:text-h3">
               {title} <span className="whitespace-nowrap">({total})</span>
             </h1>
           }

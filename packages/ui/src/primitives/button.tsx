@@ -18,9 +18,11 @@ const buttonVariants = cva(
         menu: "text-ink hover:text-ink-muted active:text-ink-muted", // a large full-width menu row, sized below
       },
       size: {
-        sm: "h-11 px-4 text-small lg:h-9 lg:px-3", // 44px on touch widths; 36px from lg for dense rows
+        // Nike's pills (owner 2026-11-10): 36px with 16px sides from lg (touch widths keep 44px, our minimum target).
+        sm: "h-11 px-4 lg:h-9",
         md: "h-11 px-5", // 44px: minimum touch target
-        lg: "h-12 px-7",
+        // Nike's main buttons (Add to Bag, Favourite, Checkout): 60px tall, 24px sides.
+        lg: "h-15 px-6",
         icon: "size-11",
       },
       shape: {

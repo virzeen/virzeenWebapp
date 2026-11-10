@@ -9,7 +9,7 @@ export default async function AddressesPage() {
   const user = await requireUserPage("/account/addresses");
   const addresses = await listMyAddresses(user.id);
   return (
-    <SettingsShell title="Delivery addresses">
+    <SettingsShell title="Delivery addresses" mode="section">
       <AddressBook addresses={addresses} />
     </SettingsShell>
   );

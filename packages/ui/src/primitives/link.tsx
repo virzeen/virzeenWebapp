@@ -20,6 +20,10 @@ const linkVariants = cva(
         menu: "flex min-h-14 w-full items-center justify-between gap-4 py-2 font-display text-h2 font-medium text-ink hover:text-ink-muted active:text-ink-muted",
         menuSmall:
           "flex min-h-11 w-full items-center gap-4 text-body font-medium text-ink hover:text-ink-muted active:text-ink-muted",
+        // A row of a list of pages, like Nike's Settings on phones (owner 2026-11-10): an optional 24px icon, the
+        // label 16px medium, anything after it (a chevron) pushed right with ml-auto; a line under each row (put the
+        // list in a box with a line on top). The current page grey.
+        list: "flex min-h-14 w-full items-center gap-6 border-b border-line py-4 text-body font-medium text-ink hover:text-ink-muted aria-[current=page]:text-ink-muted",
       },
     },
     defaultVariants: { variant: "default" },

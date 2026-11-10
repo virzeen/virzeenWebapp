@@ -11,8 +11,8 @@ On phones (below `md`) the menu works like Nike's: a panel drops down from the t
 ## User flow
 
 1. Phone → header: Virzeen wordmark (left) · Favourites heart, Bag, Menu (right).
-2. Menu → a panel drops down from the top and covers the screen, its rows fading in one after another: an X at the top right; "Hi, {first name}" with a person icon and a chevron (signed in) or "Sign in" (guests); a line; large links Home, Shop ›, Portfolio, About; then small icon links Favourites, Bag, Orders, Settings (signed in), Help.
-3. Shop › → the panel slides to Shop: "‹ All" back button at the top left, the heading "Shop", then large links All products and each category that has products.
+2. Menu → a panel drops down from the top and covers the screen, its rows fading in one after another: an X at the top right; "Hi, {first name}" with a person icon and a chevron (signed in) or "Sign in" (guests); a line; large links New and Featured, Sale (while it's live), then each category, the header's links (owner 2026-11-10; was Home, Shop ›, Portfolio, About); then small icon links Favourites, Bag, Orders, Settings (signed in), Help.
+3. _Removed 2026-11-10 (the categories are rows of the main list now):_ Shop › → the panel slides to Shop: "‹ All" back button at the top left, the heading "Shop", then large links All products and each category that has products.
 4. A link opens its page and the menu closes; the X, Escape, a tap on the dimmed page or Back (Android) closes it.
 
 ## Acceptance criteria
@@ -27,7 +27,7 @@ Menu panel
 - [x] Greeting row (signed in): person icon, "Hi, {first name}" (the first word of the account name; "Hi there" when there's no name), chevron → `/account` (My profile). Guests: person icon, "Sign in", chevron → `/login`. A line under it.
 - [x] Main list, large (Nike's ~24px medium, from the type tokens), each a full-width row at least 44px tall: Home (`/`), Shop (chevron, opens the Shop panel), Portfolio, About.
 - [x] Icon list, small (Nike's ~16px medium) with 20px line icons, after a gap: Favourites (heart, `/favourites`), Bag (bag, `/cart`), Orders (box, `/account/orders`; guests are asked to sign in first by the page), Settings (gear, `/account/settings`, signed in only), Help (question mark in a circle, `/contact`).
-- [x] Shop panel: slides in from the right over the main list (reduced motion: instant); top left "‹ All" (back to the main list, focus returns to "Shop"); heading "Shop"; large links All products (`/shop`) and the categories with published products (`/shop/{slug}`), in their order.
+- [x] _(Removed 2026-11-10.)_ Shop panel: slides in from the right over the main list (reduced motion: instant); top left "‹ All" (back to the main list, focus returns to "Shop"); heading "Shop"; large links All products (`/shop`) and the categories with published products (`/shop/{slug}`), in their order.
 - [x] Links are `ink`; pressed/hover shows `ink-muted`; the current page has `aria-current="page"`.
 - [x] Keyboard and screen readers: modal dialog named "Menu"; focus goes to the first item on open and to the Shop heading on entering Shop; Tab stays inside; Escape closes; focus returns to the menu button. Every link closes the menu on click.
 - [x] Reduced motion: no slide animations. Nothing scrolls sideways at 320–767px; a long list scrolls inside the panel.
