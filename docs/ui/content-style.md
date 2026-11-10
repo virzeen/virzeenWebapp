@@ -78,30 +78,30 @@ Inputs say "Enter", choices (Select, radios) say "Choose".
 
 ## Bag and product page
 
-| Situation                                                                | Text                                                                                                   |
-| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
-| Add to bag before a size is chosen (pressing it points to "Select size") | Select a size                                                                                          |
-| Add to bag when the variant is sold out                                  | Out of stock                                                                                           |
-| Add to bag when the picked size (or a product without sizes) is sold out | [Notify me when it's back] (specs/notify-me.md)                                                        |
-| Notify me, asked (toast · button)                                        | We'll email you when it's back. · [✓ We'll email you] (`aria-pressed`) with [Don't notify me] under it |
-| Don't notify me (toast)                                                  | We won't email you about it.                                                                           |
-| Notify me refused (`CONFLICT`)                                           | It's back in stock. Add it to your bag. · You can wait for up to 20 sizes. Remove one to add another.  |
-| Under Add to bag: the bag already holds the last piece                   | The last one is already in your bag.                                                                   |
-| Under Add to bag: the bag already holds every piece left                 | All {n} left are already in your bag.                                                                  |
-| Under Add to bag: the bag already holds the per-line cap                 | Limit 10 of each — you already have 10 in your bag.                                                    |
-| Bag line, quantity over 1 (under the variant)                            | {Rs X} each                                                                                            |
-| Bag line, "+" stopped by stock                                           | Only {n} left                                                                                          |
-| Bag line, "+" stopped by the per-line cap                                | Limit 10 of each                                                                                       |
-| Bag line, variant sold out since it was added                            | Out of stock                                                                                           |
-| Bag line, product no longer sold                                         | No longer available                                                                                    |
-| Bag drawer description (otherwise)                                       | {n} item / {n} items                                                                                   |
-| Bag drawer footer                                                        | Free shipping across Nepal. Prices include VAT.                                                        |
-| Bag drawer, empty                                                        | Your bag is empty. — [Browse the collection]                                                           |
-| Bag page, under the title on phones                                      | {n} item \| {total} / {n} items \| {total}                                                             |
-| Bag page, under the bag (customer has favourites)                        | Favourites (h2) · [View more favourites] when there are more than the two shown                        |
-| Bag page, under the bag (no favourites)                                  | You might also like (h2) · Previous products / Next products                                           |
-| Bag summary                                                              | Summary: Subtotal · Shipping Free · Total — [Checkout]                                                 |
-| Undo failed (replaces "Removed {productName}.")                          | The error's standard message (above)                                                                   |
+| Situation                                                                | Text                                                                                                  |
+| ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| Add to bag before a size is chosen (pressing it points to "Select size") | Select a size                                                                                         |
+| Add to bag when the variant is sold out                                  | Out of stock                                                                                          |
+| Add to bag when the picked size (or a product without sizes) is sold out | [Notify me when it's back] (specs/notify-me.md)                                                       |
+| Notify me, asked (toast · button)                                        | We'll email you when it's back. · [✓ We'll email you] with [Don't notify me] under it                 |
+| Don't notify me (toast)                                                  | We won't email you about it.                                                                          |
+| Notify me refused (`CONFLICT`)                                           | It's back in stock. Add it to your bag. · You can wait for up to 20 sizes. Remove one to add another. |
+| Under Add to bag: the bag already holds the last piece                   | The last one is already in your bag.                                                                  |
+| Under Add to bag: the bag already holds every piece left                 | All {n} left are already in your bag.                                                                 |
+| Under Add to bag: the bag already holds the per-line cap                 | Limit 10 of each — you already have 10 in your bag.                                                   |
+| Bag line, quantity over 1 (under the variant)                            | {Rs X} each                                                                                           |
+| Bag line, "+" stopped by stock                                           | Only {n} left                                                                                         |
+| Bag line, "+" stopped by the per-line cap                                | Limit 10 of each                                                                                      |
+| Bag line, variant sold out since it was added                            | Out of stock                                                                                          |
+| Bag line, product no longer sold                                         | No longer available                                                                                   |
+| Bag drawer description (otherwise)                                       | {n} item / {n} items                                                                                  |
+| Bag drawer footer                                                        | Free shipping across Nepal. Prices include VAT.                                                       |
+| Bag drawer, empty                                                        | Your bag is empty. — [Browse the collection]                                                          |
+| Bag page, under the title on phones                                      | {n} item \| {total} / {n} items \| {total}                                                            |
+| Bag page, under the bag (customer has favourites)                        | Favourites (h2) · [View more favourites] when there are more than the two shown                       |
+| Bag page, under the bag (no favourites)                                  | You might also like (h2) · Previous products / Next products                                          |
+| Bag summary                                                              | Summary: Subtotal · Shipping Free · Total — [Checkout]                                                |
+| Undo failed (replaces "Removed {productName}.")                          | The error's standard message (above)                                                                  |
 
 ## Product page (`/product/{slug}`)
 
@@ -151,6 +151,7 @@ Nike-style layout (`specs/product-page.md`, `specs/product-page-v2.md`). The sam
 | After the heart (status line, screen readers)                      | Removed {name}, {style} from favourites. · Added {name}, {style} to favourites.                                                                                                                                                                                                |
 | A guest's list didn't load                                         | The error's standard message in a danger `Alert` — [Try again]                                                                                                                                                                                                                 |
 | Privacy page, "What we store"                                      | The products you save as favourites. If you aren't signed in, they stay only in your browser.                                                                                                                                                                                  |
+| Privacy page, "What we store" (Notify me)                          | The sold-out items you ask us to email you about when they're back.                                                                                                                                                                                                            |
 | Profile, "Notify me" (h2, only with requests)                      | We'll email you once when each of these is back. · each row: photo, [{product}] (link to that style and size), {style / size}, [Remove] (screen readers: Remove {product}, {style / size}) · removed: toast We won't email you about {product}.                                |
 
 ## Shop listing
@@ -479,16 +480,16 @@ Shown under the field (or under the list for list rules). After a failed save th
 
 Frame and rules: backend-policies.md §9. The sign-in code email's heading is the owners' wording (2026-09-29), so it keeps its capitals.
 
-| Where                      | Text                                                                                                                                                                                                                                    |
-| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Code email subject         | {code} is your Virzeen sign-in code                                                                                                                                                                                                     |
-| Code email heading         | Your VIRZEEN Member Profile Code                                                                                                                                                                                                        |
-| Code email intro           | Here's the one-time code you asked for:                                                                                                                                                                                                 |
-| Code email, after the code | This code expires in 10 minutes.                                                                                                                                                                                                        |
-| Code email, small print    | If you didn't ask for this code, you can ignore this email. Nobody can sign in without it.                                                                                                                                              |
-| Order emails, last line    | Questions? Reply to this email and we'll help.                                                                                                                                                                                          |
-| Back in stock email        | Subject {product} is back in stock · heading It's back. · {product}, {style / size}, is back in stock. Get yours while it lasts. · [Shop now] · You asked us to email you when it was back. This is the only email we'll send about it. |
-| Footer (every email)       | © {year} Virzeen. All rights reserved. · Privacy policy · Get help                                                                                                                                                                      |
+| Where                      | Text                                                                                                                                                                                                                                                                                     |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Code email subject         | {code} is your Virzeen sign-in code                                                                                                                                                                                                                                                      |
+| Code email heading         | Your VIRZEEN Member Profile Code                                                                                                                                                                                                                                                         |
+| Code email intro           | Here's the one-time code you asked for:                                                                                                                                                                                                                                                  |
+| Code email, after the code | This code expires in 10 minutes.                                                                                                                                                                                                                                                         |
+| Code email, small print    | If you didn't ask for this code, you can ignore this email. Nobody can sign in without it.                                                                                                                                                                                               |
+| Order emails, last line    | Questions? Reply to this email and we'll help.                                                                                                                                                                                                                                           |
+| Back in stock email        | Subject {product} is back in stock · heading It's back. · {product}, {style / size}, is back in stock. Get yours while it lasts. · [Shop now] · You asked us to email you when it was back. This is the only email we'll send about it. · Questions? Reply to this email and we'll help. |
+| Footer (every email)       | © {year} Virzeen. All rights reserved. · Privacy policy · Get help                                                                                                                                                                                                                       |
 
 ## Formatting
 

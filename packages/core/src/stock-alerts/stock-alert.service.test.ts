@@ -5,7 +5,8 @@ import { checkoutFixture, createUser, createVariant, resetDatabase } from "../..
 import { sentEmails } from "../../test/setup";
 import { checkoutService } from "../orders/checkout.service";
 import { orderService } from "../orders/orders.service";
-import { stockAlertService, variantPath } from "./stock-alert.service";
+import { configureCore, getCoreConfig } from "../config";
+import { STOCK_ALERT_EMAILS_PER_DAY, stockAlertService, variantPath } from "./stock-alert.service";
 
 // "Notify me when it's back" (specs/notify-me.md).
 
@@ -122,36 +123,53 @@ describe("stockAlertService.listForUser / waitingCounts", () => {
   });
 });
 
-describe("stockAlertService.notifyAvailable", () => {
+describe("stockAlertService.sendDue", () => {
   beforeEach(resetDatabase);
+
+  /** One run, without the spacing between emails. */
+  const sendDue = (now?: Date) => stockAlertService.sendDue({ spacingMs: 0, ...(now ? { now } : {}) });
+
+  /** The test mailer, refusing emails to `to` (a full quota or an outage), for the rest of the test. */
+  function failEmailsTo(to: string) {
+    const config = getCoreConfig();
+    configureCore({
+      ...config,
+      mailer: {
+        async send(message) {
+          if (message.to === to) throw new Error("Resend: daily_quota_exceeded");
+          await config.mailer.send(message);
+        },
+      },
+    });
+  }
 
   it("sends nothing while the variant is still sold out", async () => {
     const user = await createUser();
     const variant = await createVariant({ stock: 0 });
     await stockAlertService.request(user.id, variant.id);
 
-    expect(await stockAlertService.notifyAvailable([variant.id])).toBe(0);
+    expect(await sendDue()).toBe(0);
     expect(sentEmails).toHaveLength(0);
   });
 
   it("emails each waiting customer once when it's back, with a link to that style and size", async () => {
     const [asha, bina] = [await createUser(), await createUser()];
-    const variant = await createVariant({ stock: 0, color: "Black", size: "M" });
+    const variant = await createVariant({ stock: 0, color: "Off White", size: "M" });
     await stockAlertService.request(asha.id, variant.id);
     await stockAlertService.request(bina.id, variant.id);
     await setStock(variant.id, 3);
 
-    const counts = await Promise.all([
-      stockAlertService.notifyAvailable([variant.id]),
-      stockAlertService.notifyAvailable([variant.id]),
-    ]);
-    await stockAlertService.notifyAvailable([variant.id]);
+    const counts = await Promise.all([sendDue(), sendDue()]);
+    await sendDue();
 
     expect(counts[0] + counts[1]).toBe(2);
     const emails = backInStockEmails();
     expect(emails.map((email) => email.to).sort()).toEqual([asha.email, bina.email].sort());
     const product = await db.product.findUniqueOrThrow({ where: { id: variant.productId } });
-    expect(emails[0]?.text).toContain(`https://virzeen.test/product/${product.slug}?style=Black&size=M`);
+    // %20, not "+": the sign-in page's way back keeps it (safeRedirectSchema).
+    expect(emails[0]?.text).toContain(
+      `https://virzeen.test/product/${product.slug}?style=Off%20White&size=M`,
+    );
     expect(await db.stockAlert.count({ where: { notifiedAt: null } })).toBe(0);
     expect(await stockAlertService.listForUser(asha.id)).toEqual([]);
   });
@@ -161,34 +179,69 @@ describe("stockAlertService.notifyAvailable", () => {
     const variant = await createVariant({ stock: 0 });
     await stockAlertService.request(user.id, variant.id);
     await setStock(variant.id, 1);
-    await stockAlertService.notifyAvailable([variant.id]);
+    await sendDue();
     await setStock(variant.id, 0);
 
     await stockAlertService.request(user.id, variant.id);
     await setStock(variant.id, 2);
-    await stockAlertService.notifyAvailable([variant.id]);
+    await sendDue();
 
     expect(backInStockEmails()).toHaveLength(2);
   });
 
-  it("drops requests for sizes no longer sold or products out of the shop, without an email", async () => {
+  it("drops requests for sizes switched off or archived products without an email, but keeps unpublished ones", async () => {
     const user = await createUser();
     const removed = await createVariant({ stock: 0 });
     const archived = await createVariant({ stock: 0 });
-    await stockAlertService.request(user.id, removed.id);
-    await stockAlertService.request(user.id, archived.id);
+    const unpublished = await createVariant({ stock: 0 });
+    for (const variant of [removed, archived, unpublished])
+      await stockAlertService.request(user.id, variant.id);
     await db.productVariant.update({ where: { id: removed.id }, data: { isActive: false, stock: 4 } });
     await db.product.update({ where: { id: archived.productId }, data: { archivedAt: new Date() } });
-    await setStock(archived.id, 4);
+    await db.product.update({ where: { id: unpublished.productId }, data: { isPublished: false } });
+    for (const variant of [archived, unpublished]) await setStock(variant.id, 4);
 
-    await stockAlertService.notifyAvailable([removed.id]);
-    await stockAlertService.notifyProduct(archived.productId);
+    await sendDue();
 
     expect(sentEmails).toHaveLength(0);
-    expect(await db.stockAlert.count()).toBe(0);
+    expect(await db.stockAlert.findMany({ select: { variantId: true } })).toEqual([
+      { variantId: unpublished.id },
+    ]);
+    // Published again: it's emailed.
+    await db.product.update({ where: { id: unpublished.productId }, data: { isPublished: true } });
+    await sendDue();
+    expect(backInStockEmails().map((email) => email.to)).toEqual([user.email]);
   });
 
-  it("emails waiting customers when a cancelled order returns the last pieces", async () => {
+  it("puts a request whose email failed back to waiting and stops, so the next run sends it", async () => {
+    const [asha, bina] = [await createUser(), await createUser()];
+    const variant = await createVariant({ stock: 0 });
+    await stockAlertService.request(asha.id, variant.id);
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    await stockAlertService.request(bina.id, variant.id);
+    await setStock(variant.id, 2);
+    failEmailsTo(asha.email);
+
+    expect(await sendDue()).toBe(0);
+    // Asha's failed and stopped the run: both still wait, nothing was marked sent.
+    expect(await db.stockAlert.count({ where: { notifiedAt: null } })).toBe(2);
+    expect(sentEmails).toHaveLength(0);
+  });
+
+  it(`sends at most ${STOCK_ALERT_EMAILS_PER_DAY} a Nepal day, the rest the next day`, async () => {
+    const variant = await createVariant({ stock: 0 });
+    const users = [];
+    for (let i = 0; i < STOCK_ALERT_EMAILS_PER_DAY + 2; i += 1) users.push(await createUser());
+    for (const user of users) await stockAlertService.request(user.id, variant.id);
+    await setStock(variant.id, 5);
+    const morning = new Date("2026-11-10T03:00:00Z"); // 08:45 in Nepal
+
+    expect(await sendDue(morning)).toBe(STOCK_ALERT_EMAILS_PER_DAY);
+    expect(await sendDue(morning)).toBe(0);
+    expect(await sendDue(new Date("2026-11-10T18:20:00Z"))).toBe(2); // 00:05 the next day in Nepal
+  });
+
+  it("emails waiting customers once a cancelled order has returned the last pieces", async () => {
     const waiting = await createUser();
     const fixture = await checkoutFixture({ stock: 1, quantity: 1 });
     const { orderNumber } = await checkoutService.placeOrder({
@@ -200,8 +253,9 @@ describe("stockAlertService.notifyAvailable", () => {
     });
     await stockAlertService.request(waiting.id, fixture.variant.id);
     const admin = await createUser({ role: "ADMIN" });
-
     await orderService.advance(admin.id, { orderNumber, to: "CANCELLED", reason: "Customer asked" });
+
+    await sendDue();
 
     expect(backInStockEmails().map((email) => email.to)).toEqual([waiting.email]);
   });
@@ -209,7 +263,7 @@ describe("stockAlertService.notifyAvailable", () => {
 
 describe("variantPath", () => {
   it("opens the style and size, encoded, and leaves out what the variant hasn't got", () => {
-    expect(variantPath("tee", "Black / White", "XL")).toBe("/product/tee?style=Black+%2F+White&size=XL");
+    expect(variantPath("tee", "Black / White", "XL")).toBe("/product/tee?style=Black%20%2F%20White&size=XL");
     expect(variantPath("vase", null, null)).toBe("/product/vase");
   });
 });

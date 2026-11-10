@@ -2,6 +2,7 @@ import "@/server/bootstrap";
 import { timingSafeEqual } from "node:crypto";
 import { reconcilePayments } from "@virzeen/core";
 import { env } from "@/server/env";
+import { sendDueStockAlerts } from "@/server/services/stock-alerts";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,8 @@ function authorized(request: Request) {
 async function run(request: Request) {
   if (!authorized(request)) return Response.json({ error: { code: "UNAUTHENTICATED" } }, { status: 401 });
   const summary = await reconcilePayments();
+  // Expired orders return their stock; also catches "Notify me" emails a busy day held back (specs/notify-me.md).
+  sendDueStockAlerts();
   return Response.json({ data: summary });
 }
 

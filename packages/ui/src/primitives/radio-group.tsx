@@ -74,9 +74,12 @@ export type RadioGroupItemProps = Omit<React.ComponentProps<typeof RadioGroupPri
  * "{label}, sold out" for screen readers (the strike-through alone says nothing to them): an `aria-label` for a text
  * label (a hidden span would be read with a stray space before the comma), else a hidden span after the label.
  */
-function soldOutName(label: React.ReactNode, unavailable: boolean) {
+function soldOutName(label: React.ReactNode, unavailable: boolean, description: React.ReactNode) {
   if (!unavailable) return { props: {}, suffix: null };
-  if (typeof label === "string") return { props: { "aria-label": `${label}, sold out` }, suffix: null };
+  // An aria-label would hide the description from the name.
+  if (typeof label === "string" && !description) {
+    return { props: { "aria-label": `${label}, sold out` }, suffix: null };
+  }
   return { props: {}, suffix: <span className="sr-only">, sold out</span> };
 }
 
@@ -91,7 +94,7 @@ export function RadioGroupItem({
   ...props
 }: RadioGroupItemProps) {
   const variant = useContext(VariantContext);
-  const soldOut = soldOutName(label, unavailable);
+  const soldOut = soldOutName(label, unavailable, description);
   const unavailableProps = unavailable ? { "data-unavailable": "", ...soldOut.props } : {};
 
   if (variant === "swatch") {
@@ -165,7 +168,15 @@ export function RadioGroupItem({
             {soldOut.suffix}
           </span>
           {description && (
-            <span className="text-small text-ink-muted group-aria-checked:text-canvas/80">{description}</span>
+            <span
+              className={cn(
+                "text-small text-ink-muted",
+                // A picked unavailable card keeps its light background, so the description stays grey.
+                !unavailable && "group-aria-checked:text-canvas/80",
+              )}
+            >
+              {description}
+            </span>
           )}
         </span>
         {aside}

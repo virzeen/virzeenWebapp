@@ -12,7 +12,6 @@ import { COD_MAX_TOTAL_PAISA, isCodAvailable } from "../pricing/cod-rules";
 import { calculateSubtotal, calculateTotals, type Totals } from "../pricing/calculate-totals";
 import { DELIVERY_ESTIMATES, shippingZoneFor } from "../pricing/shipping-rates";
 import { providerFor } from "../payments/payment.service";
-import { stockAlertService } from "../stock-alerts/stock-alert.service";
 import type { CheckoutNext } from "../payments/provider";
 import { cancelOrderAndRestock } from "./cancellation";
 import { nextOrderNumber } from "./order-number";
@@ -289,7 +288,7 @@ export const checkoutService = {
       return { orderNumber: created.orderNumber, next: initiated.next };
     } catch (error) {
       logger.error("payment initiation failed", { orderNumber: created.orderNumber, error: String(error) });
-      const cancelled = await db.$transaction((tx) =>
+      await db.$transaction((tx) =>
         cancelOrderAndRestock(tx, {
           orderId: created.orderId,
           actor: "system",
@@ -297,7 +296,6 @@ export const checkoutService = {
           restoreToCart: true,
         }),
       );
-      await stockAlertService.notifyAvailable(cancelled.variantIds);
       throw new AppError(
         "PAYMENT_FAILED",
         "Payment didn't go through. Your bag is saved — try again or choose another method.",

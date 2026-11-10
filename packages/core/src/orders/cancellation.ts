@@ -10,8 +10,6 @@ import { transitionOrder } from "./order-state";
  * §2, §4). Every cancellation goes through here: customer, admin, refused at the door, failed or expired payment.
  * `restoreToCart` puts the items back in the customer's bag (unpaid online orders: "Your bag is saved").
  * Idempotent: an already-cancelled order is left untouched.
- * Returns the variants whose stock came back (none when nothing changed): after the transaction commits, the caller
- * passes them to `stockAlertService.notifyAvailable` ("Notify me when it's back", specs/notify-me.md).
  */
 export async function cancelOrderAndRestock(
   tx: Prisma.TransactionClient,
@@ -32,7 +30,7 @@ export async function cancelOrderAndRestock(
     ...(input.expectFrom ? { expectFrom: input.expectFrom } : {}),
     data: { cancelReason: input.reason, reservedUntil: null },
   });
-  if (!result.changed) return { ...result, variantIds: [] as string[] };
+  if (!result.changed) return result;
 
   const order = await tx.order.findUniqueOrThrow({
     where: { id: input.orderId },
@@ -47,5 +45,5 @@ export async function cancelOrderAndRestock(
   await restoreStock(tx, order.items);
   if (input.restoreToCart)
     await cartService.restoreOrderItems(tx, { userId: order.userId, items: order.items });
-  return { ...result, variantIds: order.items.map((item) => item.variantId) };
+  return result;
 }

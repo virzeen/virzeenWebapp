@@ -55,21 +55,38 @@ export function ProductSelectionProvider({
   const style = pickedStyle !== null && colors.includes(pickedStyle) ? pickedStyle : initialStyle;
   const size = pickedSize !== null && sizes.includes(pickedSize) ? pickedSize : null;
 
+  /**
+   * Keeps the address in step: `?style=` follows the picked style, and a `?size=` that came in (a "back in stock"
+   * email, the way back from sign-in) follows the picked size, so a reload or a shared link opens what's picked now.
+   * No reload and no new history entry; the canonical address stays /product/{slug}.
+   */
+  function writeAddress(next: { style?: string; size?: string | null }) {
+    if (!syncUrl) return;
+    const params = new URLSearchParams(window.location.search);
+    if (next.style !== undefined) params.set("style", next.style);
+    if (next.size !== undefined && params.has("size")) {
+      if (next.size) params.set("size", next.size);
+      else params.delete("size");
+    }
+    window.history.replaceState(null, "", `?${params.toString()}`);
+  }
+
   function pickStyle(next: string) {
     setStyle(next);
     // The picked size carries over when the new style has it in stock.
     const same = size ? variantFor(variants, colors.length > 0, sizes.length > 0, next, size) : undefined;
-    if (size && !(same && same.stock > 0)) setSize(null);
-    if (syncUrl) {
-      // No reload and no new history entry; the canonical address stays /product/{slug}.
-      const params = new URLSearchParams(window.location.search);
-      params.set("style", next);
-      window.history.replaceState(null, "", `?${params.toString()}`);
-    }
+    const keepSize = Boolean(size && same && same.stock > 0);
+    if (!keepSize) setSize(null);
+    writeAddress({ style: next, ...(keepSize ? {} : { size: null }) });
+  }
+
+  function pickSize(next: string) {
+    setSize(next);
+    writeAddress({ size: next });
   }
 
   return (
-    <SelectionContext value={{ variants, colors, sizes, style, size, pickStyle, pickSize: setSize }}>
+    <SelectionContext value={{ variants, colors, sizes, style, size, pickStyle, pickSize }}>
       {children}
     </SelectionContext>
   );

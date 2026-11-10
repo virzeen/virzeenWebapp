@@ -8,7 +8,11 @@ import { useCart } from "@/client/features/cart/cart-provider";
 import { favouriteDetails } from "@/client/features/favourites/favourite-bag";
 import { FavouriteButton } from "@/client/features/favourites/favourite-button";
 import { useFavourites } from "@/client/features/favourites/favourites-provider";
-import { NotifyMeButton } from "@/client/features/stock-alerts/notify-me-button";
+import {
+  NotifyMeButton,
+  StopNotifyButton,
+  useNotifyMe,
+} from "@/client/features/stock-alerts/notify-me-button";
 import { addToBagMessage, allInBagMessage } from "@/client/lib/error-messages";
 import { addToCartAction } from "@/server/actions/cart";
 import type { ProductDetailsData, SizeGuideView } from "./product-details-data";
@@ -30,6 +34,9 @@ type ProductPurchaseProps = {
   waitingVariantIds?: readonly string[];
 };
 
+/** The main button, floating on phones: Add to bag or Notify me (the same size, so they can't drift apart). */
+const STICKY_BUTTON = "pointer-events-auto mx-auto flex h-14 w-4/5 md:h-12 md:w-full";
+
 /**
  * Style tiles, sizes, stock, "Add to bag" and "Favourite" (patterns.md §6). Sold-out styles and sizes stay visible,
  * struck through, and can be picked: Add to bag then becomes "Notify me when it's back" (specs/notify-me.md). On phones
@@ -46,7 +53,6 @@ export function ProductPurchase({
   const { cart, setCart, open } = useCart();
   // The site layout knows who is signed in; Favourites shares it with every client leaf.
   const { signedIn } = useFavourites();
-  const [waiting, setWaiting] = useState(() => new Set(waitingVariantIds));
   const [isPending, startTransition] = useTransition();
   const { variants, colors, sizes, style, size, selected, price } = useProductSelection();
   const [sizeError, setSizeError] = useState(false);
@@ -54,6 +60,7 @@ export function ProductPurchase({
   const [allInBagId, setAllInBagId] = useState<string | null>(null);
   const sizeGroupRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const notifyMe = useNotifyMe({ waitingVariantIds, signedIn, preview, buttonRef });
 
   const anyInStock = variants.some((v) => v.stock > 0);
   const sizeMissing = sizes.length > 0 && !size;
@@ -63,6 +70,7 @@ export function ProductPurchase({
   const limit = selected ? Math.min(selected.stock, MAX_QTY_PER_LINE) : 0;
   const inBag = cart.items.find((item) => item.variantId === selected?.id)?.quantity ?? 0;
   const allInBag = selected !== undefined && allInBagId === selected.id && inBag >= limit;
+  const waitingForSelected = notify && notifyMe.isWaiting(selected.id);
 
   function pointToSizes() {
     setSizeError(true);
@@ -95,24 +103,6 @@ export function ProductPurchase({
   }
 
   const buttonLabel = soldOut ? "Out of stock" : sizeMissing ? "Select a size" : "Add to bag";
-
-  function setVariantWaiting(variantId: string, now: boolean) {
-    setWaiting((current) => {
-      const next = new Set(current);
-      if (now) next.add(variantId);
-      else next.delete(variantId);
-      return next;
-    });
-  }
-
-  /** This page in the picked style and size, for the way back from sign-in. */
-  function returnTo() {
-    const params = new URLSearchParams(window.location.search);
-    if (style) params.set("style", style);
-    if (size) params.set("size", size);
-    const query = params.toString();
-    return `${window.location.pathname}${query ? `?${query}` : ""}`;
-  }
   const favouriteStyle = style ?? colors[0] ?? "";
   // The style's first photo, as the gallery shows it.
   const [photo] = galleryFor(product.images, favouriteStyle || null, colors);
@@ -147,20 +137,17 @@ export function ProductPurchase({
           {notify ? (
             <NotifyMeButton
               ref={buttonRef}
-              variantId={selected.id}
-              waiting={waiting.has(selected.id)}
-              onWaitingChange={setVariantWaiting}
-              signedIn={signedIn}
-              returnTo={returnTo}
-              preview={preview}
-              className="pointer-events-auto mx-auto flex h-14 w-4/5 md:h-12 md:w-full"
+              waiting={waitingForSelected}
+              isPending={notifyMe.isPending}
+              onPress={() => notifyMe.ask(selected.id, style, size)}
+              className={STICKY_BUTTON}
             />
           ) : (
             <Button
               ref={buttonRef}
               size="lg"
               shape="pill"
-              className="pointer-events-auto mx-auto flex h-14 w-4/5 md:h-12 md:w-full"
+              className={STICKY_BUTTON}
               loading={isPending}
               disabled={soldOut}
               onClick={addToBag}
@@ -178,6 +165,9 @@ export function ProductPurchase({
             )}
           </div>
         </div>
+        {waitingForSelected && (
+          <StopNotifyButton disabled={notifyMe.isPending} onPress={() => notifyMe.stop(selected.id)} />
+        )}
         {/* Saves the style picked now ("" for a product without styles; the first style when all are sold out). */}
         <FavouriteButton
           productId={product.productId}

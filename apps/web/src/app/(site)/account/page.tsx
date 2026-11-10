@@ -34,7 +34,10 @@ export default async function ProfilePage() {
           {name.charAt(0).toUpperCase()}
         </span>
         <div className="flex min-w-0 flex-col gap-1">
-          <h1 className="font-display text-h2 wrap-anywhere">{name}</h1>
+          {/* Focus lands here when the last "Notify me" request is removed. */}
+          <h1 id="profile-name" tabIndex={-1} className="font-display text-h2 wrap-anywhere">
+            {name}
+          </h1>
           <p className="text-small text-ink-muted">Member since {formatMonthYear(user.createdAt)}</p>
         </div>
       </div>
@@ -70,7 +73,7 @@ export default async function ProfilePage() {
         </section>
       )}
 
-      <StockAlertList alerts={alerts} />
+      <StockAlertList alerts={alerts} emptyFocusId="profile-name" />
     </div>
   );
 }

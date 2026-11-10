@@ -7,6 +7,7 @@ import { imageForColor } from "../catalog/style-images";
 import { getCoreConfig } from "../config";
 import { AppError, isUniqueViolation } from "../errors";
 import { notifications } from "../notifications/notifications";
+import { nepalDateOf } from "../pricing/discounts";
 
 // "Notify me when it's back" (specs/notify-me.md): a signed-in customer waits for a sold-out variant and gets one
 // email when it's back in stock. Every customer method takes the signed-in userId and only touches their requests.
@@ -17,8 +18,25 @@ const waitableVariant = {
   product: publishedProductWhere,
 } satisfies Prisma.ProductVariantWhereInput;
 
-/** Most emails one notify call sends; the rest go on the next stock change (Resend's daily limit, spec edge cases). */
-const NOTIFY_BATCH = 200;
+/** Requests that end without an email: the size was switched off or the product archived (not just unpublished). */
+const droppedVariant = {
+  OR: [{ isActive: false }, { product: { archivedAt: { not: null } } }],
+} satisfies Prisma.ProductVariantWhereInput;
+
+/** Most "back in stock" emails one run sends; the next run sends the rest. */
+export const STOCK_ALERT_EMAILS_PER_RUN = 40;
+
+/**
+ * Most "back in stock" emails a day (Nepal time), so they never use up the daily quota that sign-in codes and order
+ * emails share (Resend's free plan sends 100 a day). Raise it when the plan is upgraded (specs/notify-me.md).
+ */
+export const STOCK_ALERT_EMAILS_PER_DAY = 40;
+
+/** Resend takes 2 requests a second: one email every 600 ms leaves room for a sign-in code sent meanwhile. */
+const SEND_SPACING_MS = 600;
+
+/** Midnight in Nepal (UTC+5:45) at the start of the day `now` falls in. */
+const startOfNepalDay = (now: Date) => new Date(`${nepalDateOf(now)}T00:00:00+05:45`);
 
 /** A waiting request as the account shows it. */
 export type StockAlertItem = {
@@ -36,12 +54,15 @@ export type StockAlertItem = {
   requestedAt: Date;
 };
 
-/** The product page link that opens the variant's style and size. */
+/**
+ * The product page link that opens the variant's style and size. Spaces become %20, not "+": the sign-in page's `next`
+ * check (safeRedirectSchema) doesn't take "+".
+ */
 export function variantPath(slug: string, color: string | null, size: string | null) {
-  const params = new URLSearchParams();
-  if (color) params.set("style", color);
-  if (size) params.set("size", size);
-  const query = params.toString();
+  const query = [
+    ...(color ? [`style=${encodeURIComponent(color)}`] : []),
+    ...(size ? [`size=${encodeURIComponent(size)}`] : []),
+  ].join("&");
   return `/product/${slug}${query ? `?${query}` : ""}`;
 }
 
@@ -157,26 +178,28 @@ export const stockAlertService = {
   },
 
   /**
-   * Emails everyone waiting for these variants that are in stock now, once each: a request is claimed (notifiedAt
-   * set with a conditional update) before its email goes, so two stock changes at once can't send it twice. Requests
-   * for variants no longer for sale, or products out of the shop, end without an email. Call it after the stock
-   * change has committed (admin save, cancellation). Never throws: a problem here mustn't undo the stock change.
-   * Returns how many emails were sent.
+   * Sends the "back in stock" emails that are due: every waiting request whose variant is for sale and in stock again,
+   * oldest first, at most STOCK_ALERT_EMAILS_PER_RUN per call and STOCK_ALERT_EMAILS_PER_DAY per Nepal day, one every
+   * SEND_SPACING_MS. Each request is claimed (`notifiedAt` set with a conditional update) before its email goes, so
+   * two runs at once can't send it twice; an email that fails puts its request back to waiting and stops the run (a
+   * full quota or an outage), so the next run tries again. Requests for a size switched off or an archived product end
+   * without an email; an unpublished product's wait. Runs after the reply, from every request that can return stock
+   * (`after()` in the web app: admin saves and order changes, payment returns, checkout, reconciliation). Never throws.
+   * Returns how many emails went.
    */
-  async notifyAvailable(variantIds: readonly string[]): Promise<number> {
-    const ids = [...new Set(variantIds)];
-    if (ids.length === 0) return 0;
+  async sendDue(options: { now?: Date; spacingMs?: number } = {}): Promise<number> {
     const { logger, siteUrl } = getCoreConfig();
+    const now = options.now ?? new Date();
+    const spacingMs = options.spacingMs ?? SEND_SPACING_MS;
     try {
-      await db.stockAlert.deleteMany({
-        where: { variantId: { in: ids }, notifiedAt: null, NOT: { variant: waitableVariant } },
+      await db.stockAlert.deleteMany({ where: { notifiedAt: null, variant: droppedVariant } });
+      const sentToday = await db.stockAlert.count({
+        where: { notifiedAt: { gte: startOfNepalDay(now) } },
       });
+      const room = Math.min(STOCK_ALERT_EMAILS_PER_RUN, STOCK_ALERT_EMAILS_PER_DAY - sentToday);
+      if (room <= 0) return 0;
       const due = await db.stockAlert.findMany({
-        where: {
-          variantId: { in: ids },
-          notifiedAt: null,
-          variant: { ...waitableVariant, stock: { gt: 0 } },
-        },
+        where: { notifiedAt: null, variant: { ...waitableVariant, stock: { gt: 0 } } },
         select: {
           id: true,
           user: { select: { email: true } },
@@ -185,21 +208,32 @@ export const stockAlertService = {
           },
         },
         orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-        take: NOTIFY_BATCH,
+        take: room,
       });
       let sent = 0;
       for (const alert of due) {
+        if (sent > 0 && spacingMs > 0) await new Promise((resolve) => setTimeout(resolve, spacingMs));
+        // The run's time: the day count above reads it, and only this run can put it back.
+        const claimedAt = now;
         const claimed = await db.stockAlert.updateMany({
           where: { id: alert.id, notifiedAt: null },
-          data: { notifiedAt: new Date() },
+          data: { notifiedAt: claimedAt },
         });
-        if (claimed.count === 0) continue; // another stock change is emailing this one
+        if (claimed.count === 0) continue; // another run is emailing this one
         const { variant } = alert;
-        await notifications.backInStock(alert.user.email, {
+        const delivered = await notifications.backInStock(alert.user.email, {
           productName: variant.product.name,
           variantLabel: variantLabelOf(variant),
           url: `${siteUrl}${variantPath(variant.product.slug, variant.color, variant.size)}`,
         });
+        if (!delivered) {
+          await db.stockAlert.updateMany({
+            where: { id: alert.id, notifiedAt: claimedAt },
+            data: { notifiedAt: null },
+          });
+          logger.warn("stock alerts paused: an email failed", { sent });
+          break;
+        }
         sent += 1;
       }
       if (sent > 0) logger.info("stock alerts sent", { sent });
@@ -208,11 +242,5 @@ export const stockAlertService = {
       logger.error("stock alerts failed", { error: String(error) });
       return 0;
     }
-  },
-
-  /** notifyAvailable for every variant of a product (after an admin save or archive). */
-  async notifyProduct(productId: string): Promise<number> {
-    const variants = await db.productVariant.findMany({ where: { productId }, select: { id: true } });
-    return stockAlertService.notifyAvailable(variants.map((variant) => variant.id));
   },
 };

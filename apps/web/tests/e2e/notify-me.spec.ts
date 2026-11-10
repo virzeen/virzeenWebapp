@@ -26,12 +26,12 @@ test("a guest picks a sold-out size, signs in, asks to be emailed, and manages i
 
   await page.getByRole("button", { name: "Notify me when it's back" }).click();
   await expect(page.getByText("We'll email you when it's back.")).toBeVisible();
-  const waiting = page.getByRole("button", { name: "We'll email you" });
-  await expect(waiting).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: "We'll email you" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Don't notify me" })).toBeVisible();
 
   // Saved on the account: still there after a reload.
   await page.reload();
-  await expect(page.getByRole("button", { name: "We'll email you" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: "We'll email you" })).toBeVisible();
 
   // The profile lists it; Remove ends it and the section goes.
   await page.goto("/account");
@@ -45,10 +45,7 @@ test("a guest picks a sold-out size, signs in, asks to be emailed, and manages i
   await expect(list).toHaveCount(0);
 
   await page.goto("/product/linen-overshirt?style=Black&size=XL");
-  await expect(page.getByRole("button", { name: "Notify me when it's back" })).toHaveAttribute(
-    "aria-pressed",
-    "false",
-  );
+  await expect(page.getByRole("button", { name: "Notify me when it's back" })).toBeVisible();
 });
 
 test("Don't notify me on the product page stops the request", async ({ page }) => {
@@ -61,8 +58,7 @@ test("Don't notify me on the product page stops the request", async ({ page }) =
   await expect(page.getByRole("button", { name: "We'll email you" })).toBeVisible();
   await page.getByRole("button", { name: "Don't notify me" }).click();
   await expect(page.getByText("We won't email you about it.")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Notify me when it's back" })).toHaveAttribute(
-    "aria-pressed",
-    "false",
-  );
+  // The control that had focus went away: focus is on the main button again.
+  await expect(page.getByRole("button", { name: "Notify me when it's back" })).toBeFocused();
+  await expect(page.getByRole("button", { name: "Don't notify me" })).toHaveCount(0);
 });
