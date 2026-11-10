@@ -50,7 +50,7 @@ export function DropPanelContent({
           "fixed inset-x-0 top-0 z-40 flex max-h-dvh flex-col gap-6 overflow-y-auto rounded-b-md bg-canvas px-4 pt-4 pb-6 shadow-md outline-none data-[state=closed]:animate-lift-up data-[state=open]:animate-drop-down sm:px-6",
           // From md: a 384px panel right under the 64px header, its right edge on the page's (Container's) right
           // edge, where the header's icons end.
-          "md:inset-x-auto md:top-16 md:right-6 md:w-full md:max-w-sm md:rounded-md md:p-6 lg:right-page-edge",
+          "md:inset-x-auto md:top-16 md:right-page-edge md:w-full md:max-w-sm md:rounded-md md:p-6",
           className,
         )}
         {...(description ? {} : { "aria-describedby": undefined })}

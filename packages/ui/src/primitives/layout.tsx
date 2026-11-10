@@ -1,10 +1,10 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "../lib/cn";
 
-const containerVariants = cva("mx-auto w-full px-4 sm:px-6 lg:px-8", {
+const containerVariants = cva("mx-auto w-full px-gutter", {
   variants: {
     width: {
-      default: "max-w-7xl",
+      default: "max-w-page",
       narrow: "max-w-3xl",
       full: "max-w-none",
     },
@@ -15,7 +15,11 @@ const containerVariants = cva("mx-auto w-full px-4 sm:px-6 lg:px-8", {
 export type ContainerProps = React.ComponentProps<"div"> &
   VariantProps<typeof containerVariants> & { as?: "div" | "section" | "main" | "header" | "footer" };
 
-/** Page-width wrapper with the standard gutters (px-4 → px-6 → px-8, max 1280px). `narrow` for reading pages. */
+/**
+ * Page-width wrapper, the same width as nike.com's pages (owner 2026-11-10): a 24px side margin (`gutter`), 48px from
+ * 960px wide, and content at most 1824px wide, centred (`max-w-page`, 1920px with the margins). `narrow` for reading
+ * pages (768px), `full` for edge-to-edge sections that keep the margins.
+ */
 export function Container({ className, width, as: Tag = "div", ...props }: ContainerProps) {
   return <Tag className={cn(containerVariants({ width }), className)} {...props} />;
 }
@@ -57,16 +61,17 @@ export function Stack({ className, gap = 4, direction = "column", align = "stret
 
 const gridColumns = {
   /**
-   * Every grid of product cards (owner 2026-11-08, Nike's): 2 a row on phones, 3 from md, with Nike's room between
-   * rows. The row gap is part of the variant, so pass only `gap` (the space between columns).
+   * Every grid of product cards, as nike.com's shop (owner 2026-11-08, measured again 2026-11-10): 2 a row below
+   * 960px, running to the screen's edges with 6px between photos (cards put their text `px-card-inset` in); 3 a row
+   * from 960px, inside the page's gutter, 16px apart. The gaps are part of the variant, so `gap` is ignored.
    */
-  products: "grid-cols-2 gap-y-10 md:grid-cols-3 md:gap-y-12",
+  products: "mx-grid-bleed grid-cols-products gap-x-product-gap gap-y-10 md:gap-y-12",
   two: "grid-cols-1 md:grid-cols-2",
   three: "grid-cols-1 md:grid-cols-2 lg:grid-cols-3",
 } as const;
 
 export type GridProps = React.ComponentProps<"div"> & {
-  /** `products`: product cards, 2 a row on phones and 3 from md (docs/ui/design-tokens.md §6). */
+  /** `products`: product cards, Nike's grid (docs/ui/design-tokens.md §6). */
   columns?: keyof typeof gridColumns;
   gap?: Gap;
 };

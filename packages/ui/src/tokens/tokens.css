@@ -66,9 +66,21 @@
   --shadow-sm: 0 1px 2px 0 rgb(20 20 20 / 0.06), 0 1px 3px 0 rgb(20 20 20 / 0.04);
   --shadow-md: 0 8px 24px -4px rgb(20 20 20 / 0.12), 0 2px 6px -2px rgb(20 20 20 / 0.06);
 
-  /* Layout: how far the right edge of Container's content (max-w-7xl, px-8 from lg) sits from the screen's right
-     edge, so a panel under the header lines up with its icons (DropPanel, from lg). */
-  --spacing-page-edge: max(2rem, calc((100vw - 80rem) / 2 + 2rem));
+  /* Layout: the page's side margin and width, as nike.com has them (owner 2026-11-10, measured from 360 to 2560px
+     wide): `gutter` is 24px, and 48px from 960px wide (the media rule after this block); `page` is 1920px, so the
+     content is at most 1824px wide, centred. Container uses both; anything that reaches the screen's edge on phones
+     uses -mx-gutter. */
+  --spacing-gutter: 1.5rem;
+  --container-page: 120rem;
+  /* Product grids, as nike.com's shop (same day): below 960px they run to the screen's edges (`grid-bleed`, the
+     gutter pulled back), 6px between photos (`product-gap`) and the card's text 12px in (`card-inset`); from 960px
+     they sit inside the gutter, 16px apart, the text lined up with the photo. With grid-cols-products (below). */
+  --spacing-grid-bleed: -1.5rem;
+  --spacing-product-gap: 0.375rem;
+  --spacing-card-inset: 0.75rem;
+  /* How far the right edge of Container's content sits from the screen's right edge, for a fixed panel (its 100% is
+     the screen without the scrollbar) that lines up with the header's icons (DropPanel, from md). */
+  --spacing-page-edge: max(var(--spacing-gutter), calc((100% - 120rem) / 2 + var(--spacing-gutter)));
 
   /* ── 5. Motion ── */
   --ease-*: initial;
@@ -200,6 +212,34 @@
  * outline. Text fields still show focus with their ink border (`focus:` classes in Input and Select).
  */
 @custom-variant focus-visible (&:focus-visible:not(*));
+
+/* The page's side margin widens at 960px, Nike's large breakpoint (see --spacing-gutter), and product grids move
+   inside it. */
+@media (width >= 60rem) {
+  :root {
+    --spacing-gutter: 3rem;
+    --spacing-grid-bleed: 0px;
+    --spacing-product-gap: 1rem;
+    --spacing-card-inset: 0px;
+  }
+}
+
+/* Product cards a row, as nike.com: 2 below 960px (tablets too), 3 from 960px. */
+@utility grid-cols-products {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  @media (width >= 60rem) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* One card's width in a sideways row of products (ProductCarousel, cards `gap-x-product-gap` apart), so it shows as
+   many whole cards as the grid's row. */
+@utility w-product-slide {
+  width: calc((100% - var(--spacing-product-gap)) / 2);
+  @media (width >= 60rem) {
+    width: calc((100% - 2 * var(--spacing-product-gap)) / 3);
+  }
+}
 
 @utility tone-inverse {
   --color-focus: #ffffff;

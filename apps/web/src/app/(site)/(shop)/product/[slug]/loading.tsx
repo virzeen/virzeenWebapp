@@ -24,7 +24,7 @@ export default function ProductLoading() {
             <Skeleton shape="image" className="max-w-gallery-photo rounded-md" />
           </div>
           {/* Phones: the photo runs to the screen edges, like the gallery. */}
-          <Skeleton shape="image" className="-mx-4 w-auto rounded-none sm:-mx-6 lg:hidden" />
+          <Skeleton shape="image" className="-mx-gutter w-auto rounded-none lg:hidden" />
         </div>
         <Stack gap={6} className="lg:col-start-2 lg:row-start-2 lg:max-w-md">
           <div className="flex gap-2">
