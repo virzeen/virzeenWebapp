@@ -25,7 +25,8 @@
     },
     "test": {
       "dependsOn": ["^db:generate", "db:generate"],
-      "env": ["DATABASE_URL_TEST"]
+      "env": ["DATABASE_URL_TEST"],
+      "passThroughEnv": ["VITEST_BROWSER_PORT"]
     },
     "storybook": {
       "cache": false,

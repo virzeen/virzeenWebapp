@@ -14,7 +14,8 @@ type StylePickerProps = {
 
 /**
  * The style picker (specs/product-page.md): square picture tiles when photos belong to styles, otherwise
- * "Colour: {name}" chips. A style with nothing in stock stays visible but can't be picked.
+ * "Colour: {name}" chips. A style with nothing in stock stays visible, crossed out, and can still be picked: its sizes
+ * then offer "Notify me when it's back" (specs/notify-me.md).
  */
 export function StylePicker({ tiles, labelAside }: StylePickerProps) {
   const { variants, colors, style, pickStyle } = useProductSelection();
@@ -33,7 +34,7 @@ export function StylePicker({ tiles, labelAside }: StylePickerProps) {
             key={c}
             value={c}
             label={c}
-            disabled={!styleHasStock(variants, c)}
+            unavailable={!styleHasStock(variants, c)}
             media={
               tiles ? <CloudImage src={tiles[c] ?? null} alt="" ratio="square" sizes="64px" /> : undefined
             }

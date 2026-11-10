@@ -39,12 +39,14 @@ describe("style photos (specs/product-styles.md, specs/product-page.md)", () => 
       { color: "River", stock: 2 },
     ];
     expect(initialStyle(variants, styles)).toBe("River");
-    expect(initialStyle([{ color: "Mountain", stock: 0 }], styles)).toBeNull();
+    // All sold out: the first style, so its sizes can offer "Notify me" (specs/notify-me.md).
+    expect(initialStyle([{ color: "Mountain", stock: 0 }], styles)).toBe("Mountain");
+    expect(initialStyle([], [])).toBeNull();
     expect(hasStylePhotos(images, styles)).toBe(true);
     expect(hasStylePhotos([photo("a", null)], styles)).toBe(false);
   });
 
-  it("opens the style a ?style= link names when it exists and has stock", () => {
+  it("opens the style a ?style= link names when it exists, sold out too", () => {
     const variants = [
       { color: "Mountain", stock: 3 },
       { color: "River", stock: 2 },
@@ -52,7 +54,7 @@ describe("style photos (specs/product-styles.md, specs/product-page.md)", () => 
     ];
     const all = [...styles, "Sky"];
     expect(styleFromParam("River", variants, all)).toBe("River");
-    expect(styleFromParam("Sky", variants, all)).toBe("Mountain"); // sold out
+    expect(styleFromParam("Sky", variants, all)).toBe("Sky"); // sold out: its sizes offer "Notify me"
     expect(styleFromParam("Nope", variants, all)).toBe("Mountain"); // unknown
     expect(styleFromParam(undefined, variants, all)).toBe("Mountain");
     expect(styleFromParam("river", variants, all)).toBe("Mountain"); // names match exactly

@@ -384,7 +384,10 @@ test("admin sets up two-factor, builds a product on its page and it appears in t
   await expect(page.getByText(/^Style: VZ\d{4,}-102$/)).toBeVisible();
   await expect(page.locator('main img[src*="product-02"]').first()).toBeVisible();
   await expect(page.getByText("Rs 1,650").first()).toBeVisible();
-  await expect(page.getByRole("radio", { name: "M", exact: true })).toBeDisabled();
+  // Mountain print M has no stock: struck through but pickable, for "Notify me" (specs/notify-me.md).
+  await expect(page.getByRole("radio", { name: "M, sold out", exact: true })).toHaveAttribute(
+    "data-unavailable",
+  );
 
   // Products list: status filters, and Duplicate makes a draft copy (stock 0) that opens in the editor.
   await page.goto("/admin/products");

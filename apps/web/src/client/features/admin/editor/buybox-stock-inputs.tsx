@@ -13,8 +13,10 @@ const BOX =
 
 /** A row's stock (and price) boxes: the form value, saved when the box is left. */
 function useRowInputs(index: number) {
-  const { form, commit } = useProductEditor();
+  const { form, commit, options } = useProductEditor();
   const price = useWatch({ control: form.control, name: `variants.${index}.pricePaisa` });
+  const variantId = useWatch({ control: form.control, name: `variants.${index}.id` });
+  const stockNow = useWatch({ control: form.control, name: `variants.${index}.stock` });
   const { errors } = useFormState({ control: form.control, name: `variants.${index}` });
   const row = errors.variants?.[index];
   return {
@@ -27,7 +29,20 @@ function useRowInputs(index: number) {
     },
     stockError: row?.stock?.message,
     priceError: row?.pricePaisa?.message,
+    // Customers waiting for this sold-out size (specs/notify-me.md), so the owners know what to restock. Counted
+    // when the page loaded; hidden once the box holds stock again (they're emailed after the save).
+    waiting: stockNow > 0 ? 0 : (variantId && options.waiting?.[variantId]) || 0,
   };
+}
+
+/** "{n} waiting" at the bottom of a sold-out size's cell: customers who asked to be emailed when it's back. */
+function WaitingNote({ id, count }: { id: string; count: number }) {
+  if (count === 0) return null;
+  return (
+    <p id={id} className="text-center text-small text-ink-muted">
+      {count} waiting
+    </p>
+  );
 }
 
 type SizeStockProps = { cell: SizeCell; style: string | null; showPrice: boolean };
@@ -64,6 +79,8 @@ function SizeStockInputs({
   const inputs = useRowInputs(cell.index);
   const problems = [inputs.stockError, showPrice ? inputs.priceError : undefined].filter(Boolean);
   const errorId = problems.length > 0 ? `${id}-error` : undefined;
+  const waitingId = inputs.waiting > 0 ? `${id}-waiting` : undefined;
+  const stockDescribedBy = [waitingId, errorId].filter(Boolean).join(" ") || undefined;
   return (
     <li className="flex min-w-0 flex-col gap-1">
       <label
@@ -82,7 +99,7 @@ function SizeStockInputs({
         min={0}
         aria-label={`Stock, ${name}`}
         aria-invalid={inputs.stockError ? true : undefined}
-        aria-describedby={errorId}
+        aria-describedby={stockDescribedBy}
         {...inputs.stock}
       />
       {showPrice && (
@@ -98,6 +115,8 @@ function SizeStockInputs({
           {problems.join(" ")}
         </p>
       )}
+      {/* Last, so the price boxes still line up across the row. */}
+      {waitingId && <WaitingNote id={waitingId} count={inputs.waiting} />}
     </li>
   );
 }
@@ -117,7 +136,7 @@ export function SingleStock({
     <div className="grid gap-4 sm:grid-cols-2">
       <FormField
         label={style ? `Stock, ${style}` : "Stock"}
-        helper="How many you have."
+        helper={inputs.waiting > 0 ? `How many you have. ${inputs.waiting} waiting.` : "How many you have."}
         error={inputs.stockError}
       >
         <Input type="number" inputMode="numeric" min={0} {...inputs.stock} />

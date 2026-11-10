@@ -8,6 +8,7 @@ import { runAction } from "@/server/actions/result";
 import { ensureCart, requireUser } from "@/server/auth/session";
 import { features } from "@/server/env";
 import { rateLimit, rateLimitDiscountCheck } from "@/server/security/rate-limit";
+import { sendDueStockAlerts } from "@/server/services/stock-alerts";
 
 /**
  * Server-calculated totals for the chosen address and, optionally, a discount code (the client never sends a price).
@@ -48,6 +49,8 @@ export async function placeOrderAction(input: unknown) {
       });
     }
     const { cartId } = await ensureCart();
+    // An online payment that can't start cancels the order and returns its stock ("Notify me", specs/notify-me.md).
+    if (data.paymentMethod !== "COD") sendDueStockAlerts();
     const result = await checkoutService.placeOrder({
       // 4. core
       userId: user.id,

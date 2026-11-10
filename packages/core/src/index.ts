@@ -51,6 +51,7 @@ export {
   type FavouriteVariant,
 } from "./favourites/favourite.service";
 export { notifications, PAYMENT_METHOD_LABELS } from "./notifications/notifications";
+export { stockAlertService, variantPath, type StockAlertItem } from "./stock-alerts/stock-alert.service";
 export {
   checkoutService,
   RESERVATION_MINUTES,

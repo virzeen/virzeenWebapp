@@ -7,6 +7,7 @@ import {
   orderService,
   portfolioService,
   reviewService,
+  stockAlertService,
   stockInsights,
 } from "@virzeen/core";
 import type { AdminOrderFilters, AdminProductFilters, AdminReviewFilters } from "@virzeen/validators";
@@ -48,6 +49,9 @@ export const getProductForEdit = cache(async (id: string) => {
     return null;
   }
 });
+
+/** Customers waiting for each of a product's sold-out variants (specs/notify-me.md): variant id → count. */
+export const getWaitingCounts = (productId: string) => stockAlertService.waitingCounts(productId);
 
 /** null when missing or archived (the page shows 404). */
 export const getSizeGuideForEdit = cache((id: string) => adminReads.getSizeGuideForEdit(id));

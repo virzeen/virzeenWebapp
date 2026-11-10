@@ -8,6 +8,9 @@ export const MAX_QTY_PER_LINE = 10;
 /** Most favourites one account (or one browser) keeps. */
 export const MAX_FAVOURITES = 100;
 
+/** Most "Notify me when it's back" requests one account keeps waiting (specs/notify-me.md). */
+export const MAX_STOCK_ALERTS = 20;
+
 /** Longest style name a favourite keeps (favourites.ts `favouriteKeySchema`). */
 export const MAX_FAVOURITE_COLOR = 40;
 

@@ -4,6 +4,7 @@ import "server-only";
 import { orderService } from "@virzeen/core";
 import { advanceOrderSchema, orderRefSchema, orderWithReasonSchema } from "@virzeen/validators";
 import { revalidatePath } from "next/cache";
+import { sendDueStockAlerts } from "@/server/services/stock-alerts";
 import { runAdminAction } from "./guard";
 
 const refresh = (orderNumber: string) => {
@@ -18,6 +19,8 @@ export async function advanceOrderAction(input: unknown) {
     const data = advanceOrderSchema.parse(input);
     const result = await orderService.advance(admin.id, data);
     refresh(data.orderNumber);
+    // A cancelled order returns its stock: "Notify me" emails (specs/notify-me.md).
+    if (data.to === "CANCELLED") sendDueStockAlerts();
     return result;
   });
 }
@@ -37,6 +40,7 @@ export async function markRefusedAtDoorAction(input: unknown) {
     const { orderNumber, reason } = orderWithReasonSchema.parse(input);
     const result = await orderService.markRefusedAtDoor(admin.id, orderNumber, reason);
     refresh(orderNumber);
+    sendDueStockAlerts();
     return result;
   });
 }

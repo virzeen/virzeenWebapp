@@ -11,3 +11,4 @@ export * from "./limits";
 export * from "./orders";
 export * from "./portfolio";
 export * from "./reviews";
+export * from "./stock-alerts";

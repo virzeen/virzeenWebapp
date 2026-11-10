@@ -11,7 +11,9 @@ import {
   listProductReviews,
   listRecommendations,
 } from "@/server/queries/catalog";
+import { getUser } from "@/server/auth/session";
 import { siteUrl } from "@/server/env";
+import { listMyWaitingVariantIds } from "@/server/queries/account";
 import { flattenSearchParams, type SearchParams } from "@/server/queries/params";
 import { absoluteImageUrl, breadcrumbJsonLd, productDescription, productTitle } from "@/server/seo";
 
@@ -44,6 +46,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
+/** The variants a signed-in customer waits for ("Notify me when it's back", specs/notify-me.md); none for guests. */
+async function waitingFor(variantIds: string[]) {
+  const user = await getUser();
+  return user ? listMyWaitingVariantIds(user.id, variantIds) : [];
+}
+
 /** The carousels under the product (specs/product-page-v2.md), streamed in after it so they never hold it up. */
 async function Recommendations({ product }: { product: { id: string; categoryId: string } }) {
   return <RelatedProducts recommendations={await listRecommendations(product)} />;
@@ -61,15 +69,24 @@ async function Reviews({ product }: { product: { id: string; slug: string } }) {
 export default async function ProductPage({ params, searchParams }: Props) {
   const product = await getProductBySlug((await params).slug);
   if (!product) notFound();
-  // `?style=` picks the style a shared link or a favourite names; the canonical address stays /product/{slug}.
-  const { style } = flattenSearchParams(await searchParams);
+  // `?style=` picks the style a shared link or a favourite names, `?size=` the size a "back in stock" email or the way
+  // back from sign-in names; the canonical address stays /product/{slug}.
+  const { style, size } = flattenSearchParams(await searchParams);
   const lowestPrice = Math.min(...product.variants.map((v) => v.pricePaisa));
   const image = product.images[0] ? absoluteImageUrl(product.images[0].url, siteUrl) : null;
-  const rating = await getReviewSummary(product.id);
+  const [rating, waitingVariantIds] = await Promise.all([
+    getReviewSummary(product.id),
+    waitingFor(product.variants.map((variant) => variant.id)),
+  ]);
 
   return (
     <>
-      <ProductDetails product={{ ...product, productId: product.id }} styleParam={style} />
+      <ProductDetails
+        product={{ ...product, productId: product.id }}
+        styleParam={style}
+        sizeParam={size}
+        waitingVariantIds={waitingVariantIds}
+      />
 
       <Suspense fallback={null}>
         <Reviews product={product} />
