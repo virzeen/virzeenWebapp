@@ -476,43 +476,45 @@ model CartItem {
 // ───────────────────────────── Orders ─────────────────────────────
 
 model Order {
-  id              String        @id @default(cuid(2))
+  id                    String        @id @default(cuid(2))
   /// Human-facing number: VZ-YYMMDD-XXXX
-  orderNumber     String        @unique
-  userId          String
-  user            User          @relation(fields: [userId], references: [id], onDelete: Restrict)
-  status          OrderStatus   @default(PENDING)
-  paymentStatus   PaymentStatus @default(UNPAID)
-  paymentMethod   PaymentMethod
-  subtotalPaisa   Int
-  shippingPaisa   Int
+  orderNumber           String        @unique
+  userId                String
+  user                  User          @relation(fields: [userId], references: [id], onDelete: Restrict)
+  status                OrderStatus   @default(PENDING)
+  paymentStatus         PaymentStatus @default(UNPAID)
+  paymentMethod         PaymentMethod
+  subtotalPaisa         Int
+  shippingPaisa         Int
   /// Taken off the subtotal by the discount code (specs/discount-codes.md); totalPaisa already has it off.
-  discountPaisa   Int           @default(0)
-  totalPaisa      Int
+  discountPaisa         Int           @default(0)
+  totalPaisa            Int
   /// The discount code used, if any. Codes are never deleted, so the link stays.
-  discountCodeId  String?
-  discount        DiscountCode? @relation(fields: [discountCodeId], references: [id], onDelete: Restrict)
+  discountCodeId        String?
+  discount              DiscountCode? @relation(fields: [discountCodeId], references: [id], onDelete: Restrict)
   /// Snapshot of the code's text as applied, e.g. "WELCOME10".
-  discountCode    String?
-  shippingZone    ShippingZone
+  discountCode          String?
+  shippingZone          ShippingZone
   /// Snapshot of the delivery address at purchase time.
-  addressSnapshot Json
+  addressSnapshot       Json
   /// Snapshot of the customer's email for order emails.
-  customerEmail   String
+  customerEmail         String
   /// Online payments hold stock until this time (payment-policy.md §4).
-  reservedUntil   DateTime?
-  courierName     String?
-  trackingNumber  String?
-  cancelReason    String?
-  confirmedAt     DateTime?
-  shippedAt       DateTime?
-  deliveredAt     DateTime?
-  cancelledAt     DateTime?
-  items           OrderItem[]
-  payments        Payment[]
-  events          OrderEvent[]
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  reservedUntil         DateTime?
+  /// The one "waiting for payment" reminder email was claimed for sending (specs/payment-window.md).
+  paymentReminderSentAt DateTime?
+  courierName           String?
+  trackingNumber        String?
+  cancelReason          String?
+  confirmedAt           DateTime?
+  shippedAt             DateTime?
+  deliveredAt           DateTime?
+  cancelledAt           DateTime?
+  items                 OrderItem[]
+  payments              Payment[]
+  events                OrderEvent[]
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
 
   @@index([userId, createdAt])
   @@index([status, createdAt])

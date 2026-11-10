@@ -158,3 +158,69 @@ export async function transitionPayment(
   });
   return { changed: true, from };
 }
+
+/**
+ * One payment attempt's own allowed moves (specs/payment-window.md). The same as the order's payment status, plus
+ * FAILED/EXPIRED → PAID: an attempt we stopped waiting for can still turn out paid (the customer paid after the
+ * order's time ran out, or a second time), and the row records what really happened. The order itself never moves
+ * that way.
+ */
+export const ATTEMPT_TRANSITIONS: Record<PaymentStatus, readonly PaymentStatus[]> = {
+  ...PAYMENT_TRANSITIONS,
+  FAILED: ["PAID"],
+  EXPIRED: ["PAID"],
+};
+
+type AttemptTransitionInput = {
+  orderId: string;
+  paymentId: string;
+  to: PaymentStatus;
+  actor: string;
+  reason?: string;
+  paymentData?: Prisma.PaymentUpdateManyMutationInput;
+};
+
+/**
+ * Moves one payment attempt row, not the order's payment status: an online order waits for payment while its
+ * attempts come and go (Pay now), so an attempt can fail, expire, start or turn out paid on its own. Conditional and
+ * idempotent like the others; writes an OrderEvent ("Attempt 2: …"). Must run inside a transaction.
+ */
+export async function transitionAttempt(
+  tx: Prisma.TransactionClient,
+  input: AttemptTransitionInput,
+): Promise<TransitionResult<PaymentStatus>> {
+  const payment = await tx.payment.findFirst({
+    where: { id: input.paymentId, orderId: input.orderId },
+    select: { status: true, attempt: true },
+  });
+  if (!payment) throw new AppError("NOT_FOUND", "Payment not found.");
+  const from = payment.status;
+  if (from === input.to) return { changed: false, from };
+  if (!ATTEMPT_TRANSITIONS[from].includes(input.to)) {
+    throw new AppError(
+      "INVALID_STATE_TRANSITION",
+      `A payment attempt can't move from ${from} to ${input.to}.`,
+      {
+        meta: { from, to: input.to },
+      },
+    );
+  }
+  const updated = await tx.payment.updateMany({
+    where: { id: input.paymentId, status: from },
+    data: { ...input.paymentData, status: input.to },
+  });
+  if (updated.count === 0) {
+    throw new AppError("CONFLICT", "The payment changed while we were updating it. Please try again.");
+  }
+  await tx.orderEvent.create({
+    data: {
+      orderId: input.orderId,
+      type: "PAYMENT_STATUS",
+      from,
+      to: input.to,
+      actor: input.actor,
+      reason: `Attempt ${payment.attempt}${input.reason ? `: ${input.reason}` : ""}`,
+    },
+  });
+  return { changed: true, from };
+}

@@ -7,6 +7,7 @@ import {
   renderOrderConfirmationEmail,
   renderOrderShippedEmail,
   renderOtpEmail,
+  renderPaymentReminderEmail,
   type RenderedEmail,
 } from "@virzeen/emails";
 import { getCoreConfig } from "../config";
@@ -133,6 +134,32 @@ export const notifications = {
       wasPaidOnline: order.paymentStatus === "PAID",
     });
     await send(order.customerEmail, email, { orderNumber: order.orderNumber, kind: "order.cancelled" });
+  },
+
+  /** The one "waiting for payment" email of an online order (specs/payment-window.md). */
+  async paymentReminder(orderId: string) {
+    const order = await db.order.findUnique({
+      where: { id: orderId },
+      select: {
+        orderNumber: true,
+        customerEmail: true,
+        addressSnapshot: true,
+        totalPaisa: true,
+        reservedUntil: true,
+      },
+    });
+    if (!order?.reservedUntil) return;
+    const email = await renderPaymentReminderEmail({
+      siteUrl: getCoreConfig().siteUrl,
+      orderNumber: order.orderNumber,
+      customerName: firstName((order.addressSnapshot as AddressSnapshot).fullName),
+      totalPaisa: order.totalPaisa,
+      payBy: order.reservedUntil,
+    });
+    await send(order.customerEmail, email, {
+      orderNumber: order.orderNumber,
+      kind: "order.payment_reminder",
+    });
   },
 
   /**

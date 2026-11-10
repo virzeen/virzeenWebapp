@@ -50,3 +50,9 @@ export function formatDateTime(date: Date | string): string {
   const p = parts(date);
   return `${formatDate(date)}, ${p.hour}:${p.minute} ${p.dayPeriod}`;
 }
+
+/** "3:45 PM" (Asia/Kathmandu): the time an unpaid order must be paid by. */
+export function formatTime(date: Date | string): string {
+  const p = parts(date);
+  return `${p.hour}:${p.minute} ${p.dayPeriod}`;
+}

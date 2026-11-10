@@ -11,6 +11,7 @@ import {
   type StockAlertItem,
 } from "@virzeen/core";
 import type { FavouriteView } from "@/server/actions/favourites";
+import { features } from "@/server/env";
 import type { StockAlertRow } from "@/server/actions/stock-alerts";
 
 // Every read is scoped to the signed-in user id (security-policy.md §3).
@@ -49,6 +50,14 @@ export const listMyStockAlerts = async (userId: string): Promise<StockAlertRow[]
 /** Which of a product's variants the customer is waiting for (the product page's Notify me button). */
 export const listMyWaitingVariantIds = (userId: string, variantIds: readonly string[]) =>
   stockAlertService.waitingVariantIds(userId, variantIds);
+
+/** This request's time (ms), for the minutes left to pay on dynamic, per-customer pages. */
+export const requestTime = () => Date.now();
+
+/** eSewa and Khalti, when switched on: what Pay now offers (specs/payment-window.md). */
+export function onlinePaymentMethods(): ("ESEWA" | "KHALTI")[] {
+  return [...(features.esewa ? (["ESEWA"] as const) : []), ...(features.khalti ? (["KHALTI"] as const) : [])];
+}
 
 /** Another customer's order → null (the page shows 404). */
 export async function getMyOrder(userId: string, orderNumber: string) {

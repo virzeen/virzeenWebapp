@@ -4,7 +4,7 @@ import type { AdminOrderFilters, AdvanceOrderInput } from "@virzeen/validators";
 import { recordAudit } from "../audit/audit";
 import { AppError } from "../errors";
 import { notifications } from "../notifications/notifications";
-import { paymentService } from "../payments/payment.service";
+import { paymentService, type VerifyOutcome } from "../payments/payment.service";
 import { cancelOrderAndRestock } from "./cancellation";
 import { transitionOrder, transitionPayment } from "./order-state";
 
@@ -108,10 +108,54 @@ export const orderService = {
   },
 
   /** Another customer's order is "not found" (security-policy.md §3). */
-  async getForUser(userId: string, orderNumber: string): Promise<OrderDetail> {
+  async getForUser(userId: string, orderNumber: string): Promise<OrderDetail & { paidLate: boolean }> {
     const row = await db.order.findFirst({ where: { orderNumber, userId }, select: detailSelect });
     if (!row) throw new AppError("NOT_FOUND", "Order not found.");
-    return toDetail(row);
+    // A payment that arrived after the order's 15 minutes ran out (specs/payment-window.md): the owner refunds it.
+    const paidLate =
+      row.status === "CANCELLED" &&
+      (await db.payment.count({ where: { orderId: row.id, status: "PAID", provider: { not: "COD" } } })) > 0;
+    return { ...toDetail(row), paidLate };
+  },
+
+  /**
+   * "Cancel order" on the customer's own online order that still waits for payment (specs/payment-window.md): first
+   * re-checks its open attempts (paid → refused), then cancels it with the stock, the discount's use and the items
+   * back in the bag. Open attempts stay watched, so a payment made anyway still reaches the owner for a refund.
+   */
+  async cancelUnpaidForCustomer(userId: string, orderNumber: string, now = new Date()) {
+    const actor = `customer:${userId}`;
+    const order = await db.order.findFirst({
+      where: { orderNumber, userId },
+      select: { id: true, status: true, paymentMethod: true },
+    });
+    if (!order) throw new AppError("NOT_FOUND", "Order not found.");
+    if (order.status === "CANCELLED") return { orderNumber };
+    if (order.status !== "PENDING" || order.paymentMethod === "COD") {
+      throw new AppError("CONFLICT", "This order can't be cancelled here. Contact us and we'll help.");
+    }
+    const checked = await paymentService.verifyOpenAttempts(order.id, { actor, now, trigger: "cancel" });
+    if (checked.paid) throw new AppError("CONFLICT", "This order has just been paid.");
+    await db.$transaction(async (tx) => {
+      const current = await tx.order.findUniqueOrThrow({
+        where: { id: order.id },
+        select: { status: true, paymentStatus: true },
+      });
+      if (current.status === "CANCELLED") return;
+      if (current.status !== "PENDING") throw new AppError("CONFLICT", "This order has just been paid.");
+      const reason = "Cancelled by the customer";
+      if (current.paymentStatus === "PENDING") {
+        await transitionPayment(tx, { orderId: order.id, to: "FAILED", actor, reason });
+      }
+      await cancelOrderAndRestock(tx, {
+        orderId: order.id,
+        actor,
+        reason,
+        restoreToCart: true,
+        expectFrom: ["PENDING"],
+      });
+    });
+    return { orderNumber };
   },
 
   // ── Admin ──
@@ -333,12 +377,28 @@ export const orderService = {
     return { orderNumber };
   },
 
-  /** "Re-verify payment" button (runbooks/payment-stuck-pending.md step 4): same code path as callbacks. */
+  /**
+   * "Re-verify payment" button (runbooks/payment-stuck-pending.md step 4): same code path as callbacks. Checks every
+   * open attempt (Pay now can make several), else the newest one, even one we stopped waiting for.
+   */
   async reverifyPayment(actorId: string, orderNumber: string) {
     const orderId = await findOrderId(orderNumber);
-    const paymentId = await paymentService.latestPaymentId(orderId);
-    if (!paymentId) throw new AppError("NOT_FOUND", "This order has no payment attempt.");
-    const result = await paymentService.verifyPayment(paymentId, { actor: `admin:${actorId}` });
+    const attempts = await db.payment.findMany({
+      where: { orderId, provider: { in: ["ESEWA", "KHALTI"] } },
+      select: { id: true, status: true },
+      orderBy: { createdAt: "desc" },
+    });
+    const newest = attempts[0];
+    if (!newest) throw new AppError("NOT_FOUND", "This order has no online payment attempt.");
+    const open = attempts.filter((attempt) => attempt.status === "PENDING");
+    let result = { outcome: "OTHER" as VerifyOutcome, orderNumber, answered: true };
+    for (const attempt of open.length > 0 ? open : [newest]) {
+      result = await paymentService.verifyPayment(attempt.id, {
+        actor: `admin:${actorId}`,
+        trigger: "admin",
+      });
+      if (result.outcome === "PAID") break;
+    }
     await db.auditLog.create({
       data: {
         actorId,

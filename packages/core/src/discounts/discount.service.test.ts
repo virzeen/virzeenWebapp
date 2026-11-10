@@ -306,7 +306,7 @@ describe("online payments with a discount code (switched off until about March 2
       discountCode: "WELCOME10",
       now: PLACED_AT,
     });
-    return { orderNumber, initiated };
+    return { orderNumber, initiated, fixture };
   }
 
   it("asks Khalti for the discounted total and marks PAID only for that exact amount", async () => {
@@ -314,7 +314,7 @@ describe("online payments with a discount code (switched off until about March 2
     expect(initiated).toMatchObject({ amount: DISCOUNTED_TOTAL });
     mockProvider(() => json({ pidx: "PIDXD1", status: "Completed", total_amount: DISCOUNTED_TOTAL }));
 
-    await expect(paymentService.handleKhaltiReturn("PIDXD1")).resolves.toEqual({
+    await expect(paymentService.handleKhaltiReturn("PIDXD1")).resolves.toMatchObject({
       outcome: "PAID",
       orderNumber,
     });
@@ -324,7 +324,7 @@ describe("online payments with a discount code (switched off until about March 2
     const { orderNumber } = await placeKhalti();
     mockProvider(() => json({ pidx: "PIDXD1", status: "Completed", total_amount: 450_000 + SHIPPING }));
 
-    await expect(paymentService.handleKhaltiReturn("PIDXD1")).resolves.toEqual({
+    await expect(paymentService.handleKhaltiReturn("PIDXD1")).resolves.toMatchObject({
       outcome: "MISMATCH",
       orderNumber,
     });
@@ -343,11 +343,15 @@ describe("online payments with a discount code (switched off until about March 2
     expect(await db.cartItem.count({ where: { cartId: fixture.cart.id } })).toBe(1); // "Your bag is saved"
   });
 
-  it("gives the use back when the payment is cancelled or expires", async () => {
-    await placeKhalti();
+  it("keeps the use while a cancelled payment's order still waits, and gives it back when the order is cancelled", async () => {
+    const { orderNumber, fixture } = await placeKhalti();
     expect(await usedCount()).toBe(1);
     mockProvider(() => json({ pidx: "PIDXD1", status: "User canceled", total_amount: DISCOUNTED_TOTAL }));
+    // The attempt ends; the order keeps waiting for payment (specs/payment-window.md).
     await paymentService.handleKhaltiReturn("PIDXD1");
+    expect(await usedCount()).toBe(1);
+
+    await orderService.cancelUnpaidForCustomer(fixture.user.id, orderNumber);
     expect(await usedCount()).toBe(0);
   });
 

@@ -12,7 +12,7 @@ function authorized(request: Request) {
   return given.length === expected.length && timingSafeEqual(given, expected);
 }
 
-/** Railway cron, every 10 minutes (payment-policy.md §8). Idempotent; safe to run twice at once. */
+/** Railway cron, every 5 minutes (payment-policy.md §8). Idempotent; safe to run twice at once. */
 async function run(request: Request) {
   if (!authorized(request)) return Response.json({ error: { code: "UNAUTHENTICATED" } }, { status: 401 });
   const summary = await reconcilePayments();

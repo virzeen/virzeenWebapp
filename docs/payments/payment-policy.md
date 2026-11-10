@@ -22,16 +22,16 @@ This is the most important doc in the repo. Mistakes here lose real money or wro
 
 Allowed transitions only (everything else throws `INVALID_STATE_TRANSITION`):
 
-| Order status              | → allowed next | Trigger                                        |
-| ------------------------- | -------------- | ---------------------------------------------- |
-| `PENDING`                 | `CONFIRMED`    | verified payment, or COD placed                |
-| `PENDING`                 | `CANCELLED`    | payment failed/expired, customer cancel, admin |
-| `CONFIRMED`               | `PROCESSING`   | admin starts packing                           |
-| `CONFIRMED`, `PROCESSING` | `CANCELLED`    | admin (triggers refund if paid online)         |
-| `PROCESSING`              | `SHIPPED`      | admin adds courier + tracking                  |
-| `SHIPPED`                 | `DELIVERED`    | courier/admin                                  |
-| `SHIPPED`                 | `CANCELLED`    | admin: COD parcel refused at the door (§7)     |
-| `DELIVERED`               | `RETURNED`     | admin approves a return                        |
+| Order status              | → allowed next | Trigger                                      |
+| ------------------------- | -------------- | -------------------------------------------- |
+| `PENDING`                 | `CONFIRMED`    | verified payment, or COD placed              |
+| `PENDING`                 | `CANCELLED`    | 15 minutes up unpaid, customer cancel, admin |
+| `CONFIRMED`               | `PROCESSING`   | admin starts packing                         |
+| `CONFIRMED`, `PROCESSING` | `CANCELLED`    | admin (triggers refund if paid online)       |
+| `PROCESSING`              | `SHIPPED`      | admin adds courier + tracking                |
+| `SHIPPED`                 | `DELIVERED`    | courier/admin                                |
+| `SHIPPED`                 | `CANCELLED`    | admin: COD parcel refused at the door (§7)   |
+| `DELIVERED`               | `RETURNED`     | admin approves a return                      |
 
 | Payment status | → allowed next                              |
 | -------------- | ------------------------------------------- |
@@ -42,11 +42,16 @@ Allowed transitions only (everything else throws `INVALID_STATE_TRANSITION`):
 
 Every transition writes an `OrderEvent` (from, to, actor, reason).
 
+**Order payment status vs. attempts** (owner 2026-11-09, `specs/payment-window.md`): an online order's payment status stays `PENDING` while it waits for its payment, however many attempts come and go (Pay now). Only the order's end moves it: `PAID` (an attempt verified), `EXPIRED` (15 minutes up), `FAILED` (cancelled by the customer). Each attempt (`Payment` row) moves on its own through `transitionAttempt` in `order-state.ts`: the same table, plus `FAILED`/`EXPIRED` → `PAID` for an attempt we stopped waiting for that turns out paid (recorded as it is, refunded by the owner; the order never moves that way).
+
 ## 4. Stock reservation
 
 - On order creation, stock is decremented in the same transaction (conditional update).
-- Online-payment orders set `reservedUntil = now + 60 min`.
-- If payment ends `FAILED`/`EXPIRED`, or reconciliation finds no payment after `reservedUntil`, the order is `CANCELLED` and stock is restored in one transaction.
+- Online-payment orders set `reservedUntil = now + 15 min` (owner 2026-11-09, `specs/payment-window.md`; was 60).
+- While those 15 minutes run, the order waits: an attempt the customer leaves or cancels ends only that attempt, and the order page offers **Pay now** (a new attempt, the same total, eSewa or Khalti; refused under 2 minutes left or after 5 attempts; open attempts are re-checked first) and **Cancel order** (open attempts re-checked first; then cancelled with stock, discount use and items back in the bag).
+- One reminder email ("Your order is waiting for payment") goes 5 minutes or more after the order while 3 minutes or more are left, claimed with a conditional update (`Order.paymentReminderSentAt`).
+- When the 15 minutes are up, every open attempt is re-checked: paid → confirmed; a provider that can't answer → the order stays `PENDING` (§1.5); otherwise `CANCELLED`, payment `EXPIRED`, stock and discount use restored and items back in the bag, in one transaction.
+- Attempts stay watched after their order closes, until the provider gives a final answer or 70 minutes pass. A payment found then is recorded on the attempt and the owner is emailed once to refund it; the customer's order page says it will be refunded.
 - COD orders keep stock reserved; admin cancellation restores it.
 
 ## 5. eSewa (ePay v2)
@@ -69,7 +74,7 @@ Flow:
 2. Store the returned `pidx` as `providerRef`; redirect the customer to `payment_url`. The link expires (60 min by default).
 3. Khalti redirects to `/api/payments/khalti/callback?pidx=...&status=...`. Treat every query param as untrusted.
 4. Call `POST /api/v2/epayment/lookup/` with the `pidx`. Only `status: "Completed"` with `total_amount === order.totalPaisa` → PAID.
-5. `Pending`/`Initiated` → leave `PENDING` (reconciliation re-checks). `User canceled`/`Expired` → `FAILED`/`EXPIRED` + restore stock. `Refunded`/`Partially Refunded` → mirror status, alert owner.
+5. `Pending`/`Initiated` → leave `PENDING` (reconciliation re-checks). `User canceled`/`Expired` → that attempt `FAILED`/`EXPIRED`; the order keeps waiting until its 15 minutes are up (§4). `Refunded`/`Partially Refunded` → mirror status, alert owner.
 6. Khalti has no checkout webhook, so reconciliation (§8) is mandatory.
 
 ## 7. Cash on Delivery
@@ -79,11 +84,12 @@ Flow:
 - Placing a COD order: order `CONFIRMED`, payment `COD_DUE`, confirmation email/SMS.
 - On delivery, admin marks `COD_COLLECTED`. Refused at door (admin "Refused at door" on a `SHIPPED` order with `COD_DUE`; owner decision 2026-09-28) → payment `FAILED`, order `CANCELLED`, stock restored, in one transaction and audited; no customer email. The ordinary admin cancel still stops at `PROCESSING`.
 
-## 8. Reconciliation (cron every 10 minutes)
+## 8. Reconciliation (cron every 5 minutes, Railway's shortest schedule)
 
-- Finds payments in `PENDING` older than 5 minutes and re-verifies them with the provider (eSewa status API / Khalti lookup).
+- Finds payment attempts in `PENDING` older than 5 minutes (also those of closed orders, for late payments) and re-verifies them with the provider (eSewa status API / Khalti lookup).
 - Applies the same rules as the callback handlers (shared code path — never a second implementation).
-- Cancels orders whose `reservedUntil` passed with no successful payment.
+- Ends orders whose `reservedUntil` passed, as §4 says (re-check first; kept when a provider can't answer).
+- Sends the one payment reminder per order (§4).
 - Payments still ambiguous after 24 hours are flagged to the owner (email), never auto-resolved.
 
 ## 9. Idempotency and replay

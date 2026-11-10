@@ -1,6 +1,12 @@
 import { fontStack } from "@virzeen/ui/tokens";
 import { describe, expect, it } from "vitest";
-import { formatPaisa, renderBackInStockEmail, renderOrderConfirmationEmail, renderOtpEmail } from "./index";
+import {
+  formatPaisa,
+  renderBackInStockEmail,
+  renderOrderConfirmationEmail,
+  renderOtpEmail,
+  renderPaymentReminderEmail,
+} from "./index";
 
 describe("formatPaisa", () => {
   it("formats paisa as rupees with Indian grouping", () => {
@@ -165,5 +171,20 @@ describe("renderBackInStockEmail", () => {
     expect(email.text).toContain("Linen Overshirt, Black / M, is back in stock.");
     expect(email.text).toContain("This is the only email we'll send about it.");
     expect(email.html).toContain('href="https://virzeen.com/product/linen-overshirt?style=Black&amp;size=M"');
+  });
+});
+
+describe("renderPaymentReminderEmail", () => {
+  it("says when to pay by in Nepal time, the total, and links to the order", async () => {
+    const email = await renderPaymentReminderEmail({
+      siteUrl: "https://virzeen.com",
+      orderNumber: "VZ-261110-0042",
+      customerName: "Asha",
+      totalPaisa: 450_000,
+      payBy: new Date("2026-11-10T09:30:00Z"), // 3:15 PM in Nepal
+    });
+    expect(email.subject).toBe("Your order VZ-261110-0042 is waiting for payment");
+    expect(email.text).toContain("pay by 3:15 PM to keep order VZ-261110-0042 (Rs 4,500)");
+    expect(email.html).toContain('href="https://virzeen.com/account/orders/VZ-261110-0042"');
   });
 });

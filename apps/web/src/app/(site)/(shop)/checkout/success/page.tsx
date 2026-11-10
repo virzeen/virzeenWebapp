@@ -4,8 +4,9 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import { OrderDetail } from "@/client/features/orders/order-detail";
+import { OrderPaymentState } from "@/client/features/orders/order-payment-state";
 import { requireUserPage } from "@/server/auth/session";
-import { getMyOrder } from "@/server/queries/account";
+import { getMyOrder, onlinePaymentMethods, requestTime } from "@/server/queries/account";
 import { flattenSearchParams, type SearchParams } from "@/server/queries/params";
 
 type Props = { searchParams: SearchParams };
@@ -62,6 +63,13 @@ export default async function CheckoutSuccessPage({ searchParams }: Props) {
               This usually takes a minute — you&apos;ll get an email when it&apos;s done. Your order number is{" "}
               <span className="whitespace-nowrap">{order.orderNumber}</span>.
             </Alert>
+            {/* Didn't finish paying after all: the 15 minutes still run (specs/payment-window.md). */}
+            <OrderPaymentState
+              order={order}
+              methods={onlinePaymentMethods()}
+              failed={false}
+              now={requestTime()}
+            />
           </>
         )}
         <div className="flex flex-wrap gap-3">
