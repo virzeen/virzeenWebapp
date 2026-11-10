@@ -59,7 +59,7 @@ jobs:
             for (const file of fs.readdirSync("reports").filter((f) => f.endsWith(".report.json"))) {
               const page = file.replace(/-\d\.report\.json$/, "");
               const report = JSON.parse(fs.readFileSync(`reports/${file}`, "utf8"));
-              // A run Lighthouse couldn't record has no performance score; say so instead of reading it as 0.
+              // A run Lighthouse could not record has no performance score: say so instead of reading it as 0.
               if (report.runtimeError) { console.error(`${file}: ${report.runtimeError.code}`); process.exit(1); }
               (pages[page] ??= []).push(report.categories);
             }
