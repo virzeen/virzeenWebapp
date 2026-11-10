@@ -1,7 +1,7 @@
 import "server-only";
 import { db, type PaymentMethod, type Prisma } from "@virzeen/db";
 import { getCoreConfig } from "../config";
-import { AppError, isAppError } from "../errors";
+import { AppError, isAppError, isUniqueViolation } from "../errors";
 import { notifications } from "../notifications/notifications";
 import { cancelOrderAndRestock } from "../orders/cancellation";
 import { transitionAttempt, transitionOrder, transitionPayment } from "../orders/order-state";
@@ -465,32 +465,43 @@ export const paymentService = {
       });
       throw new AppError("PAYMENT_FAILED", "Payment couldn't be started. Please try again.");
     }
-    await db.$transaction(async (tx) => {
-      const payment = await tx.payment.create({
-        data: {
-          orderId: found.id,
-          provider: input.method,
-          providerRef: initiated.providerRef,
-          attempt,
-          amountPaisa: order.totalPaisa,
-          status: "UNPAID",
-        },
-        select: { id: true },
-      });
-      await transitionAttempt(tx, {
-        orderId: found.id,
-        paymentId: payment.id,
-        to: "PENDING",
-        actor,
-        reason: `Sent to ${input.method}`,
-      });
-      if (input.method !== order.paymentMethod) {
-        await tx.order.updateMany({
-          where: { id: found.id, status: "PENDING" },
-          data: { paymentMethod: input.method },
+    try {
+      await db.$transaction(async (tx) => {
+        const payment = await tx.payment.create({
+          data: {
+            orderId: found.id,
+            provider: input.method,
+            providerRef: initiated.providerRef,
+            attempt,
+            amountPaisa: order.totalPaisa,
+            status: "UNPAID",
+          },
+          select: { id: true },
         });
+        await transitionAttempt(tx, {
+          orderId: found.id,
+          paymentId: payment.id,
+          to: "PENDING",
+          actor,
+          reason: `Sent to ${input.method}`,
+        });
+        if (input.method !== order.paymentMethod) {
+          await tx.order.updateMany({
+            where: { id: found.id, status: "PENDING" },
+            data: { paymentMethod: input.method },
+          });
+        }
+      });
+    } catch (error) {
+      // Pay now pressed twice at once: the other press already started this attempt (eSewa's reference is unique).
+      if (isUniqueViolation(error)) {
+        throw new AppError(
+          "CONFLICT",
+          "A payment for this order is already starting. Please wait a moment and try again.",
+        );
       }
-    });
+      throw error;
+    }
     logger.info("payment attempt started", { orderNumber: input.orderNumber, attempt, method: input.method });
     return { orderNumber: input.orderNumber, next: initiated.next };
   },

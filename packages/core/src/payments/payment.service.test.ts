@@ -438,6 +438,28 @@ describe("Pay now (paymentService.startAttempt)", () => {
     });
   });
 
+  it("Pay now pressed twice at once starts one attempt and tells the other press to wait", async () => {
+    const fixture = await placeOnline("ESEWA");
+    esewaStatus("NOT_FOUND");
+    const start = () =>
+      paymentService.startAttempt({
+        userId: fixture.user.id,
+        orderNumber: fixture.orderNumber,
+        method: "ESEWA",
+        now: minutesLater(6),
+      });
+
+    const results = await Promise.allSettled([start(), start()]);
+
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    const refused = results.find((r) => r.status === "rejected");
+    expect(refused?.status === "rejected" && refused.reason).toMatchObject({
+      code: "CONFLICT",
+      message: "A payment for this order is already starting. Please wait a moment and try again.",
+    });
+    expect(await db.payment.count({ where: { order: { orderNumber: fixture.orderNumber } } })).toBe(2);
+  });
+
   it("a second payment for an already paid order is sent to the owner to refund", async () => {
     const fixture = await placeOnline("ESEWA");
     esewaStatus("NOT_FOUND");
