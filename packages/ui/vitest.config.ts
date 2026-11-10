@@ -16,6 +16,11 @@ export default defineConfig({
             headless: true,
             provider: playwright(),
             instances: [{ browser: "chromium" }],
+            // Windows can reserve Vitest's port (63315) after a restart (`netsh interface ipv4 show
+            // excludedportrange protocol=tcp`): set VITEST_BROWSER_PORT to use another one.
+            ...(process.env.VITEST_BROWSER_PORT
+              ? { api: { port: Number(process.env.VITEST_BROWSER_PORT) } }
+              : {}),
           },
           setupFiles: [".storybook/vitest.setup.ts"],
         },
