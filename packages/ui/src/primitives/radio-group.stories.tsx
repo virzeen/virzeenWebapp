@@ -39,6 +39,29 @@ export const SizePicker: Story = {
   },
 };
 
+/**
+ * Sold-out sizes that can still be picked (`unavailable`, specs/notify-me.md): struck through like a disabled size, but
+ * pickable so the product page can offer "Notify me when it's back". Picked, an ink outline replaces the fill.
+ */
+export const SizePickerSoldOutPickable: Story = {
+  render: () => (
+    <RadioGroup aria-label="Size" variant="card" className="max-w-xs">
+      <RadioGroupItem value="S" label="S" />
+      <RadioGroupItem value="M" label="M" unavailable />
+      <RadioGroupItem value="L" label="L" />
+      <RadioGroupItem value="XL" label="XL" unavailable />
+    </RadioGroup>
+  ),
+  play: async ({ canvas, userEvent }) => {
+    const soldOut = canvas.getByRole("radio", { name: "XL, sold out" });
+    await expect(soldOut).toBeEnabled();
+    await expect(soldOut).toHaveAttribute("data-unavailable");
+    await userEvent.click(soldOut);
+    await expect(soldOut).toBeChecked();
+    await expect(canvas.getByRole("radio", { name: "L" })).not.toHaveAttribute("data-unavailable");
+  },
+};
+
 /** Add to bag before a size was picked: a red line around the sizes and the message under them. */
 export const SizePickerInvalid: Story = {
   render: () => (
@@ -131,5 +154,30 @@ export const StyleSwatches: Story = {
     const { width, height } = canvas.getByRole("radio", { name: "River print" }).getBoundingClientRect();
     await expect(width).toBe(height);
     await expect(height).toBeGreaterThanOrEqual(44);
+  },
+};
+
+/** A sold-out style that can still be picked (`unavailable`): dimmed and crossed out like a disabled tile. */
+export const StyleSwatchesSoldOutPickable: Story = {
+  render: () => (
+    <RadioGroup aria-label="Style" variant="swatch" defaultValue="mountain" className="max-w-sm">
+      <RadioGroupItem
+        value="mountain"
+        label="Mountain print"
+        media={<span className="block aspect-square bg-ink" />}
+      />
+      <RadioGroupItem
+        value="city"
+        label="City print"
+        unavailable
+        media={<span className="block aspect-square bg-line-strong" />}
+      />
+    </RadioGroup>
+  ),
+  play: async ({ canvas, userEvent }) => {
+    const soldOut = canvas.getByRole("radio", { name: "City print, sold out" });
+    await expect(soldOut).toHaveAttribute("title", "City print");
+    await userEvent.click(soldOut);
+    await expect(soldOut).toBeChecked();
   },
 };

@@ -21,6 +21,7 @@ await db.$transaction([
   db.auditLog.deleteMany(),
   db.address.deleteMany(),
   db.favourite.deleteMany(),
+  db.stockAlert.deleteMany(),
   db.productFeature.deleteMany(),
   db.productImage.deleteMany(),
   db.productVariant.deleteMany(),
