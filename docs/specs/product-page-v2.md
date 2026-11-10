@@ -41,7 +41,7 @@ Features that perform
 Recommendations
 
 - [x] Under the product (shop, Preview, editor), two carousels, each hidden when empty: "You may also like" = published products of the same category (newest first, up to 8, not this one); "More from Virzeen" = published products of other categories (newest first, up to 8).
-- [x] Carousel: heading left, previous/next round buttons right from `md` (disabled at the ends, hidden when all cards fit); a sideways row with snap showing only whole cards: 2 per view on phones, 3 from `md` (owner, 2026-11-08: 3 a row everywhere, like the product grids; was 4 at `lg`); previous/next move **one card** at a time (owner: "1 card 1 card"); swipe / trackpad / arrow keys scroll it (the row takes focus); "Previous products" / "Next products" labels; reduced motion → no smooth scrolling.
+- [x] Carousel: heading left, previous/next round buttons right from `md` (disabled at the ends, hidden when all cards fit); a sideways row with snap showing only whole cards: 2 per view below 960px (edge to edge, 6px apart), 3 from 960px (nike.com, 2026-11-10) (owner, 2026-11-08: 3 a row everywhere, like the product grids; was 4 at `lg`); previous/next move **one card** at a time (owner: "1 card 1 card"); swipe / trackpad / arrow keys scroll it (the row takes focus); "Previous products" / "Next products" labels; reduced motion → no smooth scrolling.
 - [x] In the editor the cards open in a new tab (as now).
 
 Size guides
