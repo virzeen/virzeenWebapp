@@ -77,7 +77,8 @@ export function AccordionItem({
     <AccordionPrimitive.Item className={cn("border-b border-line", className)} {...props}>
       <AccordionPrimitive.Header asChild>
         <Heading>
-          <AccordionPrimitive.Trigger className="group flex min-h-14 w-full items-center justify-between gap-4 py-4 text-left text-body font-medium text-ink focus-visible:ring-2 focus-visible:ring-focus focus-visible:outline-none">
+          {/* Nike's accordion rows (owner 2026-11-10): a 20px medium title with 30px above and below. */}
+          <AccordionPrimitive.Trigger className="group flex w-full items-center justify-between gap-4 py-7.5 text-left text-h3 text-ink focus-visible:ring-2 focus-visible:ring-focus focus-visible:outline-none">
             {title}
             <ChevronDown
               className="size-5 shrink-0 text-ink-muted transition-transform duration-250 ease-standard group-aria-expanded:rotate-180"
@@ -87,7 +88,7 @@ export function AccordionItem({
           </AccordionPrimitive.Trigger>
         </Heading>
       </AccordionPrimitive.Header>
-      <AccordionPrimitive.Content className="pb-4 text-body text-ink-muted">
+      <AccordionPrimitive.Content className="pb-7.5 text-body text-ink-muted">
         {children}
       </AccordionPrimitive.Content>
     </AccordionPrimitive.Item>

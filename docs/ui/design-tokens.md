@@ -26,16 +26,18 @@ Rules: text on `canvas`/`surface` uses `ink` or `ink-muted` only. On dark imager
 
 Two families: **display** (headings, brand moments) and **text** (everything else), loaded with `next/font` and exposed as `--font-display` / `--font-text` ◆. Phase-1 placeholders: **Inter Tight** (display) and **Inter** (text), light weights echoing the posters. The wordmark and the V mark are the owner's artwork (`apps/web/public/brand/logo/`, 2026-09-30) drawn as inline SVG in `currentColor` (`client/components/layout/wordmark.tsx`, `logo-mark.tsx`: black on light, white on dark), never set in a web font.
 
-| Token            | Utility        | Size / line-height            | Weight                        | Use                             |
-| ---------------- | -------------- | ----------------------------- | ----------------------------- | ------------------------------- |
-| `--text-display` | `text-display` | 3.5rem / 1.05 (mobile 2.5rem) | 300                           | Hero headline, one per page max |
-| `--text-h1`      | `text-h1`      | 2.5rem / 1.1 (mobile 2rem)    | 300                           | Page title                      |
-| `--text-h2`      | `text-h2`      | 1.75rem / 1.2                 | 400                           | Section title                   |
-| `--text-h3`      | `text-h3`      | 1.25rem / 1.3                 | 500                           | Card/group title                |
-| `--text-body-lg` | `text-body-lg` | 1.125rem / 1.6                | 400                           | Product description, intros     |
-| `--text-body`    | `text-body`    | 1rem / 1.6                    | 400                           | Default text                    |
-| `--text-small`   | `text-small`   | 0.875rem / 1.5                | 400                           | Meta, helper text               |
-| `--text-caption` | `text-caption` | 0.75rem / 1.4                 | 500, tracking-wide, uppercase | Labels, eyebrow text            |
+| Token            | Utility        | Size / line-height                                      | Weight                        | Use                                                                                   |
+| ---------------- | -------------- | ------------------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------- |
+| `--text-display` | `text-display` | 2.5rem → 4.75rem / 0.9 (40px on phones, 76px at 1280px) | 500                           | Hero headline, one per page max                                                       |
+| `--text-h1`      | `text-h1`      | 2rem / 1.2 (32/38)                                      | 500                           | Big titles: sign-in, checkout results, content pages, the profile name, home sections |
+| `--text-h2`      | `text-h2`      | 1.5rem / 1.2 (24/29)                                    | 500                           | Page and section titles: Settings, Bag, Favourites, carousels; listings from `lg`     |
+| `--text-h3`      | `text-h3`      | 1.25rem / 1.2 (20/24)                                   | 500                           | Product name, accordion and footer headings, listing titles on phones                 |
+| `--text-body-lg` | `text-body-lg` | 1.25rem / 1.5 (20/30)                                   | 400                           | Intros                                                                                |
+| `--text-body`    | `text-body`    | 1rem / 1.5 (16/24)                                      | 400                           | Default text, prices (medium)                                                         |
+| `--text-small`   | `text-small`   | 0.875rem / 20px (14/20)                                 | 400                           | Meta, helper text, cards on phones                                                    |
+| `--text-caption` | `text-caption` | 0.75rem / 1.5 (12/18)                                   | 500, tracking-wide, uppercase | Labels, eyebrow text                                                                  |
+
+Sizes, line heights and weights are nike.com's (owner 2026-11-10: "make the fonts size and all the primitives same like the nike … not the font", measured on its UK store at 390 and 1280px). Our typefaces stay; headings are medium (500) with normal letter spacing, like Nike's.
 
 Rules: never use Tailwind's default `text-sm`/`text-2xl` in app code — use the named tokens. One `h1` per page. Line length for reading text ≤ 70ch (`max-w-prose`).
 

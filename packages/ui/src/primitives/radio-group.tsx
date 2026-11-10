@@ -124,14 +124,15 @@ export function RadioGroupItem({
     return (
       <RadioGroupPrimitive.Item
         className={cn(
-          "group relative flex min-h-11 items-center justify-between gap-3 rounded-sm border border-line-strong bg-canvas px-3 py-2 text-left text-body text-ink transition-colors duration-150 ease-standard hover:border-ink focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:border-line disabled:text-ink-muted disabled:line-through data-[state=checked]:border-ink data-[state=checked]:bg-ink data-[state=checked]:text-canvas",
+          "group relative flex min-h-12 items-center justify-between gap-3 rounded-sm border border-line-strong bg-canvas px-3 py-2 text-left text-body text-ink transition-colors duration-150 ease-standard hover:border-ink focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:border-line disabled:text-ink-muted disabled:line-through data-[state=checked]:border-ink data-[state=checked]:bg-ink data-[state=checked]:text-canvas",
           description ? "py-3" : "justify-center",
           className,
         )}
         {...props}
       >
         <span className="flex flex-col gap-1">
-          <span className="font-medium">{label}</span>
+          {/* Nike's size boxes: 48px, the size in regular weight; cards with a description keep a medium title. */}
+          <span className={description ? "font-medium" : undefined}>{label}</span>
           {description && (
             <span className="text-small text-ink-muted group-aria-checked:text-canvas/80">{description}</span>
           )}

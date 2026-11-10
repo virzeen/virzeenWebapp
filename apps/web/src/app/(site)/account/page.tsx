@@ -22,19 +22,30 @@ export default async function ProfilePage() {
     .filter((product) => !seen.has(product.id) && Boolean(seen.add(product.id)))
     .slice(0, FAVOURITES_SHOWN);
   const name = user.name.trim() || user.email;
+  // No name yet: the email stands in, smaller, and wraps before the "@" instead of inside a word (owner 2026-11-10).
+  const isEmail = !user.name.trim();
 
   return (
     <div className="flex flex-col gap-16 lg:gap-24">
-      <div className="flex items-center gap-5">
+      {/* Phones: centred, the circle over the name, like Nike's member page (owner 2026-11-10); from md side by side. */}
+      <div className="flex flex-col items-center gap-5 text-center md:flex-row md:text-left">
         <span
           aria-hidden
           className="flex size-20 shrink-0 items-center justify-center rounded-full bg-surface font-display text-h2 text-ink-muted"
         >
           {name.charAt(0).toUpperCase()}
         </span>
-        <div className="flex min-w-0 flex-col gap-1">
-          <h1 className="font-display text-h2 wrap-anywhere">{name}</h1>
-          <p className="text-small text-ink-muted">Member since {formatMonthYear(user.createdAt)}</p>
+        <div className="flex max-w-full min-w-0 flex-col gap-1">
+          {isEmail ? (
+            <h1 className="font-display text-h3 wrap-break-word md:text-h2">
+              {name.split("@")[0]}
+              <wbr />@{name.split("@").slice(1).join("@")}
+            </h1>
+          ) : (
+            // Nike's name size from md; 24px on phones, so a long name stays on a line or two.
+            <h1 className="font-display text-h2 wrap-break-word md:text-h1">{name}</h1>
+          )}
+          <p className="text-body text-ink-muted">Member since {formatMonthYear(user.createdAt)}</p>
         </div>
       </div>
 
@@ -43,11 +54,7 @@ export default async function ProfilePage() {
           title="Favourites"
           products={products}
           action={
-            <Link
-              href="/favourites"
-              variant="default"
-              className="inline-flex min-h-11 items-center text-small"
-            >
+            <Link href="/favourites" variant="header">
               View all
             </Link>
           }

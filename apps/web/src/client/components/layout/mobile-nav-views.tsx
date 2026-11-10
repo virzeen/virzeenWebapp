@@ -146,7 +146,7 @@ export function MenuShop({ categories, headingRef, ariaCurrent, onNavigate }: Me
   return (
     <div className="flex flex-col motion-safe:animate-nudge-in-right">
       {/* Takes focus on the way in (tabIndex -1), so screen readers hear where they are. */}
-      <h3 ref={headingRef} tabIndex={-1} className="pb-4 font-display text-h1 font-medium text-ink">
+      <h3 ref={headingRef} tabIndex={-1} className="pb-4 font-display text-h2 text-ink">
         Shop
       </h3>
       <ul>

@@ -30,31 +30,31 @@
   --font-text: var(--font-text-loaded), "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
+  /* Sizes, line heights and weights as nike.com's (owner 2026-11-10, measured on its UK store; our own typefaces
+     stay): display 40px → 76px (hero titles), h1 32/38 (section titles), h2 24/29 (page and card titles), h3 20/24
+     (product name, accordion and footer headings), body-lg 20/30, body 16/24, small 14/20, caption 12/18. Headings
+     medium, normal letter spacing. */
   --text-*: initial;
-  --text-display: clamp(2.5rem, 1.85rem + 2.8vw, 3.5rem);
-  --text-display--line-height: 1.05;
-  --text-display--letter-spacing: -0.03em;
-  --text-display--font-weight: 300;
-  --text-h1: clamp(2rem, 1.7rem + 1.3vw, 2.5rem);
-  --text-h1--line-height: 1.1;
-  --text-h1--letter-spacing: -0.02em;
-  --text-h1--font-weight: 300;
-  --text-h2: 1.75rem;
+  --text-display: clamp(2.5rem, 1.5rem + 4.1vw, 4.75rem);
+  --text-display--line-height: 0.9;
+  --text-display--font-weight: 500;
+  --text-h1: 2rem;
+  --text-h1--line-height: 1.2;
+  --text-h1--font-weight: 500;
+  --text-h2: 1.5rem;
   --text-h2--line-height: 1.2;
-  --text-h2--letter-spacing: -0.015em;
-  --text-h2--font-weight: 400;
+  --text-h2--font-weight: 500;
   --text-h3: 1.25rem;
-  --text-h3--line-height: 1.3;
-  --text-h3--letter-spacing: -0.01em;
+  --text-h3--line-height: 1.2;
   --text-h3--font-weight: 500;
-  --text-body-lg: 1.125rem;
-  --text-body-lg--line-height: 1.6;
+  --text-body-lg: 1.25rem;
+  --text-body-lg--line-height: 1.5;
   --text-body: 1rem;
-  --text-body--line-height: 1.6;
+  --text-body--line-height: 1.5;
   --text-small: 0.875rem;
-  --text-small--line-height: 1.5;
+  --text-small--line-height: 1.25rem;
   --text-caption: 0.75rem;
-  --text-caption--line-height: 1.4;
+  --text-caption--line-height: 1.5;
   --text-caption--letter-spacing: 0.08em;
   --text-caption--font-weight: 500;
 

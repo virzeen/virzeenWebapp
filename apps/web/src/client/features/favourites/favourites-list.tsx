@@ -119,7 +119,7 @@ export function FavouritesList({ items, expected, error, onRetry }: FavouritesLi
   return (
     <div className="flex flex-col gap-8">
       <header className="flex min-h-11 items-center">
-        <h1 ref={headingRef} tabIndex={-1} className="font-display text-h1 focus:outline-none">
+        <h1 ref={headingRef} tabIndex={-1} className="font-display text-h2 focus:outline-none">
           Favourites
         </h1>
         {cards && <p className="sr-only">{itemCount(cards.length)}</p>}

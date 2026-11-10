@@ -33,7 +33,7 @@ export function AccountNav({ isAdmin }: { isAdmin: boolean }) {
   return (
     <nav
       aria-label="Account"
-      className="-mx-gutter flex scrollbar-none gap-6 overflow-x-auto px-gutter sm:justify-center md:mx-0 md:gap-8 md:px-0"
+      className="-mx-gutter flex scrollbar-none gap-4 overflow-x-auto px-gutter sm:justify-center md:mx-0 md:gap-8 md:px-0"
     >
       {TABS.map((tab) => (
         <Link
