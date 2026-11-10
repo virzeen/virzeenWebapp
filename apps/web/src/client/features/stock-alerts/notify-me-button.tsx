@@ -3,7 +3,7 @@
 import { Button, toast } from "@virzeen/ui";
 import { Check } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { messageFor } from "@/client/lib/error-messages";
 import { cancelStockAlertAction, requestStockAlertAction } from "@/server/actions/stock-alerts";
 
@@ -40,6 +40,16 @@ export function useNotifyMe({ waitingVariantIds, signedIn, preview, buttonRef }:
   const router = useRouter();
   const [waiting, setWaiting] = useState<ReadonlySet<string>>(() => new Set(waitingVariantIds));
   const [isPending, startTransition] = useTransition();
+  // Where focus goes once the request is over: the main button is disabled (spinning) until then, and can't take it.
+  const refocus = useRef<"always" | "if-lost" | null>(null);
+
+  useEffect(() => {
+    if (isPending || !refocus.current) return;
+    const mode = refocus.current;
+    refocus.current = null;
+    if (mode === "always") buttonRef.current?.focus();
+    else focusIfLost(buttonRef.current);
+  }, [isPending, buttonRef]);
 
   function mark(variantId: string, now: boolean) {
     setWaiting((current) => {
@@ -65,7 +75,7 @@ export function useNotifyMe({ waitingVariantIds, signedIn, preview, buttonRef }:
         // "It's back in stock": show the stock as it is now (the picked style and size stay).
         if (result.error.code === "CONFLICT") router.refresh();
       }
-      focusIfLost(buttonRef.current);
+      refocus.current = "if-lost";
     });
   }
 
@@ -76,10 +86,10 @@ export function useNotifyMe({ waitingVariantIds, signedIn, preview, buttonRef }:
         mark(variantId, false);
         toast.message("We won't email you about it.");
         // "Don't notify me" goes away with the request: focus moves to the main button.
-        buttonRef.current?.focus();
+        refocus.current = "always";
       } else {
         toast.error(messageFor(result.error));
-        focusIfLost(buttonRef.current);
+        refocus.current = "if-lost";
       }
     });
   }
