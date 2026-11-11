@@ -105,8 +105,7 @@ export async function fillAddress(page: Page) {
 }
 
 /**
- * Checkout as a signed-in member: add or pick an address (Save & Continue), choose a payment method and continue to
- * the Order review. `continueToReview: false` stops at the open Payment step (for the discount code field).
+ * Checkout as a signed-in member: add or pick an address, then choose a payment method, which opens the Order review. `continueToReview: false` stops at the open Payment step (for the discount code field).
  */
 export async function checkoutWith(page: Page, method: RegExp, options: { continueToReview?: boolean } = {}) {
   await page.goto("/checkout");
@@ -119,10 +118,8 @@ export async function checkoutWith(page: Page, method: RegExp, options: { contin
     await fillAddress(page);
     await useAddress.click();
   }
-  await expect(savedAddress).toBeChecked();
-  await page.getByTestId("save-continue").click();
-  await page.getByRole("radio", { name: method }).click();
-  if (options.continueToReview !== false) await page.getByTestId("payment-continue").click();
+  // A chosen address opens Payment by itself, and choosing a method opens the Order review: no Continue buttons.
+  if (options.continueToReview !== false) await page.getByRole("radio", { name: method }).click();
 }
 
 /** Fills the guest's Delivery Options form on /checkout?as=guest (docs/specs/checkout-v2-week1.md). */

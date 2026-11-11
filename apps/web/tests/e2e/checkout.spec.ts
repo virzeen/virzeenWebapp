@@ -52,19 +52,14 @@ test("a discount code takes money off at checkout and stays on the order", async
   // Any case works; the server works out 10% of रु 2,450, rounded down to whole rupees.
   await field.fill(" e2e-welcome10 ");
   await field.press("Enter");
-  await expect(page.getByTestId("discount-applied")).toHaveText("E2E-WELCOME10 applied");
   await expect(page.getByTestId("checkout-discount")).toHaveText("−रु 245");
   await expect(page.getByTestId("checkout-total")).toHaveText("रु 2,355");
 
-  // Remove takes it off; applying it again puts it back.
-  await page.getByRole("button", { name: "Remove discount code E2E-WELCOME10" }).click();
-  await expect(page.getByTestId("checkout-total")).toHaveText("रु 2,600");
-  await page.getByRole("button", { name: "Add a discount code" }).click();
-  await page.getByLabel("Discount code").fill("E2E-WELCOME10");
-  await page.getByRole("button", { name: "Apply" }).click();
-  await expect(page.getByTestId("checkout-total")).toHaveText("रु 2,355");
-
-  await page.getByTestId("payment-continue").click();
+  // Once a code is in, the field is gone: the discount is a line in the totals. Choosing a method opens the review,
+  // which names it too.
+  await expect(page.getByRole("button", { name: "Add a discount code" })).toHaveCount(0);
+  await page.getByRole("radio", { name: /Cash on delivery/ }).click();
+  await expect(page.getByTestId("review-discount")).toContainText("Promo code discount");
   await page.getByRole("button", { name: "Place order" }).click();
   await expect(page).toHaveURL(/\/checkout\/success\?order=VZ-\d{6}-\d{4}/);
   const discountLine = page.getByTestId("order-discount");
@@ -186,7 +181,6 @@ test("a guest checks out without an account and only their browser can open the 
 
   await expect(page.getByTestId("delivery-summary")).toContainText("Sita Rai");
   await page.getByRole("radio", { name: /Cash on delivery/ }).click();
-  await page.getByTestId("payment-continue").click();
   await page.getByRole("button", { name: "Place order" }).click();
 
   await expect(page).toHaveURL(/\/checkout\/success\?order=VZ-\d{6}-\d{4}/);
@@ -240,4 +234,49 @@ test("the bag page shows the free-delivery hint, the member saving and the arriv
   await expect(page.getByTestId("bag-favourites-prompt")).toContainText(
     "Want to view your favourites? Join us or Sign in",
   );
+});
+
+test("a promo code entered in the bag popup is applied at checkout and the order is placed", async ({
+  page,
+}) => {
+  await page.setExtraHTTPHeaders({ "X-Forwarded-For": "198.51.100.11" });
+  await createTenPercentCode("E2E-BAGPROMO");
+  await addToBag(page, "monochrome-oversized-tee", { color: "Black", size: "M" });
+  await page.goto("/cart");
+
+  await page.getByTestId("bag-promo-row").getByRole("button").first().click();
+  const dialog = page.getByRole("dialog", { name: "Enter a promo code" });
+  const apply = dialog.getByRole("button", { name: "Apply promo code" });
+  await expect(apply).toBeDisabled();
+  await dialog.getByLabel(/promo code/i).fill("nope");
+  await apply.click();
+  await expect(dialog.getByText("This code isn't valid.")).toBeVisible();
+  await dialog.getByLabel(/promo code/i).fill("e2e-bagpromo");
+  await apply.click();
+  await expect(dialog).toBeHidden();
+  await expect(page.getByTestId("bag-promo-row")).toContainText("E2E-BAGPROMO added");
+
+  // Guest checkout: the code is already in the summary and the order goes through.
+  await page.goto("/checkout?as=guest");
+  await expect(page.getByTestId("checkout-discount")).toHaveText("−रु 245");
+  await expect(page.getByText("Promo code discount (E2E-BAGPROMO)")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Add a discount code" })).toHaveCount(0);
+
+  await fillGuestDetails(page, uniqueEmail("bagpromo"));
+  await page.getByRole("button", { name: /Save & Continue/ }).click();
+  await page.getByRole("radio", { name: /Cash on delivery/ }).click();
+  await expect(page.getByTestId("review-discount")).toBeVisible();
+
+  // Going back to edit Delivery doesn't lock the later steps: Payment and Order Review stay enabled with Edit links,
+  // and saving the details returns straight to the review.
+  await page.getByRole("button", { name: "Edit delivery options" }).click();
+  await expect(page.getByTestId("step-payment")).toHaveAttribute("data-state", "done");
+  await expect(page.getByTestId("step-review")).toHaveAttribute("data-state", "done");
+  await page.getByRole("button", { name: "Edit order review" }).click();
+  await expect(page.getByTestId("step-review")).toHaveAttribute("data-state", "open");
+  await page.getByRole("button", { name: "Edit payment" }).click();
+  await page.getByRole("radio", { name: /Cash on delivery/ }).click();
+  await expect(page.getByTestId("step-review")).toHaveAttribute("data-state", "open");
+  await page.getByRole("button", { name: "Place order" }).click();
+  await expect(page).toHaveURL(/\/checkout\/success\?order=VZ-\d{6}-\d{4}/);
 });

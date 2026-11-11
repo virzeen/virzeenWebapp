@@ -28,9 +28,8 @@ const focusWasLost = () => document.activeElement === null || document.activeEle
 function limitNote(line: Line): string | null {
   if (line.quantity < line.maxQuantity) return null;
   if (line.maxQuantity <= 0) return "Out of stock";
-  return line.maxQuantity === MAX_QTY_PER_LINE
-    ? `Limit ${MAX_QTY_PER_LINE} of each`
-    : `Only ${line.maxQuantity} left`;
+  // "Only 3 left" is not shown (owner 2026-11-11): the "+" just stops at the stock.
+  return line.maxQuantity === MAX_QTY_PER_LINE ? `Limit ${MAX_QTY_PER_LINE} of each` : null;
 }
 
 type CartLineProps = {

@@ -42,6 +42,28 @@ export const Confirmation: Story = {
   },
 };
 
+/** One field and one button in a popup with large rounded corners (the bag's promo code). */
+export const Prompt: Story = {
+  render: () => (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button>Enter a promo code</Button>
+      </DialogTrigger>
+      <DialogContent size="prompt" title="Enter a promo code" description="Get instant savings on your order">
+        <Button shape="pill" size="lg" className="w-full">
+          Apply promo code
+        </Button>
+      </DialogContent>
+    </Dialog>
+  ),
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(canvas.getByRole("button", { name: "Enter a promo code" }));
+    const dialog = await screen.findByRole("dialog", { name: "Enter a promo code" });
+    await waitFor(() => expect(dialog).toBeVisible());
+    await expect(within(dialog).getByRole("button", { name: "Apply promo code" })).toBeVisible();
+  },
+};
+
 export const OpenByDefault: Story = {
   render: () => (
     <Dialog defaultOpen>

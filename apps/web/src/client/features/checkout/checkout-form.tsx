@@ -23,12 +23,19 @@ import { messageFor } from "@/client/lib/error-messages";
 import { placeGuestOrderAction, placeOrderAction, previewCheckoutAction } from "@/server/actions/checkout";
 import type { CheckoutTotals } from "./checkout-types";
 import { DiscountCodeField } from "./discount-code-field";
+import { readStoredPromo, storePromo } from "./promo-storage";
 import { EMPTY_GUEST_DETAILS, GuestDetailsForm } from "./guest-details-form";
 import { OrderSummaryLines, OrderSummaryTotals } from "./order-summary-lines";
 import { submitProviderForm } from "./submit-provider-form";
 
 type Method = "COD" | "ESEWA" | "KHALTI";
 type Step = "delivery" | "payment" | "review";
+const STEP_ORDER: Step[] = ["delivery", "payment", "review"];
+
+/** Where checkout goes once delivery is settled: Payment, or straight to Order Review when there's one method. */
+const afterDelivery = (methodCount: number): Step => (methodCount === 1 ? "review" : "payment");
+const countMethods = (enabled: Record<Method, boolean>, codAvailable: boolean) =>
+  METHODS.filter((m) => enabled[m.value] && (m.value !== "COD" || codAvailable)).length;
 
 type CheckoutFormProps = {
   /** Guests type their details; members pick a saved address. */
@@ -146,7 +153,15 @@ export function CheckoutForm({
   const router = useRouter();
   const { cart } = useCart();
   const isGuest = mode === "guest";
-  const [step, setStep] = useState<Step>("delivery");
+  // A member with a saved address already chosen starts at Payment: nothing to confirm in Delivery Options.
+  const [step, setStep] = useState<Step>(() =>
+    !isGuest && initialAddressId && addresses.length > 0
+      ? afterDelivery(countMethods(enabledMethods, initialTotals.isCodAvailable))
+      : "delivery",
+  );
+  // The furthest step the customer has been to. Steps up to it stay enabled (with an Edit link) while another is
+  // being edited, so going back never locks the later ones (owner 2026-11-11).
+  const [reached, setReached] = useState<Step>(step);
   const [addressId, setAddressId] = useState(initialAddressId);
   const [addingAddress, setAddingAddress] = useState(addresses.length === 0);
   const [guestDetails, setGuestDetails] = useState<GuestDetailsInput | null>(null);
@@ -172,6 +187,15 @@ export function CheckoutForm({
   // When only one method is offered (cash on delivery at launch), it is already chosen.
   const selected =
     available.find((m) => m.value === method) ?? (available.length === 1 ? available[0] : undefined);
+  /** Delivery is settled: Payment opens, or Order Review when only one method is offered (nothing to choose). */
+  function toPayment() {
+    // Back from an edit: a method is already chosen and the review was reached, so return straight to it.
+    goTo(reached === "review" && selected ? "review" : afterDelivery(available.length));
+  }
+  function goTo(next: Step) {
+    setStep(next);
+    setReached((current) => (STEP_ORDER.indexOf(next) > STEP_ORDER.indexOf(current) ? next : current));
+  }
   // The member form also opens by itself when the last saved address was deleted elsewhere.
   const showAddressForm = addingAddress || (addresses.length === 0 && !addressId);
   const chosenAddress = addresses.find((a) => a.id === addressId) ?? null;
@@ -220,6 +244,7 @@ export function CheckoutForm({
 
   /** Totals without a discount code, after the server said the applied one no longer works. */
   async function refreshWithoutCode(guest: GuestDetailsInput | null, id: string | null) {
+    storePromo(null);
     const result = await previewCheckoutAction(whoFor(guest, id));
     if (result.ok) setTotals(result.data);
   }
@@ -264,7 +289,7 @@ export function CheckoutForm({
         return;
       }
       setGuestDetails(values);
-      setStep("payment");
+      toPayment();
     });
   }
 
@@ -276,6 +301,7 @@ export function CheckoutForm({
       const result = await previewCheckoutAction({ ...whoFor(guestDetails, addressId), discountCode: code });
       if (result.ok) {
         setTotals(result.data);
+        storePromo(result.data.discountCode);
         return null;
       }
       if (result.error.code === "NOT_FOUND") {
@@ -288,8 +314,21 @@ export function CheckoutForm({
     }
   }
 
+  // A code entered on the bag page is applied as checkout opens; the server decides whether it still works.
+  useEffect(() => {
+    const stored = readStoredPromo();
+    if (!stored || initialTotals.discountCode) return;
+    void previewCheckoutAction({ ...whoFor(null, addressId), discountCode: stored }).then((result) => {
+      if (result.ok) setTotals(result.data);
+      else storePromo(null);
+    });
+    // Once, on arrival.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function removeDiscount() {
     setFormError(null);
+    storePromo(null);
     startRefresh(async () => {
       const result = await previewCheckoutAction(whoFor(guestDetails, addressId));
       if (result.ok) setTotals(result.data);
@@ -325,6 +364,7 @@ export function CheckoutForm({
       }
       const { orderNumber, next } = result.data;
       setRedirecting(true);
+      storePromo(null);
       if (next.type === "done") router.push(`/checkout/success?order=${orderNumber}`);
       else if (next.type === "redirect") window.location.assign(next.url);
       else submitProviderForm(next.action, next.fields);
@@ -333,7 +373,6 @@ export function CheckoutForm({
 
   const isBusy = isRefreshing || isApplying;
   const deliveryDone = step !== "delivery";
-  const paymentDone = step === "review";
 
   const summaryBody = (testId?: string) => (
     <>
@@ -418,6 +457,7 @@ export function CheckoutForm({
                 onSaved={(id) => {
                   showForm(false, { to: "address", id });
                   chooseAddress(id);
+                  toPayment();
                   router.refresh();
                 }}
                 onCancel={addresses.length > 0 ? () => showForm(false, { to: "add" }) : undefined}
@@ -428,7 +468,11 @@ export function CheckoutForm({
                   aria-labelledby="address-heading"
                   variant="card"
                   value={addressId ?? ""}
-                  onValueChange={chooseAddress}
+                  onValueChange={(id) => {
+                    // Picking an address is the decision: Payment opens at once (owner 2026-11-11).
+                    chooseAddress(id);
+                    toPayment();
+                  }}
                   className="grid-cols-1"
                 >
                   {addresses.map((address) => (
@@ -439,6 +483,8 @@ export function CheckoutForm({
                         else addressRefs.current.delete(address.id);
                       }}
                       value={address.id}
+                      // Picking the address that is already chosen (after an Edit) moves on too.
+                      onClick={() => addressId === address.id && toPayment()}
                       label={address.fullName}
                       description={`${address.street}, ${address.city}, ${address.district} · ${address.phone}`}
                     />
@@ -452,21 +498,6 @@ export function CheckoutForm({
                 >
                   Add a new address
                 </Button>
-                <Button
-                  size="lg"
-                  shape="pill"
-                  className="w-full"
-                  disabled={!addressId || isBusy}
-                  onClick={() => setStep("payment")}
-                  data-testid="save-continue"
-                >
-                  Save &amp; Continue
-                </Button>
-                {!addressId && (
-                  <p className="text-center text-small text-ink-muted">
-                    Choose a delivery address to continue.
-                  </p>
-                )}
               </>
             )}
           </StepShell>
@@ -475,7 +506,7 @@ export function CheckoutForm({
           <StepShell
             id="payment"
             title="Payment"
-            state={!deliveryDone ? "waiting" : paymentDone ? "done" : "open"}
+            state={step === "payment" ? "open" : reached !== "delivery" && selected ? "done" : "waiting"}
             onEdit={() => setStep("payment")}
             summary={
               <p className="text-body text-ink-muted" data-testid="payment-summary">
@@ -488,11 +519,22 @@ export function CheckoutForm({
               <RadioGroup
                 variant="card"
                 value={selected?.value ?? ""}
-                onValueChange={(value) => setMethod(value as Method)}
+                onValueChange={(value) => {
+                  // Choosing a method is the decision: Order Review opens at once (owner 2026-11-11).
+                  setMethod(value as Method);
+                  goTo("review");
+                }}
                 className="grid-cols-1"
               >
                 {available.map((m) => (
-                  <RadioGroupItem key={m.value} value={m.value} label={m.label} description={m.description} />
+                  <RadioGroupItem
+                    key={m.value}
+                    value={m.value}
+                    label={m.label}
+                    description={m.description}
+                    // Picking the method that is already chosen (after an Edit) moves on too.
+                    onClick={() => selected?.value === m.value && goTo("review")}
+                  />
                 ))}
               </RadioGroup>
             </FormField>
@@ -501,29 +543,29 @@ export function CheckoutForm({
                 Cash on delivery is available for orders up to <Price paisa={totals.codLimitPaisa} />.
               </p>
             )}
-            <DiscountCodeField
-              applied={discountCode}
-              onApply={applyDiscount}
-              onRemove={removeDiscount}
-              disabled={isRefreshing || isPlacing}
-            />
-            <Button
-              size="lg"
-              shape="pill"
-              className="w-full"
-              disabled={!selected || isBusy}
-              onClick={() => setStep("review")}
-              data-testid="payment-continue"
-            >
-              Continue
-            </Button>
-            {!selected && (
-              <p className="text-center text-small text-ink-muted">Choose a payment method to continue.</p>
+            {/* A code already added in the bag shows in the totals instead of a field here. */}
+            {!discountCode && (
+              <DiscountCodeField
+                applied={discountCode}
+                onApply={applyDiscount}
+                onRemove={removeDiscount}
+                disabled={isRefreshing || isPlacing}
+              />
             )}
           </StepShell>
 
           {/* 3. Order review */}
-          <StepShell id="review" title="Order Review" state={step === "review" ? "open" : "waiting"}>
+          <StepShell
+            id="review"
+            title="Order Review"
+            state={step === "review" ? "open" : reached === "review" ? "done" : "waiting"}
+            onEdit={() => setStep("review")}
+            summary={
+              <p className="text-body text-ink-muted" data-testid="review-summary">
+                Total <Price paisa={totals.totalPaisa} />
+              </p>
+            }
+          >
             <dl className="flex flex-col gap-3 text-body">
               <div className="flex justify-between gap-4">
                 <dt className="text-ink-muted">Items</dt>
@@ -533,6 +575,14 @@ export function CheckoutForm({
                 <dt className="text-ink-muted">Arrives by</dt>
                 <dd>{totals.arrivesBy}</dd>
               </div>
+              {totals.discountPaisa > 0 && (
+                <div className="flex justify-between gap-4" data-testid="review-discount">
+                  <dt className="text-ink-muted">Promo code discount</dt>
+                  <dd>
+                    −<Price paisa={totals.discountPaisa} />
+                  </dd>
+                </div>
+              )}
               <div className="flex justify-between gap-4">
                 <dt className="text-ink-muted">Total</dt>
                 <dd className="font-medium">

@@ -1,6 +1,6 @@
 "use client";
 
-import { Alert, ButtonLink, Link } from "@virzeen/ui";
+import { Alert, Button, ButtonLink, Link } from "@virzeen/ui";
 import { ChevronRight, PackageCheck, Ticket } from "lucide-react";
 import { deliveryFeeFor, memberDeliverySaving, remainingForFreeDelivery } from "@virzeen/validators/limits";
 import { Fragment, useState } from "react";
@@ -9,8 +9,10 @@ import { BagFavourites, useFavouritesPreview } from "@/client/features/favourite
 import type { FavouritesPreview } from "@/client/features/favourites/favourite-bag";
 import { ProductCarousel } from "@/client/features/products/product-carousel";
 import type { ProductCardData } from "@/client/features/products/product-card";
+import { storePromo, useStoredPromo } from "@/client/features/checkout/promo-storage";
 import { CartLine, RemovedLineNotice } from "./cart-line";
 import { useCart, type RemovedLine } from "./cart-provider";
+import { PromoCodeDialog } from "./promo-code-dialog";
 
 type Notice = { tone: "warning" | "info"; text: string };
 
@@ -229,24 +231,46 @@ function CheckoutButtons({ isGuest }: { isGuest: boolean }) {
  * invited to log in; a member is taken to checkout, where "Add a discount code" lives in the Payment step.
  */
 function PromoRow({ isGuest }: { isGuest: boolean }) {
+  const [open, setOpen] = useState(false);
+  const code = useStoredPromo();
   return (
-    <Link
-      href={isGuest ? "/login?next=%2Fcart" : "/checkout"}
-      variant="subtle"
-      className="mt-6 flex items-center gap-4 border-y border-line py-4"
-      data-testid="bag-promo-row"
-    >
-      <Ticket className="size-6 shrink-0" strokeWidth={1.5} aria-hidden />
-      <span className="flex min-w-0 flex-1 flex-col">
-        <span className="text-body font-medium">
-          {isGuest ? "Log in to apply promo code" : "Enter a promo code"}
-        </span>
-        <span className="text-small text-ink-muted">
-          {isGuest ? "Get instant savings on your order" : "Apply it in the Payment step at checkout"}
-        </span>
-      </span>
-      <ChevronRight className="size-5 shrink-0" strokeWidth={1.5} aria-hidden />
-    </Link>
+    <>
+      <div className="mt-6 flex items-center gap-4 border-y border-line py-4" data-testid="bag-promo-row">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="flex min-h-11 min-w-0 flex-1 items-center gap-4 text-left"
+          aria-haspopup="dialog"
+        >
+          <Ticket className="size-6 shrink-0" strokeWidth={1.5} aria-hidden />
+          <span className="flex min-w-0 flex-1 flex-col">
+            <span className="text-body font-medium wrap-anywhere">
+              {code ? `${code} added` : isGuest ? "Log in to apply promo code" : "Enter a promo code"}
+            </span>
+            <span className="text-small text-ink-muted">
+              {code
+                ? "It comes off at checkout"
+                : isGuest
+                  ? "Get instant savings on your order"
+                  : "Get instant savings on your order"}
+            </span>
+          </span>
+          {!code && <ChevronRight className="size-5 shrink-0" strokeWidth={1.5} aria-hidden />}
+        </button>
+        {code && (
+          <Button
+            variant="link"
+            aria-label={`Remove promo code ${code}`}
+            onClick={() => {
+              storePromo(null);
+            }}
+          >
+            Remove
+          </Button>
+        )}
+      </div>
+      <PromoCodeDialog open={open} onOpenChange={setOpen} />
+    </>
   );
 }
 

@@ -15,8 +15,8 @@ type SummaryLine = {
 };
 
 /**
- * The bag in the checkout summary, like Nike's "Arrives in…" list: photo, then name, quantity, style and size,
- * and the line price.
+ * The bag in the checkout summary, like Nike's "Arrives in…" list: photo, then the line price large and bold,
+ * and under it the name, quantity, style and size in smaller type.
  */
 export function OrderSummaryLines({ items, arrives }: { items: SummaryLine[]; arrives: string }) {
   return (
@@ -31,10 +31,10 @@ export function OrderSummaryLines({ items, arrives }: { items: SummaryLine[]; ar
             <li key={item.id} className="flex gap-4">
               <CloudImage src={item.imageUrl} alt={item.imageAlt} sizes="96px" className="w-24 shrink-0" />
               <div className="flex min-w-0 flex-col text-small wrap-anywhere text-ink-muted">
-                <p className="text-body text-ink">{item.productName}</p>
+                <Price paisa={item.lineTotalPaisa} className="text-body font-medium text-ink" />
+                <p className="mt-1 text-small text-ink">{item.productName}</p>
                 <p>Qty {item.quantity}</p>
                 <p>{item.variantLabel}</p>
-                <Price paisa={item.lineTotalPaisa} className="text-body text-ink" />
               </div>
             </li>
           ))}
@@ -73,7 +73,7 @@ export function OrderSummaryTotals({ totals, totalTestId }: OrderSummaryTotalsPr
         {totals.discountPaisa > 0 && (
           <div className="flex justify-between gap-4">
             <dt className="wrap-anywhere">
-              Discount{totals.discountCode ? ` (${totals.discountCode})` : ""}
+              Promo code discount{totals.discountCode ? ` (${totals.discountCode})` : ""}
             </dt>
             <dd className="whitespace-nowrap" data-testid={totalTestId ? "checkout-discount" : undefined}>
               −<Price paisa={totals.discountPaisa} />

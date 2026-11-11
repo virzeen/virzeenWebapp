@@ -13,7 +13,7 @@ const display = Inter_Tight({ subsets: ["latin"], variable: "--font-display-load
 // Only for the rupee sign "रु" (owner request 2026-11-11: bold, then a bit lighter): one weight (Bold).
 const rupee = Noto_Sans_Devanagari({
   subsets: ["devanagari"],
-  weight: ["700"],
+  weight: ["600"],
   variable: "--font-rupee-loaded",
   display: "swap",
   preload: false,

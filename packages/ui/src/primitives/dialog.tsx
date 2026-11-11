@@ -13,6 +13,7 @@ import { cn } from "../lib/cn";
  * (specs/product-page.md, specs/size-guides.md). Its body scrolls between the title and a `footer` that stays in
  * view. The body takes keyboard focus (focus starts there when the dialog opens), so arrow keys and Page Down scroll
  * it; `media` puts a small picture (e.g. the product's photo) left of the title.
+ * `size="prompt"`: like `md` but with 32px rounded corners and more padding: the bag's promo-code popup.
  * `size="split"`: a wide popup in two panes, like Nike's quick add (the Favourites "Add to bag" popup): from `lg` the
  * `aside` (a photo with its own controls) fills the left half, and the title, a scrolling body and the `footer` (under
  * a hairline) fill the right. Below `lg` the aside is hidden and `media`, if given, sits left of the title. Its body
@@ -42,6 +43,8 @@ const dialogVariants = cva(
     variants: {
       size: {
         md: "max-w-md gap-6 p-6",
+        // A short popup with one field and one button (the bag's promo code), with large rounded corners.
+        prompt: "max-w-md gap-6 rounded-xl p-8",
         lg: "max-h-5/6 max-w-2xl",
         // Two 4:5 panes from lg; the photo pane crops and the body scrolls when the screen is short.
         split: "max-h-5/6 max-w-xl overflow-hidden lg:aspect-8/5 lg:w-11/12 lg:max-w-5xl lg:flex-row",
