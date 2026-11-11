@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { addToCart, checkoutFixture, createVariant, resetDatabase } from "../../test/factories";
 import { json, mockProvider, sentEmails } from "../../test/setup";
 import { COD_MAX_TOTAL_PAISA } from "../pricing/cod-rules";
+import { memberService } from "../members/member.service";
 import { checkoutService } from "./checkout.service";
 
 const NOW = new Date("2026-09-28T06:00:00Z"); // 11:45 in Kathmandu
@@ -319,6 +320,69 @@ describe("checkoutService — guest checkout (specs/checkout-v2-week1.md)", () =
       freeDeliveryRemainingPaisa: 749_900,
       memberSavingPaisa: 5_000,
       arrivesBy: "Sep 30", // 48 h dispatch, same day in the valley
+    });
+  });
+
+  describe("a member with the Monochrome Pass", () => {
+    const passUntil = new Date("2027-03-01T00:00:00Z");
+
+    it("pays no delivery and gets 10% off, stored on the order as tier PASS", async () => {
+      const fixture = await checkoutFixture({ pricePaisa: 250_000 });
+      await db.user.update({ where: { id: fixture.user.id }, data: { passEndsAt: passUntil } });
+
+      const preview = await checkoutService.preview({
+        userId: fixture.user.id,
+        cartId: fixture.cart.id,
+        addressId: fixture.address.id,
+        now: NOW,
+      });
+      expect(preview).toMatchObject({
+        tier: "PASS",
+        shippingPaisa: 0,
+        discountPaisa: 25_000,
+        isPassDiscount: true,
+        totalPaisa: 225_000,
+        // 10% (Rs. 250) plus the Rs. 150 delivery a MONO Member would have paid on a Rs. 2,500 bag.
+        passSavingPaisa: 40_000,
+        arrivesBy: "Sep 29", // 24 h dispatch, same day in the valley
+      });
+
+      const { orderNumber } = await place(fixture, "COD");
+      const order = await db.order.findUniqueOrThrow({ where: { orderNumber } });
+      expect(order).toMatchObject({
+        tier: "PASS",
+        shippingPaisa: 0,
+        discountPaisa: 25_000,
+        discountCode: null,
+        totalPaisa: 225_000,
+      });
+    });
+
+    it("loses the benefits once the Pass has ended", async () => {
+      const fixture = await checkoutFixture({ pricePaisa: 250_000 });
+      await db.user.update({
+        where: { id: fixture.user.id },
+        data: { passEndsAt: new Date("2026-09-01T00:00:00Z") },
+      });
+      const preview = await checkoutService.preview({
+        userId: fixture.user.id,
+        cartId: fixture.cart.id,
+        addressId: fixture.address.id,
+        now: NOW,
+      });
+      expect(preview).toMatchObject({
+        tier: "MEMBER",
+        shippingPaisa: 15_000,
+        discountPaisa: 0,
+        passSavingPaisa: 0,
+      });
+    });
+
+    it("totals what the Pass saved across their orders", async () => {
+      const fixture = await checkoutFixture({ pricePaisa: 250_000 });
+      await db.user.update({ where: { id: fixture.user.id }, data: { passEndsAt: passUntil } });
+      await place(fixture, "COD");
+      expect(await memberService.passSavings(fixture.user.id)).toEqual({ orders: 1, savedPaisa: 40_000 });
     });
   });
 });

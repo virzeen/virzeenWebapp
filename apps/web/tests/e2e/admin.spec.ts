@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { E2E_ADMIN_EMAIL } from "./env";
-import { completeEmailSignIn, signIn, totp, uniqueEmail } from "./helpers";
+import { completeEmailSignIn, createMember, signIn, totp, uniqueEmail } from "./helpers";
 
 // Journeys 6–7 (testing-strategy.md §2) plus the admin TOTP step-up (security-policy.md §2).
 
@@ -437,6 +437,24 @@ test("admin sets up two-factor, builds a product on its page and it appears in t
   await editCode.getByRole("button", { name: "Save" }).click();
   await expect(codeRow.getByText("Off", { exact: true })).toBeVisible();
   await expect(codeRow.getByRole("button", { name: "Edit E2E-ADMIN15" })).toBeFocused();
+
+  // Customers (specs/membership-portal.md): find one, give them the Monochrome Pass, then end it.
+  const passCustomer = uniqueEmail("passcust");
+  await createMember(passCustomer);
+  await page.getByRole("navigation", { name: "Admin" }).getByRole("link", { name: "Customers" }).click();
+  await page.getByLabel("Search customers by email or name").fill(passCustomer);
+  await page.getByRole("button", { name: "Search" }).click();
+  const customerRow = page.getByRole("row").filter({ hasText: passCustomer });
+  await expect(customerRow).toContainText("MONO Member");
+  const manage = customerRow.getByRole("button", { name: /Manage the Pass for/ });
+  await manage.click();
+  const passDialog = page.getByRole("dialog", { name: "Monochrome Pass" });
+  await passDialog.getByRole("button", { name: "Give 6 months" }).click();
+  await expect(customerRow).toContainText("Pass until");
+  await manage.click();
+  await expect(passDialog.getByRole("button", { name: "Add 1 year" })).toBeVisible();
+  await passDialog.getByRole("button", { name: "End Pass" }).click();
+  await expect(customerRow).toContainText("MONO Member");
 
   // A mistyped admin address stays inside the admin frame, with a way back.
   await page.goto("/admin/no-such-page");

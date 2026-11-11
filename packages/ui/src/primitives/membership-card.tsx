@@ -9,7 +9,7 @@ const cardVariants = cva(
         // The free MONO Member card: light grey with soft white circles.
         member: "border border-line bg-surface text-ink",
         // The Monochrome Pass: black, with dark spheres and a thin curved line, like a metal membership card.
-        pass: "bg-ink text-canvas shadow-md",
+        pass: "border border-canvas/15 bg-ink text-canvas shadow-md",
       },
     },
     defaultVariants: { level: "member" },

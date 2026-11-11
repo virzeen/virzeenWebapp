@@ -12,8 +12,8 @@ export {
   remainingForFreeDelivery,
 } from "@virzeen/validators/limits";
 
-/** Hours from the order until it leaves us (guests 48, MONO Members 24). */
-export const DISPATCH_HOURS: Record<CustomerTier, number> = { GUEST: 48, MEMBER: 24 };
+/** Hours from the order until it leaves us (guests 48, MONO Members and Pass members 24). */
+export const DISPATCH_HOURS: Record<CustomerTier, number> = { GUEST: 48, MEMBER: 24, PASS: 24 };
 
 /** Days on the road after dispatch: same day in the Kathmandu Valley, 2 to 4 days elsewhere. */
 export const TRANSIT_DAYS: Record<ShippingZone, { min: number; max: number }> = {

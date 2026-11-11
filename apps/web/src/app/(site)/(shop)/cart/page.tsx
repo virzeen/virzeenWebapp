@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { CartPageContent } from "@/client/features/cart/cart-page-content";
 import { BAG_FAVOURITES_SHOWN } from "@/client/features/favourites/favourite-bag";
 import { getUser } from "@/server/auth/session";
+import { tierFor } from "@/server/queries/account";
 import { listMyFavourites } from "@/server/queries/account";
 import { listNewArrivals } from "@/server/queries/catalog";
 import { flattenSearchParams, type SearchParams } from "@/server/queries/params";
@@ -38,7 +39,7 @@ export default async function CartPage({ searchParams }: { searchParams: SearchP
     listNewArrivals(SUGGESTIONS),
     getUser(),
   ]);
-  const tier = user ? "MEMBER" : "GUEST";
+  const tier = await tierFor(user?.id ?? null);
   // The bag doesn't know the district yet, so the estimate is the slower (outside the valley) range.
   const delivery = { tier, arrivesBy: arrivalWindow(tier, "OUTSIDE_VALLEY", new Date()) } as const;
   return (

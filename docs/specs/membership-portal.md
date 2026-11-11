@@ -26,9 +26,15 @@ Three levels: **Guest**, **MONO Member** (free account) and the **Monochrome Pas
 - **Profile (`/account`):** the member's card, the level's headline benefits, "See every benefit"; a free member also sees the Pass offer (black card, benefits, the two plans, a disabled "Pass opens soon").
 - **Membership page (`/membership`, public):** three level cards (the viewer's marked), "Log in to get the Pass" for guests, and the side-by-side table of every benefit by group with the viewer's whole column in bold.
 
+## Phase 2 (built 2026-11-11)
+
+- **The Pass at checkout** (owner: "code replaces the Pass 10%"): `tierFor` makes a member with a running Pass the `PASS` tier. Delivery is free on every order; 10% off the products unless a discount code is applied (the code replaces it). Stored on the order (`tier = PASS`, `discountPaisa`, no `discountCode`). The bag, checkout summary and Order Review show "Monochrome Pass discount" and "You saved Rs X with your Pass" (the 10% plus the delivery a MONO Member would have paid). `memberService.passSavings` totals it for the portal.
+- **Admin → Customers:** search by email or name, each customer's level ("Pass until …" or "MONO Member"), and a "Manage Pass" popup: give 6 months or 1 year, add to a running Pass, end it. Every change is audited (`member.grant-pass`, `member.end-pass`).
+- **Portal (`/account/membership`, a new account tab):** a free member sees their benefits and the Pass offer; a Pass member sees the black hero (welcome, days left, a month-by-month bar, the card), a stats row (saved so far, Pass orders, Pass since, months left), every Pass benefit with a tick or "Soon", and priority-support contact. `PremiumPanel` + `MembershipCard` primitives.
+
 ## Not built (shown as "Soon")
 
-Everything that needs new back-end: Pass delivery and 10% discount at checkout, points and credit wallet, Express Delivery (3 hours in Kathmandu and Pokhara: 1 a month for a MONO Member, 3 a month for the Pass; none for guests) and the missed-dispatch credit, early access, member-only products, reserve and price lock, referrals, birthday and anniversary rewards, gift wrap pricing, pause, the Pass purchase itself, the daily expiry job. The `live` list in the catalog says what works; flip a benefit's `live` when its part ships.
+Everything that needs new back-end: the extra 5% on complete looks, points and credit wallet, Express Delivery (3 hours in Kathmandu and Pokhara: 1 a month for a MONO Member, 3 a month for the Pass; none for guests) and the missed-dispatch credit, early access, member-only products, reserve and price lock, referrals, birthday and anniversary rewards, gift wrap pricing, pause, the Pass purchase itself, the daily expiry job. The `live` list in the catalog says what works; flip a benefit's `live` when its part ships.
 
 ## Guide points to settle later
 

@@ -494,6 +494,8 @@ model CartItem {
 enum CustomerTier {
   GUEST
   MEMBER
+  /// A member with a running Monochrome Pass (specs/membership-portal.md).
+  PASS
 }
 
 model Order {

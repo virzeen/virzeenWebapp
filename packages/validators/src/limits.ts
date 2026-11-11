@@ -42,12 +42,22 @@ export function toFavouriteKey(
 // Delivery fees (owner decision 2026-11-11, docs/specs/checkout-v2-week1.md). Pure rules, shared so the bag page can
 // show the same hints the server charges by. The server is the only place that charges: `calculateTotals` in core.
 
-export type DeliveryTier = "GUEST" | "MEMBER";
+export type DeliveryTier = "GUEST" | "MEMBER" | "PASS";
 
 export const DELIVERY_FEES: Record<DeliveryTier, { feePaisa: number; freeFromPaisa: number }> = {
   GUEST: { feePaisa: 20_000, freeFromPaisa: 999_900 },
   MEMBER: { feePaisa: 15_000, freeFromPaisa: 300_000 },
+  // The Monochrome Pass: free delivery on every order, no minimum.
+  PASS: { feePaisa: 0, freeFromPaisa: 0 },
 };
+
+/** The Monochrome Pass takes this much off the products' price (owner 2026-11-11; a promo code replaces it). */
+export const PASS_DISCOUNT_PERCENT = 10;
+
+/** The Pass discount on a subtotal: a percentage rounded down, then whole rupees (the same rounding as a code). */
+export function passDiscountFor(subtotalPaisa: number): number {
+  return Math.floor(Math.floor((subtotalPaisa * PASS_DISCOUNT_PERCENT) / 100) / 100) * 100;
+}
 
 /** The delivery fee for a bag worth `payablePaisa` (after any discount) for this tier. */
 export function deliveryFeeFor(tier: DeliveryTier, payablePaisa: number): number {

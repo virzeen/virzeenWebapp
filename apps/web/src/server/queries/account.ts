@@ -19,7 +19,11 @@ import type { StockAlertRow } from "@/server/actions/stock-alerts";
 export const listMyOrders = (userId: string, cursor?: string) =>
   orderService.listForUser(userId, { cursor, limit: 20 });
 /** The member's level and Pass dates for the profile and the Membership page (specs/membership-portal.md). */
+/** Who is buying, for the bag's price hints: a guest, a MONO Member or a member with a running Pass. */
+export const tierFor = (userId: string | null) => memberService.tierFor(userId);
 export const getMyMembership = (userId: string) => memberService.membership(userId);
+/** What the Pass has saved this member so far, for the Pass portal. */
+export const getMyPassSavings = (userId: string) => memberService.passSavings(userId);
 export const listMyAddresses = (userId: string) => addressService.list(userId);
 /** The review page (specs/reviews.md): the product, whether this customer may review it, and their review. */
 export const getMyReviewPage = (userId: string, productSlug: string) =>

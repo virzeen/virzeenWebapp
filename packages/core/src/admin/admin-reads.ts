@@ -310,18 +310,33 @@ export const adminReads = {
     });
   },
 
-  /** Customers (read-only in phase 1). No addresses or phone numbers in the list. */
-  async listCustomers(page = 1) {
+  /**
+   * Customers, searchable by email or name, with their Monochrome Pass end date (Pass actions are in the members
+   * actions). No addresses or phone numbers in the list.
+   */
+  async listCustomers(page = 1, query = "") {
     const take = 25;
+    const where = {
+      role: "CUSTOMER" as const,
+      ...(query
+        ? {
+            OR: [
+              { email: { contains: query, mode: "insensitive" as const } },
+              { name: { contains: query, mode: "insensitive" as const } },
+            ],
+          }
+        : {}),
+    };
     const [total, rows] = await Promise.all([
-      db.user.count({ where: { role: "CUSTOMER" } }),
+      db.user.count({ where }),
       db.user.findMany({
-        where: { role: "CUSTOMER" },
+        where,
         select: {
           id: true,
           name: true,
           email: true,
           createdAt: true,
+          passEndsAt: true,
           _count: { select: { orders: true } },
         },
         orderBy: { createdAt: "desc" },

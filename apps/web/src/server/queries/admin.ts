@@ -27,7 +27,7 @@ export const getProductStatusCounts = () => adminReads.productStatusCounts();
 export const listAdminCategories = () => adminReads.listCategories();
 export const listAdminCollections = () => adminReads.listCollections();
 export const listAdminSizeGuides = () => adminReads.listSizeGuides();
-export const listAdminCustomers = (page: number) => adminReads.listCustomers(page);
+export const listAdminCustomers = (page: number, query = "") => adminReads.listCustomers(page, query);
 export const listAdminReviews = (filters: AdminReviewFilters) => reviewService.listForAdmin(filters);
 export const listAdminDiscounts = () => discountService.listForAdmin();
 export const listAdminPortfolio = () => portfolioService.listForAdmin();

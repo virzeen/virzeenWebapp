@@ -2,7 +2,12 @@
 
 import { Alert, Button, ButtonLink, Link } from "@virzeen/ui";
 import { ChevronRight, PackageCheck, Ticket } from "lucide-react";
-import { deliveryFeeFor, memberDeliverySaving, remainingForFreeDelivery } from "@virzeen/validators/limits";
+import {
+  deliveryFeeFor,
+  memberDeliverySaving,
+  passDiscountFor,
+  remainingForFreeDelivery,
+} from "@virzeen/validators/limits";
 import { Fragment, useState } from "react";
 import { Price, ShippingPrice } from "@/client/components/shared/price";
 import { BagFavourites, useFavouritesPreview } from "@/client/features/favourites/bag-favourites";
@@ -23,7 +28,7 @@ type CartPageContentProps = {
   /** Products for "You might also like", newest first. */
   suggestions: ProductCardData[];
   /** Who is looking (decides the delivery rate) and the arrival estimate worked out on the server. */
-  delivery: { tier: "GUEST" | "MEMBER"; arrivesBy: string };
+  delivery: { tier: "GUEST" | "MEMBER" | "PASS"; arrivesBy: string };
 };
 
 /**
@@ -43,6 +48,8 @@ export function CartPageContent({ notice, favourites, suggestions, delivery }: C
   const deliveryPaisa = deliveryFeeFor(delivery.tier, cart.subtotalPaisa);
   const toFreeDelivery = remainingForFreeDelivery(delivery.tier, cart.subtotalPaisa);
   const memberSaving = delivery.tier === "GUEST" ? memberDeliverySaving(cart.subtotalPaisa) : 0;
+  // A Pass member's 10% (a promo code replaces it at checkout).
+  const passDiscountPaisa = delivery.tier === "PASS" ? passDiscountFor(cart.subtotalPaisa) : 0;
   const isGuest = delivery.tier === "GUEST";
 
   const removedNotice = removed && (
@@ -127,10 +134,18 @@ export function CartPageContent({ notice, favourites, suggestions, delivery }: C
                   <ShippingPrice paisa={deliveryPaisa} />
                 </dd>
               </div>
+              {passDiscountPaisa > 0 && (
+                <div className="flex justify-between gap-4">
+                  <dt>Pass discount</dt>
+                  <dd data-testid="cart-pass-discount">
+                    −<Price paisa={passDiscountPaisa} />
+                  </dd>
+                </div>
+              )}
               <div className="mt-3 flex justify-between gap-4 border-y border-line py-4 font-medium">
                 <dt>Total</dt>
                 <dd data-testid="cart-total">
-                  <Price paisa={cart.subtotalPaisa + deliveryPaisa} />
+                  <Price paisa={cart.subtotalPaisa - passDiscountPaisa + deliveryPaisa} />
                 </dd>
               </div>
             </dl>

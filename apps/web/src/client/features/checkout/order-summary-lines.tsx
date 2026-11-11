@@ -73,7 +73,9 @@ export function OrderSummaryTotals({ totals, totalTestId }: OrderSummaryTotalsPr
         {totals.discountPaisa > 0 && (
           <div className="flex justify-between gap-4">
             <dt className="wrap-anywhere">
-              Promo code discount{totals.discountCode ? ` (${totals.discountCode})` : ""}
+              {totals.isPassDiscount
+                ? "Monochrome Pass discount"
+                : `Promo code discount${totals.discountCode ? ` (${totals.discountCode})` : ""}`}
             </dt>
             <dd className="whitespace-nowrap" data-testid={totalTestId ? "checkout-discount" : undefined}>
               −<Price paisa={totals.discountPaisa} />
@@ -90,6 +92,11 @@ export function OrderSummaryTotals({ totals, totalTestId }: OrderSummaryTotalsPr
       <p className="text-small text-ink-muted">
         Includes <Price paisa={totals.vatPaisa} /> VAT (13%).
       </p>
+      {totals.tier === "PASS" && totals.passSavingPaisa > 0 && (
+        <p className="text-small" data-testid="pass-saving">
+          You saved <Price paisa={totals.passSavingPaisa} /> with your Pass.
+        </p>
+      )}
       {totals.tier === "GUEST" && totals.memberSavingPaisa > 0 && (
         <p className="text-small" data-testid="member-nudge">
           MONO Members save <Price paisa={totals.memberSavingPaisa} /> on this order.{" "}

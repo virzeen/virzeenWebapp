@@ -7,12 +7,14 @@ import { cartLineSelect, isLineAvailable, variantLabelOf } from "../cart/cart-su
 import { getCoreConfig } from "../config";
 import { checkDiscount, claimDiscount } from "../discounts/discount.service";
 import { AppError } from "../errors";
+import { memberService } from "../members/member.service";
 import { reserveStock } from "../inventory/stock";
 import { notifications } from "../notifications/notifications";
 import { COD_MAX_TOTAL_PAISA, isCodAvailable } from "../pricing/cod-rules";
 import { calculateSubtotal, calculateTotals, type Totals } from "../pricing/calculate-totals";
 import {
   arrivalWindow,
+  deliveryFeeFor,
   memberDeliverySaving,
   remainingForFreeDelivery,
   shippingZoneFor,
@@ -68,6 +70,8 @@ export type CheckoutPreview = Totals & {
   freeDeliveryRemainingPaisa: number;
   /** What a MONO Member would save on delivery for this bag (0 for members and when delivery is free anyway). */
   memberSavingPaisa: number;
+  /** A Pass member's saving on this bag: the 10% (when no code replaces it) plus the delivery fee a MONO Member would pay. */
+  passSavingPaisa: number;
   isCodAvailable: boolean;
   /** null = no limit. */
   codLimitPaisa: number | null;
@@ -119,7 +123,7 @@ export const checkoutService = {
     now?: Date;
   }): Promise<CheckoutPreview> {
     const now = input.now ?? new Date();
-    const tier: CustomerTier = input.userId ? "MEMBER" : "GUEST";
+    const tier: CustomerTier = await memberService.tierFor(input.userId, now);
     const summary = await getCartSummary(db, input.cartId);
     const district =
       input.userId && input.addressId
@@ -146,6 +150,14 @@ export const checkoutService = {
       arrivesBy: arrivalWindow(tier, zone, now),
       freeDeliveryRemainingPaisa: lines.length === 0 ? 0 : remainingForFreeDelivery(tier, payable),
       memberSavingPaisa: tier === "GUEST" && lines.length > 0 ? memberDeliverySaving(payable) : 0,
+      passSavingPaisa:
+        tier === "PASS" && lines.length > 0
+          ? (totals.isPassDiscount ? totals.discountPaisa : 0) +
+            deliveryFeeFor(
+              "MEMBER",
+              totals.subtotalPaisa - (totals.isPassDiscount ? 0 : totals.discountPaisa),
+            )
+          : 0,
       isCodAvailable: isCodAvailable(totals.totalPaisa),
       codLimitPaisa: COD_MAX_TOTAL_PAISA,
     };
@@ -158,7 +170,7 @@ export const checkoutService = {
   async placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResult> {
     const now = input.now ?? new Date();
     const { logger } = getCoreConfig();
-    const tier: CustomerTier = input.userId ? "MEMBER" : "GUEST";
+    const tier: CustomerTier = await memberService.tierFor(input.userId, now);
     const customerEmail = input.userId ? input.customerEmail : input.customerEmail.trim().toLowerCase();
     const actor = input.userId ? `customer:${input.userId}` : "guest";
     let address: GuestAddress;

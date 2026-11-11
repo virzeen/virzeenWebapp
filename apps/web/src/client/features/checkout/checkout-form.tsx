@@ -552,6 +552,9 @@ export function CheckoutForm({
                 disabled={isRefreshing || isPlacing}
               />
             )}
+            {totals.isPassDiscount && !discountCode && (
+              <p className="text-small text-ink-muted">A promo code replaces your 10% Pass discount.</p>
+            )}
           </StepShell>
 
           {/* 3. Order review */}
@@ -577,7 +580,9 @@ export function CheckoutForm({
               </div>
               {totals.discountPaisa > 0 && (
                 <div className="flex justify-between gap-4" data-testid="review-discount">
-                  <dt className="text-ink-muted">Promo code discount</dt>
+                  <dt className="text-ink-muted">
+                    {totals.isPassDiscount ? "Monochrome Pass discount" : "Promo code discount"}
+                  </dt>
                   <dd>
                     −<Price paisa={totals.discountPaisa} />
                   </dd>

@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { createDbClient } from "@virzeen/db";
 import { E2E_DATABASE_URL } from "./env";
-import { completeEmailSignIn, uniqueEmail } from "./helpers";
+import { addToBag, checkoutWith, completeEmailSignIn, uniqueEmail } from "./helpers";
 
 // The member portal: a free MONO Member's card and the Pass offer, a Pass member's black card, and the public
 // Membership page (docs/specs/membership-portal.md).
@@ -71,4 +71,51 @@ test("a guest sees the three levels and is asked to log in for the Pass", async 
   // The table: Pass delivery is free, a guest's is रु 200.
   await expect(page.getByRole("row", { name: /Delivery fee/ })).toContainText("रु 200");
   await expect(page.getByRole("row", { name: /Delivery fee/ })).toContainText("Free, no minimum");
+});
+
+test("the Membership portal shows a free member their benefits and a Pass member their hero and savings", async ({
+  page,
+}) => {
+  await page.setExtraHTTPHeaders({ "X-Forwarded-For": "198.51.100.43" });
+  const email = uniqueEmail("portal");
+  await page.goto("/login?next=%2Faccount%2Fmembership");
+  await completeEmailSignIn(page, email);
+  await expect(page).toHaveURL(/\/account\/membership$/);
+  await expect(page.getByRole("heading", { level: 2, name: "Your MONO Member benefits" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "The Monochrome Pass" })).toBeVisible();
+
+  await grantPass(email, new Date(Date.now() + 40 * 24 * 60 * 60 * 1000));
+  await page.goto("/account/membership");
+  await expect(page.getByRole("heading", { level: 1, name: /Welcome back/ })).toBeVisible();
+  await expect(page.getByTestId("pass-days-left")).toContainText(/\d+ days left/);
+  await expect(page.getByTestId("pass-saved")).toHaveText("रु 0");
+  await expect(page.getByRole("heading", { level: 2, name: "Everything your Pass includes" })).toBeVisible();
+  // Pass benefits that work today show a tick; the rest say Soon.
+  await expect(page.getByRole("heading", { level: 3, name: "Delivery and dispatch" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "The Monochrome Pass" })).toHaveCount(0);
+});
+
+test("a Pass member pays no delivery and gets 10% off, and a code replaces the 10%", async ({ page }) => {
+  await page.setExtraHTTPHeaders({ "X-Forwarded-For": "198.51.100.44" });
+  const email = uniqueEmail("passbuy");
+  await page.goto("/login?next=%2Faccount");
+  await completeEmailSignIn(page, email);
+  await grantPass(email, new Date(Date.now() + 90 * 24 * 60 * 60 * 1000));
+  await addToBag(page, "monochrome-oversized-tee", { color: "Black", size: "M" });
+
+  // The bag: रु 2,450 less 10% (रु 245), delivery free.
+  await page.goto("/cart");
+  await expect(page.getByTestId("cart-pass-discount")).toHaveText("−रु 245");
+  await expect(page.getByTestId("cart-delivery")).toHaveText("Free");
+  await expect(page.getByTestId("cart-total")).toHaveText("रु 2,205");
+
+  // Checkout: the Pass discount line, what the Pass saved (245 + the रु 150 a member would pay), and the order.
+  await checkoutWith(page, /Cash on delivery/, { continueToReview: false });
+  await expect(page.getByTestId("checkout-total")).toHaveText("रु 2,205");
+  await expect(page.getByText("Monochrome Pass discount")).toBeVisible();
+  await expect(page.getByTestId("pass-saving")).toHaveText("You saved रु 395 with your Pass.");
+  await page.getByRole("radio", { name: /Cash on delivery/ }).click();
+  await expect(page.getByTestId("review-discount")).toContainText("Monochrome Pass discount");
+  await page.getByRole("button", { name: "Place order" }).click();
+  await expect(page).toHaveURL(/\/checkout\/success\?order=VZ-\d{6}-\d{4}/);
 });

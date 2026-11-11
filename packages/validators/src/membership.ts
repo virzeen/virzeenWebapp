@@ -60,7 +60,7 @@ export const BENEFITS: readonly Benefit[] = [
     guest: "{p:20000}",
     free: "{p:15000}",
     pass: "Free, no minimum",
-    live: ["GUEST", "FREE"],
+    live: ["GUEST", "FREE", "PASS"],
   },
   {
     id: "free-delivery-from",
@@ -69,7 +69,7 @@ export const BENEFITS: readonly Benefit[] = [
     guest: "{p:999900}",
     free: "{p:300000}",
     pass: "Every order",
-    live: ["GUEST", "FREE"],
+    live: ["GUEST", "FREE", "PASS"],
   },
   {
     id: "dispatch",
@@ -78,7 +78,7 @@ export const BENEFITS: readonly Benefit[] = [
     guest: "Within 48 hours",
     free: "Within 24 hours",
     pass: "Within 24 hours",
-    live: ["GUEST", "FREE"],
+    live: ["GUEST", "FREE", "PASS"],
   },
   {
     id: "missed-dispatch",
@@ -150,8 +150,8 @@ export const BENEFITS: readonly Benefit[] = [
     label: "Discount on all products",
     guest: null,
     free: null,
-    pass: "10%",
-    live: [],
+    pass: "10% (a promo code replaces it)",
+    live: ["PASS"],
   },
   {
     id: "bundle",
