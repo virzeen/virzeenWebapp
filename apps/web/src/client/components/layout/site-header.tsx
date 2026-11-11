@@ -78,7 +78,12 @@ export function SiteHeader({ isSignedIn, firstName, categories, hasSale }: SiteH
             <UserRound className="size-5" strokeWidth={1.5} aria-hidden />
           </ButtonLink>
           <BagButton />
-          <MobileNav categories={categories} isSignedIn={isSignedIn} firstName={firstName} />
+          <MobileNav
+            categories={categories}
+            hasSale={hasSale}
+            isSignedIn={isSignedIn}
+            firstName={firstName}
+          />
         </div>
       </Container>
     </header>

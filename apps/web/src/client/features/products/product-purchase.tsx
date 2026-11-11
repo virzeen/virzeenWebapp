@@ -35,7 +35,7 @@ type ProductPurchaseProps = {
 };
 
 /** The main button, floating on phones: Add to bag or Notify me (the same size, so they can't drift apart). */
-const STICKY_BUTTON = "pointer-events-auto mx-auto flex h-14 w-4/5 md:h-12 md:w-full";
+const STICKY_BUTTON = "pointer-events-auto mx-auto flex w-4/5 md:w-full"; // Button lg: Nike's 60px
 
 /**
  * Style tiles, sizes, stock, "Add to bag" and "Favourite" (patterns.md §6). Sold-out styles and sizes stay visible,

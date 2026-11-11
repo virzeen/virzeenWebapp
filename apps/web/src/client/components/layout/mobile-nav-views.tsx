@@ -1,4 +1,4 @@
-import { Button, cn, Link, Separator } from "@virzeen/ui";
+import { Link, Separator } from "@virzeen/ui";
 import {
   ChevronRight,
   CircleHelp,
@@ -10,14 +10,9 @@ import {
   UserRound,
 } from "lucide-react";
 import type { Ref } from "react";
+import { shopNavItems } from "./nav-current";
 
 export type MenuCategory = { slug: string; name: string };
-
-/** The large links after Home and Shop (Shop opens its own panel instead of being a link). */
-const PAGES = [
-  { href: "/portfolio", label: "Portfolio" },
-  { href: "/about", label: "About" },
-] as const;
 
 type Shortcut = { href: string; label: string; icon: LucideIcon; signedInOnly?: boolean };
 
@@ -31,53 +26,49 @@ const SHORTCUTS: Shortcut[] = [
 ];
 
 /** Every link the menu shows, for marking the current page. */
-export function menuHrefs(isSignedIn: boolean, categories: MenuCategory[]) {
+export function menuHrefs(isSignedIn: boolean, categories: MenuCategory[], hasSale: boolean) {
   return [
     isSignedIn ? "/account" : "/login",
-    "/",
-    ...PAGES.map((page) => page.href),
-    "/shop",
-    ...categories.map((category) => `/shop/${category.slug}`),
+    ...shopNavItems(categories, hasSale).map((item) => item.href),
     ...SHORTCUTS.filter((item) => isSignedIn || !item.signedInOnly).map((item) => item.href),
   ];
 }
 
-type LinkState = {
+type MenuMainProps = {
+  isSignedIn: boolean;
+  firstName: string | null;
+  categories: MenuCategory[];
+  /** A live "sale" collection: the Sale row shows only then (as in the header). */
+  hasSale: boolean;
+  firstLinkRef: Ref<HTMLAnchorElement>;
+  /** "Install the Virzeen app", last in the icon list (it renders nothing where it can't install). */
+  install?: React.ReactNode;
   /** `aria-current="page"` for the one link that marks the current page. */
   ariaCurrent: (href: string) => "page" | undefined;
   /** Closes the menu: every link does, including the one to the page already open. */
   onNavigate: () => void;
 };
 
-type MenuMainProps = LinkState & {
-  isSignedIn: boolean;
-  firstName: string | null;
-  /** Back from Shop: the list nudges in from the left. */
-  returning: boolean;
-  onOpenShop: () => void;
-  firstLinkRef: Ref<HTMLAnchorElement>;
-  shopButtonRef: Ref<HTMLButtonElement>;
-  /** "Install the Virzeen app", last in the icon list (it renders nothing where it can't install). */
-  install?: React.ReactNode;
-};
-
-/** The menu's first panel: greeting, the large page links with Shop ›, then the small icon links. */
+/**
+ * The menu: the greeting, then the header's links as large rows (New and Featured, Sale while it's live, every
+ * category; owner 2026-11-10: "like the header, not Portfolio and About"), then the small icon links.
+ */
 export function MenuMain({
   isSignedIn,
   firstName,
-  returning,
-  onOpenShop,
+  categories,
+  hasSale,
   firstLinkRef,
-  shopButtonRef,
   install,
   ariaCurrent,
   onNavigate,
 }: MenuMainProps) {
   const greetingHref = isSignedIn ? "/account" : "/login";
   const greeting = isSignedIn ? (firstName ? `Hi, ${firstName}` : "Hi there") : "Sign in";
+  const items = shopNavItems(categories, hasSale);
   const shortcuts = SHORTCUTS.filter((item) => isSignedIn || !item.signedInOnly);
   return (
-    <div className={cn("flex flex-col", returning ? "motion-safe:animate-nudge-in-left" : "stagger-rows")}>
+    <div className="stagger-rows flex flex-col">
       <Link
         ref={firstLinkRef}
         data-stagger={0}
@@ -92,28 +83,17 @@ export function MenuMain({
       </Link>
       <Separator data-stagger={1} className="my-4" />
       <ul>
-        <li data-stagger={2}>
-          <Link variant="menu" href="/" aria-current={ariaCurrent("/")} onClick={onNavigate}>
-            Home
-          </Link>
-        </li>
-        <li data-stagger={3}>
-          <Button ref={shopButtonRef} variant="menu" onClick={onOpenShop}>
-            Shop
-            <ChevronRight className="size-6 shrink-0" strokeWidth={1.5} aria-hidden />
-          </Button>
-        </li>
-        {PAGES.map((page, index) => (
-          <li key={page.href} data-stagger={4 + index}>
-            <Link variant="menu" href={page.href} aria-current={ariaCurrent(page.href)} onClick={onNavigate}>
-              {page.label}
+        {items.map((item, index) => (
+          <li key={item.href} data-stagger={2 + index}>
+            <Link variant="menu" href={item.href} aria-current={ariaCurrent(item.href)} onClick={onNavigate}>
+              {item.label}
             </Link>
           </li>
         ))}
       </ul>
       <ul className="mt-12">
         {shortcuts.map((item, index) => (
-          <li key={item.href} data-stagger={4 + PAGES.length + index}>
+          <li key={item.href} data-stagger={2 + items.length + index}>
             <Link
               variant="menuSmall"
               href={item.href}
@@ -127,46 +107,10 @@ export function MenuMain({
         ))}
         {/* Empty where the button renders nothing: then the row is gone for screen readers too. */}
         {install && (
-          <li className="empty:hidden" data-stagger={4 + PAGES.length + shortcuts.length}>
+          <li className="empty:hidden" data-stagger={2 + items.length + shortcuts.length}>
             {install}
           </li>
         )}
-      </ul>
-    </div>
-  );
-}
-
-type MenuShopProps = LinkState & {
-  categories: MenuCategory[];
-  headingRef: Ref<HTMLHeadingElement>;
-};
-
-/** The Shop panel: All products and each category with products for sale, in their order. */
-export function MenuShop({ categories, headingRef, ariaCurrent, onNavigate }: MenuShopProps) {
-  return (
-    <div className="flex flex-col motion-safe:animate-nudge-in-right">
-      {/* Takes focus on the way in (tabIndex -1), so screen readers hear where they are. */}
-      <h3 ref={headingRef} tabIndex={-1} className="pb-4 font-display text-h1 font-medium text-ink">
-        Shop
-      </h3>
-      <ul>
-        <li>
-          <Link variant="menu" href="/shop" aria-current={ariaCurrent("/shop")} onClick={onNavigate}>
-            All products
-          </Link>
-        </li>
-        {categories.map((category) => (
-          <li key={category.slug}>
-            <Link
-              variant="menu"
-              href={`/shop/${category.slug}`}
-              aria-current={ariaCurrent(`/shop/${category.slug}`)}
-              onClick={onNavigate}
-            >
-              {category.name}
-            </Link>
-          </li>
-        ))}
       </ul>
     </div>
   );

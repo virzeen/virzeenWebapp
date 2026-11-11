@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { CircleHelp, Heart, ShoppingBag } from "lucide-react";
+import { ChevronRight, CircleHelp, Heart, House, ShoppingBag, UserRound } from "lucide-react";
 import { expect } from "storybook/test";
 import { ButtonLink, Link } from "./link";
 
@@ -8,7 +8,12 @@ const meta = {
   component: Link,
   tags: ["autodocs"],
   args: { href: "/shop", children: "Browse the collection" },
-  argTypes: { variant: { control: "select", options: ["default", "subtle", "nav", "menu", "menuSmall"] } },
+  argTypes: {
+    variant: {
+      control: "select",
+      options: ["default", "subtle", "nav", "header", "tab", "menu", "menuSmall", "list"],
+    },
+  },
 } satisfies Meta<typeof Link>;
 
 export default meta;
@@ -141,4 +146,33 @@ export const AsButton: Story = {
       </ButtonLink>
     </div>
   ),
+};
+
+/** A list of pages, like Nike's Settings on phones: icon, label, chevron, a line under each row. */
+export const List: Story = {
+  render: () => (
+    <nav aria-label="Settings" className="max-w-sm">
+      <ul className="border-t border-line">
+        {[
+          ["/account/settings/details", "Account details", UserRound],
+          ["/account/addresses", "Delivery addresses", House],
+        ].map(([href, label, Icon]) => {
+          const RowIcon = Icon as typeof UserRound;
+          return (
+            <li key={href as string}>
+              <Link variant="list" href={href as string}>
+                <RowIcon className="size-6 shrink-0" strokeWidth={1.5} aria-hidden />
+                {label as string}
+                <ChevronRight className="ml-auto size-5 shrink-0" strokeWidth={1.5} aria-hidden />
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
+  ),
+  play: async ({ canvas }) => {
+    const row = canvas.getByRole("link", { name: "Account details" });
+    await expect(row.getBoundingClientRect().height).toBeGreaterThanOrEqual(56);
+  },
 };
