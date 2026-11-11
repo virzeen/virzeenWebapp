@@ -36,9 +36,9 @@ test("a free MONO Member sees their card, the free benefits and the Pass offer",
   await page.getByRole("link", { name: "See every benefit" }).click();
   await expect(page).toHaveURL(/\/membership$/);
   await expect(page.getByRole("heading", { level: 1, name: "Shop your way" })).toBeVisible();
-  // The viewer's own level is marked on the cards and in the table.
+  // The viewer's own level is marked on the cards, and its table headers are the bold ones.
   await expect(page.locator("article[data-current]")).toContainText("MONO Member");
-  await expect(page.getByText("You", { exact: true }).first()).toBeVisible();
+  await expect(page.locator('th[aria-current="true"]').first()).toHaveText("MONO Member");
 });
 
 test("a Monochrome Pass member sees the black card and no offer", async ({ page }) => {

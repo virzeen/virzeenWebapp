@@ -24,7 +24,7 @@ Three levels: **Guest**, **MONO Member** (free account) and the **Monochrome Pas
 - **Catalog:** `@virzeen/validators/membership` holds the levels, the Pass plans, every benefit of the guide by level, the headline lines and which benefits work today (`live`). One list feeds the portal, the Membership page and the tests.
 - **Primitive:** `MembershipCard` (`level="member"` grey, `level="pass"` black with a faint sheen and an inner hairline frame), with stories and a catalog row.
 - **Profile (`/account`):** the member's card, the level's headline benefits, "See every benefit"; a free member also sees the Pass offer (black card, benefits, the two plans, a disabled "Pass opens soon").
-- **Membership page (`/membership`, public):** three level cards (the viewer's marked), "Log in to get the Pass" for guests, and the side-by-side table of every benefit by group with "You" on the viewer's column.
+- **Membership page (`/membership`, public):** three level cards (the viewer's marked), "Log in to get the Pass" for guests, and the side-by-side table of every benefit by group with the viewer's whole column in bold.
 
 ## Not built (shown as "Soon")
 
