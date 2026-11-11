@@ -10,6 +10,11 @@ const meta = {
     name: "Sita Rai",
     title: "MONO Member",
     caption: "Member since Nov 2026",
+    logo: (
+      <span aria-hidden className="font-display text-h2">
+        V
+      </span>
+    ),
     "aria-label": "MONO Member card",
     role: "group",
   },

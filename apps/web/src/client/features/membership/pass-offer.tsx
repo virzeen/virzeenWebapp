@@ -1,8 +1,9 @@
 import { Button, MembershipCard } from "@virzeen/ui";
-import { HEADLINES, PASS_PLANS } from "@virzeen/validators/membership";
-import { Check } from "lucide-react";
+import { SHORT_POINTS, PASS_PLANS } from "@virzeen/validators/membership";
+import { LogoMark } from "@/client/components/layout/logo-mark";
 import { Price } from "@/client/components/shared/price";
 import { BenefitText } from "./benefit-text";
+import { Bullet } from "./bullet";
 
 /**
  * The Monochrome Pass offer shown to a free MONO Member: the black card, the headline benefits and the two plans. The
@@ -23,16 +24,17 @@ export function PassOffer({ name }: { name: string }) {
           name={name}
           title="Monochrome Pass"
           caption="Your card, once you join"
+          logo={<LogoMark className="h-8 w-auto" />}
           role="img"
           aria-label="Monochrome Pass card"
         />
         <div className="flex flex-col gap-6">
-          <ul className="flex flex-col gap-3">
-            {HEADLINES.PASS.map((line) => (
-              <li key={line} className="flex gap-3 text-body">
-                <Check className="mt-1 size-5 shrink-0" strokeWidth={1.5} aria-hidden />
+          <ul className="grid grid-cols-2 gap-x-4 gap-y-3">
+            {SHORT_POINTS.PASS.map((point) => (
+              <li key={point} className="flex items-start gap-2 text-body">
+                <Bullet />
                 <span>
-                  <BenefitText text={line} />
+                  <BenefitText text={point} />
                 </span>
               </li>
             ))}

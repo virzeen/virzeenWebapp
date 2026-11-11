@@ -24,8 +24,8 @@ test("a free MONO Member sees their card, the free benefits and the Pass offer",
   await expect(page.getByRole("heading", { level: 2, name: "MONO Member" })).toBeVisible();
   await expect(page.getByRole("img", { name: "MONO Member card" })).toBeVisible();
   const highlights = page.getByTestId("member-highlights");
-  await expect(highlights).toContainText("Ships within 24 hours");
-  await expect(highlights).toContainText("रु 150");
+  await expect(highlights).toContainText("Ships in 24 hours");
+  await expect(highlights).toContainText("Delivery रु 150");
 
   // The Pass offer: both plans, and no way to buy it yet.
   const offer = page.getByRole("region", { name: "The Monochrome Pass" });
@@ -53,7 +53,7 @@ test("a Monochrome Pass member sees the black card and no offer", async ({ page 
   await expect(page.getByRole("img", { name: "Monochrome Pass card" })).toContainText(
     "Valid until 10 May 2027",
   );
-  await expect(page.getByTestId("member-highlights")).toContainText("Free delivery on every order");
+  await expect(page.getByTestId("member-highlights")).toContainText("Free delivery");
   await expect(page.getByRole("region", { name: "The Monochrome Pass" })).toHaveCount(0);
 });
 

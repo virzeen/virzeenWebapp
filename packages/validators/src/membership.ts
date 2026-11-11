@@ -378,6 +378,35 @@ export const BENEFITS: readonly Benefit[] = [
   },
 ];
 
+/**
+ * Short points for the Membership page's cards (the full detail is in the table under them): a few words each, so the
+ * cards don't repeat the table.
+ */
+export const SHORT_POINTS: Record<MembershipLevel, readonly string[]> = {
+  GUEST: ["Delivery {p:20000}", "Free above {p:400000}", "Ships in 48 hours", "7-day returns"],
+  FREE: [
+    "Delivery {p:15000}",
+    "Free above {p:300000}",
+    "Ships in 24 hours",
+    "Early access",
+    "Points on orders",
+    "Birthday coupon",
+    "Express Delivery 1 a month",
+    "Refer a friend",
+  ],
+  PASS: [
+    "Free delivery",
+    "10% off everything",
+    "Express Delivery 3 a month",
+    "48-hour early access",
+    "Member-only pieces",
+    "Free gift wrapping",
+    "15-day returns, free pickup",
+    "Priority support",
+    "Pause anytime",
+  ],
+};
+
 /** The headline lines per level (the Membership page cards and the portals). */
 export const HEADLINES: Record<MembershipLevel, readonly string[]> = {
   GUEST: [

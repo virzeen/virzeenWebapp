@@ -1,6 +1,8 @@
 import { ButtonLink, EmptyState, Link, MembershipCard } from "@virzeen/ui";
-import { THREE_HOUR_SMALL_PRINT, HEADLINES, LEVEL_NAMES } from "@virzeen/validators/membership";
-import { Check, Heart } from "lucide-react";
+import { THREE_HOUR_SMALL_PRINT, SHORT_POINTS, LEVEL_NAMES } from "@virzeen/validators/membership";
+import { Heart } from "lucide-react";
+import { LogoMark } from "@/client/components/layout/logo-mark";
+import { Bullet } from "@/client/features/membership/bullet";
 import { BenefitText } from "@/client/features/membership/benefit-text";
 import { PassOffer } from "@/client/features/membership/pass-offer";
 import { ProductCarousel } from "@/client/features/products/product-carousel";
@@ -81,6 +83,7 @@ export default async function ProfilePage() {
                 ? `Valid until ${formatDate(membership.passEndsAt)}`
                 : `Member since ${formatMonthYear(user.createdAt)}`
             }
+            logo={<LogoMark className="h-8 w-auto" />}
             role="img"
             aria-label={`${isPass ? LEVEL_NAMES.PASS : LEVEL_NAMES.FREE} card`}
           />
@@ -90,12 +93,12 @@ export default async function ProfilePage() {
                 ? "Your Pass is active. Here is what it gives you."
                 : "Your space in the Monochrome world."}
             </p>
-            <ul className="flex flex-col gap-3" data-testid="member-highlights">
-              {HEADLINES[isPass ? "PASS" : "FREE"].map((line) => (
-                <li key={line} className="flex gap-3 text-body">
-                  <Check className="mt-1 size-5 shrink-0" strokeWidth={1.5} aria-hidden />
+            <ul className="grid grid-cols-2 gap-x-4 gap-y-3" data-testid="member-highlights">
+              {SHORT_POINTS[isPass ? "PASS" : "FREE"].map((point) => (
+                <li key={point} className="flex items-start gap-2 text-body">
+                  <Bullet />
                   <span>
-                    <BenefitText text={line} />
+                    <BenefitText text={point} />
                   </span>
                 </li>
               ))}

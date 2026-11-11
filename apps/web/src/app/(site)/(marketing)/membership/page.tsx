@@ -1,15 +1,17 @@
 import { Button, ButtonLink, Container, MembershipCard } from "@virzeen/ui";
 import {
-  HEADLINES,
+  SHORT_POINTS,
   LEVEL_NAMES,
   PASS_PLANS,
   THREE_HOUR_SMALL_PRINT,
   type MembershipLevel,
 } from "@virzeen/validators/membership";
-import { Check } from "lucide-react";
+
 import type { Metadata } from "next";
+import { LogoMark } from "@/client/components/layout/logo-mark";
 import { Price } from "@/client/components/shared/price";
 import { BenefitComparison } from "@/client/features/membership/benefit-comparison";
+import { Bullet } from "@/client/features/membership/bullet";
 import { BenefitText } from "@/client/features/membership/benefit-text";
 import { getUser } from "@/server/auth/session";
 import { getMyMembership } from "@/server/queries/account";
@@ -39,8 +41,9 @@ export default async function MembershipPage() {
         </p>
       </header>
 
-      {/* Pricing-card layout (owner reference 2026-11-11): name, a small line under it, the price big, the button, then the
-          benefits. Guest and MONO Member side by side; the Pass is the wide black card under them. */}
+      {/* Pricing-card layout (owner reference 2026-11-11): name, a small line, the price big, a black button, then short
+          bullet points in two columns. Guest and MONO Member side by side; the Pass is the wide black card under
+          them. The detail is in the table below, so the cards only carry a few words each. */}
       <section aria-label="The three levels" className="mx-auto flex w-full max-w-4xl flex-col gap-6">
         <div className="grid gap-6 md:grid-cols-2">
           {(["GUEST", "FREE"] as const).map((entry) => (
@@ -48,7 +51,7 @@ export default async function MembershipPage() {
               key={entry}
               aria-labelledby={`level-${entry}`}
               data-current={entry === level || undefined}
-              className="flex flex-col gap-6 rounded-xl border border-line p-8"
+              className="flex flex-col gap-6 rounded-xl border border-line bg-linear-to-br from-canvas to-surface p-8 shadow-sm"
             >
               <div className="flex flex-col gap-2">
                 <h2 id={`level-${entry}`} className="font-display text-h2">
@@ -61,18 +64,22 @@ export default async function MembershipPage() {
                 </p>
               </div>
               <p className="flex items-baseline gap-2">
-                <span className="font-display text-h1">Free</span>
-                <span className="text-small text-ink-muted">
-                  {entry === "GUEST" ? "no sign-up" : "to join"}
-                </span>
+                {entry === "GUEST" ? (
+                  <span className="font-display text-h3">No need to sign up</span>
+                ) : (
+                  <>
+                    <span className="font-display text-h1">Free</span>
+                    <span className="text-small text-ink-muted">to join</span>
+                  </>
+                )}
               </p>
               <LevelAction entry={entry} level={level} signedIn={Boolean(user)} />
-              <ul className="flex flex-col gap-3 border-t border-line pt-6">
-                {HEADLINES[entry].map((line) => (
-                  <li key={line} className="flex gap-3 text-body">
-                    <Check className="mt-1 size-5 shrink-0" strokeWidth={1.5} aria-hidden />
+              <ul className="grid grid-cols-2 gap-x-4 gap-y-3 border-t border-line pt-6">
+                {SHORT_POINTS[entry].map((point) => (
+                  <li key={point} className="flex items-start gap-2 text-small">
+                    <Bullet />
                     <span>
-                      <BenefitText text={line} />
+                      <BenefitText text={point} />
                     </span>
                   </li>
                 ))}
@@ -91,9 +98,7 @@ export default async function MembershipPage() {
               <h2 id="level-PASS" className="font-display text-h2">
                 {LEVEL_NAMES.PASS}
               </h2>
-              <p className="text-small text-canvas/70">
-                The full experience. Free delivery, 10% off and Express Delivery.
-              </p>
+              <p className="text-small text-canvas/70">The full experience, for loyal customers.</p>
             </div>
             <div className="flex flex-col gap-1">
               <p className="flex items-baseline gap-2">
@@ -112,12 +117,12 @@ export default async function MembershipPage() {
               <span aria-hidden className="size-2 rounded-full bg-success" />
               Opens soon
             </p>
-            <ul className="flex flex-col gap-3">
-              {HEADLINES.PASS.map((line) => (
-                <li key={line} className="flex gap-3 text-body">
-                  <Check className="mt-1 size-5 shrink-0" strokeWidth={1.5} aria-hidden />
+            <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {SHORT_POINTS.PASS.map((point) => (
+                <li key={point} className="flex items-start gap-2 text-small">
+                  <Bullet onDark />
                   <span>
-                    <BenefitText text={line} />
+                    <BenefitText text={point} />
                   </span>
                 </li>
               ))}
@@ -133,6 +138,7 @@ export default async function MembershipPage() {
             name={user.name.trim() || user.email}
             title={LEVEL_NAMES.PASS}
             caption="Your Pass is active"
+            logo={<LogoMark className="h-8 w-auto" />}
             role="img"
             aria-label="Your Monochrome Pass card"
           />
@@ -166,7 +172,11 @@ function LevelAction({
   const onPass = entry === "PASS";
   const variant = onPass ? "secondary" : "primary";
   if (entry === level) {
-    return <p className={`text-body font-medium ${onPass ? "text-canvas" : ""}`}>This is your level</p>;
+    return (
+      <Button shape="pill" size="lg" variant={onPass ? "secondary" : "primary"} disabled className="w-full">
+        Your level
+      </Button>
+    );
   }
   if (entry === "GUEST") {
     return (
