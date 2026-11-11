@@ -4,23 +4,25 @@ import { ContentHeading, ContentPage } from "@/client/components/shared/content-
 
 export const metadata: Metadata = {
   title: "Returns",
-  description: "7-day free returns on every Virzeen order.",
+  description: "7-day returns on every Virzeen order, free for MONO Members.",
   alternates: { canonical: "/returns" },
 };
 
-// Owner decisions 2026-09-28: 7-day returns, no fee; condition, free pickup, refund within 5 working days and
-// free size exchange confirmed the same day (docs/payments/payment-policy.md §10).
+// Owner decisions 2026-09-28: 7-day returns; condition, refund within 5 working days and free size exchange confirmed
+// the same day. 2026-11-11: free returns (free pickup) are for MONO Members only (docs/payments/payment-policy.md §10).
 export default function ReturnsPage() {
   return (
     <ContentPage
       eyebrow="Help"
       title="Returns & refunds"
-      intro="Changed your mind? Send it back within 7 days. Returns are free."
+      intro="Changed your mind? Send it back within 7 days. Returns are free for MONO Members."
     >
-      <ContentHeading>7 days, no fee</ContentHeading>
+      <ContentHeading>7 days, free for MONO Members</ContentHeading>
       <p>
-        You can return any item within 7 days of delivery. Returns cost you nothing: we arrange the pickup,
-        and you get back the full price you paid.
+        You can return any item within 7 days of delivery. For MONO Members, returns cost nothing: we arrange
+        the pickup, and you get back the full price you paid. If you ordered as a guest, you can still return
+        within 7 days; we&apos;ll tell you the pickup cost when you contact us.{" "}
+        <Link href="/login?next=%2Fcheckout">Log in or sign up</Link> to make your returns free.
       </p>
       <ContentHeading>What we accept</ContentHeading>
       <ul className="flex list-disc flex-col gap-2 pl-6">
@@ -33,7 +35,7 @@ export default function ReturnsPage() {
         <li>
           <Link href="/contact">Contact us</Link> with your order number and the items you&apos;re returning.
         </li>
-        <li>We arrange a free pickup from your address.</li>
+        <li>We arrange the pickup from your address (free for MONO Members).</li>
         <li>We check the items when they reach us.</li>
       </ol>
       <ContentHeading>Refunds</ContentHeading>

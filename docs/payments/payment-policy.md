@@ -95,7 +95,7 @@ Flow:
 
 ## 10. Refunds
 
-- Returns (owner decision 2026-09-28): **7 days from delivery, no fee** (free pickup, full price refunded; shipping is part of the price). With a discount code, the refund is what the customer paid (`totalPaisa`), not the price before the discount. Items unworn, tags on, original packaging; free size exchange if in stock.
+- Returns (owner decisions 2026-09-28 and 2026-11-11): **7 days from delivery; free (free pickup) for MONO Members only**. A guest's return is still accepted within 7 days, but the pickup cost is told to them when they contact us (the amount is not set yet: open question for the owner). Full price refunded. With a discount code, the refund is what the customer paid (`totalPaisa`), not the price before the discount. Items unworn, tags on, original packaging; free size exchange if in stock.
 - Phase 1: refunds are paid manually by the owner (COD orders: bank transfer or wallet; online payments later: the eSewa/Khalti merchant dashboards), then recorded in admin (`REFUNDED` + reason). No automated refund API calls in phase 1.
 - Customer-facing refund/return rules live on the `/returns` page; keep it consistent with this section.
 
