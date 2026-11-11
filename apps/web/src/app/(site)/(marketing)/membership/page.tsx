@@ -1,0 +1,149 @@
+import { Button, ButtonLink, Container, MembershipCard } from "@virzeen/ui";
+import {
+  HEADLINES,
+  LEVEL_NAMES,
+  PASS_PLANS,
+  THREE_HOUR_SMALL_PRINT,
+  type MembershipLevel,
+} from "@virzeen/validators/membership";
+import { Check } from "lucide-react";
+import type { Metadata } from "next";
+import { Price } from "@/client/components/shared/price";
+import { BenefitComparison } from "@/client/features/membership/benefit-comparison";
+import { BenefitText } from "@/client/features/membership/benefit-text";
+import { getUser } from "@/server/auth/session";
+import { getMyMembership } from "@/server/queries/account";
+
+export const metadata: Metadata = {
+  title: "Membership",
+  description:
+    "Shop as a guest, join MONO free for faster delivery and early access, or get the Monochrome Pass for free delivery and 10% off.",
+  alternates: { canonical: "/membership" },
+};
+
+const LEVELS: readonly MembershipLevel[] = ["GUEST", "FREE", "PASS"];
+
+/**
+ * The three levels (docs/specs/membership-portal.md): Guest, MONO Member (free) and the Monochrome Pass, with the
+ * viewer's own level marked. The Pass is bought inside a MONO Member account; guests are asked to log in, and members
+ * see that it opens soon (online payment).
+ */
+export default async function MembershipPage() {
+  const user = await getUser();
+  const level: MembershipLevel = user ? (await getMyMembership(user.id)).level : "GUEST";
+  return (
+    <Container className="flex flex-col gap-16 py-12 lg:gap-24 lg:py-20">
+      <header className="flex flex-col gap-4 text-center">
+        <p className="text-caption text-ink-muted uppercase">Membership</p>
+        <h1 className="font-display text-h1">Shop your way</h1>
+        <p className="mx-auto max-w-prose text-body-lg text-ink-muted">
+          Browse as a guest, join MONO for free, or get the Monochrome Pass for the full experience.
+        </p>
+      </header>
+
+      <section aria-label="The three levels" className="grid gap-6 lg:grid-cols-3">
+        {LEVELS.map((entry) => (
+          <article
+            key={entry}
+            aria-labelledby={`level-${entry}`}
+            data-current={entry === level || undefined}
+            className={`flex flex-col gap-6 rounded-md p-8 ${
+              entry === "PASS" ? "bg-ink text-canvas" : "border border-line"
+            }`}
+          >
+            <div className="flex flex-col gap-2">
+              <h2 id={`level-${entry}`} className="font-display text-h2">
+                {LEVEL_NAMES[entry]}
+              </h2>
+              <p className={entry === "PASS" ? "text-canvas/80" : "text-ink-muted"}>
+                {entry === "GUEST" && "Shop freely, no account needed."}
+                {entry === "FREE" && "Your space in the Monochrome world. It is free."}
+                {entry === "PASS" && "The full experience."}
+              </p>
+              {entry === "PASS" && (
+                <p className="text-body-lg">
+                  <Price paisa={PASS_PLANS[0].pricePaisa} /> for 6 months ·{" "}
+                  <Price paisa={PASS_PLANS[1].pricePaisa} /> for a year
+                </p>
+              )}
+            </div>
+            <ul className="flex flex-1 flex-col gap-3">
+              {HEADLINES[entry].map((line) => (
+                <li key={line} className="flex gap-3 text-body">
+                  <Check className="mt-1 size-5 shrink-0" strokeWidth={1.5} aria-hidden />
+                  <span>
+                    <BenefitText text={line} />
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <LevelAction entry={entry} level={level} signedIn={Boolean(user)} />
+          </article>
+        ))}
+      </section>
+
+      {level === "PASS" && user && (
+        <section className="flex justify-center">
+          <MembershipCard
+            level="pass"
+            name={user.name.trim() || user.email}
+            title={LEVEL_NAMES.PASS}
+            caption="Your Pass is active"
+            role="img"
+            aria-label="Your Monochrome Pass card"
+          />
+        </section>
+      )}
+
+      <section aria-labelledby="compare-heading" className="flex flex-col gap-8">
+        <h2 id="compare-heading" className="font-display text-h2">
+          Everything, side by side
+        </h2>
+        <BenefitComparison current={level} />
+        <p className="text-small text-ink-muted">{THREE_HOUR_SMALL_PRINT}</p>
+        <p className="text-small text-ink-muted">
+          Some benefits start after launch; the account page marks each one as available or coming soon.
+        </p>
+      </section>
+    </Container>
+  );
+}
+
+/** The call to action under a level's card, depending on who is looking. */
+function LevelAction({
+  entry,
+  level,
+  signedIn,
+}: {
+  entry: MembershipLevel;
+  level: MembershipLevel;
+  signedIn: boolean;
+}) {
+  const onPass = entry === "PASS";
+  const variant = onPass ? "secondary" : "primary";
+  if (entry === level) {
+    return <p className={`text-body font-medium ${onPass ? "text-canvas" : ""}`}>This is your level</p>;
+  }
+  if (entry === "GUEST") {
+    return (
+      <ButtonLink href="/shop" shape="pill" size="lg" variant="secondary">
+        Shop as a guest
+      </ButtonLink>
+    );
+  }
+  if (!signedIn) {
+    return (
+      <ButtonLink href="/login?next=%2Fmembership" shape="pill" size="lg" variant={variant}>
+        {onPass ? "Log in to get the Pass" : "Log in or sign up"}
+      </ButtonLink>
+    );
+  }
+  if (onPass) {
+    return (
+      <Button shape="pill" size="lg" variant="secondary" disabled>
+        Pass opens soon
+      </Button>
+    );
+  }
+  return null;
+}

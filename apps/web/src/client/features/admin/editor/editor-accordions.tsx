@@ -24,7 +24,7 @@ export function EditorAccordions() {
       <AccordionItem value="delivery" title="Delivery and returns" headingLevel={2}>
         <p>
           Free delivery in 1–3 days inside Kathmandu Valley and 3–7 days elsewhere in Nepal. Returns within 7
-          days of delivery, free for MONO Members. <Link href="/returns">Read our returns policy</Link>.
+          days of delivery, 15 with the Monochrome Pass. <Link href="/returns">Read our returns policy</Link>.
         </p>
       </AccordionItem>
       <AccordionItem value={SIZE_AND_FIT} title="Size and fit" headingLevel={2}>

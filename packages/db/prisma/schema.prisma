@@ -114,6 +114,10 @@ model User {
   birthday           DateTime?           @db.Date
   marketingOptIn     Boolean             @default(false)
   termsAcceptedAt    DateTime?
+  /// Monochrome Pass: active while `passEndsAt` is in the future (specs/membership-portal.md). Granted by `pnpm admin pass`
+  /// until the Pass can be bought online.
+  passStartsAt       DateTime?
+  passEndsAt         DateTime?
   twoFactorEnabled   Boolean             @default(false)
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt

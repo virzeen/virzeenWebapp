@@ -3,6 +3,7 @@ import "@/server/bootstrap";
 import {
   addressService,
   favouriteService,
+  memberService,
   orderService,
   reviewService,
   stockAlertService,
@@ -17,6 +18,8 @@ import type { StockAlertRow } from "@/server/actions/stock-alerts";
 
 export const listMyOrders = (userId: string, cursor?: string) =>
   orderService.listForUser(userId, { cursor, limit: 20 });
+/** The member's level and Pass dates for the profile and the Membership page (specs/membership-portal.md). */
+export const getMyMembership = (userId: string) => memberService.membership(userId);
 export const listMyAddresses = (userId: string) => addressService.list(userId);
 /** The review page (specs/reviews.md): the product, whether this customer may review it, and their review. */
 export const getMyReviewPage = (userId: string, productSlug: string) =>

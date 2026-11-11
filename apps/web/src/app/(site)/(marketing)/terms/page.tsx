@@ -28,8 +28,8 @@ export default function TermsPage() {
       <p>Pay the courier in cash when your order arrives.</p>
       <ContentHeading>Returns</ContentHeading>
       <p>
-        You can return items within 7 days of delivery; returns are free for MONO Members. See our{" "}
-        <Link href="/returns">returns policy</Link>.
+        You can return items within 7 days of delivery (15 days with the Monochrome Pass, which also gets free
+        pickup). See our <Link href="/returns">returns policy</Link>.
       </p>
     </ContentPage>
   );

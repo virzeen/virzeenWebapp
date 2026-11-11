@@ -1,10 +1,13 @@
-import { ButtonLink, EmptyState, Link } from "@virzeen/ui";
-import { Heart } from "lucide-react";
+import { ButtonLink, EmptyState, Link, MembershipCard } from "@virzeen/ui";
+import { THREE_HOUR_SMALL_PRINT, HEADLINES, LEVEL_NAMES } from "@virzeen/validators/membership";
+import { Check, Heart } from "lucide-react";
+import { BenefitText } from "@/client/features/membership/benefit-text";
+import { PassOffer } from "@/client/features/membership/pass-offer";
 import { ProductCarousel } from "@/client/features/products/product-carousel";
 import { StockAlertList } from "@/client/features/stock-alerts/stock-alert-list";
-import { formatMonthYear } from "@/client/lib/format";
+import { formatDate, formatMonthYear } from "@/client/lib/format";
 import { requireUserPage } from "@/server/auth/session";
-import { listMyFavourites, listMyStockAlerts } from "@/server/queries/account";
+import { getMyMembership, listMyFavourites, listMyStockAlerts } from "@/server/queries/account";
 
 /** How many favourites the profile's row shows; "View all" opens the rest. */
 const FAVOURITES_SHOWN = 12;
@@ -16,7 +19,12 @@ const FAVOURITES_SHOWN = 12;
  */
 export default async function ProfilePage() {
   const user = await requireUserPage("/account");
-  const [favourites, alerts] = await Promise.all([listMyFavourites(user.id), listMyStockAlerts(user.id)]);
+  const [favourites, alerts, membership] = await Promise.all([
+    listMyFavourites(user.id),
+    listMyStockAlerts(user.id),
+    getMyMembership(user.id),
+  ]);
+  const isPass = membership.level === "PASS";
   const seen = new Set<string>();
   const products = favourites
     .map((favourite) => favourite.product)
@@ -52,6 +60,52 @@ export default async function ProfilePage() {
           <p className="text-body text-ink-muted">Member since {formatMonthYear(user.createdAt)}</p>
         </div>
       </div>
+
+      {/* The member's level (specs/membership-portal.md): the plain card for a free MONO Member, the black one for the Pass. */}
+      <section aria-labelledby="membership-heading" className="flex flex-col gap-8">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
+          <h2 id="membership-heading" className="font-display text-h2">
+            {isPass ? LEVEL_NAMES.PASS : LEVEL_NAMES.FREE}
+          </h2>
+          <Link href="/membership" variant="header">
+            See every benefit
+          </Link>
+        </div>
+        <div className="grid items-start gap-10 lg:grid-cols-2 lg:gap-16">
+          <MembershipCard
+            level={isPass ? "pass" : "member"}
+            name={name}
+            title={isPass ? LEVEL_NAMES.PASS : LEVEL_NAMES.FREE}
+            caption={
+              isPass && membership.passEndsAt
+                ? `Valid until ${formatDate(membership.passEndsAt)}`
+                : `Member since ${formatMonthYear(user.createdAt)}`
+            }
+            role="img"
+            aria-label={`${isPass ? LEVEL_NAMES.PASS : LEVEL_NAMES.FREE} card`}
+          />
+          <div className="flex flex-col gap-4">
+            <p className="text-body-lg">
+              {isPass
+                ? "Your Pass is active. Here is what it gives you."
+                : "Your space in the Monochrome world."}
+            </p>
+            <ul className="flex flex-col gap-3" data-testid="member-highlights">
+              {HEADLINES[isPass ? "PASS" : "FREE"].map((line) => (
+                <li key={line} className="flex gap-3 text-body">
+                  <Check className="mt-1 size-5 shrink-0" strokeWidth={1.5} aria-hidden />
+                  <span>
+                    <BenefitText text={line} />
+                  </span>
+                </li>
+              ))}
+            </ul>
+            {isPass && <p className="text-small text-ink-muted">{THREE_HOUR_SMALL_PRINT}</p>}
+          </div>
+        </div>
+      </section>
+
+      {!isPass && <PassOffer name={name} />}
 
       {products.length > 0 ? (
         <ProductCarousel

@@ -227,7 +227,7 @@ test("the bag page shows the free-delivery hint, the member saving and the arriv
   );
   await expect(page.getByTestId("bag-promo-row")).toContainText("Log in to apply promo code");
   await expect(page.getByTestId("bag-promo-row")).toContainText("Get instant savings on your order");
-  await expect(page.getByTestId("bag-free-returns")).toContainText("Free returns for MONO Members.");
+  await expect(page.getByTestId("bag-free-returns")).toContainText("Free returns with the Monochrome Pass.");
   await expect(
     page.getByTestId("bag-free-returns").getByRole("link", { name: "Learn more" }),
   ).toHaveAttribute("href", "/returns");

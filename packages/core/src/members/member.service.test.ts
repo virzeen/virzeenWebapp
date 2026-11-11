@@ -77,3 +77,37 @@ describe("memberService.saveSignupProfile", () => {
     expect(await memberService.hasPassword(user.id)).toBe(true);
   });
 });
+
+describe("memberService Monochrome Pass", () => {
+  beforeEach(resetDatabase);
+  const now = new Date("2026-11-11T00:00:00.000Z");
+
+  it("is a free MONO Member until a Pass is granted", async () => {
+    const user = await createUser({ email: "free@example.com" });
+    expect((await memberService.membership(user.id, now)).level).toBe("FREE");
+  });
+
+  it("grants 6 or 12 months, then renews from the end date", async () => {
+    const user = await createUser({ email: "pass@example.com" });
+    const first = await memberService.grantPass("pass@example.com", 6, now);
+    expect(first.passEndsAt.toISOString().slice(0, 10)).toBe("2027-05-10");
+    expect((await memberService.membership(user.id, now)).level).toBe("PASS");
+    const renewed = await memberService.grantPass("pass@example.com", 12, now);
+    expect(renewed.passEndsAt.getTime()).toBe(first.passEndsAt.getTime() + 360 * 24 * 60 * 60 * 1000);
+  });
+
+  it("falls back to a free member when the Pass has ended, and when it is ended on purpose", async () => {
+    const user = await createUser({ email: "end@example.com" });
+    await memberService.grantPass("end@example.com", 6, now);
+    const later = new Date("2027-06-01T00:00:00.000Z");
+    expect((await memberService.membership(user.id, later)).level).toBe("FREE");
+    await memberService.endPass("end@example.com");
+    expect(await memberService.membership(user.id, now)).toMatchObject({ level: "FREE", passEndsAt: null });
+  });
+
+  it("refuses an email with no account", async () => {
+    await expect(memberService.grantPass("nobody@example.com", 6, now)).rejects.toMatchObject({
+      code: "NOT_FOUND",
+    });
+  });
+});

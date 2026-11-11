@@ -47,8 +47,8 @@ export function ProductEditor({ product, values, options }: ProductEditorProps) 
                 <EditorButtons />
               </div>
               <p className="text-small text-ink-muted">
-                Prices include 13% VAT. Free delivery on larger orders and 7-day returns, free for MONO
-                Members. Pay in cash when it arrives.
+                Prices include 13% VAT. Free delivery on larger orders and 7-day returns, 15 with the
+                Monochrome Pass. Pay in cash when it arrives.
               </p>
               <EditorDescription />
               <EditorDetails />

@@ -274,7 +274,7 @@ function PromoRow({ isGuest }: { isGuest: boolean }) {
   );
 }
 
-/** "Free returns for MONO Members. Learn more" between hairlines under the bag lines (owner request 2026-11-11). */
+/** "Free returns with the Monochrome Pass. Learn more" between hairlines under the bag lines (owner request 2026-11-11). */
 function FreeReturns() {
   return (
     <div
@@ -283,7 +283,7 @@ function FreeReturns() {
     >
       <PackageCheck className="size-6 shrink-0" strokeWidth={1.5} aria-hidden />
       <p>
-        <span className="font-medium">Free returns for MONO Members.</span>{" "}
+        <span className="font-medium">Free returns with the Monochrome Pass.</span>{" "}
         <Link href="/returns" className="underline underline-offset-4">
           Learn more
         </Link>
