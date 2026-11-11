@@ -28,12 +28,12 @@ Three levels: **Guest**, **MONO Member** (free account) and the **Monochrome Pas
 
 ## Not built (shown as "Soon")
 
-Everything that needs new back-end: Pass delivery and 10% discount at checkout, points and credit wallet, 3-Hour Dispatch timer and missed-dispatch credit, early access, member-only products, reserve and price lock, referrals, birthday and anniversary rewards, gift wrap pricing, pause, the Pass purchase itself, the daily expiry job. The `live` list in the catalog says what works; flip a benefit's `live` when its part ships.
+Everything that needs new back-end: Pass delivery and 10% discount at checkout, points and credit wallet, Express Delivery (3 hours in Kathmandu and Pokhara: 1 a month for a MONO Member, 3 a month for the Pass; none for guests) and the missed-dispatch credit, early access, member-only products, reserve and price lock, referrals, birthday and anniversary rewards, gift wrap pricing, pause, the Pass purchase itself, the daily expiry job. The `live` list in the catalog says what works; flip a benefit's `live` when its part ships.
 
 ## Guide points to settle later
 
 - The guide's guest copy says "3-day returns" in one place and 7 days in its table. The site uses 7 days.
-- Express delivery, size exchange and reserve limits are copied as written.
+- Express Delivery is its own benefit (owner 2026-11-11), not a dispatch time: Pass dispatch is 24 hours. Size exchange and reserve limits are copied as written.
 
 ## Tests
 

@@ -71,7 +71,7 @@ export const BENEFITS: readonly Benefit[] = [
     label: "Dispatch time",
     guest: "Within 48 hours",
     free: "Within 24 hours",
-    pass: "Within 3 hours (3 orders a month), then 24 hours in Kathmandu and Pokhara Valley",
+    pass: "Within 24 hours",
     live: ["GUEST", "FREE"],
   },
   {
@@ -86,10 +86,10 @@ export const BENEFITS: readonly Benefit[] = [
   {
     id: "express",
     group: "Delivery and dispatch",
-    label: "Express delivery in your city",
-    guest: "Paid",
-    free: "Paid",
-    pass: "1 free a month",
+    label: "Express Delivery",
+    guest: null,
+    free: "Within 3 hours, in Kathmandu and Pokhara only, 1 time a month",
+    pass: "Within 3 hours, in Kathmandu and Pokhara only, 3 times a month",
     live: [],
   },
   {
@@ -388,6 +388,7 @@ export const HEADLINES: Record<MembershipLevel, readonly string[]> = {
   FREE: [
     "Delivery {p:15000}, free above {p:300000}",
     "Ships within 24 hours",
+    "Express Delivery within 3 hours in Kathmandu and Pokhara, 1 time a month",
     "12-hour early access to new drops and festival sales",
     "1 point for every {p:120000}, plus a 5% birthday coupon",
     "7-day returns, favourites and one-tap reorder",
@@ -395,7 +396,7 @@ export const HEADLINES: Record<MembershipLevel, readonly string[]> = {
   ],
   PASS: [
     "Free delivery on every order, no minimum",
-    "3-Hour Dispatch on your first 3 orders each month",
+    "Express Delivery within 3 hours in Kathmandu and Pokhara, 3 times a month",
     "10% off everything, extra 5% on complete looks",
     "2 points per {p:120000}, never expiring, plus double points days",
     "48-hour early access, member-only pieces and pre-orders",
@@ -409,7 +410,7 @@ export const HEADLINES: Record<MembershipLevel, readonly string[]> = {
 };
 
 export const THREE_HOUR_SMALL_PRINT =
-  "3-Hour Dispatch applies to ready-stock items confirmed 9 AM to 6 PM. Orders after 6 PM ship by 11 AM the next day. Excludes public holidays.";
+  "Express Delivery applies to ready-stock items confirmed 9 AM to 6 PM. Orders after 6 PM ship by 11 AM the next day. Excludes public holidays.";
 
 /** The level of a member: the Pass while it runs, otherwise a free MONO Member. */
 export function levelOf(passEndsAt: Date | null | undefined, now: Date = new Date()): "FREE" | "PASS" {
