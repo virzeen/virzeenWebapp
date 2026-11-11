@@ -43,7 +43,7 @@ export async function cancelOrderAndRestock(
   // The code before the stock: checkout locks them in that order too, so the two can't deadlock.
   if (order.discountCodeId) await releaseDiscountUse(tx, order.discountCodeId);
   await restoreStock(tx, order.items);
-  if (input.restoreToCart)
+  if (input.restoreToCart && order.userId)
     await cartService.restoreOrderItems(tx, { userId: order.userId, items: order.items });
   return result;
 }

@@ -199,33 +199,43 @@ Nike-style layout (`specs/product-page.md`, `specs/product-page-v2.md`). The sam
 
 ## Checkout
 
-| Situation                                                          | Text                                                                      |
-| ------------------------------------------------------------------ | ------------------------------------------------------------------------- |
-| Delivery section before an address is chosen                       | Choose an address to see the delivery time.                               |
-| Delivery section with an address                                   | Free shipping. Arrives in {estimate}.                                     |
-| Checkout step headings                                             | Delivery address · Delivery · Payment                                     |
-| Shipping line before an address is chosen                          | — (unless shipping is free)                                               |
-| Under Place order: no saved address (the address form is open)     | Add a delivery address to continue.                                       |
-| Under Place order: adding a new address while others are saved     | Save the new address to continue.                                         |
-| Under Place order: saved addresses, none chosen                    | Choose a delivery address to continue.                                    |
-| Under Place order: 2+ payment methods, none chosen                 | Choose a payment method to continue.                                      |
-| The chosen address was deleted elsewhere (`NOT_FOUND`)             | That address is no longer saved. Choose another address or add a new one. |
-| Cash on delivery option                                            | Cash on delivery — Pay the courier when your order arrives                |
-| Cash on delivery over its limit                                    | Cash on delivery is available for orders up to {Rs X}.                    |
-| Collapsed summary at the top (below `lg`)                          | Order summary · {total}                                                   |
-| Summary heading (from `lg`)                                        | Order summary                                                             |
-| Confirmation page tab title                                        | Order confirmed · Order cancelled · Confirming your payment               |
-| Discount code link in the Payment step (`specs/discount-codes.md`) | Add a discount code                                                       |
-| Discount code field · button                                       | Discount code · Apply                                                     |
-| A code applied                                                     | {CODE} applied · Remove (screen readers: "Remove discount code {CODE}")   |
-| Summary, order page and order email line                           | Discount ({CODE}) · −{Rs X}                                               |
-| Code field empty                                                   | Enter a discount code                                                     |
-| Code unknown, switched off or impossible                           | This code isn't valid.                                                    |
-| Code past its end date                                             | This code has ended.                                                      |
-| Code out of uses                                                   | This code has been fully used.                                            |
-| Bag under the code's minimum                                       | Spend {Rs X} or more to use this code.                                    |
-| Once-per-customer code already used on an order                    | You've already used this code.                                            |
-| Rs 0 total with an online payment method                           | Choose cash on delivery for this order                                    |
+| Situation                                                          | Text                                                                                                                                                                          |
+| ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Choice panel title (signed-out visitors, `/checkout`)              | Choose how you would like to check out                                                                                                                                        |
+| Member panel                                                       | Check out as a MONO Member and get free delivery on orders {Rs 3,000}+ · Use your MONO Member email to log in. New here? Joining is free. · [Log in / Sign up] · Free to join |
+| Guest panel                                                        | Check out as a Guest · No account needed. You can create a free MONO Member profile after your order. · [Guest Checkout]                                                      |
+| Checkout step headings (v2)                                        | Delivery Options · Payment · Order Review · each done step shows a summary and Edit                                                                                           |
+| Summary heading · mobile bar                                       | In Your Bag · In your bag ({n}) · {total}                                                                                                                                     |
+| Arrival line                                                       | Arrives by {Nov 17 to 19}                                                                                                                                                     |
+| Free-delivery hint (hidden when delivery is free)                  | Add {Rs X} more for free delivery.                                                                                                                                            |
+| Guest nudge (hidden when X is 0)                                   | MONO Members save {Rs X} on this order. Log in or sign up                                                                                                                     |
+| Bag page, under the total                                          | Free delivery above {Rs 4,000}. Members save more. (members: no second sentence)                                                                                              |
+| Guest typed an email that has an account                           | You have a MONO account. Log in to get member prices. You can still continue as a guest.                                                                                      |
+| Under Place order                                                  | You will receive a confirmation by email.                                                                                                                                     |
+| Guest confirmation                                                 | Thank you — your order {number} is confirmed. · We've emailed your confirmation to {email}.                                                                                   |
+| Delivery section before an address is chosen (old single page)     | Choose an address to see the delivery time.                                                                                                                                   |
+| Delivery line                                                      | Delivery · Free, or the fee (Rs 200 guest, Rs 150 member)                                                                                                                     |
+| Under Place order: no saved address (the address form is open)     | Add a delivery address to continue.                                                                                                                                           |
+| Under Place order: adding a new address while others are saved     | Save the new address to continue.                                                                                                                                             |
+| Under Place order: saved addresses, none chosen                    | Choose a delivery address to continue.                                                                                                                                        |
+| Under Place order: 2+ payment methods, none chosen                 | Choose a payment method to continue.                                                                                                                                          |
+| The chosen address was deleted elsewhere (`NOT_FOUND`)             | That address is no longer saved. Choose another address or add a new one.                                                                                                     |
+| Cash on delivery option                                            | Cash on delivery — Pay the courier when your order arrives                                                                                                                    |
+| Cash on delivery over its limit                                    | Cash on delivery is available for orders up to {Rs X}.                                                                                                                        |
+| Collapsed summary at the top (below `lg`)                          | Order summary · {total}                                                                                                                                                       |
+| Summary heading (from `lg`)                                        | Order summary                                                                                                                                                                 |
+| Confirmation page tab title                                        | Order confirmed · Order cancelled · Confirming your payment                                                                                                                   |
+| Discount code link in the Payment step (`specs/discount-codes.md`) | Add a discount code                                                                                                                                                           |
+| Discount code field · button                                       | Discount code · Apply                                                                                                                                                         |
+| A code applied                                                     | {CODE} applied · Remove (screen readers: "Remove discount code {CODE}")                                                                                                       |
+| Summary, order page and order email line                           | Discount ({CODE}) · −{Rs X}                                                                                                                                                   |
+| Code field empty                                                   | Enter a discount code                                                                                                                                                         |
+| Code unknown, switched off or impossible                           | This code isn't valid.                                                                                                                                                        |
+| Code past its end date                                             | This code has ended.                                                                                                                                                          |
+| Code out of uses                                                   | This code has been fully used.                                                                                                                                                |
+| Bag under the code's minimum                                       | Spend {Rs X} or more to use this code.                                                                                                                                        |
+| Once-per-customer code already used on an order                    | You've already used this code.                                                                                                                                                |
+| Rs 0 total with an online payment method                           | Choose cash on delivery for this order                                                                                                                                        |
 
 ## Addresses (account and checkout)
 

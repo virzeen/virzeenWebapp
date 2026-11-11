@@ -1,8 +1,14 @@
 "use client";
 
 import { Alert, ButtonLink } from "@virzeen/ui";
+import {
+  deliveryFeeFor,
+  DELIVERY_FEES,
+  memberDeliverySaving,
+  remainingForFreeDelivery,
+} from "@virzeen/validators/limits";
 import { Fragment, useState } from "react";
-import { Price } from "@/client/components/shared/price";
+import { Price, ShippingPrice } from "@/client/components/shared/price";
 import { BagFavourites, useFavouritesPreview } from "@/client/features/favourites/bag-favourites";
 import type { FavouritesPreview } from "@/client/features/favourites/favourite-bag";
 import { ProductCarousel } from "@/client/features/products/product-carousel";
@@ -18,6 +24,8 @@ type CartPageContentProps = {
   favourites: FavouritesPreview | null;
   /** Products for "You might also like", newest first. */
   suggestions: ProductCardData[];
+  /** Who is looking (decides the delivery rate) and the arrival estimate worked out on the server. */
+  delivery: { tier: "GUEST" | "MEMBER"; arrivesBy: string };
 };
 
 /**
@@ -25,7 +33,7 @@ type CartPageContentProps = {
  * "Summary" on the right from lg. Phones get the count and total under a centred title, and Checkout in a bar fixed
  * to the bottom of the screen. Under them the customer's favourites, or "You might also like" when they have none.
  */
-export function CartPageContent({ notice, favourites, suggestions }: CartPageContentProps) {
+export function CartPageContent({ notice, favourites, suggestions, delivery }: CartPageContentProps) {
   const { cart, isOpen } = useCart();
   // The last removed line and where it sat, so "Removed X. Undo" takes its place (and keyboard focus).
   const [removed, setRemoved] = useState<{ line: RemovedLine; index: number } | null>(null);
@@ -33,6 +41,11 @@ export function CartPageContent({ notice, favourites, suggestions }: CartPageCon
   const [restoredVariantId, setRestoredVariantId] = useState<string | null>(null);
   const isEmpty = cart.items.length === 0;
   const count = `${cart.itemCount} ${cart.itemCount === 1 ? "item" : "items"}`;
+  // Display only: checkout works the totals out again on the server (docs/specs/checkout-v2-week1.md).
+  const deliveryPaisa = deliveryFeeFor(delivery.tier, cart.subtotalPaisa);
+  const toFreeDelivery = remainingForFreeDelivery(delivery.tier, cart.subtotalPaisa);
+  const memberSaving = delivery.tier === "GUEST" ? memberDeliverySaving(cart.subtotalPaisa) : 0;
+  const freeFrom = DELIVERY_FEES[delivery.tier].freeFromPaisa;
 
   const removedNotice = removed && (
     <RemovedLineNotice
@@ -110,16 +123,37 @@ export function CartPageContent({ notice, favourites, suggestions }: CartPageCon
                 </dd>
               </div>
               <div className="flex justify-between gap-4">
-                <dt>Shipping</dt>
-                <dd>Free</dd>
+                <dt>Delivery</dt>
+                <dd data-testid="cart-delivery">
+                  <ShippingPrice paisa={deliveryPaisa} />
+                </dd>
               </div>
               <div className="mt-3 flex justify-between gap-4 border-y border-line py-4 font-medium">
                 <dt>Total</dt>
-                <dd>
-                  <Price paisa={cart.subtotalPaisa} />
+                <dd data-testid="cart-total">
+                  <Price paisa={cart.subtotalPaisa + deliveryPaisa} />
                 </dd>
               </div>
             </dl>
+            <div className="mt-3 flex flex-col gap-2 text-small text-ink-muted">
+              {toFreeDelivery > 0 && (
+                <p data-testid="cart-free-delivery-hint">
+                  Add <Price paisa={toFreeDelivery} /> more for free delivery.
+                </p>
+              )}
+              {memberSaving > 0 && (
+                <p data-testid="cart-member-line">
+                  MONO Members save <Price paisa={memberSaving} /> on this order.
+                </p>
+              )}
+              <p>
+                Free delivery above <Price paisa={freeFrom} />.
+                {delivery.tier === "GUEST" ? " Members save more." : ""}
+              </p>
+              <p className="text-ink" data-testid="cart-arrives-by">
+                Arrives by {delivery.arrivesBy}
+              </p>
+            </div>
             {/* Phones: Checkout is in the bar at the bottom of the screen instead. */}
             <ButtonLink href="/checkout" size="lg" shape="pill" className="mt-8 hidden w-full md:inline-flex">
               Checkout
@@ -144,7 +178,10 @@ export function CartPageContent({ notice, favourites, suggestions }: CartPageCon
  * Under the bag (owner request 2026-10-01, like Nike's): "Favourites" when the customer has any, else "You might also
  * like", a carousel of products that aren't in the bag. Nothing while a guest's favourites are still being read.
  */
-function FavouritesOrSuggestions({ favourites, suggestions }: Omit<CartPageContentProps, "notice">) {
+function FavouritesOrSuggestions({
+  favourites,
+  suggestions,
+}: Omit<CartPageContentProps, "notice" | "delivery">) {
   const { cart } = useCart();
   const preview = useFavouritesPreview(favourites);
   if (!preview) return null;

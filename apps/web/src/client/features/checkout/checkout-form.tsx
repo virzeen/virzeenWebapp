@@ -6,11 +6,13 @@ import {
   Alert,
   Button,
   FormField,
+  Link,
   RadioGroup,
   RadioGroupItem,
   Stack,
   toast,
 } from "@virzeen/ui";
+import type { GuestDetailsInput } from "@virzeen/validators";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { formatPaisa, Price } from "@/client/components/shared/price";
@@ -18,32 +20,25 @@ import { AddressForm } from "@/client/features/account/address-form";
 import type { AddressView } from "@/client/features/account/address-book";
 import { useCart } from "@/client/features/cart/cart-provider";
 import { messageFor } from "@/client/lib/error-messages";
-import { placeOrderAction, previewCheckoutAction } from "@/server/actions/checkout";
+import { placeGuestOrderAction, placeOrderAction, previewCheckoutAction } from "@/server/actions/checkout";
+import type { CheckoutTotals } from "./checkout-types";
 import { DiscountCodeField } from "./discount-code-field";
+import { EMPTY_GUEST_DETAILS, GuestDetailsForm } from "./guest-details-form";
 import { OrderSummaryLines, OrderSummaryTotals } from "./order-summary-lines";
 import { submitProviderForm } from "./submit-provider-form";
 
-type Totals = {
-  subtotalPaisa: number;
-  shippingPaisa: number;
-  discountPaisa: number;
-  /** The code whose discount is in these totals (specs/discount-codes.md), or null. */
-  discountCode: string | null;
-  totalPaisa: number;
-  totalBeforeShippingPaisa: number;
-  vatPaisa: number;
-  deliveryEstimate: string;
-  isCodAvailable: boolean;
-  codLimitPaisa: number | null;
-};
-
 type Method = "COD" | "ESEWA" | "KHALTI";
+type Step = "delivery" | "payment" | "review";
 
 type CheckoutFormProps = {
+  /** Guests type their details; members pick a saved address. */
+  mode: "guest" | "member";
   addresses: AddressView[];
   initialAddressId: string | null;
-  initialTotals: Totals;
+  initialTotals: CheckoutTotals;
   enabledMethods: { COD: boolean; ESEWA: boolean; KHALTI: boolean };
+  /** A member's own email (shown on the review step). */
+  memberEmail?: string;
 };
 
 const METHODS: { value: Method; label: string; description: string; cta: string }[] = [
@@ -82,38 +77,79 @@ const ADDRESS_GONE = "That address is no longer saved. Choose another address or
 // (the pressed button unmounts, which would drop focus to the page). Same approach as the address book.
 type FocusTarget = { to: "heading" } | { to: "add" } | { to: "address"; id: string };
 
-/** Why "Place order" is disabled, from the same conditions as the button; null when it can be pressed. */
-function placeOrderHint(state: {
-  showAddressForm: boolean;
-  hasSavedAddresses: boolean;
-  addressId: string | null;
-  hasMethod: boolean;
-}): string | null {
-  if (state.showAddressForm) {
-    return state.hasSavedAddresses
-      ? "Save the new address to continue."
-      : "Add a delivery address to continue.";
-  }
-  if (!state.addressId) return "Choose a delivery address to continue.";
-  if (!state.hasMethod) return "Choose a payment method to continue.";
-  return null;
+/** A finished step collapses to a short summary with an Edit link; a step that isn't reached yet is greyed. */
+function StepShell({
+  id,
+  title,
+  state,
+  summary,
+  onEdit,
+  children,
+  headingRef,
+}: {
+  id: string;
+  title: string;
+  state: "open" | "done" | "waiting";
+  summary?: React.ReactNode;
+  onEdit?: () => void;
+  children?: React.ReactNode;
+  headingRef?: React.Ref<HTMLHeadingElement>;
+}) {
+  return (
+    <section
+      aria-labelledby={`${id}-heading`}
+      aria-disabled={state === "waiting" || undefined}
+      className={`motion-safe:duration-fast flex flex-col gap-4 py-8 motion-safe:transition-opacity ${
+        state === "waiting" ? "opacity-40" : ""
+      }`}
+      data-testid={`step-${id}`}
+      data-state={state}
+    >
+      <div className="flex items-baseline justify-between gap-4">
+        <h2
+          id={`${id}-heading`}
+          ref={headingRef}
+          tabIndex={-1}
+          className="font-display text-h3 focus:outline-none"
+        >
+          {title}
+        </h2>
+        {state === "done" && onEdit && (
+          <Button variant="link" onClick={onEdit} aria-label={`Edit ${title.toLowerCase()}`}>
+            Edit
+          </Button>
+        )}
+      </div>
+      {state === "done" && summary}
+      {state === "open" && children}
+    </section>
+  );
+}
+
+function addressLine(a: { street: string; city: string; district: string; province: string }) {
+  return `${a.street}, ${a.city}, ${a.district}, ${a.province}`;
 }
 
 /**
- * Single-page checkout laid out like Nike's (owner request 2026-09-30, patterns.md §8): the steps on the left
- * (Delivery address → Delivery → Payment, divided by hairlines, "Place order" at the end), the order summary on the
- * right from lg. Below lg the summary is a collapsible at the top.
+ * Checkout on one page (docs/checkoutfeatures.md §3.5, patterns.md §8): Delivery, Payment and Order review stack on
+ * the left, each collapsing to a summary with an Edit link when done; the order summary stays on the right from `lg`
+ * and is a bar at the top below it. Guests type their details; members pick a saved address.
  */
 export function CheckoutForm({
+  mode,
   addresses,
   initialAddressId,
   initialTotals,
   enabledMethods,
+  memberEmail,
 }: CheckoutFormProps) {
   const router = useRouter();
   const { cart } = useCart();
+  const isGuest = mode === "guest";
+  const [step, setStep] = useState<Step>("delivery");
   const [addressId, setAddressId] = useState(initialAddressId);
   const [addingAddress, setAddingAddress] = useState(addresses.length === 0);
+  const [guestDetails, setGuestDetails] = useState<GuestDetailsInput | null>(null);
   const [totals, setTotals] = useState(initialTotals);
   const [method, setMethod] = useState<Method | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
@@ -136,14 +172,10 @@ export function CheckoutForm({
   // When only one method is offered (cash on delivery at launch), it is already chosen.
   const selected =
     available.find((m) => m.value === method) ?? (available.length === 1 ? available[0] : undefined);
-  // The form also opens by itself when the last saved address was deleted elsewhere.
+  // The member form also opens by itself when the last saved address was deleted elsewhere.
   const showAddressForm = addingAddress || (addresses.length === 0 && !addressId);
-  const hint = placeOrderHint({
-    showAddressForm,
-    hasSavedAddresses: addresses.length > 0,
-    addressId,
-    hasMethod: selected !== undefined,
-  });
+  const chosenAddress = addresses.find((a) => a.id === addressId) ?? null;
+  const itemCount = cart.items.filter((item) => item.isAvailable).reduce((n, item) => n + item.quantity, 0);
 
   // Bring a new error into view and move focus to it, so "Place order" never seems to do nothing.
   useEffect(() => {
@@ -176,12 +208,19 @@ export function CheckoutForm({
   // The chosen address no longer exists: unselect it and reload the saved addresses.
   function dropDeletedAddress() {
     setAddressId(null);
+    setStep("delivery");
     router.refresh();
   }
 
+  /** Who the server should price for: a member's saved address, or what a guest typed. */
+  function whoFor(guest: GuestDetailsInput | null, id: string | null) {
+    if (!isGuest) return { addressId: id };
+    return guest ? { district: guest.district, email: guest.email } : {};
+  }
+
   /** Totals without a discount code, after the server said the applied one no longer works. */
-  async function refreshWithoutCode(id: string | null) {
-    const result = await previewCheckoutAction({ addressId: id });
+  async function refreshWithoutCode(guest: GuestDetailsInput | null, id: string | null) {
+    const result = await previewCheckoutAction(whoFor(guest, id));
     if (result.ok) setTotals(result.data);
   }
 
@@ -200,10 +239,32 @@ export function CheckoutForm({
         toast.error(ADDRESS_GONE);
       } else if (result.error.fields?.discountCode) {
         toast.error(result.error.fields.discountCode);
-        await refreshWithoutCode(id);
+        await refreshWithoutCode(null, id);
       } else {
         toast.error(messageFor(result.error));
       }
+    });
+  }
+
+  /** Guest: keep what was typed, refresh the arrival date for the district, then open Payment. */
+  function saveGuestDetails(values: GuestDetailsInput) {
+    setFormError(null);
+    startRefresh(async () => {
+      const result = await previewCheckoutAction({
+        ...whoFor(values, null),
+        ...(discountCode ? { discountCode } : {}),
+      });
+      if (result.ok) {
+        setTotals(result.data);
+      } else if (result.error.fields?.discountCode) {
+        toast.error(result.error.fields.discountCode);
+        await refreshWithoutCode(values, null);
+      } else {
+        toast.error(messageFor(result.error));
+        return;
+      }
+      setGuestDetails(values);
+      setStep("payment");
     });
   }
 
@@ -212,7 +273,7 @@ export function CheckoutForm({
     setFormError(null);
     setApplying(true);
     try {
-      const result = await previewCheckoutAction({ addressId, discountCode: code });
+      const result = await previewCheckoutAction({ ...whoFor(guestDetails, addressId), discountCode: code });
       if (result.ok) {
         setTotals(result.data);
         return null;
@@ -230,21 +291,22 @@ export function CheckoutForm({
   function removeDiscount() {
     setFormError(null);
     startRefresh(async () => {
-      const result = await previewCheckoutAction({ addressId });
+      const result = await previewCheckoutAction(whoFor(guestDetails, addressId));
       if (result.ok) setTotals(result.data);
       else toast.error(messageFor(result.error));
     });
   }
 
   function placeOrder() {
-    if (!addressId || !selected) return;
+    if (!selected) return;
+    if (isGuest ? !guestDetails : !addressId) return;
     setFormError(null);
     startPlacing(async () => {
-      const result = await placeOrderAction({
-        addressId,
-        paymentMethod: selected.value,
-        ...(discountCode ? { discountCode } : {}),
-      });
+      const code = discountCode ? { discountCode } : {};
+      const result =
+        isGuest && guestDetails
+          ? await placeGuestOrderAction({ ...guestDetails, paymentMethod: selected.value, ...code })
+          : await placeOrderAction({ addressId, paymentMethod: selected.value, ...code });
       if (!result.ok) {
         const notice = BAG_NOTICES[result.error.code];
         if (notice) return router.push(`/cart?notice=${notice}`);
@@ -255,7 +317,7 @@ export function CheckoutForm({
         // The code stopped working since it was applied: nothing was ordered. Take it off and say why.
         const discountRefusal = result.error.fields?.discountCode;
         if (discountRefusal) {
-          await refreshWithoutCode(addressId);
+          await refreshWithoutCode(guestDetails, addressId);
           return setFormError(discountRefusal);
         }
         setFormError(messageFor(result.error));
@@ -269,9 +331,19 @@ export function CheckoutForm({
     });
   }
 
-  const summaryTotal = addressId ? totals.totalPaisa : totals.totalBeforeShippingPaisa;
   const isBusy = isRefreshing || isApplying;
-  const arrives = addressId ? totals.deliveryEstimate : null;
+  const deliveryDone = step !== "delivery";
+  const paymentDone = step === "review";
+
+  const summaryBody = (testId?: string) => (
+    <>
+      <OrderSummaryTotals totals={totals} {...(testId ? { totalTestId: testId } : {})} />
+      <OrderSummaryLines items={cart.items} arrives={totals.arrivesBy} />
+      <Link href="/cart" className="self-start underline underline-offset-4">
+        Edit bag
+      </Link>
+    </>
+  );
 
   return (
     <div className="mx-auto grid w-full max-w-4xl grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-16">
@@ -282,26 +354,61 @@ export function CheckoutForm({
           <AccordionItem
             value="summary"
             headingLevel={2}
-            title={`Order summary · ${formatPaisa(summaryTotal)}`}
+            title={`In your bag (${itemCount}) · ${formatPaisa(totals.totalPaisa)}`}
           >
             <Stack gap={6} className="pt-2 text-ink">
-              <OrderSummaryTotals totals={totals} hasAddress={addressId !== null} />
-              <OrderSummaryLines items={cart.items} arrives={arrives} />
+              {summaryBody()}
             </Stack>
           </AccordionItem>
         </Accordion>
 
         <div className="flex flex-col divide-y divide-line">
-          <section aria-labelledby="address-heading" className="flex flex-col gap-4 py-8 lg:pt-0">
-            <h2
-              id="address-heading"
-              ref={addressHeadingRef}
-              tabIndex={-1}
-              className="font-display text-h3 focus:outline-none"
-            >
-              Delivery address
-            </h2>
-            {showAddressForm ? (
+          {/* 1. Delivery */}
+          <StepShell
+            id="address"
+            title="Delivery Options"
+            state={deliveryDone ? "done" : "open"}
+            headingRef={addressHeadingRef}
+            onEdit={() => {
+              setStep("delivery");
+              setFormError(null);
+            }}
+            summary={
+              isGuest && guestDetails ? (
+                <div className="text-body text-ink-muted" data-testid="delivery-summary">
+                  <p className="text-ink">
+                    {guestDetails.firstName} {guestDetails.lastName}
+                  </p>
+                  <p>
+                    {addressLine({
+                      street: `Ward ${guestDetails.ward}, ${guestDetails.street}`,
+                      city: guestDetails.municipality,
+                      district: guestDetails.district,
+                      province: guestDetails.province,
+                    })}
+                  </p>
+                  <p>
+                    {guestDetails.email} · +977 {guestDetails.phone}
+                  </p>
+                </div>
+              ) : chosenAddress ? (
+                <div className="text-body text-ink-muted" data-testid="delivery-summary">
+                  <p className="text-ink">{chosenAddress.fullName}</p>
+                  <p>{addressLine(chosenAddress)}</p>
+                  <p>
+                    {memberEmail ? `${memberEmail} · ` : ""}+977 {chosenAddress.phone}
+                  </p>
+                </div>
+              ) : null
+            }
+          >
+            {isGuest ? (
+              <GuestDetailsForm
+                defaultValues={guestDetails ?? EMPTY_GUEST_DETAILS}
+                onSave={saveGuestDetails}
+                isSaving={isRefreshing}
+              />
+            ) : showAddressForm ? (
               <AddressForm
                 submitLabel="Use this address"
                 onSaved={(id) => {
@@ -341,25 +448,38 @@ export function CheckoutForm({
                 >
                   Add a new address
                 </Button>
+                <Button
+                  size="lg"
+                  shape="pill"
+                  className="w-full"
+                  disabled={!addressId || isBusy}
+                  onClick={() => setStep("payment")}
+                  data-testid="save-continue"
+                >
+                  Save &amp; Continue
+                </Button>
+                {!addressId && (
+                  <p className="text-center text-small text-ink-muted">
+                    Choose a delivery address to continue.
+                  </p>
+                )}
               </>
             )}
-          </section>
+          </StepShell>
 
-          <section aria-labelledby="delivery-heading" className="flex flex-col gap-2 py-8">
-            <h2 id="delivery-heading" className="font-display text-h3">
-              Delivery
-            </h2>
-            <p className="text-body text-ink-muted">
-              {arrives
-                ? `Free shipping. Arrives in ${arrives}.`
-                : "Choose an address to see the delivery time."}
-            </p>
-          </section>
-
-          <section aria-labelledby="payment-heading" className="flex flex-col gap-4 py-8">
-            <h2 id="payment-heading" className="font-display text-h3">
-              Payment
-            </h2>
+          {/* 2. Payment */}
+          <StepShell
+            id="payment"
+            title="Payment"
+            state={!deliveryDone ? "waiting" : paymentDone ? "done" : "open"}
+            onEdit={() => setStep("payment")}
+            summary={
+              <p className="text-body text-ink-muted" data-testid="payment-summary">
+                {selected?.label}
+                {discountCode ? ` · ${discountCode} applied` : ""}
+              </p>
+            }
+          >
             <FormField label="Payment method" required>
               <RadioGroup
                 variant="card"
@@ -383,9 +503,39 @@ export function CheckoutForm({
               onRemove={removeDiscount}
               disabled={isRefreshing || isPlacing}
             />
-          </section>
+            <Button
+              size="lg"
+              shape="pill"
+              className="w-full"
+              disabled={!selected || isBusy}
+              onClick={() => setStep("review")}
+              data-testid="payment-continue"
+            >
+              Continue
+            </Button>
+            {!selected && (
+              <p className="text-center text-small text-ink-muted">Choose a payment method to continue.</p>
+            )}
+          </StepShell>
 
-          <div className="flex flex-col gap-3 py-8">
+          {/* 3. Order review */}
+          <StepShell id="review" title="Order Review" state={step === "review" ? "open" : "waiting"}>
+            <dl className="flex flex-col gap-3 text-body">
+              <div className="flex justify-between gap-4">
+                <dt className="text-ink-muted">Items</dt>
+                <dd>{itemCount}</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-ink-muted">Arrives by</dt>
+                <dd>{totals.arrivesBy}</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-ink-muted">Total</dt>
+                <dd className="font-medium">
+                  <Price paisa={totals.totalPaisa} />
+                </dd>
+              </div>
+            </dl>
             {formError && (
               <Alert ref={errorRef} variant="danger" tabIndex={-1}>
                 {formError}
@@ -396,19 +546,14 @@ export function CheckoutForm({
               shape="pill"
               className="w-full"
               loading={isPlacing || redirecting}
-              disabled={hint !== null || isBusy}
-              aria-describedby={hint ? "place-order-hint" : undefined}
+              disabled={!selected || isBusy}
               onClick={placeOrder}
               data-testid="place-order"
             >
               {selected?.cta ?? "Place order"}
             </Button>
-            {hint && (
-              <p id="place-order-hint" className="text-center text-small text-ink-muted">
-                {hint}
-              </p>
-            )}
-          </div>
+            <p className="text-center text-small text-ink-muted">You will receive a confirmation by email.</p>
+          </StepShell>
         </div>
       </div>
 
@@ -418,10 +563,9 @@ export function CheckoutForm({
         className="hidden flex-col gap-6 lg:sticky lg:top-24 lg:flex lg:self-start"
       >
         <h2 id="summary-heading" className="font-display text-h3">
-          Order summary
+          In Your Bag
         </h2>
-        <OrderSummaryTotals totals={totals} hasAddress={addressId !== null} totalTestId="checkout-total" />
-        <OrderSummaryLines items={cart.items} arrives={arrives} />
+        {summaryBody("checkout-total")}
       </aside>
     </div>
   );

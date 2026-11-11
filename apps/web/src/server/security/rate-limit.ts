@@ -16,6 +16,9 @@ const LIMITS = {
   "cart:add": [60, "1 m"],
   "cart:write": [120, "1 m"],
   checkout: [10, "10 m"],
+  "checkout:guest-ip": [10, "10 m"],
+  "checkout:guest-email": [5, "10 m"],
+  "checkout:identify": [10, "1 m"],
   "discount:user": [10, "10 m"],
   "discount:ip": [30, "10 m"],
   "payment:callback": [30, "1 m"],
@@ -90,4 +93,10 @@ export async function clientIp(): Promise<string> {
 export async function rateLimitDiscountCheck(userId: string): Promise<void> {
   await rateLimit("discount:user", `user:${userId}`);
   await rateLimit("discount:ip", await clientIp());
+}
+
+/** A guest has no account to count against: orders and summary refreshes count per IP, and orders per email too. */
+export async function rateLimitGuestCheckout(email?: string): Promise<void> {
+  await rateLimit("checkout:guest-ip", await clientIp());
+  if (email) await rateLimit("checkout:guest-email", `email:${email.toLowerCase()}`);
 }

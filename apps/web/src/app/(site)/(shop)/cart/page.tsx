@@ -1,3 +1,4 @@
+import { arrivalWindow } from "@virzeen/core";
 import { Container } from "@virzeen/ui";
 import type { Metadata } from "next";
 import { CartPageContent } from "@/client/features/cart/cart-page-content";
@@ -32,10 +33,22 @@ async function favouritesPreview() {
 
 export default async function CartPage({ searchParams }: { searchParams: SearchParams }) {
   const notice = NOTICES[flattenSearchParams(await searchParams).notice ?? ""];
-  const [favourites, suggestions] = await Promise.all([favouritesPreview(), listNewArrivals(SUGGESTIONS)]);
+  const [favourites, suggestions, user] = await Promise.all([
+    favouritesPreview(),
+    listNewArrivals(SUGGESTIONS),
+    getUser(),
+  ]);
+  const tier = user ? "MEMBER" : "GUEST";
+  // The bag doesn't know the district yet, so the estimate is the slower (outside the valley) range.
+  const delivery = { tier, arrivesBy: arrivalWindow(tier, "OUTSIDE_VALLEY", new Date()) } as const;
   return (
     <Container className="py-8 lg:py-12">
-      <CartPageContent notice={notice ?? null} favourites={favourites} suggestions={suggestions} />
+      <CartPageContent
+        notice={notice ?? null}
+        favourites={favourites}
+        suggestions={suggestions}
+        delivery={delivery}
+      />
     </Container>
   );
 }

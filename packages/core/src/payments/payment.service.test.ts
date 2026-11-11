@@ -3,13 +3,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { checkoutFixture, createUser, resetDatabase } from "../../test/factories";
 import { json, mockProvider, sentEmails, TEST_ESEWA } from "../../test/setup";
 import { checkoutService } from "../orders/checkout.service";
-import { SHIPPING_RATES_PAISA } from "../pricing/shipping-rates";
 import { signEsewa } from "./esewa";
 import { paymentService } from "./payment.service";
 import { reconcilePayments } from "./reconcile";
 
 // The fixture order: one Rs 4,500 item delivered inside the valley.
-const TOTAL_PAISA = 450_000 + SHIPPING_RATES_PAISA.KATHMANDU_VALLEY;
+const TOTAL_PAISA = 450_000 + 0;
 const TOTAL_RUPEES = TOTAL_PAISA / 100;
 
 const PLACED_AT = new Date("2026-09-28T06:00:00Z");

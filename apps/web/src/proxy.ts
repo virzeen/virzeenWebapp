@@ -79,8 +79,9 @@ export function proxy(request: NextRequest) {
 
   const hasSession = SESSION_COOKIES.some((name) => request.cookies.has(name));
 
-  // Fast path: guests never see account/checkout/admin pages (each page re-checks the session itself).
-  if (!hasSession && /^\/(account|checkout(?!\/(success|failed))|admin)(\/|$)/.test(pathname)) {
+  // Fast path: guests never see account/admin pages (each page re-checks the session itself). Checkout is open to
+  // guests (docs/specs/checkout-v2-week1.md): the page itself shows the Member / Guest choice.
+  if (!hasSession && /^\/(account|admin)(\/|$)/.test(pathname)) {
     const login = new URL("/login", request.url);
     login.searchParams.set("next", `${pathname}${search}`);
     return NextResponse.redirect(login);

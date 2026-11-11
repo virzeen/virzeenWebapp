@@ -38,3 +38,29 @@ export function toFavouriteKey(
   const style = color.trim();
   return style.length <= MAX_FAVOURITE_COLOR ? { productId, color: style } : null;
 }
+
+// Delivery fees (owner decision 2026-11-11, docs/specs/checkout-v2-week1.md). Pure rules, shared so the bag page can
+// show the same hints the server charges by. The server is the only place that charges: `calculateTotals` in core.
+
+export type DeliveryTier = "GUEST" | "MEMBER";
+
+export const DELIVERY_FEES: Record<DeliveryTier, { feePaisa: number; freeFromPaisa: number }> = {
+  GUEST: { feePaisa: 20_000, freeFromPaisa: 400_000 },
+  MEMBER: { feePaisa: 15_000, freeFromPaisa: 300_000 },
+};
+
+/** The delivery fee for a bag worth `payablePaisa` (after any discount) for this tier. */
+export function deliveryFeeFor(tier: DeliveryTier, payablePaisa: number): number {
+  const rule = DELIVERY_FEES[tier];
+  return payablePaisa >= rule.freeFromPaisa ? 0 : rule.feePaisa;
+}
+
+/** What more the customer must add for free delivery; 0 when it is already free. */
+export function remainingForFreeDelivery(tier: DeliveryTier, payablePaisa: number): number {
+  return Math.max(0, DELIVERY_FEES[tier].freeFromPaisa - payablePaisa);
+}
+
+/** How much a MONO Member would save on delivery against a guest for the same bag (never negative). */
+export function memberDeliverySaving(payablePaisa: number): number {
+  return Math.max(0, deliveryFeeFor("GUEST", payablePaisa) - deliveryFeeFor("MEMBER", payablePaisa));
+}

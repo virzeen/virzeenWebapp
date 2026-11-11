@@ -44,7 +44,7 @@ describe("calculateTotals with a discount", () => {
   const lines = [{ unitPricePaisa: 225_000, quantity: 2 }];
 
   it("takes the discount off the subtotal and works out VAT from the new total", () => {
-    const totals = calculateTotals(lines, "KATHMANDU_VALLEY", percent(10));
+    const totals = calculateTotals(lines, "GUEST", percent(10));
     expect(totals.subtotalPaisa).toBe(450_000);
     expect(totals.discountPaisa).toBe(45_000);
     expect(totals.totalPaisa).toBe(450_000 - 45_000 + totals.shippingPaisa);
@@ -52,7 +52,7 @@ describe("calculateTotals with a discount", () => {
   });
 
   it("has no discount without a code", () => {
-    const totals = calculateTotals(lines, "KATHMANDU_VALLEY");
+    const totals = calculateTotals(lines, "GUEST");
     expect(totals.discountPaisa).toBe(0);
     expect(totals.totalPaisa).toBe(totals.subtotalPaisa + totals.shippingPaisa);
   });

@@ -74,8 +74,11 @@ export async function fillAddress(page: Page) {
   await page.getByLabel(/Street address/).fill("Jhamsikhel Road");
 }
 
-/** Checkout from the bag: sign in if asked, add an address, choose a payment method. */
-export async function checkoutWith(page: Page, method: RegExp) {
+/**
+ * Checkout as a signed-in member: add or pick an address (Save & Continue), choose a payment method and continue to
+ * the Order review. `continueToReview: false` stops at the open Payment step (for the discount code field).
+ */
+export async function checkoutWith(page: Page, method: RegExp, options: { continueToReview?: boolean } = {}) {
   await page.goto("/checkout");
   await expect(page).toHaveURL(/\/checkout$/);
   const useAddress = page.getByRole("button", { name: "Use this address" });
@@ -87,7 +90,25 @@ export async function checkoutWith(page: Page, method: RegExp) {
     await useAddress.click();
   }
   await expect(savedAddress).toBeChecked();
+  await page.getByTestId("save-continue").click();
   await page.getByRole("radio", { name: method }).click();
+  if (options.continueToReview !== false) await page.getByTestId("payment-continue").click();
+}
+
+/** Fills the guest's Delivery Options form on /checkout?as=guest (docs/specs/checkout-v2-week1.md). */
+export async function fillGuestDetails(page: Page, email: string) {
+  await page.getByLabel(/^Email/).fill(email);
+  await page.getByLabel(/^First name/).fill("Sita");
+  await page.getByLabel(/^Last name/).fill("Rai");
+  await page.getByRole("combobox", { name: /Province/ }).click();
+  await page.getByRole("option", { name: "Bagmati" }).click();
+  await page.getByRole("combobox", { name: /District/ }).click();
+  await page.getByRole("option", { name: "Kathmandu", exact: true }).click();
+  await page.getByLabel(/^Municipality/).fill("Kathmandu");
+  await page.getByLabel(/^Ward no\./).fill("4");
+  await page.getByLabel(/^Tole or street/).fill("Baneshwor");
+  await page.getByLabel(/^Mobile number/).fill("98 12345678");
+  await page.getByLabel(/^Delivery notes/).fill("Call at the gate");
 }
 
 // ── TOTP (RFC 6238) for the admin step-up ──

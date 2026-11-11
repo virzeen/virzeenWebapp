@@ -1,5 +1,7 @@
+import { Link } from "@virzeen/ui";
 import { CloudImage } from "@/client/components/shared/cloud-image";
 import { Price, ShippingPrice } from "@/client/components/shared/price";
+import type { CheckoutTotals } from "./checkout-types";
 
 type SummaryLine = {
   id: string;
@@ -16,10 +18,12 @@ type SummaryLine = {
  * The bag in the checkout summary, like Nike's "Arrives in…" list: photo, then name, quantity, style and size,
  * and the line price.
  */
-export function OrderSummaryLines({ items, arrives }: { items: SummaryLine[]; arrives: string | null }) {
+export function OrderSummaryLines({ items, arrives }: { items: SummaryLine[]; arrives: string }) {
   return (
     <div className="flex flex-col gap-4">
-      {arrives && <p className="text-body font-medium">Arrives in {arrives}</p>}
+      <p className="text-body font-medium" data-testid="arrives-by">
+        Arrives by {arrives}
+      </p>
       <ul className="flex flex-col gap-6">
         {items
           .filter((item) => item.isAvailable)
@@ -40,26 +44,17 @@ export function OrderSummaryLines({ items, arrives }: { items: SummaryLine[]; ar
 }
 
 type OrderSummaryTotalsProps = {
-  totals: {
-    subtotalPaisa: number;
-    shippingPaisa: number;
-    discountPaisa: number;
-    discountCode: string | null;
-    totalPaisa: number;
-    totalBeforeShippingPaisa: number;
-    vatPaisa: number;
-  };
-  /** Shipping and the total depend on the delivery address, so they wait for one. */
-  hasAddress: boolean;
+  totals: CheckoutTotals;
   /** Only the summary next to the steps carries the test ids. */
   totalTestId?: string;
 };
 
 /**
- * Subtotal, shipping, a discount code's line, the total between hairlines, and the VAT it includes (all
- * server-calculated amounts).
+ * Subtotal, delivery, a discount code's line, the total between hairlines, and the VAT it includes (all
+ * server-calculated amounts), then the free-delivery hint and, for guests, the member nudge
+ * (docs/checkoutfeatures.md §4). Both hints are hidden when they don't apply.
  */
-export function OrderSummaryTotals({ totals, hasAddress, totalTestId }: OrderSummaryTotalsProps) {
+export function OrderSummaryTotals({ totals, totalTestId }: OrderSummaryTotalsProps) {
   return (
     <div className="flex flex-col gap-3">
       <dl className="flex flex-col gap-3 text-body">
@@ -70,13 +65,9 @@ export function OrderSummaryTotals({ totals, hasAddress, totalTestId }: OrderSum
           </dd>
         </div>
         <div className="flex justify-between gap-4">
-          <dt>Shipping</dt>
-          <dd>
-            {totals.shippingPaisa === 0 || hasAddress ? (
-              <ShippingPrice paisa={totals.shippingPaisa} />
-            ) : (
-              <span className="text-ink-muted">—</span>
-            )}
+          <dt>Delivery</dt>
+          <dd data-testid={totalTestId ? "checkout-delivery" : undefined}>
+            <ShippingPrice paisa={totals.shippingPaisa} />
           </dd>
         </div>
         {totals.discountPaisa > 0 && (
@@ -92,13 +83,26 @@ export function OrderSummaryTotals({ totals, hasAddress, totalTestId }: OrderSum
         <div className="mt-3 flex justify-between gap-4 border-y border-line py-4 font-medium">
           <dt>Total</dt>
           <dd data-testid={totalTestId}>
-            <Price paisa={hasAddress ? totals.totalPaisa : totals.totalBeforeShippingPaisa} />
+            <Price paisa={totals.totalPaisa} />
           </dd>
         </div>
       </dl>
       <p className="text-small text-ink-muted">
         Includes <Price paisa={totals.vatPaisa} /> VAT (13%).
       </p>
+      {totals.freeDeliveryRemainingPaisa > 0 && (
+        <p className="text-small text-ink-muted" data-testid="free-delivery-hint">
+          Add <Price paisa={totals.freeDeliveryRemainingPaisa} /> more for free delivery.
+        </p>
+      )}
+      {totals.tier === "GUEST" && totals.memberSavingPaisa > 0 && (
+        <p className="text-small" data-testid="member-nudge">
+          MONO Members save <Price paisa={totals.memberSavingPaisa} /> on this order.{" "}
+          <Link href="/login?next=%2Fcheckout" className="underline underline-offset-4">
+            Log in or sign up
+          </Link>
+        </p>
+      )}
     </div>
   );
 }

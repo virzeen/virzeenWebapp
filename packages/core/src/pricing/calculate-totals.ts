@@ -1,7 +1,7 @@
-import type { ShippingZone } from "@virzeen/db";
+import type { CustomerTier } from "@virzeen/db";
 import { AppError } from "../errors";
 import { discountAmount, type DiscountRule } from "./discounts";
-import { shippingFor } from "./shipping-rates";
+import { deliveryFeeFor } from "./shipping-rates";
 
 export type PricedLine = { unitPricePaisa: number; quantity: number };
 
@@ -33,16 +33,17 @@ export function calculateSubtotal(lines: readonly PricedLine[]): number {
 
 /**
  * The only place order totals are computed. Inputs come from the database, never the client. A discount comes off
- * the subtotal (never more than it), so the total can't go below the shipping.
+ * the subtotal (never more than it), so the total can't go below the delivery fee. The fee depends on the buyer's tier
+ * and on the bag after the discount (specs/checkout-v2-week1.md).
  */
 export function calculateTotals(
   lines: readonly PricedLine[],
-  zone: ShippingZone,
+  tier: CustomerTier,
   discount: DiscountRule | null = null,
 ): Totals {
   const subtotalPaisa = calculateSubtotal(lines);
-  const shippingPaisa = lines.length === 0 ? 0 : shippingFor(zone);
   const discountPaisa = discount ? discountAmount(subtotalPaisa, discount) : 0;
+  const shippingPaisa = lines.length === 0 ? 0 : deliveryFeeFor(tier, subtotalPaisa - discountPaisa);
   const totalPaisa = subtotalPaisa - discountPaisa + shippingPaisa;
   return { subtotalPaisa, shippingPaisa, discountPaisa, totalPaisa, vatPaisa: vatIncluded(totalPaisa) };
 }

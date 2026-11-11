@@ -114,6 +114,13 @@ export const orderService = {
     return toDetail(row);
   },
 
+  /** A guest's order: only ever called after the signed guest-order cookie was checked (server/auth/guest-order.ts). */
+  async getForGuest(orderNumber: string): Promise<OrderDetail> {
+    const row = await db.order.findFirst({ where: { orderNumber, userId: null }, select: detailSelect });
+    if (!row) throw new AppError("NOT_FOUND", "Order not found.");
+    return toDetail(row);
+  },
+
   // ── Admin ──
 
   async listForAdmin(filters: AdminOrderFilters) {

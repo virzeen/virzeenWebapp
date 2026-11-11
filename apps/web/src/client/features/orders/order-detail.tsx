@@ -128,7 +128,7 @@ export function OrderDetail({ order, reviewLinks = false }: OrderDetailProps) {
             <Price paisa={order.subtotalPaisa} />
           </div>
           <div className="flex justify-between text-body">
-            <span>Shipping</span>
+            <span>Delivery</span>
             <ShippingPrice paisa={order.shippingPaisa} />
           </div>
           {order.discountPaisa > 0 && (

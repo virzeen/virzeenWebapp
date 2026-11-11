@@ -66,4 +66,11 @@ export { reconcilePayments, type ReconcileSummary } from "./payments/reconcile";
 export { portfolioService } from "./portfolio/portfolio.service";
 export { COD_MAX_TOTAL_PAISA, isCodAvailable } from "./pricing/cod-rules";
 export { calculateTotals, vatIncluded } from "./pricing/calculate-totals";
-export { DELIVERY_ESTIMATES, SHIPPING_RATES_PAISA, shippingZoneFor } from "./pricing/shipping-rates";
+export {
+  arrivalWindow,
+  DELIVERY_FEES,
+  deliveryFeeFor,
+  memberDeliverySaving,
+  remainingForFreeDelivery,
+  shippingZoneFor,
+} from "./pricing/shipping-rates";

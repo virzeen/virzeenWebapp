@@ -116,7 +116,7 @@ describe("renderOrderConfirmationEmail", () => {
     expect(email.text).not.toContain("Discount");
   });
 
-  it("shows a discount code's line between shipping and the total", async () => {
+  it("shows a discount code's line between delivery and the total", async () => {
     const email = await renderOrderConfirmationEmail({
       siteUrl: "https://virzeen.com",
       orderNumber: "VZ-260928-0043",
@@ -148,7 +148,7 @@ describe("renderOrderConfirmationEmail", () => {
       },
     });
     expect(email.text).toMatch(
-      /Shipping[\s\S]*Discount \(WELCOME10\)[\s\S]*−Rs 450[\s\S]*Total[\s\S]*Rs 4,050/,
+      /Delivery[\s\S]*Discount \(WELCOME10\)[\s\S]*−Rs 450[\s\S]*Total[\s\S]*Rs 4,050/,
     );
   });
 });

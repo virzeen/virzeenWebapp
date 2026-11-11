@@ -475,12 +475,22 @@ model CartItem {
 
 // ───────────────────────────── Orders ─────────────────────────────
 
+enum CustomerTier {
+  GUEST
+  MEMBER
+}
+
 model Order {
   id              String        @id @default(cuid(2))
   /// Human-facing number: VZ-YYMMDD-XXXX
   orderNumber     String        @unique
-  userId          String
-  user            User          @relation(fields: [userId], references: [id], onDelete: Restrict)
+  /// Null for a guest order (specs/checkout-v2-week1.md); the guest's email is in customerEmail.
+  userId          String?
+  user            User?         @relation(fields: [userId], references: [id], onDelete: Restrict)
+  /// Which delivery rate applied: guest or MONO Member (decides the fee and the dispatch promise).
+  tier            CustomerTier  @default(MEMBER)
+  /// Optional note for the rider, e.g. "Call at the gate".
+  deliveryNotes   String?
   status          OrderStatus   @default(PENDING)
   paymentStatus   PaymentStatus @default(UNPAID)
   paymentMethod   PaymentMethod
