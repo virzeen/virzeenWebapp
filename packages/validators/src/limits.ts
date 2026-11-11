@@ -74,3 +74,47 @@ export function remainingForFreeDelivery(tier: DeliveryTier, payablePaisa: numbe
 export function memberDeliverySaving(payablePaisa: number): number {
   return Math.max(0, deliveryFeeFor("GUEST", payablePaisa) - deliveryFeeFor("MEMBER", payablePaisa));
 }
+
+// Points and credit (owner 2026-11-11, docs/specs/wallet.md). Pure rules, shared so the checkout shows what the
+// server applies; only the server spends them.
+
+/** A member earns points on a delivered order: 1 per Rs 1,200 paid (Pass members 2 per Rs 1,200). */
+export const POINT_EARN_UNIT_PAISA = 120_000;
+/** 1 point is worth Rs 1 at checkout. */
+export const POINT_VALUE_PAISA = 100;
+/** Points can pay for at most this share of the products' price (after any discount). */
+export const POINTS_MAX_SHARE_PERCENT = 20;
+/** MONO Member points expire this many days after they are earned; Pass members' never do. */
+export const POINTS_EXPIRY_DAYS = 365;
+
+/** Points earned by a delivered order worth `totalPaisa`, for the buyer's tier (guests earn none). */
+export function pointsEarned(totalPaisa: number, tier: DeliveryTier | "GUEST"): number {
+  if (tier === "GUEST") return 0;
+  return Math.floor(totalPaisa / POINT_EARN_UNIT_PAISA) * (tier === "PASS" ? 2 : 1);
+}
+
+export type WalletApplication = { pointsUsed: number; creditUsedPaisa: number };
+
+/**
+ * How much of the member's points and credit pay for this order. Points first (whole points, at most 20% of the
+ * products' price after discount, never more than the order's total), then credit for what is left of the total.
+ */
+export function walletApplication(input: {
+  /** Subtotal less any discount: the base of the 20% cap. */
+  goodsPayablePaisa: number;
+  /** Total before points and credit (goods, discount and delivery). */
+  totalBeforeWalletPaisa: number;
+  pointsBalance: number;
+  creditBalancePaisa: number;
+  usePoints: boolean;
+  useCredit: boolean;
+}): WalletApplication {
+  const maxByShare = Math.floor(
+    (input.goodsPayablePaisa * POINTS_MAX_SHARE_PERCENT) / 100 / POINT_VALUE_PAISA,
+  );
+  const maxByTotal = Math.floor(input.totalBeforeWalletPaisa / POINT_VALUE_PAISA);
+  const pointsUsed = input.usePoints ? Math.max(0, Math.min(input.pointsBalance, maxByShare, maxByTotal)) : 0;
+  const left = input.totalBeforeWalletPaisa - pointsUsed * POINT_VALUE_PAISA;
+  const creditUsedPaisa = input.useCredit ? Math.max(0, Math.min(input.creditBalancePaisa, left)) : 0;
+  return { pointsUsed, creditUsedPaisa };
+}

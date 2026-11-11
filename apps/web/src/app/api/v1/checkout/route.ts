@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 const ENABLED = { COD: () => true, ESEWA: () => features.esewa, KHALTI: () => features.khalti } as const;
 
-/** POST /api/v1/checkout { addressId, paymentMethod, discountCode? } → { orderNumber, next } */
+/** POST /api/v1/checkout { addressId, paymentMethod, discountCode?, usePoints?, useCredit? } → { orderNumber, next } */
 export const POST = apiHandler(
   "v1.checkout",
   async (request) => {
@@ -30,6 +30,8 @@ export const POST = apiHandler(
       addressId: data.addressId,
       paymentMethod: data.paymentMethod,
       ...(data.discountCode ? { discountCode: data.discountCode } : {}),
+      ...(data.usePoints ? { usePoints: true } : {}),
+      ...(data.useCredit ? { useCredit: true } : {}),
     });
   },
   201,

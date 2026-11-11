@@ -5,6 +5,7 @@ import {
   AccordionItem,
   Alert,
   Button,
+  Checkbox,
   FormField,
   Link,
   RadioGroup,
@@ -168,6 +169,9 @@ export function CheckoutForm({
   const [totals, setTotals] = useState(initialTotals);
   const [method, setMethod] = useState<Method | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  // Pay with points and/or credit (specs/wallet.md): asked for here, worked out and spent by the server.
+  const [usePoints, setUsePoints] = useState(false);
+  const [useCredit, setUseCredit] = useState(false);
   const [isRefreshing, startRefresh] = useTransition();
   const [isApplying, setApplying] = useState(false);
   const [isPlacing, startPlacing] = useTransition();
@@ -237,8 +241,31 @@ export function CheckoutForm({
   }
 
   /** Who the server should price for: a member's saved address, or what a guest typed. */
+  function walletFlags(points = usePoints, credit = useCredit) {
+    if (isGuest) return {};
+    return { ...(points ? { usePoints: true } : {}), ...(credit ? { useCredit: true } : {}) };
+  }
+
+  /** Turns paying with points or credit on or off and asks the server for the new totals. */
+  function toggleWallet(kind: "points" | "credit", on: boolean) {
+    const points = kind === "points" ? on : usePoints;
+    const credit = kind === "credit" ? on : useCredit;
+    setUsePoints(points);
+    setUseCredit(credit);
+    setFormError(null);
+    startRefresh(async () => {
+      const result = await previewCheckoutAction({
+        ...whoFor(guestDetails, addressId),
+        ...(discountCode ? { discountCode } : {}),
+        ...walletFlags(points, credit),
+      });
+      if (result.ok) setTotals(result.data);
+      else toast.error(messageFor(result.error));
+    });
+  }
+
   function whoFor(guest: GuestDetailsInput | null, id: string | null) {
-    if (!isGuest) return { addressId: id };
+    if (!isGuest) return { addressId: id, ...walletFlags() };
     return guest ? { district: guest.district, email: guest.email } : {};
   }
 
@@ -256,6 +283,7 @@ export function CheckoutForm({
       const result = await previewCheckoutAction({
         addressId: id,
         ...(discountCode ? { discountCode } : {}),
+        ...walletFlags(),
       });
       if (result.ok) {
         setTotals(result.data);
@@ -345,7 +373,7 @@ export function CheckoutForm({
       const result =
         isGuest && guestDetails
           ? await placeGuestOrderAction({ ...guestDetails, paymentMethod: selected.value, ...code })
-          : await placeOrderAction({ addressId, paymentMethod: selected.value, ...code });
+          : await placeOrderAction({ addressId, paymentMethod: selected.value, ...code, ...walletFlags() });
       if (!result.ok) {
         const notice = BAG_NOTICES[result.error.code];
         if (notice) return router.push(`/cart?notice=${notice}`);
@@ -515,6 +543,31 @@ export function CheckoutForm({
               </p>
             }
           >
+            {!isGuest && (totals.walletPoints > 0 || totals.walletCreditPaisa > 0) && (
+              <div className="flex flex-col gap-1" data-testid="wallet-panel">
+                {totals.walletCreditPaisa > 0 && (
+                  <Checkbox
+                    checked={useCredit}
+                    disabled={isBusy}
+                    onCheckedChange={(checked) => toggleWallet("credit", checked === true)}
+                    label={
+                      <>
+                        Use my credit (<Price paisa={totals.walletCreditPaisa} /> available)
+                      </>
+                    }
+                  />
+                )}
+                {totals.walletPoints > 0 && (
+                  <Checkbox
+                    checked={usePoints}
+                    disabled={isBusy}
+                    onCheckedChange={(checked) => toggleWallet("points", checked === true)}
+                    label={`Use my points (${totals.walletPoints} available)`}
+                    description="1 point is worth Rs 1. Points can pay for up to 20% of the products."
+                  />
+                )}
+              </div>
+            )}
             <FormField label="Payment method" required>
               <RadioGroup
                 variant="card"
@@ -578,6 +631,22 @@ export function CheckoutForm({
                 <dt className="text-ink-muted">Arrives by</dt>
                 <dd>{totals.arrivesBy}</dd>
               </div>
+              {totals.pointsUsed > 0 && (
+                <div className="flex justify-between gap-4" data-testid="review-points">
+                  <dt className="text-ink-muted">Points ({totals.pointsUsed})</dt>
+                  <dd>
+                    −<Price paisa={totals.pointsUsed * 100} />
+                  </dd>
+                </div>
+              )}
+              {totals.creditUsedPaisa > 0 && (
+                <div className="flex justify-between gap-4" data-testid="review-credit">
+                  <dt className="text-ink-muted">Credit</dt>
+                  <dd>
+                    −<Price paisa={totals.creditUsedPaisa} />
+                  </dd>
+                </div>
+              )}
               {totals.discountPaisa > 0 && (
                 <div className="flex justify-between gap-4" data-testid="review-discount">
                   <dt className="text-ink-muted">

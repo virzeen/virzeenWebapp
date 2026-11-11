@@ -169,7 +169,7 @@ export const BENEFITS: readonly Benefit[] = [
     guest: null,
     free: "1 point per {p:120000}",
     pass: "2 points per {p:120000}",
-    live: [],
+    live: ["FREE", "PASS"],
   },
   {
     id: "points-expiry",
@@ -178,7 +178,7 @@ export const BENEFITS: readonly Benefit[] = [
     guest: null,
     free: "12 months",
     pass: "Never expire",
-    live: [],
+    live: ["FREE", "PASS"],
   },
   {
     id: "double-points",

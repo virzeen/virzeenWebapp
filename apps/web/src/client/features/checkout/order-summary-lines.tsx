@@ -82,6 +82,22 @@ export function OrderSummaryTotals({ totals, totalTestId }: OrderSummaryTotalsPr
             </dd>
           </div>
         )}
+        {totals.pointsUsed > 0 && (
+          <div className="flex justify-between gap-4">
+            <dt>Points ({totals.pointsUsed})</dt>
+            <dd className="whitespace-nowrap" data-testid={totalTestId ? "checkout-points" : undefined}>
+              −<Price paisa={totals.pointsUsed * 100} />
+            </dd>
+          </div>
+        )}
+        {totals.creditUsedPaisa > 0 && (
+          <div className="flex justify-between gap-4">
+            <dt>Credit</dt>
+            <dd className="whitespace-nowrap" data-testid={totalTestId ? "checkout-credit" : undefined}>
+              −<Price paisa={totals.creditUsedPaisa} />
+            </dd>
+          </div>
+        )}
         <div className="mt-3 flex justify-between gap-4 border-y border-line py-4 font-medium">
           <dt>Total</dt>
           <dd data-testid={totalTestId}>

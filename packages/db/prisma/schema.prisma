@@ -126,6 +126,7 @@ model User {
   twoFactors         TwoFactor[]
   addresses          Address[]
   favourites         Favourite[]
+  walletEntries      WalletEntry[]
   reviews            Review[]
   stockAlerts        StockAlert[]
   cart               Cart?
@@ -517,6 +518,10 @@ model Order {
   /// Taken off the subtotal by the discount code (specs/discount-codes.md); totalPaisa already has it off.
   discountPaisa   Int           @default(0)
   totalPaisa      Int
+  /// Points spent on this order (1 point = Rs 1) and credit spent, in paisa; totalPaisa already has both off
+  /// (specs/wallet.md).
+  pointsUsed      Int           @default(0)
+  creditUsedPaisa Int           @default(0)
   /// The discount code used, if any. Codes are never deleted, so the link stays.
   discountCodeId  String?
   discount        DiscountCode? @relation(fields: [discountCodeId], references: [id], onDelete: Restrict)
@@ -681,4 +686,39 @@ model AuditLog {
   @@index([entity, entityId])
   @@index([actorId])
   @@index([createdAt])
+}
+
+enum WalletKind {
+  POINTS
+  CREDIT
+}
+
+enum WalletEntryType {
+  EARN
+  SPEND
+  EXPIRE
+  REFUND
+  ADJUST
+}
+
+/// One line of a member's points and credit ledger (specs/wallet.md). `amount` is signed (points, or paisa for credit).
+/// A line that adds balance keeps `remaining`: what of it is still unspent. A spend uses the oldest first; the
+/// daily expiry takes what is left of lines past `expiresAt`. Balance = the sum of `remaining`.
+model WalletEntry {
+  id        String          @id @default(cuid(2))
+  userId    String
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      WalletKind
+  type      WalletEntryType
+  amount    Int
+  remaining Int             @default(0)
+  expiresAt DateTime?
+  orderId   String?
+  reason    String
+  createdAt DateTime        @default(now())
+
+  /// Earn, spend and refund happen at most once per order and kind (a nullable orderId allows many adjustments).
+  @@unique([orderId, type, kind])
+  @@index([userId, kind, createdAt])
+  @@index([kind, expiresAt])
 }

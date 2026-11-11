@@ -5,6 +5,7 @@ import { recordAudit } from "../audit/audit";
 import { AppError } from "../errors";
 import { notifications } from "../notifications/notifications";
 import { paymentService } from "../payments/payment.service";
+import { walletService } from "../wallet/wallet.service";
 import { cancelOrderAndRestock } from "./cancellation";
 import { transitionOrder, transitionPayment } from "./order-state";
 
@@ -201,6 +202,8 @@ export const orderService = {
           break;
         case "DELIVERED":
           await transitionOrder(tx, { orderId, to: "DELIVERED", actor, reason: "Delivered" });
+          // Points for a delivered order (specs/wallet.md).
+          await walletService.earnForOrder(tx, orderId);
           break;
         case "RETURNED":
           await transitionOrder(tx, { orderId, to: "RETURNED", actor, reason: input.reason });

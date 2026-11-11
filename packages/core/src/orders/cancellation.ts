@@ -3,6 +3,7 @@ import type { OrderStatus, Prisma } from "@virzeen/db";
 import { cartService } from "../cart/cart.service";
 import { releaseDiscountUse } from "../discounts/discount.service";
 import { restoreStock } from "../inventory/stock";
+import { walletService } from "../wallet/wallet.service";
 import { transitionOrder } from "./order-state";
 
 /**
@@ -43,6 +44,8 @@ export async function cancelOrderAndRestock(
   // The code before the stock: checkout locks them in that order too, so the two can't deadlock.
   if (order.discountCodeId) await releaseDiscountUse(tx, order.discountCodeId);
   await restoreStock(tx, order.items);
+  // Points and credit spent on the order go back to the member (specs/wallet.md).
+  await walletService.restoreForOrder(tx, input.orderId);
   if (input.restoreToCart && order.userId)
     await cartService.restoreOrderItems(tx, { userId: order.userId, items: order.items });
   return result;

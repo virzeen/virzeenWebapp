@@ -2,6 +2,7 @@ import "server-only";
 import "@/server/bootstrap";
 import {
   addressService,
+  walletService,
   favouriteService,
   memberService,
   orderService,
@@ -21,6 +22,8 @@ export const listMyOrders = (userId: string, cursor?: string) =>
 /** The member's level and Pass dates for the profile and the Membership page (specs/membership-portal.md). */
 /** Who is buying, for the bag's price hints: a guest, a MONO Member or a member with a running Pass. */
 export const tierFor = (userId: string | null) => memberService.tierFor(userId);
+/** Points and credit: balances, what expires first and the newest lines (specs/wallet.md). */
+export const getMyWallet = (userId: string) => walletService.summary(userId);
 export const getMyMembership = (userId: string) => memberService.membership(userId);
 /** What the Pass has saved this member so far, for the Pass portal. */
 export const getMyPassSavings = (userId: string) => memberService.passSavings(userId);

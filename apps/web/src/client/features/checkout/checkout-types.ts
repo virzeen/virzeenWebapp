@@ -14,6 +14,12 @@ export type CheckoutTotals = {
   arrivesBy: string;
   freeDeliveryRemainingPaisa: number;
   memberSavingPaisa: number;
+  /** Points spent (1 point = Rs 1) and credit spent (paisa): both already off the total (specs/wallet.md). */
+  pointsUsed: number;
+  creditUsedPaisa: number;
+  /** What the member has to spend now (zero for guests). */
+  walletPoints: number;
+  walletCreditPaisa: number;
   /** A Pass member's saving on this bag (the 10% and the delivery fee a MONO Member would pay). */
   passSavingPaisa: number;
   isCodAvailable: boolean;

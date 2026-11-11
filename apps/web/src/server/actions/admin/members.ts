@@ -1,8 +1,8 @@
 "use server";
 
 import "server-only";
-import { memberService } from "@virzeen/core";
-import { endPassSchema, grantPassSchema } from "@virzeen/validators";
+import { memberService, walletService } from "@virzeen/core";
+import { adminWalletSchema, endPassSchema, grantPassSchema } from "@virzeen/validators";
 import { revalidatePath } from "next/cache";
 import { runAdminAction } from "./guard";
 
@@ -23,5 +23,20 @@ export async function endPassAction(input: unknown) {
     await memberService.adminEndPass(admin.id, userId);
     revalidatePath("/admin/customers");
     return { ended: true };
+  });
+}
+
+/** Adds credit (whole rupees) or points to a customer. Audited in core. */
+export async function addWalletAction(input: unknown) {
+  return runAdminAction("addWallet", async (admin) => {
+    const { userId, kind, amount, reason } = adminWalletSchema.parse(input);
+    await walletService.adminAdd(admin.id, {
+      userId,
+      kind,
+      amount: kind === "CREDIT" ? amount * 100 : amount,
+      reason,
+    });
+    revalidatePath("/admin/customers");
+    return { added: true };
   });
 }

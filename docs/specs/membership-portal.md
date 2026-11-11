@@ -32,6 +32,8 @@ Three levels: **Guest**, **MONO Member** (free account) and the **Monochrome Pas
 - **Admin → Customers:** search by email or name, each customer's level ("Pass until …" or "MONO Member"), and a "Manage Pass" popup: give 6 months or 1 year, add to a running Pass, end it. Every change is audited (`member.grant-pass`, `member.end-pass`).
 - **Portal (`/account/membership`, a new account tab):** a free member sees their benefits and the Pass offer; a Pass member sees the black hero (welcome, days left, a month-by-month bar, the card), a stats row (saved so far, Pass orders, Pass since, months left), every Pass benefit with a tick or "Soon", and priority-support contact. `PremiumPanel` + `MembershipCard` primitives.
 
+- **Points and credit** are built (see `specs/wallet.md`): earned on delivered orders, spent at checkout, shown on `/account/membership`, added by admins.
+
 ## Not built (shown as "Soon")
 
 Everything that needs new back-end: the extra 5% on complete looks, points and credit wallet, Express Delivery (3 hours in Kathmandu and Pokhara: 1 a month for a MONO Member, 3 a month for the Pass; none for guests) and the missed-dispatch credit, early access, member-only products, reserve and price lock, referrals, birthday and anniversary rewards, gift wrap pricing, pause, the Pass purchase itself, the daily expiry job. The `live` list in the catalog says what works; flip a benefit's `live` when its part ships.

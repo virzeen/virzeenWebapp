@@ -13,6 +13,9 @@ export const checkoutSchema = z.strictObject({
   paymentMethod: z.enum(PAYMENT_METHODS, { error: "Choose a payment method" }),
   /** The code the customer applied (specs/discount-codes.md); the server checks it again before saving the order. */
   discountCode: discountCodeInputSchema.optional(),
+  /** Pay with the member's points and/or credit (specs/wallet.md); the server works out how much. */
+  usePoints: z.boolean().optional(),
+  useCredit: z.boolean().optional(),
 });
 
 /**
@@ -77,6 +80,8 @@ export const checkoutPreviewSchema = z.strictObject({
   district: z.string().trim().min(1).max(60).optional(),
   email: emailSchema.optional(),
   discountCode: discountCodeInputSchema.optional(),
+  usePoints: z.boolean().optional(),
+  useCredit: z.boolean().optional(),
 });
 export type CheckoutInput = z.infer<typeof checkoutSchema>;
 

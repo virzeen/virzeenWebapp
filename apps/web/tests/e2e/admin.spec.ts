@@ -456,6 +456,14 @@ test("admin sets up two-factor, builds a product on its page and it appears in t
   await passDialog.getByRole("button", { name: "End Pass" }).click();
   await expect(customerRow).toContainText("MONO Member");
 
+  // Wallet: add credit with a reason; it shows in the list.
+  await customerRow.getByRole("button", { name: /Add credit or points for/ }).click();
+  const walletDialog = page.getByRole("dialog", { name: "Add credit or points" });
+  await walletDialog.getByLabel(/^Amount \(Rs\)/).fill("250");
+  await walletDialog.getByLabel(/^Reason/).fill("Goodwill");
+  await walletDialog.getByRole("button", { name: "Add", exact: true }).click();
+  await expect(customerRow).toContainText("रु 250");
+
   // A mistyped admin address stays inside the admin frame, with a way back.
   await page.goto("/admin/no-such-page");
   await expect(

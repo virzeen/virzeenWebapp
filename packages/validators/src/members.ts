@@ -12,3 +12,17 @@ export const endPassSchema = z.strictObject({ userId: z.string().min(1).max(100)
 
 /** The customers list's search box (email or name). */
 export const customerSearchSchema = z.string().trim().max(60).catch("");
+
+/** Admin: add credit (whole rupees) or points to a customer, with a reason that is kept in the audit log. */
+export const adminWalletSchema = z.strictObject({
+  userId: z.string().min(1).max(100),
+  kind: z.enum(["CREDIT", "POINTS"]),
+  amount: z
+    .int({ error: "Enter a whole number" })
+    .min(1, { error: "Enter an amount above zero" })
+    .max(1_000_000, {
+      error: "Enter 1,000,000 or less",
+    }),
+  reason: z.string().trim().min(1, { error: "Say why" }).max(200),
+});
+export type AdminWalletInput = z.infer<typeof adminWalletSchema>;

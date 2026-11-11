@@ -2,6 +2,8 @@ import { Button, ButtonLink, DataTable, EmptyState, Input, Link } from "@virzeen
 import { adminPageSchema, customerSearchSchema } from "@virzeen/validators";
 import { AdminPageHeader } from "@/client/features/admin/admin-page-header";
 import { MemberPassActions } from "@/client/features/admin/member-pass-actions";
+import { MemberWalletActions } from "@/client/features/admin/member-wallet-actions";
+import { Price } from "@/client/components/shared/price";
 import { formatDate } from "@/client/lib/format";
 import { requireAdminPage } from "@/server/auth/session";
 import { listAdminCustomers } from "@/server/queries/admin";
@@ -79,6 +81,21 @@ export default async function AdminCustomersPage({ searchParams }: { searchParam
                 passEndsAt={row.passEndsAt ? row.passEndsAt.toISOString() : null}
               />
             ),
+          },
+          {
+            key: "wallet",
+            header: "Points / credit",
+            hideOnMobile: true,
+            cell: (row) => (
+              <span className="whitespace-nowrap">
+                {row.points} · <Price paisa={row.creditPaisa} />
+              </span>
+            ),
+          },
+          {
+            key: "addwallet",
+            header: "Wallet",
+            cell: (row) => <MemberWalletActions userId={row.id} label={row.name.trim() || row.email} />,
           },
           { key: "since", header: "Joined", hideOnMobile: true, cell: (row) => formatDate(row.createdAt) },
           {

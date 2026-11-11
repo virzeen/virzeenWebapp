@@ -2,7 +2,7 @@ import type { CustomerTier } from "@virzeen/db";
 import { AppError } from "../errors";
 import { discountAmount, type DiscountRule } from "./discounts";
 import { deliveryFeeFor } from "./shipping-rates";
-import { passDiscountFor } from "@virzeen/validators/limits";
+import { POINT_VALUE_PAISA, passDiscountFor, type WalletApplication } from "@virzeen/validators/limits";
 
 export type PricedLine = { unitPricePaisa: number; quantity: number };
 
@@ -16,6 +16,9 @@ export type Totals = {
   discountPaisa: number;
   /** True when `discountPaisa` is the Pass discount, not a code's. */
   isPassDiscount: boolean;
+  /** Points spent (1 point = Rs 1) and credit spent, in paisa; both already off `totalPaisa` (specs/wallet.md). */
+  pointsUsed: number;
+  creditUsedPaisa: number;
   totalPaisa: number;
   /** VAT portion included in the total (prices are VAT-inclusive, payment-policy.md §2). */
   vatPaisa: number;
@@ -62,6 +65,28 @@ export function calculateTotals(
     shippingPaisa,
     discountPaisa,
     isPassDiscount,
+    pointsUsed: 0,
+    creditUsedPaisa: 0,
+    totalPaisa,
+    vatPaisa: vatIncluded(totalPaisa),
+  };
+}
+
+/**
+ * Takes a member's points and credit off the total (`walletApplication` in validators says how much). Points and
+ * credit pay for part of the order after the discount and delivery; the total never goes below zero, and VAT is the
+ * share contained in what is actually paid.
+ */
+export function applyWalletToTotals(base: Totals, wallet: WalletApplication): Totals {
+  const off = wallet.pointsUsed * POINT_VALUE_PAISA + wallet.creditUsedPaisa;
+  if (!Number.isInteger(off) || off < 0 || off > base.totalPaisa) {
+    throw new AppError("INTERNAL", "Points and credit can't be more than the order total.");
+  }
+  const totalPaisa = base.totalPaisa - off;
+  return {
+    ...base,
+    pointsUsed: wallet.pointsUsed,
+    creditUsedPaisa: wallet.creditUsedPaisa,
     totalPaisa,
     vatPaisa: vatIncluded(totalPaisa),
   };

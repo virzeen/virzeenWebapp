@@ -4,9 +4,10 @@ import { LogoMark } from "@/client/components/layout/logo-mark";
 import { Price } from "@/client/components/shared/price";
 import { BenefitList } from "@/client/features/membership/benefit-list";
 import { PassOffer } from "@/client/features/membership/pass-offer";
+import { WalletPanel } from "@/client/features/membership/wallet-panel";
 import { formatDate, formatMonthYear } from "@/client/lib/format";
 import { requireUserPage } from "@/server/auth/session";
-import { getMyMembership, getMyPassSavings } from "@/server/queries/account";
+import { getMyMembership, getMyPassSavings, getMyWallet } from "@/server/queries/account";
 
 export const metadata = { title: "Membership" };
 
@@ -20,7 +21,11 @@ const SEGMENTS = Array.from({ length: 12 }, (_, month) => month + 1);
  */
 export default async function MembershipPortalPage() {
   const user = await requireUserPage("/account/membership");
-  const [membership, savings] = await Promise.all([getMyMembership(user.id), getMyPassSavings(user.id)]);
+  const [membership, savings, wallet] = await Promise.all([
+    getMyMembership(user.id),
+    getMyPassSavings(user.id),
+    getMyWallet(user.id),
+  ]);
   const name = user.name.trim() || user.email;
   const firstName = user.name.trim().split(/\s+/)[0] ?? "";
   const isPass = membership.level === "PASS" && membership.passEndsAt !== null;
@@ -32,6 +37,7 @@ export default async function MembershipPortalPage() {
           <h1 className="font-display text-h2 md:text-h1">Membership</h1>
           <p className="text-body-lg text-ink-muted">You are a {LEVEL_NAMES.FREE}. Here is what you get.</p>
         </header>
+        <WalletPanel {...wallet} />
         <section aria-labelledby="free-benefits" className="flex flex-col gap-8">
           <h2 id="free-benefits" className="font-display text-h2">
             Your MONO Member benefits
@@ -112,6 +118,8 @@ export default async function MembershipPortalPage() {
           <Stat label="Months left">{monthsLeft}</Stat>
         </dl>
       </section>
+
+      <WalletPanel {...wallet} />
 
       <section aria-labelledby="pass-benefits" className="flex flex-col gap-8">
         <div className="flex flex-col gap-2">

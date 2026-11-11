@@ -11,7 +11,14 @@ import { memberService } from "../members/member.service";
 import { reserveStock } from "../inventory/stock";
 import { notifications } from "../notifications/notifications";
 import { COD_MAX_TOTAL_PAISA, isCodAvailable } from "../pricing/cod-rules";
-import { calculateSubtotal, calculateTotals, type Totals } from "../pricing/calculate-totals";
+import {
+  applyWalletToTotals,
+  calculateSubtotal,
+  calculateTotals,
+  type Totals,
+} from "../pricing/calculate-totals";
+import { walletApplication } from "@virzeen/validators/limits";
+import { walletService } from "../wallet/wallet.service";
 import {
   arrivalWindow,
   deliveryFeeFor,
@@ -54,6 +61,9 @@ export type PlaceOrderInput = {
   paymentMethod: PaymentMethod;
   /** Upper-case, as checkoutSchema normalises it. Checked again and claimed inside the order transaction. */
   discountCode?: string;
+  /** Pay with the member's points and/or credit (specs/wallet.md); the amounts are worked out and spent here. */
+  usePoints?: boolean;
+  useCredit?: boolean;
   now?: Date;
 };
 
@@ -72,6 +82,9 @@ export type CheckoutPreview = Totals & {
   memberSavingPaisa: number;
   /** A Pass member's saving on this bag: the 10% (when no code replaces it) plus the delivery fee a MONO Member would pay. */
   passSavingPaisa: number;
+  /** The member's points and credit available now (zero for guests); what was applied is in `pointsUsed` and `creditUsedPaisa`. */
+  walletPoints: number;
+  walletCreditPaisa: number;
   isCodAvailable: boolean;
   /** null = no limit. */
   codLimitPaisa: number | null;
@@ -120,6 +133,8 @@ export const checkoutService = {
     /** A guest's district, once chosen; decides the arrival estimate. */
     district?: string;
     discountCode?: string;
+    usePoints?: boolean;
+    useCredit?: boolean;
     now?: Date;
   }): Promise<CheckoutPreview> {
     const now = input.now ?? new Date();
@@ -140,7 +155,21 @@ export const checkoutService = {
           now,
         })
       : null;
-    const totals = calculateTotals(lines, tier, discount);
+    const base = calculateTotals(lines, tier, discount);
+    const wallet = input.userId
+      ? await walletService.balances(input.userId, now)
+      : { points: 0, creditPaisa: 0 };
+    const totals = applyWalletToTotals(
+      base,
+      walletApplication({
+        goodsPayablePaisa: base.subtotalPaisa - base.discountPaisa,
+        totalBeforeWalletPaisa: base.totalPaisa,
+        pointsBalance: wallet.points,
+        creditBalancePaisa: wallet.creditPaisa,
+        usePoints: input.usePoints === true,
+        useCredit: input.useCredit === true,
+      }),
+    );
     const payable = totals.subtotalPaisa - totals.discountPaisa;
     return {
       ...totals,
@@ -158,6 +187,8 @@ export const checkoutService = {
               totals.subtotalPaisa - (totals.isPassDiscount ? 0 : totals.discountPaisa),
             )
           : 0,
+      walletPoints: wallet.points,
+      walletCreditPaisa: wallet.creditPaisa,
       isCodAvailable: isCodAvailable(totals.totalPaisa),
       codLimitPaisa: COD_MAX_TOTAL_PAISA,
     };
@@ -225,7 +256,23 @@ export const checkoutService = {
             now,
           })
         : null;
-      const totals = calculateTotals(lines, tier, discount);
+      const base = calculateTotals(lines, tier, discount);
+      // Points and credit: the member is locked first so two checkouts can't spend the same ones.
+      const balances =
+        input.userId && (input.usePoints || input.useCredit)
+          ? await walletService.lockedBalances(tx, input.userId, now)
+          : { points: 0, creditPaisa: 0 };
+      const totals = applyWalletToTotals(
+        base,
+        walletApplication({
+          goodsPayablePaisa: base.subtotalPaisa - base.discountPaisa,
+          totalBeforeWalletPaisa: base.totalPaisa,
+          pointsBalance: balances.points,
+          creditBalancePaisa: balances.creditPaisa,
+          usePoints: input.usePoints === true,
+          useCredit: input.useCredit === true,
+        }),
+      );
       if (input.paymentMethod === "COD" && !isCodAvailable(totals.totalPaisa)) {
         throw new AppError("VALIDATION_FAILED", "Cash on delivery isn't available for this order total.", {
           fields: { paymentMethod: "Choose eSewa or Khalti for this order" },
@@ -255,6 +302,8 @@ export const checkoutService = {
           subtotalPaisa: totals.subtotalPaisa,
           shippingPaisa: totals.shippingPaisa,
           discountPaisa: totals.discountPaisa,
+          pointsUsed: totals.pointsUsed,
+          creditUsedPaisa: totals.creditUsedPaisa,
           totalPaisa: totals.totalPaisa,
           discountCodeId: discount?.id ?? null,
           discountCode: discount?.code ?? null,
@@ -285,6 +334,17 @@ export const checkoutService = {
         },
         select: { id: true },
       });
+      // Points and credit leave the member's wallet in the same transaction as the order (specs/wallet.md).
+      if (input.userId && (totals.pointsUsed > 0 || totals.creditUsedPaisa > 0)) {
+        await walletService.spendForOrder(tx, {
+          userId: input.userId,
+          orderId: order.id,
+          orderNumber,
+          pointsUsed: totals.pointsUsed,
+          creditUsedPaisa: totals.creditUsedPaisa,
+          now,
+        });
+      }
       if (input.paymentMethod === "COD") {
         const payment = await tx.payment.create({
           data: {
