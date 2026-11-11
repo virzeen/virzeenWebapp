@@ -253,7 +253,7 @@ describe("checkoutService — guest checkout (specs/checkout-v2-week1.md)", () =
     expect(await db.cartItem.count({ where: { cartId: cart.id } })).toBe(0);
   });
 
-  it("gives a guest free delivery from Rs. 4,000 but a member only needs Rs. 3,000", async () => {
+  it("charges a guest delivery below Rs. 9,999 while a member only needs Rs. 3,000", async () => {
     const guest = await guestFixture({ pricePaisa: 350_000 });
     const guestOrder = await checkoutService.placeOrder({
       userId: null,
@@ -316,7 +316,7 @@ describe("checkoutService — guest checkout (specs/checkout-v2-week1.md)", () =
       tier: "GUEST",
       shippingPaisa: 20_000,
       totalPaisa: 270_000,
-      freeDeliveryRemainingPaisa: 150_000,
+      freeDeliveryRemainingPaisa: 749_900,
       memberSavingPaisa: 5_000,
       arrivesBy: "Sep 30", // 48 h dispatch, same day in the valley
     });

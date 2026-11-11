@@ -65,8 +65,8 @@ export const BENEFITS: readonly Benefit[] = [
   {
     id: "free-delivery-from",
     group: "Delivery and dispatch",
-    label: "Free delivery on orders above",
-    guest: "{p:400000}",
+    label: "Free delivery on orders from",
+    guest: "{p:999900}",
     free: "{p:300000}",
     pass: "Every order",
     live: ["GUEST", "FREE"],
@@ -389,10 +389,10 @@ export const BENEFITS: readonly Benefit[] = [
  * cards don't repeat the table.
  */
 export const SHORT_POINTS: Record<MembershipLevel, readonly string[]> = {
-  GUEST: ["Delivery {p:20000}", "Free above {p:400000}", "Ships in 48 hours", "7-day returns"],
+  GUEST: ["Delivery {p:20000}", "Free from {p:999900}", "Ships in 48 hours", "7-day returns"],
   FREE: [
     "Delivery {p:15000}",
-    "Free above {p:300000}",
+    "Free from {p:300000}",
     "Ships in 24 hours",
     "7-day returns",
     "Early access",
@@ -417,12 +417,12 @@ export const SHORT_POINTS: Record<MembershipLevel, readonly string[]> = {
 /** The headline lines per level (the Membership page cards and the portals). */
 export const HEADLINES: Record<MembershipLevel, readonly string[]> = {
   GUEST: [
-    "Delivery {p:20000}, free above {p:400000}",
+    "Delivery {p:20000}, free from {p:999900}",
     "Ships within 48 hours",
     "7-day returns and breakage replacement",
   ],
   FREE: [
-    "Delivery {p:15000}, free above {p:300000}",
+    "Delivery {p:15000}, free from {p:300000}",
     "Ships within 24 hours",
     "Express Delivery within 3 hours in Kathmandu and Pokhara, 1 time a month",
     "12-hour early access to new drops and festival sales",

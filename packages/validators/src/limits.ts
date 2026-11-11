@@ -45,7 +45,7 @@ export function toFavouriteKey(
 export type DeliveryTier = "GUEST" | "MEMBER";
 
 export const DELIVERY_FEES: Record<DeliveryTier, { feePaisa: number; freeFromPaisa: number }> = {
-  GUEST: { feePaisa: 20_000, freeFromPaisa: 400_000 },
+  GUEST: { feePaisa: 20_000, freeFromPaisa: 999_900 },
   MEMBER: { feePaisa: 15_000, freeFromPaisa: 300_000 },
 };
 

@@ -167,7 +167,7 @@ test("a guest checks out without an account and only their browser can open the 
   await expect(page.getByTestId("checkout-delivery")).toHaveText("रु 200");
   await expect(page.getByTestId("checkout-total")).toHaveText("रु 2,650");
   await expect(page.getByTestId("member-nudge")).toContainText("MONO Members save रु 50 on this order.");
-  await expect(page.getByTestId("free-delivery-hint")).toContainText("Add रु 1,550 more for free delivery.");
+  await expect(page.getByTestId("free-delivery-hint")).toContainText("Add रु 7,549 more for free delivery.");
   await expect(page.getByTestId("arrives-by").first()).toContainText("Arrives by");
 
   // A wrong phone number keeps what was typed and says what is wrong.
@@ -212,7 +212,7 @@ test("the bag page shows the free-delivery hint, the member saving and the arriv
   await expect(page.getByTestId("cart-delivery")).toHaveText("रु 200");
   await expect(page.getByTestId("cart-total")).toHaveText("रु 2,650");
   await expect(page.getByTestId("cart-free-delivery-hint")).toHaveText(
-    "Add रु 1,550 more for free delivery.",
+    "Add रु 7,549 more for free delivery.",
   );
   await expect(page.getByTestId("cart-member-line")).toHaveText("MONO Members save रु 50 on this order.");
   await expect(page.getByTestId("cart-arrives-by")).toContainText("Arrives by");

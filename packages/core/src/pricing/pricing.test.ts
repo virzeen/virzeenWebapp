@@ -32,7 +32,7 @@ describe("calculateTotals", () => {
       "GUEST",
     );
     expect(totals.subtotalPaisa).toBe(1_025_000);
-    expect(totals.shippingPaisa).toBe(0); // above Rs. 4,000
+    expect(totals.shippingPaisa).toBe(0); // above Rs. 9,999
     expect(totals.totalPaisa).toBe(1_025_000);
   });
 
@@ -70,9 +70,9 @@ describe("isCodAvailable", () => {
 describe("delivery fees (owner decision 2026-11-11)", () => {
   const line = (rupees: number) => [{ unitPricePaisa: rupees * 100, quantity: 1 }];
 
-  it("charges a guest Rs. 200 below Rs. 4,000 and nothing from Rs. 4,000", () => {
-    expect(deliveryFeeFor("GUEST", 399_999)).toBe(20_000);
-    expect(deliveryFeeFor("GUEST", 400_000)).toBe(0);
+  it("charges a guest Rs. 200 below Rs. 9,999 and nothing from Rs. 9,999", () => {
+    expect(deliveryFeeFor("GUEST", 999_899)).toBe(20_000);
+    expect(deliveryFeeFor("GUEST", 999_900)).toBe(0);
   });
 
   it("charges a member Rs. 150 below Rs. 3,000 and nothing from Rs. 3,000", () => {
@@ -93,10 +93,11 @@ describe("delivery fees (owner decision 2026-11-11)", () => {
   });
 
   it("says how much more makes delivery free, and how much membership saves", () => {
-    expect(remainingForFreeDelivery("GUEST", 280_000)).toBe(120_000);
-    expect(remainingForFreeDelivery("GUEST", 450_000)).toBe(0);
+    expect(remainingForFreeDelivery("GUEST", 280_000)).toBe(719_900);
+    expect(remainingForFreeDelivery("GUEST", 1_050_000)).toBe(0);
     expect(memberDeliverySaving(250_000)).toBe(5_000);
-    expect(memberDeliverySaving(450_000)).toBe(0); // free for everyone
+    expect(memberDeliverySaving(450_000)).toBe(20_000); // guest pays, member free
+    expect(memberDeliverySaving(1_050_000)).toBe(0); // free for everyone
     expect(memberDeliverySaving(350_000)).toBe(20_000); // guest pays, member free
   });
 });

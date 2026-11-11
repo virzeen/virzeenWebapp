@@ -6,7 +6,7 @@
 
 ## Owner decisions (2026-11-11)
 
-1. **Delivery fees replace "shipping folded into price".** Guest Rs. 200 (free from Rs. 4,000); Member Rs. 150 (free from Rs. 3,000). This overrides the 2026-09-28 money rule: payment-policy §2 and `shipping-rates.ts` change, and customers stop seeing "Free shipping". `Product.shippingPaisa` stops being added to prices (the live site has no products yet).
+1. **Delivery fees replace "shipping folded into price".** Guest Rs. 200 (free from Rs. 9,999; raised from 4,000 by the owner on 2026-11-11); Member Rs. 150 (free from Rs. 3,000). This overrides the 2026-09-28 money rule: payment-policy §2 and `shipping-rates.ts` change, and customers stop seeing "Free shipping". `Product.shippingPaisa` stops being added to prices (the live site has no products yet).
 2. **Monochrome Pass: built, switched off** until online payment is live (flag next to `features.esewa`). Week 3 work.
 3. **Scope: Week 1 only.** Weeks 2–4 get their own approval.
 4. **Existing rules stay:** no focus rings, email confirmations only (no SMS/WhatsApp wording), routes adapted to the current `/cart` and `/checkout`.
@@ -20,7 +20,7 @@ A visitor can check out as a guest with no account (name, email, phone, address)
 - [ ] `/checkout` for a signed-out visitor with items shows the choice panel (Member: "Log in / Sign up" → existing `/login?next=/checkout`; Guest: "Guest Checkout"). Signed-in customers never see it. An empty bag redirects to `/cart?notice=empty`.
 - [ ] Guest Checkout opens the delivery step with Email, First/Last name, address (province, district, municipality, ward, tole/street, landmark), phone (10 digits, starts 97 or 98), optional delivery notes. Fields keep their values on error.
 - [ ] A guest can place a COD order. The order stores `userId = null`, the guest's email, the address snapshot, `tier = GUEST`, and the notes.
-- [ ] Delivery fee is computed on the server only: guest 20000 paisa, free when the subtotal (after discount) is Rs. 4,000 or more; member 15000 paisa, free from Rs. 3,000. The fee and total in the summary update when the bag changes.
+- [ ] Delivery fee is computed on the server only: guest 20000 paisa, free when the subtotal (after discount) is Rs. 9,999 or more; member 15000 paisa, free from Rs. 3,000. The fee and total in the summary update when the bag changes.
 - [ ] Summary panel ("In Your Bag"): subtotal, delivery, discount (when a code is applied), total, "Arrives by {date range}", items with image, name, colour, size, quantity, Edit link to `/cart`. On phones it is a top bar "In your bag (n) · Rs. X" that opens the panel.
 - [ ] Bag page: free-delivery hint ("Add Rs. X more for free delivery.", hidden when free), member-saving line ("MONO Members save Rs. X on this order.", hidden when X is 0), "Arrives by" line, sticky Checkout button on phones. Stock hold timer is Week 4.
 - [ ] Guest typing an email that already has an account sees "You have a MONO account. Log in to get member prices." and can continue as guest.
