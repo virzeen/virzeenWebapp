@@ -167,7 +167,8 @@ test("a guest checks out without an account and only their browser can open the 
   await expect(page.getByTestId("checkout-delivery")).toHaveText("रु 200");
   await expect(page.getByTestId("checkout-total")).toHaveText("रु 2,650");
   await expect(page.getByTestId("member-nudge")).toContainText("MONO Members save रु 50 on this order.");
-  await expect(page.getByTestId("free-delivery-hint")).toContainText("Add रु 7,549 more for free delivery.");
+  // The free-delivery hint is on the bag page only, not in checkout.
+  await expect(page.getByTestId("free-delivery-hint")).toHaveCount(0);
   await expect(page.getByTestId("arrives-by").first()).toContainText("Arrives by");
 
   // A wrong phone number keeps what was typed and says what is wrong.

@@ -51,8 +51,8 @@ type OrderSummaryTotalsProps = {
 
 /**
  * Subtotal, delivery, a discount code's line, the total between hairlines, and the VAT it includes (all
- * server-calculated amounts), then the free-delivery hint and, for guests, the member nudge
- * (docs/checkoutfeatures.md §4). Both hints are hidden when they don't apply.
+ * server-calculated amounts), then, for guests, the member nudge (docs/checkoutfeatures.md §4), hidden when it
+ * doesn't apply. The "Add X more for free delivery" hint is on the bag page only (owner 2026-11-11).
  */
 export function OrderSummaryTotals({ totals, totalTestId }: OrderSummaryTotalsProps) {
   return (
@@ -90,11 +90,6 @@ export function OrderSummaryTotals({ totals, totalTestId }: OrderSummaryTotalsPr
       <p className="text-small text-ink-muted">
         Includes <Price paisa={totals.vatPaisa} /> VAT (13%).
       </p>
-      {totals.freeDeliveryRemainingPaisa > 0 && (
-        <p className="text-small text-ink-muted" data-testid="free-delivery-hint">
-          Add <Price paisa={totals.freeDeliveryRemainingPaisa} /> more for free delivery.
-        </p>
-      )}
       {totals.tier === "GUEST" && totals.memberSavingPaisa > 0 && (
         <p className="text-small" data-testid="member-nudge">
           MONO Members save <Price paisa={totals.memberSavingPaisa} /> on this order.{" "}
