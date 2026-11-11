@@ -29,6 +29,7 @@ test("a free MONO Member sees their card, the free benefits and the Pass offer",
 
   // The Pass offer: both plans, and no way to buy it yet.
   const offer = page.getByRole("region", { name: "The Monochrome Pass" });
+  await expect(offer).toContainText("रु 499");
   await expect(offer).toContainText("रु 2,999");
   await expect(offer).toContainText("रु 4,599");
   await expect(offer.getByRole("button", { name: "Pass opens soon" })).toBeDisabled();

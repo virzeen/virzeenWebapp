@@ -1,7 +1,8 @@
-import { Button, ButtonLink, Container, MembershipCard } from "@virzeen/ui";
+import { Button, ButtonLink, Container, MembershipCard, PremiumPanel } from "@virzeen/ui";
 import {
   SHORT_POINTS,
   LEVEL_NAMES,
+  PASS_PER_MONTH_PAISA,
   PASS_PLANS,
   THREE_HOUR_SMALL_PRINT,
   type MembershipLevel,
@@ -64,19 +65,13 @@ export default async function MembershipPage() {
                 </p>
               </div>
               <p className="flex items-baseline gap-2">
-                {entry === "GUEST" ? (
-                  <span className="font-display text-h3">No need to sign up</span>
-                ) : (
-                  <>
-                    <span className="font-display text-h1">Free</span>
-                    <span className="text-small text-ink-muted">to join</span>
-                  </>
-                )}
+                <span className="font-display text-h1">Free</span>
+                {entry === "FREE" && <span className="text-small text-ink-muted">to join</span>}
               </p>
               <LevelAction entry={entry} level={level} signedIn={Boolean(user)} />
               <ul className="grid grid-cols-2 gap-x-4 gap-y-3 border-t border-line pt-6">
                 {SHORT_POINTS[entry].map((point) => (
-                  <li key={point} className="flex items-start gap-2 text-small">
+                  <li key={point} className="flex items-start gap-2 text-small whitespace-nowrap">
                     <Bullet />
                     <span>
                       <BenefitText text={point} />
@@ -88,10 +83,11 @@ export default async function MembershipPage() {
           ))}
         </div>
 
-        <article
+        <PremiumPanel
           aria-labelledby="level-PASS"
           data-current={level === "PASS" || undefined}
-          className="grid gap-8 rounded-xl bg-ink p-8 text-canvas lg:grid-cols-2 lg:gap-16"
+          watermark={<LogoMark className="h-auto w-full" />}
+          className="grid gap-8 lg:grid-cols-2 lg:gap-16"
         >
           <div className="flex flex-col gap-6">
             <div className="flex flex-col gap-2">
@@ -100,35 +96,30 @@ export default async function MembershipPage() {
               </h2>
               <p className="text-small text-canvas/70">The full experience, for loyal customers.</p>
             </div>
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-2">
               <p className="flex items-baseline gap-2">
-                <Price paisa={PASS_PLANS[0].pricePaisa} className="font-display text-h1" />
-                <span className="text-small text-canvas/70">/ 6 months</span>
+                <Price paisa={PASS_PER_MONTH_PAISA} className="font-display text-h1" />
+                <span className="text-small text-canvas/70">/ month</span>
               </p>
-              <p className="flex items-baseline gap-2 text-canvas/80">
-                <Price paisa={PASS_PLANS[1].pricePaisa} className="text-body-lg" />
-                <span className="text-small text-canvas/70">/ year</span>
+              <p className="text-small text-canvas/70">
+                Bought for 6 months (<Price paisa={PASS_PLANS[0].pricePaisa} />) or 1 year (
+                <Price paisa={PASS_PLANS[1].pricePaisa} />
+                ), never month to month.
               </p>
             </div>
             <LevelAction entry="PASS" level={level} signedIn={Boolean(user)} />
           </div>
-          <div className="flex flex-col gap-4">
-            <p className="flex items-center gap-2 self-start text-small text-canvas/80 lg:self-end">
-              <span aria-hidden className="size-2 rounded-full bg-success" />
-              Opens soon
-            </p>
-            <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {SHORT_POINTS.PASS.map((point) => (
-                <li key={point} className="flex items-start gap-2 text-small">
-                  <Bullet onDark />
-                  <span>
-                    <BenefitText text={point} />
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </article>
+          <ul className="grid grid-cols-1 content-center gap-3 sm:grid-cols-2">
+            {SHORT_POINTS.PASS.map((point) => (
+              <li key={point} className="flex items-start gap-2 text-small whitespace-nowrap">
+                <Bullet onDark />
+                <span>
+                  <BenefitText text={point} />
+                </span>
+              </li>
+            ))}
+          </ul>
+        </PremiumPanel>
       </section>
 
       {level === "PASS" && user && (

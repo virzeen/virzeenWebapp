@@ -7,7 +7,7 @@ description: Visually and functionally verify Virzeen UI changes in a real brows
 
 Written tests prove logic; this proves the screen actually works and looks right.
 
-1. Make sure the dev server is running at `http://localhost:3000` (start `pnpm dev` if not).
+1. **Never use port 3000: it is the owner's dev server.** Start your own on port 3200 (`pnpm --filter @virzeen/web exec next dev --port 3200`, in the background), browse `http://localhost:3200`, and stop it when you finish. (Ports 3100 and 4010 are the e2e suite's.)
 2. For each page or flow you changed:
    a. Navigate to it with the Playwright MCP.
    b. Take an accessibility snapshot. Check headings are in order, buttons/inputs have names, images have alt text.

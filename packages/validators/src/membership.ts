@@ -17,6 +17,12 @@ export const PASS_PLANS = [
   { months: 12, pricePaisa: 459_900, label: "1 year" },
 ] as const;
 
+/**
+ * The Pass is shown as Rs 499 a month (owner 2026-11-11) but sold only as 6 months or a year, never month to month.
+ * Display only: the charge is a plan's `pricePaisa`.
+ */
+export const PASS_PER_MONTH_PAISA = 49_900;
+
 export type BenefitGroup =
   | "Delivery and dispatch"
   | "Savings and rewards"
@@ -388,20 +394,21 @@ export const SHORT_POINTS: Record<MembershipLevel, readonly string[]> = {
     "Delivery {p:15000}",
     "Free above {p:300000}",
     "Ships in 24 hours",
+    "7-day returns",
     "Early access",
-    "Points on orders",
     "Birthday coupon",
-    "Express Delivery 1 a month",
+    "Express Delivery",
     "Refer a friend",
   ],
   PASS: [
     "Free delivery",
     "10% off everything",
-    "Express Delivery 3 a month",
-    "48-hour early access",
+    "Express Delivery",
+    "48h early access",
     "Member-only pieces",
-    "Free gift wrapping",
-    "15-day returns, free pickup",
+    "Free gift wrap",
+    "15-day returns",
+    "Free pickup",
     "Priority support",
     "Pause anytime",
   ],

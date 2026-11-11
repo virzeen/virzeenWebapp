@@ -108,6 +108,30 @@
   --animate-nudge-in-left: nudge-in-left 250ms cubic-bezier(0.2, 0, 0, 1);
   /* A wrong one-time code (CodeInput): a short, damped side-to-side shake, played once. Use with motion-safe:. */
   --animate-shake: shake 400ms cubic-bezier(0.2, 0, 0, 1);
+  /* The Monochrome Pass panel (PremiumPanel): a soft band of light sweeping across, and a border that glows and fades.
+     Use with motion-safe:. */
+  --animate-shine-sweep: shine-sweep 7s ease-in-out infinite;
+  --animate-shine-border: shine-border 3.5s ease-in-out infinite;
+
+  @keyframes shine-sweep {
+    0%,
+    30% {
+      transform: translateX(-120%) skewX(-12deg);
+    }
+    80%,
+    100% {
+      transform: translateX(380%) skewX(-12deg);
+    }
+  }
+  @keyframes shine-border {
+    0%,
+    100% {
+      opacity: 0.2;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
 
   @keyframes spin {
     to {

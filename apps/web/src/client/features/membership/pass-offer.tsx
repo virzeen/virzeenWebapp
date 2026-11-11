@@ -1,5 +1,5 @@
 import { Button, MembershipCard } from "@virzeen/ui";
-import { SHORT_POINTS, PASS_PLANS } from "@virzeen/validators/membership";
+import { PASS_PER_MONTH_PAISA, PASS_PLANS, SHORT_POINTS } from "@virzeen/validators/membership";
 import { LogoMark } from "@/client/components/layout/logo-mark";
 import { Price } from "@/client/components/shared/price";
 import { BenefitText } from "./benefit-text";
@@ -39,6 +39,10 @@ export function PassOffer({ name }: { name: string }) {
               </li>
             ))}
           </ul>
+          <p className="flex items-baseline gap-2">
+            <Price paisa={PASS_PER_MONTH_PAISA} className="font-display text-h1" />
+            <span className="text-small text-ink-muted">/ month</span>
+          </p>
           <ul className="grid gap-3 sm:grid-cols-2">
             {PASS_PLANS.map((plan) => (
               <li key={plan.months} className="flex flex-col gap-1 rounded-md border border-line p-4">
@@ -51,7 +55,8 @@ export function PassOffer({ name }: { name: string }) {
             Pass opens soon
           </Button>
           <p className="text-small text-ink-muted">
-            The Pass is bought inside your MONO Member account, with online payment, and opens soon.
+            Bought for 6 months or 1 year, never month to month. The Pass is bought inside your MONO Member
+            account, with online payment, and opens soon.
           </p>
         </div>
       </div>
