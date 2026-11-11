@@ -15,6 +15,6 @@ Payment bugs lose money or ship unpaid goods, so this path is slower on purpose.
    - amount conversion (paisa ↔ rupees) happens only inside the adapter,
    - every status change goes through `order-state.ts`,
    - writes are conditional (idempotent) and inside a transaction.
-6. Run tests, then run the `security-reviewer` agent on the diff and resolve its findings.
+6. Run tests, then go through `docs/reviews/security-review.md` yourself on the diff (never a subagent) and resolve the findings.
 7. Mark the PR "needs owner review". Never self-merge payment changes.
 8. Update `docs/STATUS.md`.
