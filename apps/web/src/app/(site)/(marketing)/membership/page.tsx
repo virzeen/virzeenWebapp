@@ -21,8 +21,6 @@ export const metadata: Metadata = {
   alternates: { canonical: "/membership" },
 };
 
-const LEVELS: readonly MembershipLevel[] = ["GUEST", "FREE", "PASS"];
-
 /**
  * The three levels (docs/specs/membership-portal.md): Guest, MONO Member (free) and the Monochrome Pass, with the
  * viewer's own level marked. The Pass is bought inside a MONO Member account; guests are asked to log in, and members
@@ -41,34 +39,81 @@ export default async function MembershipPage() {
         </p>
       </header>
 
-      <section aria-label="The three levels" className="grid gap-6 lg:grid-cols-3">
-        {LEVELS.map((entry) => (
-          <article
-            key={entry}
-            aria-labelledby={`level-${entry}`}
-            data-current={entry === level || undefined}
-            className={`flex flex-col gap-6 rounded-md p-8 ${
-              entry === "PASS" ? "bg-ink text-canvas" : "border border-line"
-            }`}
-          >
-            <div className="flex flex-col gap-2">
-              <h2 id={`level-${entry}`} className="font-display text-h2">
-                {LEVEL_NAMES[entry]}
-              </h2>
-              <p className={entry === "PASS" ? "text-canvas/80" : "text-ink-muted"}>
-                {entry === "GUEST" && "Shop freely, no account needed."}
-                {entry === "FREE" && "Your space in the Monochrome world. It is free."}
-                {entry === "PASS" && "The full experience."}
-              </p>
-              {entry === "PASS" && (
-                <p className="text-body-lg">
-                  <Price paisa={PASS_PLANS[0].pricePaisa} /> for 6 months ·{" "}
-                  <Price paisa={PASS_PLANS[1].pricePaisa} /> for a year
+      {/* Pricing-card layout (owner reference 2026-11-11): name, a small line under it, the price big, the button, then the
+          benefits. Guest and MONO Member side by side; the Pass is the wide black card under them. */}
+      <section aria-label="The three levels" className="mx-auto flex w-full max-w-4xl flex-col gap-6">
+        <div className="grid gap-6 md:grid-cols-2">
+          {(["GUEST", "FREE"] as const).map((entry) => (
+            <article
+              key={entry}
+              aria-labelledby={`level-${entry}`}
+              data-current={entry === level || undefined}
+              className="flex flex-col gap-6 rounded-xl border border-line p-8"
+            >
+              <div className="flex flex-col gap-2">
+                <h2 id={`level-${entry}`} className="font-display text-h2">
+                  {LEVEL_NAMES[entry]}
+                </h2>
+                <p className="text-small text-ink-muted">
+                  {entry === "GUEST"
+                    ? "Shop freely, no account needed."
+                    : "Your space in the Monochrome world."}
                 </p>
-              )}
+              </div>
+              <p className="flex items-baseline gap-2">
+                <span className="font-display text-h1">Free</span>
+                <span className="text-small text-ink-muted">
+                  {entry === "GUEST" ? "no sign-up" : "to join"}
+                </span>
+              </p>
+              <LevelAction entry={entry} level={level} signedIn={Boolean(user)} />
+              <ul className="flex flex-col gap-3 border-t border-line pt-6">
+                {HEADLINES[entry].map((line) => (
+                  <li key={line} className="flex gap-3 text-body">
+                    <Check className="mt-1 size-5 shrink-0" strokeWidth={1.5} aria-hidden />
+                    <span>
+                      <BenefitText text={line} />
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </article>
+          ))}
+        </div>
+
+        <article
+          aria-labelledby="level-PASS"
+          data-current={level === "PASS" || undefined}
+          className="grid gap-8 rounded-xl bg-ink p-8 text-canvas lg:grid-cols-2 lg:gap-16"
+        >
+          <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-2">
+              <h2 id="level-PASS" className="font-display text-h2">
+                {LEVEL_NAMES.PASS}
+              </h2>
+              <p className="text-small text-canvas/70">
+                The full experience. Free delivery, 10% off and Express Delivery.
+              </p>
             </div>
-            <ul className="flex flex-1 flex-col gap-3">
-              {HEADLINES[entry].map((line) => (
+            <div className="flex flex-col gap-1">
+              <p className="flex items-baseline gap-2">
+                <Price paisa={PASS_PLANS[0].pricePaisa} className="font-display text-h1" />
+                <span className="text-small text-canvas/70">/ 6 months</span>
+              </p>
+              <p className="flex items-baseline gap-2 text-canvas/80">
+                <Price paisa={PASS_PLANS[1].pricePaisa} className="text-body-lg" />
+                <span className="text-small text-canvas/70">/ year</span>
+              </p>
+            </div>
+            <LevelAction entry="PASS" level={level} signedIn={Boolean(user)} />
+          </div>
+          <div className="flex flex-col gap-4">
+            <p className="flex items-center gap-2 self-start text-small text-canvas/80 lg:self-end">
+              <span aria-hidden className="size-2 rounded-full bg-success" />
+              Opens soon
+            </p>
+            <ul className="flex flex-col gap-3">
+              {HEADLINES.PASS.map((line) => (
                 <li key={line} className="flex gap-3 text-body">
                   <Check className="mt-1 size-5 shrink-0" strokeWidth={1.5} aria-hidden />
                   <span>
@@ -77,9 +122,8 @@ export default async function MembershipPage() {
                 </li>
               ))}
             </ul>
-            <LevelAction entry={entry} level={level} signedIn={Boolean(user)} />
-          </article>
-        ))}
+          </div>
+        </article>
       </section>
 
       {level === "PASS" && user && (
