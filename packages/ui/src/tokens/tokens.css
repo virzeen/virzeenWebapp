@@ -29,6 +29,9 @@
   --font-display: var(--font-display-loaded), "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-text: var(--font-text-loaded), "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  /* The rupee sign "रु" in prices: a heavy Devanagari face (owner 2026-11-11), with the system ones as fallback. */
+  --font-rupee:
+    var(--font-rupee-loaded), "Nirmala UI", "Noto Sans Devanagari", "Kohinoor Devanagari", sans-serif;
 
   /* Sizes, line heights and weights as nike.com's (owner 2026-11-10, measured on its UK store; our own typefaces
      stay): display 40px → 76px (hero titles), h1 32/38 (section titles), h2 24/29 (page and card titles), h3 20/24
@@ -239,6 +242,15 @@
   @media (width >= 60rem) {
     width: calc((100% - 2 * var(--spacing-product-gap)) / 3);
   }
+}
+
+/* The rupee sign "रु" in prices (owner 2026-11-11: bold, then "a bit bigger", then "a bit lighter"): Devanagari Bold at 1.2em of the
+   amount's own size, so it grows and shrinks with the price; line-height 0 keeps rows from getting taller. */
+@utility rupee-sign {
+  font-family: var(--font-rupee);
+  font-weight: 700;
+  font-size: 1.2em;
+  line-height: 0;
 }
 
 @utility tone-inverse {

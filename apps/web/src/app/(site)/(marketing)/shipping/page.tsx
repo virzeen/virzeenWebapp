@@ -1,4 +1,6 @@
+import { DELIVERY_FEES } from "@virzeen/validators/limits";
 import type { Metadata } from "next";
+import { Price } from "@/client/components/shared/price";
 import { ContentHeading, ContentPage } from "@/client/components/shared/content-page";
 
 export const metadata: Metadata = {
@@ -12,9 +14,11 @@ export default function ShippingPage() {
   return (
     <ContentPage eyebrow="Help" title="Shipping">
       <p>
-        Delivery across Nepal costs Rs 200 for guest orders and Rs 150 for MONO Members (a free account). It
-        is free on guest orders of Rs 4,000 or more and on member orders of Rs 3,000 or more. The fee is shown
-        before you place the order.
+        Delivery across Nepal costs <Price paisa={DELIVERY_FEES.GUEST.feePaisa} /> for guest orders and{" "}
+        <Price paisa={DELIVERY_FEES.MEMBER.feePaisa} /> for MONO Members (a free account). It is free on guest
+        orders of <Price paisa={DELIVERY_FEES.GUEST.freeFromPaisa} /> or more and on member orders of{" "}
+        <Price paisa={DELIVERY_FEES.MEMBER.freeFromPaisa} /> or more. The fee is shown before you place the
+        order.
       </p>
       <ContentHeading>Delivery times</ContentHeading>
       <p>

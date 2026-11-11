@@ -2,7 +2,6 @@ import { DELIVERY_FEES } from "@virzeen/core";
 import { Container } from "@virzeen/ui";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { formatPaisa } from "@/client/components/shared/price";
 import { CheckoutChoice } from "@/client/features/checkout/checkout-choice";
 import { CheckoutForm } from "@/client/features/checkout/checkout-form";
 import { getCartOwner, getUser } from "@/server/auth/session";
@@ -27,7 +26,7 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Sea
   if (!user && !asGuest) {
     return (
       <Container className="py-8 lg:py-12">
-        <CheckoutChoice memberFreeFrom={formatPaisa(DELIVERY_FEES.MEMBER.freeFromPaisa)} />
+        <CheckoutChoice memberFreeFromPaisa={DELIVERY_FEES.MEMBER.freeFromPaisa} />
       </Container>
     );
   }

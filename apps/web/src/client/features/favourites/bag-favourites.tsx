@@ -52,8 +52,9 @@ export function useFavouritesPreview(account: FavouritesPreview | null): Favouri
 }
 
 /**
- * "Favourites" under the bag, like Nike's: up to two cards side by side from md (the photo on the left; the name and
- * price, "Category · Style" and the bag pill on the right), then "View more favourites" when there are more.
+ * "Favourites" under the bag: a row of cards (owner request 2026-11-11, replacing the photo-left, text-right layout):
+ * 2 a row on phones, 4 from md, each with the photo on top, then the name with the price, "Category · Style" and the
+ * bag pill. "View more favourites" follows when there are more.
  */
 export function BagFavourites({ preview }: { preview: FavouritesPreview }) {
   const headingId = useId();
@@ -62,7 +63,7 @@ export function BagFavourites({ preview }: { preview: FavouritesPreview }) {
       <h2 id={headingId} className="font-display text-h2">
         Favourites
       </h2>
-      <ul className="grid grid-cols-1 gap-8 md:grid-cols-2 md:gap-6">
+      <ul className="grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-4 md:gap-x-6">
         {preview.items.map((item) => (
           <BagFavourite key={keyOf(item)} item={item} />
         ))}
@@ -78,16 +79,16 @@ export function BagFavourites({ preview }: { preview: FavouritesPreview }) {
   );
 }
 
-/** One favourite laid out like a bag line: the photo, then the name with the price, the details and the pill. */
+/** One favourite as a card in the row: the photo on top, then the name with the price, the details and the pill. */
 function BagFavourite({ item }: { item: FavouriteView }) {
   const { product } = item;
   return (
-    <li className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 sm:gap-x-6">
-      <Link href={favouriteHref(item)} variant="subtle" className="w-28 sm:w-36 lg:w-40">
-        <CloudImage src={product.imageUrl} alt={product.imageAlt} sizes="(min-width: 1024px) 160px, 144px" />
+    <li className="flex min-w-0 flex-col gap-3">
+      <Link href={favouriteHref(item)} variant="subtle" className="block w-full">
+        <CloudImage src={product.imageUrl} alt={product.imageAlt} sizes="(min-width: 768px) 25vw, 50vw" />
       </Link>
       <div className="flex flex-col gap-1">
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col items-start gap-1 md:flex-row md:justify-between md:gap-4">
           {/* A long one-word name ("Monochromium") breaks instead of running into the price at 320px. */}
           <Link
             href={favouriteHref(item)}

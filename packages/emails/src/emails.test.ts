@@ -4,9 +4,9 @@ import { formatPaisa, renderBackInStockEmail, renderOrderConfirmationEmail, rend
 
 describe("formatPaisa", () => {
   it("formats paisa as rupees with Indian grouping", () => {
-    expect(formatPaisa(125_000)).toBe("Rs 1,250");
-    expect(formatPaisa(12_500_000)).toBe("Rs 1,25,000");
-    expect(formatPaisa(125_050)).toBe("Rs 1,250.50");
+    expect(formatPaisa(125_000)).toBe("रु 1,250");
+    expect(formatPaisa(12_500_000)).toBe("रु 1,25,000");
+    expect(formatPaisa(125_050)).toBe("रु 1,250.50");
   });
 });
 
@@ -106,7 +106,7 @@ describe("renderOrderConfirmationEmail", () => {
     });
     expect(email.subject).toBe("Order VZ-260928-0042 confirmed");
     expect(email.text).toContain("Linen Overshirt");
-    expect(email.text).toContain("Rs 4,600");
+    expect(email.text).toContain("रु 4,600");
     expect(email.html).toContain("28 Sep 2026");
     // Order emails carry a Reply-To (sales@), so they invite replies; same frame as every email.
     expect(email.text).toContain("Questions? Reply to this email");
@@ -148,7 +148,7 @@ describe("renderOrderConfirmationEmail", () => {
       },
     });
     expect(email.text).toMatch(
-      /Delivery[\s\S]*Discount \(WELCOME10\)[\s\S]*−Rs 450[\s\S]*Total[\s\S]*Rs 4,050/,
+      /Delivery[\s\S]*Discount \(WELCOME10\)[\s\S]*−रु 450[\s\S]*Total[\s\S]*रु 4,050/,
     );
   });
 });

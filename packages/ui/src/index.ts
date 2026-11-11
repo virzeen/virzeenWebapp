@@ -26,6 +26,7 @@ export {
 } from "./primitives/disclosure";
 export { EmptyState, type EmptyStateProps } from "./primitives/empty-state";
 export { FormField, useFormFieldControl, type FormFieldProps } from "./primitives/form-field";
+export { FloatingInput, type FloatingInputProps } from "./primitives/floating-input";
 export { Input, Textarea, type InputProps, type TextareaProps } from "./primitives/input";
 export { CodeInput, type CodeInputProps } from "./primitives/code-input";
 export {

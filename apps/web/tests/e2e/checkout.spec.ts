@@ -38,8 +38,8 @@ test("a discount code takes money off at checkout and stays on the order", async
   await page.goto("/login?next=/checkout");
   await completeEmailSignIn(page, uniqueEmail("discount"));
   await checkoutWith(page, /Cash on delivery/, { continueToReview: false });
-  // Rs 2,450 is under the member free-delivery line (Rs 3,000), so Rs 150 delivery is added.
-  await expect(page.getByTestId("checkout-total")).toHaveText("Rs 2,600");
+  // रु 2,450 is under the member free-delivery line (रु 3,000), so रु 150 delivery is added.
+  await expect(page.getByTestId("checkout-total")).toHaveText("रु 2,600");
 
   await page.getByRole("button", { name: "Add a discount code" }).click();
   const field = page.getByLabel("Discount code");
@@ -47,29 +47,29 @@ test("a discount code takes money off at checkout and stays on the order", async
   await field.fill("nope");
   await page.getByRole("button", { name: "Apply" }).click();
   await expect(page.getByText("This code isn't valid.")).toBeVisible();
-  await expect(page.getByTestId("checkout-total")).toHaveText("Rs 2,600");
+  await expect(page.getByTestId("checkout-total")).toHaveText("रु 2,600");
 
-  // Any case works; the server works out 10% of Rs 2,450, rounded down to whole rupees.
+  // Any case works; the server works out 10% of रु 2,450, rounded down to whole rupees.
   await field.fill(" e2e-welcome10 ");
   await field.press("Enter");
   await expect(page.getByTestId("discount-applied")).toHaveText("E2E-WELCOME10 applied");
-  await expect(page.getByTestId("checkout-discount")).toHaveText("−Rs 245");
-  await expect(page.getByTestId("checkout-total")).toHaveText("Rs 2,355");
+  await expect(page.getByTestId("checkout-discount")).toHaveText("−रु 245");
+  await expect(page.getByTestId("checkout-total")).toHaveText("रु 2,355");
 
   // Remove takes it off; applying it again puts it back.
   await page.getByRole("button", { name: "Remove discount code E2E-WELCOME10" }).click();
-  await expect(page.getByTestId("checkout-total")).toHaveText("Rs 2,600");
+  await expect(page.getByTestId("checkout-total")).toHaveText("रु 2,600");
   await page.getByRole("button", { name: "Add a discount code" }).click();
   await page.getByLabel("Discount code").fill("E2E-WELCOME10");
   await page.getByRole("button", { name: "Apply" }).click();
-  await expect(page.getByTestId("checkout-total")).toHaveText("Rs 2,355");
+  await expect(page.getByTestId("checkout-total")).toHaveText("रु 2,355");
 
   await page.getByTestId("payment-continue").click();
   await page.getByRole("button", { name: "Place order" }).click();
   await expect(page).toHaveURL(/\/checkout\/success\?order=VZ-\d{6}-\d{4}/);
   const discountLine = page.getByTestId("order-discount");
   await expect(discountLine).toContainText("Discount (E2E-WELCOME10)");
-  await expect(discountLine).toContainText("−Rs 245");
+  await expect(discountLine).toContainText("−रु 245");
 });
 
 test("a signed-out visitor chooses how to check out; Member goes to sign-in and the bag is merged", async ({
@@ -77,9 +77,12 @@ test("a signed-out visitor chooses how to check out; Member goes to sign-in and 
 }) => {
   await addToBag(page, "structured-tote");
   await page.goto("/checkout");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Choose how you would like to check out");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Choose Your Preferred Checkout Experience",
+  );
   await expect(page.getByTestId("member-panel")).toBeVisible();
   await expect(page.getByTestId("guest-panel")).toBeVisible();
+  await expect(page.getByTestId("choose-signup")).toHaveAttribute("href", "/login?next=%2Fcheckout");
   await page.getByTestId("choose-member").click();
   await expect(page).toHaveURL(/\/login\?next=%2Fcheckout/);
 
@@ -96,9 +99,9 @@ test("checkout with cash on delivery confirms the order and shows it in the acco
   await completeEmailSignIn(page, email);
   await checkoutWith(page, /Cash on delivery/);
 
-  // A member pays Rs 150 delivery under Rs 3,000 (docs/specs/checkout-v2-week1.md).
-  await expect(page.getByTestId("checkout-delivery")).toHaveText("Rs 150");
-  await expect(page.getByTestId("checkout-total")).toHaveText("Rs 2,600");
+  // A member pays रु 150 delivery under रु 3,000 (docs/specs/checkout-v2-week1.md).
+  await expect(page.getByTestId("checkout-delivery")).toHaveText("रु 150");
+  await expect(page.getByTestId("checkout-total")).toHaveText("रु 2,600");
   await page.getByRole("button", { name: "Place order" }).click();
 
   await expect(page).toHaveURL(/\/checkout\/success\?order=VZ-\d{6}-\d{4}/);
@@ -165,11 +168,11 @@ test("a guest checks out without an account and only their browser can open the 
   await page.getByTestId("choose-guest").click();
   await expect(page).toHaveURL(/\/checkout\?as=guest$/);
 
-  // Rs 2,450 + Rs 200 guest delivery; members would pay Rs 150, so the nudge shows the Rs 50 saving.
-  await expect(page.getByTestId("checkout-delivery")).toHaveText("Rs 200");
-  await expect(page.getByTestId("checkout-total")).toHaveText("Rs 2,650");
-  await expect(page.getByTestId("member-nudge")).toContainText("MONO Members save Rs 50 on this order.");
-  await expect(page.getByTestId("free-delivery-hint")).toContainText("Add Rs 1,550 more for free delivery.");
+  // रु 2,450 + रु 200 guest delivery; members would pay रु 150, so the nudge shows the रु 50 saving.
+  await expect(page.getByTestId("checkout-delivery")).toHaveText("रु 200");
+  await expect(page.getByTestId("checkout-total")).toHaveText("रु 2,650");
+  await expect(page.getByTestId("member-nudge")).toContainText("MONO Members save रु 50 on this order.");
+  await expect(page.getByTestId("free-delivery-hint")).toContainText("Add रु 1,550 more for free delivery.");
   await expect(page.getByTestId("arrives-by").first()).toContainText("Arrives by");
 
   // A wrong phone number keeps what was typed and says what is wrong.
@@ -212,11 +215,29 @@ test("the bag page shows the free-delivery hint, the member saving and the arriv
 }) => {
   await addToBag(page, "monochrome-oversized-tee", { color: "Black", size: "M" });
   await page.goto("/cart");
-  await expect(page.getByTestId("cart-delivery")).toHaveText("Rs 200");
-  await expect(page.getByTestId("cart-total")).toHaveText("Rs 2,650");
+  await expect(page.getByTestId("cart-delivery")).toHaveText("रु 200");
+  await expect(page.getByTestId("cart-total")).toHaveText("रु 2,650");
   await expect(page.getByTestId("cart-free-delivery-hint")).toHaveText(
-    "Add Rs 1,550 more for free delivery.",
+    "Add रु 1,550 more for free delivery.",
   );
-  await expect(page.getByTestId("cart-member-line")).toHaveText("MONO Members save Rs 50 on this order.");
+  await expect(page.getByTestId("cart-member-line")).toHaveText("MONO Members save रु 50 on this order.");
   await expect(page.getByTestId("cart-arrives-by")).toContainText("Arrives by");
+  // The old "Free delivery above … Members save more." line is gone (owner request 2026-11-11).
+  await expect(page.getByText(/Members save more/)).toHaveCount(0);
+
+  // A guest chooses right here: Guest Checkout or Member Checkout, a promo row and the sign-in invitation.
+  await expect(page.getByTestId("bag-guest-checkout").first()).toHaveAttribute("href", "/checkout?as=guest");
+  await expect(page.getByTestId("bag-member-checkout").first()).toHaveAttribute(
+    "href",
+    "/login?next=%2Fcheckout",
+  );
+  await expect(page.getByTestId("bag-promo-row")).toContainText("Log in to apply promo code");
+  await expect(page.getByTestId("bag-promo-row")).toContainText("Get instant savings on your order");
+  await expect(page.getByTestId("bag-free-returns")).toContainText("Free returns for MONO Members.");
+  await expect(
+    page.getByTestId("bag-free-returns").getByRole("link", { name: "Learn more" }),
+  ).toHaveAttribute("href", "/returns");
+  await expect(page.getByTestId("bag-favourites-prompt")).toContainText(
+    "Want to view your favourites? Join us or Sign in",
+  );
 });

@@ -204,13 +204,13 @@ test("admin sets up two-factor, builds a product on its page and it appears in t
   const price = page.getByRole("textbox", { name: "Price (Rs)", exact: true });
   await price.fill("1650");
   await price.press("Enter");
-  await expect(page.getByText(/Customers pay Rs 1,650/)).toBeVisible();
+  await expect(page.getByText(/Customers pay रु 1,650/)).toBeVisible();
   await page.getByLabel("Stock, Mountain print, S", { exact: true }).fill("3");
   await page.getByLabel("Stock, Mountain print, S", { exact: true }).press("Tab");
   await expectSaved(page);
   // Back to Black: its own price and stock.
   await page.getByRole("radio", { name: "Black", exact: true }).click();
-  await expect(page.getByText(/Customers pay Rs 1,350/)).toBeVisible();
+  await expect(page.getByText(/Customers pay रु 1,350/)).toBeVisible();
   await expect(page.getByLabel("Stock, Black, M", { exact: true })).toHaveValue("7");
 
   // The product details popup's lists, in the box right under "View product details" (one per line).
@@ -353,7 +353,7 @@ test("admin sets up two-factor, builds a product on its page and it appears in t
   await page.getByRole("link", { name: /E2E Monochrome Beanie/ }).click();
   await expect(page).toHaveURL(/\/product\/e2e-monochrome-beanie/);
   await expect(page.getByRole("heading", { level: 1, name: "E2E Monochrome Beanie" })).toBeVisible();
-  await expect(page.getByText("Rs 1,350").first()).toBeVisible();
+  await expect(page.getByText("रु 1,350").first()).toBeVisible();
   await expect(page.getByText("Colour shown: Black/White")).toBeVisible();
   await expect(page.getByText(/^Style: VZ\d{4,}-101$/)).toBeVisible();
   await expect(page.getByText("Country/Region of origin: China")).toBeVisible();
@@ -383,7 +383,7 @@ test("admin sets up two-factor, builds a product on its page and it appears in t
   await expect(page.getByText("Colour shown: Mountain print")).toBeVisible();
   await expect(page.getByText(/^Style: VZ\d{4,}-102$/)).toBeVisible();
   await expect(page.locator('main img[src*="product-02"]').first()).toBeVisible();
-  await expect(page.getByText("Rs 1,650").first()).toBeVisible();
+  await expect(page.getByText("रु 1,650").first()).toBeVisible();
   // Mountain print M has no stock: struck through but pickable, for "Notify me" (specs/notify-me.md).
   await expect(page.getByRole("radio", { name: "M, sold out", exact: true })).toHaveAttribute(
     "data-unavailable",
@@ -423,7 +423,7 @@ test("admin sets up two-factor, builds a product on its page and it appears in t
   await expect(page.getByText("Discount code saved")).toBeVisible();
   const codeRow = page.getByRole("listitem").filter({ hasText: "E2E-ADMIN15" });
   await expect(codeRow).toContainText("15% off");
-  await expect(codeRow).toContainText("Min Rs 1,000");
+  await expect(codeRow).toContainText("Min रु 1,000");
   await expect(codeRow).toContainText("0 used");
   await expect(codeRow.getByText("Active", { exact: true })).toBeVisible();
   await addCode.getByLabel(/^Code/).fill("E2E-Admin15");

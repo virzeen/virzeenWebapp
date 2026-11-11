@@ -15,7 +15,7 @@ import {
 import type { GuestDetailsInput } from "@virzeen/validators";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { formatPaisa, Price } from "@/client/components/shared/price";
+import { Price } from "@/client/components/shared/price";
 import { AddressForm } from "@/client/features/account/address-form";
 import type { AddressView } from "@/client/features/account/address-book";
 import { useCart } from "@/client/features/cart/cart-provider";
@@ -354,7 +354,11 @@ export function CheckoutForm({
           <AccordionItem
             value="summary"
             headingLevel={2}
-            title={`In your bag (${itemCount}) · ${formatPaisa(totals.totalPaisa)}`}
+            title={
+              <>
+                In your bag ({itemCount}) · <Price paisa={totals.totalPaisa} />
+              </>
+            }
           >
             <Stack gap={6} className="pt-2 text-ink">
               {summaryBody()}

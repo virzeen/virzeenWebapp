@@ -11,7 +11,7 @@ export type FavouritesPreview = { items: FavouriteView[]; total: number };
  * How many favourites the bag page shows, as Nike's does; "View more favourites" leads to the rest. Here, not in a
  * client file, so the bag page (a Server Component) reads the number itself.
  */
-export const BAG_FAVOURITES_SHOWN = 2;
+export const BAG_FAVOURITES_SHOWN = 4;
 
 /** What a favourite's pill button does (specs/favourites.md "Nike layout"). */
 export type BagChoice =

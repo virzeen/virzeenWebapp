@@ -1,12 +1,8 @@
 "use client";
 
-import { Alert, ButtonLink } from "@virzeen/ui";
-import {
-  deliveryFeeFor,
-  DELIVERY_FEES,
-  memberDeliverySaving,
-  remainingForFreeDelivery,
-} from "@virzeen/validators/limits";
+import { Alert, ButtonLink, Link } from "@virzeen/ui";
+import { ChevronRight, PackageCheck, Ticket } from "lucide-react";
+import { deliveryFeeFor, memberDeliverySaving, remainingForFreeDelivery } from "@virzeen/validators/limits";
 import { Fragment, useState } from "react";
 import { Price, ShippingPrice } from "@/client/components/shared/price";
 import { BagFavourites, useFavouritesPreview } from "@/client/features/favourites/bag-favourites";
@@ -45,7 +41,7 @@ export function CartPageContent({ notice, favourites, suggestions, delivery }: C
   const deliveryPaisa = deliveryFeeFor(delivery.tier, cart.subtotalPaisa);
   const toFreeDelivery = remainingForFreeDelivery(delivery.tier, cart.subtotalPaisa);
   const memberSaving = delivery.tier === "GUEST" ? memberDeliverySaving(cart.subtotalPaisa) : 0;
-  const freeFrom = DELIVERY_FEES[delivery.tier].freeFromPaisa;
+  const isGuest = delivery.tier === "GUEST";
 
   const removedNotice = removed && (
     <RemovedLineNotice
@@ -105,6 +101,7 @@ export function CartPageContent({ notice, favourites, suggestions, delivery }: C
               {removed && removed.index >= cart.items.length && <li>{removedNotice}</li>}
             </ul>
           )}
+          {!isEmpty && <FreeReturns />}
         </section>
 
         {!isEmpty && (
@@ -146,25 +143,22 @@ export function CartPageContent({ notice, favourites, suggestions, delivery }: C
                   MONO Members save <Price paisa={memberSaving} /> on this order.
                 </p>
               )}
-              <p>
-                Free delivery above <Price paisa={freeFrom} />.
-                {delivery.tier === "GUEST" ? " Members save more." : ""}
-              </p>
               <p className="text-ink" data-testid="cart-arrives-by">
                 Arrives by {delivery.arrivesBy}
               </p>
             </div>
-            {/* Phones: Checkout is in the bar at the bottom of the screen instead. */}
-            <ButtonLink href="/checkout" size="lg" shape="pill" className="mt-8 hidden w-full md:inline-flex">
-              Checkout
-            </ButtonLink>
+            <PromoRow isGuest={isGuest} />
+            {/* Phones: the checkout buttons are in the bar at the bottom of the screen instead. */}
+            <div className="mt-8 hidden flex-col gap-3 md:flex">
+              <CheckoutButtons isGuest={isGuest} />
+            </div>
             <div
               data-sticky-cta
               className="fixed inset-x-0 bottom-0 z-10 border-t border-line bg-canvas/95 px-4 py-3 backdrop-blur-md md:hidden"
             >
-              <ButtonLink href="/checkout" size="lg" shape="pill" className="w-full">
-                Checkout
-              </ButtonLink>
+              <div className={isGuest ? "grid grid-cols-2 gap-3" : "flex flex-col"}>
+                <CheckoutButtons isGuest={isGuest} />
+              </div>
             </div>
           </aside>
         )}
@@ -184,6 +178,8 @@ function FavouritesOrSuggestions({
 }: Omit<CartPageContentProps, "notice" | "delivery">) {
   const { cart } = useCart();
   const preview = useFavouritesPreview(favourites);
+  // A guest sees the invitation (owner request 2026-11-11, like Nike's): favourites are for signed-in customers here.
+  if (favourites === null) return <GuestFavouritesPrompt />;
   if (!preview) return null;
   if (preview.items.length > 0) return <BagFavourites preview={preview} />;
   const inBag = new Set(cart.items.map((line) => line.productId));
@@ -192,5 +188,103 @@ function FavouritesOrSuggestions({
       title="You might also like"
       products={suggestions.filter((product) => !inBag.has(product.id))}
     />
+  );
+}
+
+/** The bag's buttons: a guest chooses how to check out right here, a member just checks out. */
+function CheckoutButtons({ isGuest }: { isGuest: boolean }) {
+  if (!isGuest) {
+    return (
+      <ButtonLink href="/checkout" size="lg" shape="pill" className="w-full">
+        Checkout
+      </ButtonLink>
+    );
+  }
+  return (
+    <>
+      <ButtonLink
+        href="/checkout?as=guest"
+        size="lg"
+        shape="pill"
+        className="w-full"
+        data-testid="bag-guest-checkout"
+      >
+        Guest Checkout
+      </ButtonLink>
+      <ButtonLink
+        href="/login?next=%2Fcheckout"
+        size="lg"
+        shape="pill"
+        className="w-full"
+        data-testid="bag-member-checkout"
+      >
+        Member Checkout
+      </ButtonLink>
+    </>
+  );
+}
+
+/**
+ * The promo-code row under the totals, like Nike's: a ticket, a title and a line of help, and a chevron. A guest is
+ * invited to log in; a member is taken to checkout, where "Add a discount code" lives in the Payment step.
+ */
+function PromoRow({ isGuest }: { isGuest: boolean }) {
+  return (
+    <Link
+      href={isGuest ? "/login?next=%2Fcart" : "/checkout"}
+      variant="subtle"
+      className="mt-6 flex items-center gap-4 border-y border-line py-4"
+      data-testid="bag-promo-row"
+    >
+      <Ticket className="size-6 shrink-0" strokeWidth={1.5} aria-hidden />
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="text-body font-medium">
+          {isGuest ? "Log in to apply promo code" : "Enter a promo code"}
+        </span>
+        <span className="text-small text-ink-muted">
+          {isGuest ? "Get instant savings on your order" : "Apply it in the Payment step at checkout"}
+        </span>
+      </span>
+      <ChevronRight className="size-5 shrink-0" strokeWidth={1.5} aria-hidden />
+    </Link>
+  );
+}
+
+/** "Free returns for MONO Members. Learn more" between hairlines under the bag lines (owner request 2026-11-11). */
+function FreeReturns() {
+  return (
+    <div
+      className="flex items-center gap-3 border-y border-line py-4 text-body"
+      data-testid="bag-free-returns"
+    >
+      <PackageCheck className="size-6 shrink-0" strokeWidth={1.5} aria-hidden />
+      <p>
+        <span className="font-medium">Free returns for MONO Members.</span>{" "}
+        <Link href="/returns" className="underline underline-offset-4">
+          Learn more
+        </Link>
+      </p>
+    </div>
+  );
+}
+
+/** Under the bag for a guest: "Want to view your favourites? Join us or Sign in". */
+function GuestFavouritesPrompt() {
+  return (
+    <section aria-labelledby="bag-favourites-heading" className="flex flex-col gap-3">
+      <h2 id="bag-favourites-heading" className="font-display text-h2">
+        Favourites
+      </h2>
+      <p className="text-body" data-testid="bag-favourites-prompt">
+        Want to view your favourites?{" "}
+        <Link href="/login?next=%2Fcart" className="underline underline-offset-4">
+          Join us
+        </Link>{" "}
+        or{" "}
+        <Link href="/login?next=%2Fcart" className="underline underline-offset-4">
+          Sign in
+        </Link>
+      </p>
+    </section>
   );
 }

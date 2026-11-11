@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Alert, Button, FormField, Input, Stack } from "@virzeen/ui";
+import { Alert, Button, FloatingInput, Stack } from "@virzeen/ui";
 import { requestOtpSchema, type RequestOtpInput } from "@virzeen/validators";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -57,9 +57,15 @@ export function LoginForm({ next, googleEnabled }: LoginFormProps) {
     <Stack gap={3}>
       {formError && <Alert variant="danger">{formError}</Alert>}
       <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="flex flex-col gap-3">
-        <FormField label="Email" error={errors.email?.message} required>
-          <Input type="email" inputMode="email" autoComplete="email" {...form.register("email")} />
-        </FormField>
+        <FloatingInput
+          label="Email"
+          type="email"
+          inputMode="email"
+          autoComplete="email"
+          required
+          error={errors.email?.message}
+          {...form.register("email")}
+        />
         <Button type="submit" size="lg" shape="pill" loading={isSubmitting}>
           Continue with email
         </Button>
