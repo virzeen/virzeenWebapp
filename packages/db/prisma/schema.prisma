@@ -95,26 +95,38 @@ enum SizeGuideKind {
 // ─────────────────── Accounts (Better Auth tables) ───────────────────
 // Shape required by Better Auth; ids are generated as cuid2 by the auth config.
 
+enum ShoppingPreference {
+  HOME
+  CLOTHING
+  BOTH
+}
+
 model User {
-  id               String       @id
-  name             String
-  email            String       @unique
-  emailVerified    Boolean      @default(false)
-  image            String?
-  role             Role         @default(CUSTOMER)
-  twoFactorEnabled Boolean      @default(false)
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
-  sessions         Session[]
-  accounts         Account[]
-  twoFactors       TwoFactor[]
-  addresses        Address[]
-  favourites       Favourite[]
-  reviews          Review[]
-  stockAlerts      StockAlert[]
-  cart             Cart?
-  orders           Order[]
-  auditLogs        AuditLog[]
+  id                 String              @id
+  name               String
+  email              String              @unique
+  emailVerified      Boolean             @default(false)
+  image              String?
+  role               Role                @default(CUSTOMER)
+  /// Create-account step (specs/sign-in-v2.md): what the member shops for, an optional birthday for the birthday
+  /// reward, the marketing tick (never required) and when they agreed to the terms.
+  shoppingPreference ShoppingPreference?
+  birthday           DateTime?           @db.Date
+  marketingOptIn     Boolean             @default(false)
+  termsAcceptedAt    DateTime?
+  twoFactorEnabled   Boolean             @default(false)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  sessions           Session[]
+  accounts           Account[]
+  twoFactors         TwoFactor[]
+  addresses          Address[]
+  favourites         Favourite[]
+  reviews            Review[]
+  stockAlerts        StockAlert[]
+  cart               Cart?
+  orders             Order[]
+  auditLogs          AuditLog[]
 }
 
 model Session {

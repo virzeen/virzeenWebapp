@@ -1,7 +1,7 @@
 "use client";
 
 import { Link } from "@virzeen/ui";
-import { ChevronRight, House, UserRound } from "lucide-react";
+import { ChevronRight, House, KeyRound, UserRound } from "lucide-react";
 import { usePathname } from "next/navigation";
 
 const SECTIONS = [
@@ -12,6 +12,13 @@ const SECTIONS = [
     paths: ["/account/settings", "/account/settings/details"],
     label: "Account details",
     icon: UserRound,
+  },
+  {
+    href: "/account/settings/password",
+    phoneHref: "/account/settings/password",
+    paths: ["/account/settings/password"],
+    label: "Password",
+    icon: KeyRound,
   },
   {
     href: "/account/addresses",

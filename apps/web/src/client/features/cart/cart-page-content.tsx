@@ -218,7 +218,7 @@ function CheckoutButtons({ isGuest }: { isGuest: boolean }) {
         className="w-full"
         data-testid="bag-member-checkout"
       >
-        Member Checkout
+        MONO Member Checkout
       </ButtonLink>
     </>
   );

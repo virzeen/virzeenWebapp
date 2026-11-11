@@ -291,7 +291,11 @@ The words on badges, in the order timeline and in the admin history (`client/lib
 | Footer, country               | Nepal                                                         |
 | Footer, tagline               | timeless monochromium experience.                             |
 
-## Sign-in code (`/verify`)
+## Sign-in v2 (`/login`, `/verify`, `/signup`)
+
+Specs/sign-in-v2.md. Code page heading: Enter the 6-digit code sent to your email. (the email and an **Edit** link under it; no "we'll sign you in…" line). Buttons: Sign In · Use Password (only when a password is set) · Create Account. Create-account heading: Now let's make you a MONO Member. Password heading: Enter your password. Wrong password: That email and password don't match. Resend is a countdown ("30s") then an icon (aria-label Resend code). Settings → Password: Set password / Change password · Password saved.
+
+## Sign-in code (`/verify`, earlier version)
 
 The code is checked as soon as the sixth digit is in, so the field's helper text says so; it is read out when the field takes focus (specs/sign-in-code.md).
 

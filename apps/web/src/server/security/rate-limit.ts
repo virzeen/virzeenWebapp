@@ -19,6 +19,8 @@ const LIMITS = {
   "checkout:guest-ip": [10, "10 m"],
   "checkout:guest-email": [5, "10 m"],
   "checkout:identify": [10, "1 m"],
+  identify: [10, "1 m"],
+  "login:ip": [20, "10 m"],
   "discount:user": [10, "10 m"],
   "discount:ip": [30, "10 m"],
   "payment:callback": [30, "1 m"],

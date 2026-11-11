@@ -1,6 +1,7 @@
 import { createHmac } from "node:crypto";
 import { expect, type Page } from "@playwright/test";
-import { MAILPIT_URL } from "./env";
+import { createDbClient } from "@virzeen/db";
+import { E2E_DATABASE_URL, MAILPIT_URL } from "./env";
 
 // Shared steps for the journeys. Locators use roles and labels first (testing-strategy.md §4).
 
@@ -35,14 +36,43 @@ export async function readEmail(to: string, subject: RegExp): Promise<string> {
   return text;
 }
 
-/** Signs in with an emailed 6-digit code, starting from the current page's sign-in form. */
+/** Test set-up in the throwaway e2e database: a registered member, so the email check sends the code page. */
+export async function createMember(email: string) {
+  const db = createDbClient(E2E_DATABASE_URL);
+  try {
+    await db.user.create({
+      data: { id: crypto.randomUUID().replace(/-/g, ""), name: "Test Member", email, emailVerified: true },
+    });
+  } finally {
+    await db.$disconnect();
+  }
+}
+
+/**
+ * Signs in with an emailed 6-digit code, starting from the current page's sign-in form. A registered email goes to the
+ * code page (the sign-in goes on by itself at the sixth digit); a new email goes to the create-account page, which
+ * is filled in here and ends on the profile (docs/specs/sign-in-v2.md), after which the page the test was headed to
+ * (`next`) is opened.
+ */
 export async function completeEmailSignIn(page: Page, email: string) {
   await page.getByLabel(/Email/).fill(email);
   await page.getByRole("button", { name: "Continue with email" }).click();
-  await expect(page).toHaveURL(/\/verify/);
+  await expect(page).toHaveURL(/\/(verify|signup)/);
+  const isNew = page.url().includes("/signup");
+  const next = new URL(page.url()).searchParams.get("next") ?? "/account";
   const code = /\b(\d{6})\b/.exec(await readEmail(email, /sign-in code/))?.[1] ?? "";
-  // No button: the code is checked as soon as the sixth digit is in.
   await page.getByLabel(/6-digit code/).fill(code);
+  if (isNew) {
+    await page.getByLabel(/^First Name/).fill("Test");
+    await page.getByLabel(/^Last Name/).fill("Customer");
+    await page.getByRole("combobox", { name: /Shopping Preference/ }).click();
+    await page.getByRole("option", { name: "Clothing" }).click();
+    await page.getByRole("checkbox", { name: /I agree to the/ }).check();
+    await page.getByRole("button", { name: "Create Account" }).click();
+    await expect(page).toHaveURL(/\/account/);
+    if (next !== "/account") await page.goto(next);
+    return;
+  }
   // Wait for the redirect off the sign-in code page (admins go on to /admin/verify for their authenticator):
   // the session cookie is set only once the code is accepted.
   await page.waitForURL((url) => url.pathname !== "/verify");

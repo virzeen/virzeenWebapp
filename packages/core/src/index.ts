@@ -59,6 +59,7 @@ export {
   type PlaceOrderResult,
 } from "./orders/checkout.service";
 export { ORDER_TRANSITIONS, PAYMENT_TRANSITIONS } from "./orders/order-state";
+export { memberService, type SignupProfile } from "./members/member.service";
 export { orderService, type AddressSnapshot, type OrderDetail } from "./orders/orders.service";
 export { paymentService, type VerifyOutcome, type VerifyResult } from "./payments/payment.service";
 export type { CheckoutNext } from "./payments/provider";

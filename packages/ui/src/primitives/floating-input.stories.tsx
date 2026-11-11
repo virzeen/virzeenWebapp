@@ -1,5 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { RefreshCw } from "lucide-react";
 import { expect } from "storybook/test";
+import { Button } from "./button";
 import { FloatingInput } from "./floating-input";
 
 const meta = {
@@ -36,3 +38,35 @@ export const WithError: Story = {
   },
 };
 export const Disabled: Story = { args: { disabled: true, defaultValue: "asha@example.com" } };
+
+/** The sign-in code while the resend countdown runs: the seconds at the end, inside the box. */
+export const WithCountdown: Story = {
+  args: {
+    label: "6-digit code",
+    type: "text",
+    inputMode: "numeric",
+    autoComplete: "one-time-code",
+    endAdornment: <span className="px-2 text-small tabular-nums">9s</span>,
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText("9s")).toBeVisible();
+  },
+};
+
+/** When the countdown ends: a small icon button (always with an `aria-label`) in place of the seconds. */
+export const WithResendIcon: Story = {
+  args: {
+    label: "6-digit code",
+    type: "text",
+    inputMode: "numeric",
+    autoComplete: "one-time-code",
+    endAdornment: (
+      <Button variant="ghost" size="icon" shape="pill" aria-label="Resend code">
+        <RefreshCw className="size-5" strokeWidth={1.5} aria-hidden />
+      </Button>
+    ),
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByRole("button", { name: "Resend code" })).toBeVisible();
+  },
+};
