@@ -1,4 +1,4 @@
-import { Container, Link } from "@virzeen/ui";
+import { Link } from "@virzeen/ui";
 import { emailSchema, safeRedirectSchema } from "@virzeen/validators";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
@@ -15,12 +15,12 @@ export default async function VerifyPage({ searchParams }: { searchParams: Searc
   if (await getUser()) redirect(next);
   if (!email.success) redirect(`/login?next=${encodeURIComponent(next)}`);
   return (
-    <Container width="narrow" className="flex max-w-md flex-col gap-8 py-16 lg:py-24">
+    <>
       <header className="flex flex-col gap-2">
         <h1 className="font-display text-h1">Check your email</h1>
         {/* That the code is checked without a button is the code field's helper text (WCAG 3.2.2). */}
         <p className="text-body text-ink-muted">
-          We sent a 6-digit code to <span className="text-ink">{email.data}</span>. It expires in 10 minutes.
+          Code sent to <span className="text-ink">{email.data}</span>. It expires in 10 minutes.
         </p>
       </header>
       <VerifyForm email={email.data} next={next} />
@@ -31,6 +31,6 @@ export default async function VerifyPage({ searchParams }: { searchParams: Searc
       >
         Use a different email
       </Link>
-    </Container>
+    </>
   );
 }

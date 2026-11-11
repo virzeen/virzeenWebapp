@@ -54,9 +54,9 @@ export function LoginForm({ next, googleEnabled }: LoginFormProps) {
 
   // Email first, Google second, no "or" divider (owner choice 2026-09-28).
   return (
-    <Stack gap={6}>
+    <Stack gap={3}>
       {formError && <Alert variant="danger">{formError}</Alert>}
-      <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="flex flex-col gap-3">
         <FormField label="Email" error={errors.email?.message} required>
           <Input type="email" inputMode="email" autoComplete="email" {...form.register("email")} />
         </FormField>

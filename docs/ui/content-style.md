@@ -285,17 +285,17 @@ The words on badges, in the order timeline and in the admin history (`client/lib
 
 The code is checked as soon as the sixth digit is in, so the field's helper text says so; it is read out when the field takes focus (specs/sign-in-code.md).
 
-| Situation                                  | Text                                                         |
-| ------------------------------------------ | ------------------------------------------------------------ |
-| Intro under "Check your email"             | We sent a 6-digit code to {email}. It expires in 10 minutes. |
-| Helper under the boxes                     | We'll sign you in as soon as all 6 digits are in.            |
-| Checking (status line under the boxes)     | Checking your code…                                          |
-| Accepted (status line)                     | Code accepted. Signing you in…                               |
-| Wrong code (`INVALID_OTP`)                 | That code isn't right. Check it and try again.               |
-| Expired code (`OTP_EXPIRED`)               | That code has expired. Send a new one.                       |
-| Too many wrong codes (`TOO_MANY_ATTEMPTS`) | Too many wrong codes. Send a new code to try again.          |
-| Resend link                                | Send a new code · while it waits: Send a new code in {n}s    |
-| New code sent (toast)                      | We sent a new code                                           |
+| Situation                                  | Text                                                      |
+| ------------------------------------------ | --------------------------------------------------------- |
+| Intro under "Check your email"             | Code sent to {email}. It expires in 10 minutes.           |
+| Helper under the boxes                     | We'll sign you in as soon as all 6 digits are in.         |
+| Checking (status line under the boxes)     | Checking your code…                                       |
+| Accepted (status line)                     | Code accepted. Signing you in…                            |
+| Wrong code (`INVALID_OTP`)                 | That code isn't right. Check it and try again.            |
+| Expired code (`OTP_EXPIRED`)               | That code has expired. Send a new one.                    |
+| Too many wrong codes (`TOO_MANY_ATTEMPTS`) | Too many wrong codes. Send a new code to try again.       |
+| Resend link                                | Send a new code · while it waits: Send a new code in {n}s |
+| New code sent (toast)                      | We sent a new code                                        |
 
 Too many requests and anything unexpected use the standard `RATE_LIMITED` and `INTERNAL` messages, in an `Alert` with "Try again".
 
