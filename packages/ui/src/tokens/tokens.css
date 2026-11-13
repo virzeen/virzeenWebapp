@@ -327,6 +327,18 @@
   }
 }
 
+/* One card's width in a sideways row of member perks (the profile's benefits row, cards `gap-4` apart): 1 card and a
+   peek of the next on phones, 2 from 768px, 3 from 960px. */
+@utility w-perk-slide {
+  width: 85%;
+  @media (width >= 48rem) {
+    width: calc((100% - 1rem) / 2);
+  }
+  @media (width >= 60rem) {
+    width: calc((100% - 2rem) / 3);
+  }
+}
+
 /* The rupee sign "रु" in prices (owner 2026-11-11: bold, then "a bit bigger", then "a bit lighter"): Devanagari Bold at 1.2em of the
    amount's own size, so it grows and shrinks with the price; line-height 0 keeps rows from getting taller. */
 @utility rupee-sign {

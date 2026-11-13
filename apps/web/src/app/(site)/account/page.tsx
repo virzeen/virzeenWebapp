@@ -1,27 +1,30 @@
-import { ButtonLink, EmptyState, Link, MembershipCard } from "@virzeen/ui";
-import { LEVEL_NAMES } from "@virzeen/validators/membership";
+import { ButtonLink, EmptyState, Link } from "@virzeen/ui";
 import { Heart } from "lucide-react";
-import { LogoMark } from "@/client/components/layout/logo-mark";
+import { BenefitImageCard } from "@/client/features/membership/benefit-image-card";
+import { BENEFIT_PAGES } from "@/client/features/membership/benefit-pages";
+import { BenefitsCarousel } from "@/client/features/membership/benefits-carousel";
+import { WalletPanel } from "@/client/features/membership/wallet-panel";
 import { ProductCarousel } from "@/client/features/products/product-carousel";
 import { StockAlertList } from "@/client/features/stock-alerts/stock-alert-list";
-import { formatDate, formatMonthYear } from "@/client/lib/format";
+import { formatMonthYear } from "@/client/lib/format";
 import { requireUserPage } from "@/server/auth/session";
-import { getMyMembership, listMyFavourites, listMyStockAlerts } from "@/server/queries/account";
+import { getMyMembership, getMyWallet, listMyFavourites, listMyStockAlerts } from "@/server/queries/account";
 
 /** How many favourites the profile's row shows; "View all" opens the rest. */
 const FAVOURITES_SHOWN = 12;
 
 /**
  * The profile, like Nike's member page (owner 2026-11-08): a round initial, the name as the h1 with "Member since
- * {month year}", then the customer's favourites as a row of cards with "View all" (one card per product, newest
- * first), then the sizes they asked to hear about ("Notify me", specs/notify-me.md; only when there are some).
+ * {month year}", then the membership (points card and the benefits as a row of cards, owner 2026-11-13), then the
+ * customer's favourites as a row of cards with "View all" (one card per product, newest first), then the sizes they asked to hear about ("Notify me", specs/notify-me.md; only when there are some).
  */
 export default async function ProfilePage() {
   const user = await requireUserPage("/account");
-  const [favourites, alerts, membership] = await Promise.all([
+  const [favourites, alerts, membership, wallet] = await Promise.all([
     listMyFavourites(user.id),
     listMyStockAlerts(user.id),
     getMyMembership(user.id),
+    getMyWallet(user.id),
   ]);
   const isPass = membership.level === "PASS";
   const seen = new Set<string>();
@@ -60,35 +63,19 @@ export default async function ProfilePage() {
         </div>
       </div>
 
-      {/* The member's level (specs/membership-portal.md): the plain card for a free MONO Member, the black one for the Pass. */}
-      <section aria-labelledby="membership-heading" className="flex flex-col gap-8">
-        <h2 id="membership-heading" className="font-display text-h2">
-          {isPass ? LEVEL_NAMES.PASS : LEVEL_NAMES.FREE}
-        </h2>
-        <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
-          <MembershipCard
-            level={isPass ? "pass" : "member"}
-            name={name}
-            title={isPass ? LEVEL_NAMES.PASS : LEVEL_NAMES.FREE}
-            caption={
-              isPass && membership.passEndsAt
-                ? `Valid until ${formatDate(membership.passEndsAt)}`
-                : `Member since ${formatMonthYear(user.createdAt)}`
-            }
-            logo={<LogoMark className="h-8 w-auto" />}
-            role="img"
-            aria-label={`${isPass ? LEVEL_NAMES.PASS : LEVEL_NAMES.FREE} card`}
-          />
-          <div className="flex flex-col items-start gap-4">
-            <ButtonLink href="/account/membership" shape="pill" size="lg">
+      {/* The membership, inside the profile (owner 2026-11-13): the points card, then every benefit as a sideways row. */}
+      <div className="flex flex-col gap-16 lg:gap-24" data-testid="profile-membership">
+        <WalletPanel {...wallet} isPass={isPass} />
+        <BenefitsCarousel
+          title="Membership benefits"
+          items={BENEFIT_PAGES.map((page) => ({ id: page.slug, node: <BenefitImageCard page={page} /> }))}
+          action={
+            <Link href="/account/membership" variant="header">
               Your membership
-            </ButtonLink>
-            <Link href="/membership" variant="header">
-              See every benefit
             </Link>
-          </div>
-        </div>
-      </section>
+          }
+        />
+      </div>
 
       {products.length > 0 ? (
         <ProductCarousel

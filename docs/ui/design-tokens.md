@@ -24,6 +24,8 @@ Rules: text on `canvas`/`surface` uses `ink` or `ink-muted` only. On dark imager
 
 ## 2. Typography
 
+**Perk row width:** the `w-perk-slide` utility (`tokens.css`, owner request 2026-11-14) is one card's width in the profile's sideways row of member benefits: 85% on phones (a peek of the next card), half the row from 768px, a third from 960px, cards `gap-4` apart.
+
 Two families: **display** (headings, brand moments) and **text** (everything else), loaded with `next/font` and exposed as `--font-display` / `--font-text` ◆. Phase-1 placeholders: **Inter Tight** (display) and **Inter** (text), light weights echoing the posters. A third face, **Noto Sans Devanagari SemiBold**, is used only for the rupee sign "रु" in prices (the `rupee-sign` utility: SemiBold 600 at 1.2em of the amount's size, owner requests 2026-11-11), exposed as `--font-rupee`. The wordmark and the V mark are the owner's artwork (`apps/web/public/brand/logo/`, 2026-09-30) drawn as inline SVG in `currentColor` (`client/components/layout/wordmark.tsx`, `logo-mark.tsx`: black on light, white on dark), never set in a web font.
 
 | Token            | Utility        | Size / line-height                                      | Weight                        | Use                                                                                   |
