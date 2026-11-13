@@ -2,6 +2,7 @@ import { Badge, ButtonLink } from "@virzeen/ui";
 import { POINT_VALUE_PAISA } from "@virzeen/validators/limits";
 import { Price } from "@/client/components/shared/price";
 import { formatDate } from "@/client/lib/format";
+import { PointsCoin } from "./points-coin";
 
 type WalletLine = {
   id: string;
@@ -37,13 +38,9 @@ export function WalletPanel({ points, creditPaisa, expiringSoon, history }: Wall
       <h2 id="wallet-heading" className="font-display text-h2">
         Redeem points
       </h2>
-      <div className="relative isolate overflow-hidden rounded-xl border border-line bg-surface p-8 lg:p-12">
-        <span
-          aria-hidden
-          className="pointer-events-none absolute inset-y-0 left-0 -z-10 w-1/3 bg-linear-to-r from-transparent via-canvas/70 to-transparent motion-safe:animate-shine-sweep"
-        />
-        <div className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
-          <div className="flex flex-col gap-3">
+      <div className="overflow-hidden rounded-xl border border-line bg-surface p-8 lg:p-12">
+        <div className="flex flex-col-reverse items-center gap-8 md:flex-row md:items-center md:justify-between">
+          <div className="flex w-full flex-col gap-3">
             <p className="text-caption tracking-widest text-ink-muted uppercase">Your points</p>
             <p
               className="font-display text-display leading-none motion-safe:animate-reveal"
@@ -63,8 +60,6 @@ export function WalletPanel({ points, creditPaisa, expiringSoon, history }: Wall
                 {formatDate(expiringSoon.at)}
               </p>
             )}
-          </div>
-          <div className="flex flex-col items-start gap-4 md:items-end">
             {creditPaisa > 0 && (
               <p className="flex items-baseline gap-2 text-body">
                 <span className="text-ink-muted">Credit</span>
@@ -73,10 +68,11 @@ export function WalletPanel({ points, creditPaisa, expiringSoon, history }: Wall
                 </span>
               </p>
             )}
-            <ButtonLink href="/shop" shape="pill" size="lg">
+            <ButtonLink href="/shop" shape="pill" size="lg" className="mt-3 w-fit">
               Shop and redeem
             </ButtonLink>
           </div>
+          <PointsCoin />
         </div>
       </div>
       {history.length > 0 ? (

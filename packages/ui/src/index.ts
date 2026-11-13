@@ -25,6 +25,7 @@ export {
   VisuallyHidden,
 } from "./primitives/disclosure";
 export { EmptyState, type EmptyStateProps } from "./primitives/empty-state";
+export { CoinStack, type CoinStackProps } from "./primitives/coin-stack";
 export { PremiumPanel, type PremiumPanelProps } from "./primitives/premium-panel";
 export { MembershipCard, type MembershipCardProps } from "./primitives/membership-card";
 export { FormField, useFormFieldControl, type FormFieldProps } from "./primitives/form-field";

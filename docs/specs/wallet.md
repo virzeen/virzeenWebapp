@@ -31,7 +31,7 @@ Spending locks the member's row inside the order transaction, so two checkouts c
 ## Where it shows
 
 - **Checkout, Payment step (members with a balance):** "Use my credit (Rs X available)" and "Use my points (N available)", then "Points (N)" and "Credit" lines in the summary and Order Review, and the lower total. `previewCheckoutAction` and `placeOrderAction` take `usePoints` and `useCredit` (also `/api/v1/checkout`, `docs/backend/api-contract.md`).
-- **`/account/membership`:** balances, points expiring first, and the newest 20 lines.
+- **`/account/membership`:** the "Redeem points" card (the balance, what it is worth, points expiring first, credit when above zero) with the silver Virzeen coin (`CoinStack`: hover or tap spins it, it jumps and lands on a pile of coins; owner 2026-11-13), and the newest 20 lines.
 - **Admin → Customers:** each customer's points and credit, and "Add credit" (credit in whole rupees or points, with a reason; audited as `wallet.add`).
 
 ## Not built
