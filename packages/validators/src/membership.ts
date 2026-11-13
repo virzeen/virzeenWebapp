@@ -224,7 +224,7 @@ export const BENEFITS: readonly Benefit[] = [
     guest: null,
     free: "12 hours early",
     pass: "48 hours early",
-    live: [],
+    live: ["FREE", "PASS"],
   },
   {
     id: "members-only",

@@ -189,6 +189,7 @@ export const adminReads = {
         fromPricePaisa: true,
         updatedAt: true,
         category: { select: { name: true } },
+        publicAt: true,
         images: { select: { url: true, alt: true }, orderBy: { sortOrder: "asc" }, take: 1 },
         variants: { where: { isActive: true }, select: { stock: true } },
       },

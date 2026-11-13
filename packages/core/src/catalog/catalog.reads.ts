@@ -15,10 +15,28 @@ import { searchWhere } from "./search";
 
 export const PAGE_SIZE = 12;
 
+/**
+ * What a shopper may see (specs/member-perks.md, early access): published, not archived, and public: a product with a
+ * `publicAt` still in the future is hidden unless `earlyHours` (12 for a MONO Member, 48 for the Pass) brings it in range.
+ * Uses the top-level `OR` (the shop's search uses `AND`).
+ */
+export function visibleProductWhere(earlyHours = 0, now: Date = new Date()): Prisma.ProductWhereInput {
+  return {
+    isPublished: true,
+    archivedAt: null,
+    category: { archivedAt: null },
+    OR: [{ publicAt: null }, { publicAt: { lte: new Date(now.getTime() + earlyHours * 3_600_000) } }],
+  };
+}
+
+/** The public rule, with the time read each time it is spread into a query (a getter, so it is never stale). */
 export const publishedProductWhere = {
   isPublished: true,
   archivedAt: null,
   category: { archivedAt: null },
+  get OR(): Prisma.ProductWhereInput[] {
+    return [{ publicAt: null }, { publicAt: { lte: new Date() } }];
+  },
 } satisfies Prisma.ProductWhereInput;
 
 export const summarySelect = {
@@ -148,7 +166,7 @@ function orderFor(sort: ShopFilters["sort"]): Prisma.ProductOrderByWithRelationI
 }
 
 /** The shop listing's `where`: published, for sale, and matching the filters and search (cursor and sort aside). */
-function listingWhere(filters: ShopFilters): Prisma.ProductWhereInput {
+function listingWhere(filters: ShopFilters, earlyHours = 0): Prisma.ProductWhereInput {
   const variantFilter: Prisma.ProductVariantWhereInput = {
     isActive: true,
     ...(filters.size ? { size: filters.size } : {}),
@@ -158,7 +176,7 @@ function listingWhere(filters: ShopFilters): Prisma.ProductWhereInput {
   const hasVariantFilter = Boolean(filters.size || filters.color || filters.inStock);
   const search = filters.q ? searchWhere(filters.q) : null;
   return {
-    ...publishedProductWhere,
+    ...visibleProductWhere(earlyHours),
     ...search,
     ...(filters.category ? { category: { slug: filters.category, archivedAt: null } } : {}),
     ...(filters.collection ? { collections: { some: { slug: filters.collection, archivedAt: null } } } : {}),
@@ -168,14 +186,14 @@ function listingWhere(filters: ShopFilters): Prisma.ProductWhereInput {
 
 export const catalogReads = {
   /** How many products the listing holds in all (the "Shop (12)" title), whatever "Load more" has shown. */
-  countProducts(filters: ShopFilters): Promise<number> {
-    return db.product.count({ where: listingWhere(filters) });
+  countProducts(filters: ShopFilters, earlyHours = 0): Promise<number> {
+    return db.product.count({ where: listingWhere(filters, earlyHours) });
   },
 
   /** Shop listing with filters, the search query (specs/search.md) and cursor pagination ("Load more"). */
-  async listProducts(filters: ShopFilters, limit = PAGE_SIZE): Promise<ProductPage> {
+  async listProducts(filters: ShopFilters, limit = PAGE_SIZE, earlyHours = 0): Promise<ProductPage> {
     const rows = await db.product.findMany({
-      where: listingWhere(filters),
+      where: listingWhere(filters, earlyHours),
       select: summarySelect,
       orderBy: orderFor(filters.sort),
       take: limit + 1,
@@ -185,19 +203,39 @@ export const catalogReads = {
     return { items: page, nextCursor: rows.length > limit ? (page.at(-1)?.id ?? null) : null };
   },
 
-  async listByIds(ids: readonly string[]): Promise<ProductSummary[]> {
+  async listByIds(ids: readonly string[], earlyHours = 0): Promise<ProductSummary[]> {
     if (ids.length === 0) return [];
     const rows = await db.product.findMany({
-      where: { ...publishedProductWhere, id: { in: [...ids] } },
+      where: { ...visibleProductWhere(earlyHours), id: { in: [...ids] } },
       select: summarySelect,
     });
     const byId = new Map(rows.map((row) => [row.id, toSummary(row)]));
     return ids.flatMap((id) => byId.get(id) ?? []);
   },
 
-  async listNewArrivals(limit = 8): Promise<ProductSummary[]> {
+  /**
+   * The products a member can already see and buy that the public can't yet (early access, specs/member-perks.md):
+   * public within `earlyHours` from now, soonest first.
+   */
+  async listEarlyAccess(earlyHours: number, limit = 3, now: Date = new Date()) {
+    if (earlyHours <= 0) return [];
+    return db.product.findMany({
+      where: {
+        isPublished: true,
+        archivedAt: null,
+        category: { archivedAt: null },
+        variants: { some: { isActive: true } },
+        publicAt: { gt: now, lte: new Date(now.getTime() + earlyHours * 3_600_000) },
+      },
+      select: { slug: true, name: true, publicAt: true },
+      orderBy: { publicAt: "asc" },
+      take: limit,
+    });
+  },
+
+  async listNewArrivals(limit = 8, earlyHours = 0): Promise<ProductSummary[]> {
     const rows = await db.product.findMany({
-      where: { ...publishedProductWhere, variants: { some: { isActive: true } } },
+      where: { ...visibleProductWhere(earlyHours), variants: { some: { isActive: true } } },
       select: summarySelect,
       orderBy: orderFor("newest"),
       take: limit,
@@ -205,9 +243,9 @@ export const catalogReads = {
     return rows.map(toSummary);
   },
 
-  async getProductBySlug(slug: string) {
+  async getProductBySlug(slug: string, earlyHours = 0) {
     const row = await db.product.findFirst({
-      where: { ...publishedProductWhere, slug },
+      where: { ...visibleProductWhere(earlyHours), slug },
       select: {
         id: true,
         slug: true,
@@ -260,14 +298,16 @@ export const catalogReads = {
     categoryId,
     excludeId,
     limit = 4,
+    earlyHours = 0,
   }: {
     categoryId: string;
     excludeId?: string | undefined;
     limit?: number;
+    earlyHours?: number;
   }): Promise<ProductSummary[]> {
     const rows = await db.product.findMany({
       where: {
-        ...publishedProductWhere,
+        ...visibleProductWhere(earlyHours),
         categoryId,
         ...(excludeId ? { id: { not: excludeId } } : {}),
         variants: { some: { isActive: true } },
@@ -288,16 +328,18 @@ export const catalogReads = {
     categoryId,
     excludeId,
     limit = 8,
+    earlyHours = 0,
   }: {
     categoryId: string;
     excludeId?: string | undefined;
     limit?: number;
+    earlyHours?: number;
   }): Promise<ProductRecommendations> {
     const [sameCategory, otherRows] = await Promise.all([
-      catalogReads.listRelatedByCategory({ categoryId, excludeId, limit }),
+      catalogReads.listRelatedByCategory({ categoryId, excludeId, limit, earlyHours }),
       db.product.findMany({
         where: {
-          ...publishedProductWhere,
+          ...visibleProductWhere(earlyHours),
           categoryId: { not: categoryId },
           ...(excludeId ? { id: { not: excludeId } } : {}),
           variants: { some: { isActive: true } },

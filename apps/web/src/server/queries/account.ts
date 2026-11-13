@@ -2,6 +2,7 @@ import "server-only";
 import "@/server/bootstrap";
 import {
   addressService,
+  catalogReads,
   walletService,
   favouriteService,
   memberService,
@@ -14,6 +15,7 @@ import {
   type FavouriteItem,
   type StockAlertItem,
 } from "@virzeen/core";
+import { EARLY_ACCESS_HOURS } from "@virzeen/validators/limits";
 import type { FavouriteView } from "@/server/actions/favourites";
 import type { StockAlertRow } from "@/server/actions/stock-alerts";
 
@@ -37,7 +39,9 @@ export const getMyPerks = async (userId: string) => {
     perksService.isBirthdayMonth(userId),
     perksService.hasBirthday(userId),
   ]);
-  return { tier, express, birthdayMonth, hasBirthday };
+  const earlyHours = EARLY_ACCESS_HOURS[tier];
+  const early = { hours: earlyHours, items: await catalogReads.listEarlyAccess(earlyHours) };
+  return { tier, express, birthdayMonth, hasBirthday, early };
 };
 /** What the Pass has saved this member so far, for the Pass portal. */
 export const getMyPassSavings = (userId: string) => memberService.passSavings(userId);

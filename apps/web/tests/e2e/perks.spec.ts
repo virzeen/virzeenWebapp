@@ -101,3 +101,38 @@ test("a member shares a code and a new member adds it before their first order",
   await inviter.close();
   await friend.close();
 });
+
+test("a member sees a drop before the public does", async ({ browser, page }) => {
+  const slug = "monochrome-oversized-tee";
+  const db = createDbClient(E2E_DATABASE_URL);
+  try {
+    await db.product.update({
+      where: { slug },
+      data: { publicAt: new Date(Date.now() + 6 * 60 * 60 * 1000) },
+    });
+
+    // A guest can't find it: the page is not found.
+    const guest = await browser.newContext();
+    const guestPage = await guest.newPage();
+    const response = await guestPage.goto(`/product/${slug}`);
+    await expect(guestPage.getByRole("heading", { name: "Monochrome Oversized Tee" })).toHaveCount(0);
+    expect(response?.status()).toBeLessThan(500);
+    await guest.close();
+
+    // A MONO Member 6 hours before the public time can see it, buy it and find it in the portal.
+    await page.setExtraHTTPHeaders({ "X-Forwarded-For": "198.51.100.65" });
+    await page.goto("/login?next=%2Faccount%2Fmembership");
+    await completeEmailSignIn(page, uniqueEmail("early"));
+    await expect(page.getByTestId("perk-early")).toContainText("12 hours early");
+    await expect(page.getByTestId("early-items")).toContainText("Oversized");
+    await page.goto(`/product/${slug}`);
+    await expect(page.getByRole("heading", { level: 1, name: "Monochrome Oversized Tee" })).toBeVisible();
+    await page.getByRole("radio", { name: "Black", exact: true }).click();
+    await page.getByRole("radio", { name: "M", exact: true }).click();
+    await page.getByRole("button", { name: "Add to bag" }).click();
+    await expect(page.getByRole("dialog", { name: "Bag" })).toBeVisible();
+  } finally {
+    await db.product.update({ where: { slug }, data: { publicAt: null } });
+    await db.$disconnect();
+  }
+});

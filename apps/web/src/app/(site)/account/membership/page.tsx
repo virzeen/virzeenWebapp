@@ -51,6 +51,7 @@ export default async function MembershipPortalPage() {
           express={perks.express}
           birthdayMonth={perks.birthdayMonth}
           hasBirthday={perks.hasBirthday}
+          early={perks.early}
           referral={referral}
         />
         <PassOffer name={name} />
@@ -135,6 +136,7 @@ export default async function MembershipPortalPage() {
         express={perks.express}
         birthdayMonth={perks.birthdayMonth}
         hasBirthday={perks.hasBirthday}
+        early={perks.early}
         referral={referral}
       />
 

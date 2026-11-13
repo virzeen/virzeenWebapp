@@ -6,6 +6,7 @@ import {
   discountService,
   orderService,
   portfolioService,
+  referralService,
   reviewService,
   stockAlertService,
   stockInsights,
@@ -23,6 +24,8 @@ export const getLowStock = () => stockInsights.lowStock(8);
 export const getBestSellers = () => stockInsights.bestSellers();
 export const listAdminOrders = (filters: AdminOrderFilters) => orderService.listForAdmin(filters);
 export const listAdminProducts = ({ q, status }: AdminProductFilters) => adminReads.listProducts(q, status);
+/** Every referral, newest first (specs/member-perks.md). */
+export const listAdminReferrals = () => referralService.adminList();
 export const getProductStatusCounts = () => adminReads.productStatusCounts();
 export const listAdminCategories = () => adminReads.listCategories();
 export const listAdminCollections = () => adminReads.listCollections();

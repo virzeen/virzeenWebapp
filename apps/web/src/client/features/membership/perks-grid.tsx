@@ -3,8 +3,10 @@ import {
   GIFT_WRAP_PAISA,
   REFERRAL_REWARD_PAISA,
 } from "@virzeen/validators/limits";
-import { Cake, Gift, Zap } from "lucide-react";
+import { Cake, Gift, Hourglass, Zap } from "lucide-react";
+import { Link } from "@virzeen/ui";
 import { Price } from "@/client/components/shared/price";
+import { formatDateTime } from "@/client/lib/format";
 import { BirthdayForm } from "./birthday-form";
 import { PerkCard } from "./perk-card";
 import { ReferralCard } from "./referral-card";
@@ -14,6 +16,8 @@ type PerksGridProps = {
   express: { allowed: number; used: number; left: number };
   birthdayMonth: boolean;
   hasBirthday: boolean;
+  /** Early access: the hours before the public the member sees new drops, and the drops waiting now. */
+  early: { hours: number; items: { slug: string; name: string; publicAt: Date | null }[] };
   referral: {
     code: string;
     friends: number;
@@ -27,7 +31,7 @@ type PerksGridProps = {
  * The member's perks under the points card (specs/member-perks.md): Express Delivery left this month, the birthday
  * reward, gift wrapping and the referral code. The values follow the level (MONO Member or Pass).
  */
-export function PerksGrid({ isPass, express, birthdayMonth, hasBirthday, referral }: PerksGridProps) {
+export function PerksGrid({ isPass, express, birthdayMonth, hasBirthday, early, referral }: PerksGridProps) {
   const tier = isPass ? "PASS" : "MEMBER";
   const slots = Array.from({ length: express.allowed }, (_, index) => index + 1);
   return (
@@ -72,6 +76,30 @@ export function PerksGrid({ isPass, express, birthdayMonth, hasBirthday, referra
             <p className="text-small text-ink-muted">Add your birthday to get it.</p>
             <BirthdayForm />
           </>
+        )}
+      </PerkCard>
+
+      <PerkCard
+        testId="perk-early"
+        icon={<Hourglass className="size-5" strokeWidth={1.5} />}
+        title="Early access"
+        value={`${early.hours} hours early`}
+      >
+        {early.items.length > 0 ? (
+          <ul className="flex flex-col gap-2" data-testid="early-items">
+            {early.items.map((item) => (
+              <li key={item.slug} className="flex flex-col text-small">
+                <Link href={`/product/${item.slug}`} variant="subtle" className="text-ink">
+                  {item.name}
+                </Link>
+                {item.publicAt && (
+                  <span className="text-ink-muted">Opens to everyone {formatDateTime(item.publicAt)}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-small text-ink-muted">New drops open to you first.</p>
         )}
       </PerkCard>
 

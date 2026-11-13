@@ -513,6 +513,28 @@ export const catalogService = {
     return { id: saved.id };
   },
 
+  /**
+   * Early access (specs/member-perks.md): sets when the public may see a product (null = no wait). MONO Members see it
+   * 12 hours before, the Pass 48 hours before. Audited.
+   */
+  async setPublicAt(actorId: string, id: string, publicAt: Date | null) {
+    return db.$transaction(async (tx) => {
+      const updated = await tx.product.updateMany({
+        where: { id, archivedAt: null },
+        data: { publicAt },
+      });
+      if (updated.count === 0) throw new AppError("NOT_FOUND", "Product not found.");
+      await recordAudit(tx, {
+        actorId,
+        action: "product.public-at",
+        entity: "Product",
+        entityId: id,
+        diff: { publicAt: publicAt?.toISOString() ?? null },
+      });
+      return { id, publicAt };
+    });
+  },
+
   /** Hides a product for good (soft delete). Orders keep their snapshots. */
   async archiveProduct(actorId: string, id: string) {
     return db.$transaction(async (tx) => {

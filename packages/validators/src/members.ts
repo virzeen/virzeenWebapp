@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { idSchema } from "./common";
 
 /** Admin: give a customer the Monochrome Pass for 6 or 12 months (a running Pass is extended). */
 export const grantPassSchema = z.strictObject({
@@ -46,3 +47,10 @@ export const birthdaySchema = z.strictObject({
     }),
 });
 export type BirthdayInput = z.infer<typeof birthdaySchema>;
+
+/** Early access (specs/member-perks.md): when the public may see a product; null clears it. */
+export const setPublicAtSchema = z.strictObject({
+  id: idSchema,
+  publicAt: z.iso.datetime({ error: "Enter a valid date and time" }).nullable(),
+});
+export type SetPublicAtInput = z.infer<typeof setPublicAtSchema>;

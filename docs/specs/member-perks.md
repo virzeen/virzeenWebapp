@@ -1,6 +1,6 @@
 # Spec: Member perks (gift wrapping, birthday reward, Express Delivery, referrals, early access)
 
-**Status:** Gift wrapping, birthday reward, Express Delivery and referrals built; early access in progress. Branch `feat/checkout-v2` (migration `20261113100000_member_perks`)
+**Status:** Built: gift wrapping, birthday reward, Express Delivery, referrals and early access. Branch `feat/checkout-v2` (migration `20261113100000_member_perks`)
 **Owner approval:** owner, 2026-11-13 in chat (the answers below)
 **Related docs:** `docs/Monochrome Membership & Store Features — Implementation Guide.md`; `specs/membership-portal.md`; `specs/wallet.md`; `payments/payment-policy.md` §2
 
@@ -38,7 +38,19 @@ Build the benefits of the guide that a MONO Member (free account) gets, and the 
 - Orders: an Express badge and a Gift wrap badge in the list and on the order page.
 - Customers: referral code and referrals made.
 - Referrals page: every referral, its state and the reward.
-- Product editor: "Public from" date and time.
+- Products list: an "Early access" button per product sets the "Public from" time (audited as `product.public-at`) and a badge shows while it is in the future. The product editor is not changed.
+- Referrals page (`/admin/referrals`): every referral, its state and the reward.
+
+## Where it shows
+
+The member portal (`/account/membership`) has a perks grid under the points card: Express Delivery left this month, the birthday reward (and a one-time birthday field for a member without one), early access (with the drops waiting), gift wrapping and the referral code (copy button, and a field for a friend's code). Checkout (Payment step) has Delivery speed (members), gift wrapping and the totals lines; the order page and admin list show Express and Gift wrap badges. Tests: core `perks.test.ts`, `referral.test.ts`, `early-access.test.ts`; e2e `perks.spec.ts` and steps in `admin.spec.ts`.
+
+## Notes
+
+- A birthday can be saved once (portal), so a member can't move the reward to a month that suits; there is no check that the date is true.
+- Early access is per viewer and only for new products (`Product.publicAt`); the public rule hides a product from lists, search, its page and the bag. Favourites, "Notify me" and the sitemap keep the public rule. Festival sales have no early access (there is no sale entity).
+- Points and credit are not part of the referral reward: it is a credit line on the member's wallet, never expiring.
+- A returned first order doesn't take the referral reward back.
 
 ## Not built
 

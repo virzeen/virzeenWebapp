@@ -394,6 +394,22 @@ test("admin sets up two-factor, builds a product on its page and it appears in t
   await page.getByRole("link", { name: /^Drafts \(\d+\)$/ }).click();
   await expect(page.getByRole("link", { name: /E2E Monochrome Beanie/ })).toBeHidden();
   await page.getByRole("link", { name: /^All \(\d+\)$/ }).click();
+
+  // Early access (specs/member-perks.md): set the time the public may see a product, the list says so, then clear it.
+  await page.getByRole("button", { name: "Early access for E2E Monochrome Beanie" }).click();
+  const earlyDialog = page.getByRole("dialog", { name: "Early access" });
+  const dayAhead = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  const localValue = new Date(dayAhead.getTime() - dayAhead.getTimezoneOffset() * 60_000)
+    .toISOString()
+    .slice(0, 16);
+  await earlyDialog.getByLabel("Public from").fill(localValue);
+  await earlyDialog.getByRole("button", { name: "Save" }).click();
+  const beanieRow = page.getByRole("row").filter({ hasText: "E2E Monochrome Beanie" });
+  await expect(beanieRow.first()).toContainText("Public ");
+  await page.getByRole("button", { name: "Early access for E2E Monochrome Beanie" }).click();
+  await earlyDialog.getByRole("button", { name: "Clear" }).click();
+  await expect(beanieRow.first()).not.toContainText("Public ");
+
   await page.getByRole("button", { name: "Duplicate E2E Monochrome Beanie" }).click();
   await expect(page.getByText("Copy saved as a draft")).toBeVisible();
   await expect(page.getByRole("heading", { level: 1, name: "E2E Monochrome Beanie (copy)" })).toBeVisible();
@@ -463,6 +479,13 @@ test("admin sets up two-factor, builds a product on its page and it appears in t
   await walletDialog.getByLabel(/^Reason/).fill("Goodwill");
   await walletDialog.getByRole("button", { name: "Add", exact: true }).click();
   await expect(customerRow).toContainText("रु 250");
+
+  // Referrals (specs/member-perks.md): the page lists friends who joined with a member's code.
+  await page.getByRole("navigation", { name: "Admin" }).getByRole("link", { name: "Referrals" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Referrals" })).toBeVisible();
+  await expect(
+    page.getByRole("table", { name: "Referrals" }).or(page.getByText("No referrals yet.")),
+  ).toBeVisible();
 
   // A mistyped admin address stays inside the admin frame, with a way back.
   await page.goto("/admin/no-such-page");
