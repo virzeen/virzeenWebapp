@@ -1,8 +1,15 @@
 "use server";
 
 import "server-only";
-import { addressService } from "@virzeen/core";
-import { addressIdSchema, addressSchema, idSchema, profileSchema } from "@virzeen/validators";
+import { addressService, memberService, referralService } from "@virzeen/core";
+import {
+  addressIdSchema,
+  addressSchema,
+  birthdaySchema,
+  idSchema,
+  profileSchema,
+  referralCodeSchema,
+} from "@virzeen/validators";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { z } from "zod";
@@ -47,5 +54,29 @@ export async function updateProfileAction(input: unknown) {
     await auth.api.updateUser({ body: { name }, headers: await headers() });
     revalidatePath("/account", "layout");
     return { name };
+  });
+}
+
+/** A new member enters a friend's referral code, before their first order (specs/member-perks.md). */
+export async function applyReferralCodeAction(input: unknown) {
+  return runAction("applyReferralCode", async () => {
+    const user = await requireUser();
+    await rateLimit("account", `user:${user.id}`);
+    const { code } = referralCodeSchema.parse(input);
+    await referralService.applyCode(user.id, code);
+    revalidatePath("/account/membership");
+    return { applied: true };
+  });
+}
+
+/** The member saves their birthday, once, for the birthday reward (specs/member-perks.md). */
+export async function setBirthdayAction(input: unknown) {
+  return runAction("setBirthday", async () => {
+    const user = await requireUser();
+    await rateLimit("account", `user:${user.id}`);
+    const { birthday } = birthdaySchema.parse(input);
+    await memberService.setBirthday(user.id, birthday);
+    revalidatePath("/account/membership");
+    return { saved: true };
   });
 }

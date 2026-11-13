@@ -4,10 +4,17 @@ import { LogoMark } from "@/client/components/layout/logo-mark";
 import { Price } from "@/client/components/shared/price";
 import { BenefitList } from "@/client/features/membership/benefit-list";
 import { PassOffer } from "@/client/features/membership/pass-offer";
+import { PerksGrid } from "@/client/features/membership/perks-grid";
 import { WalletPanel } from "@/client/features/membership/wallet-panel";
 import { formatDate, formatMonthYear } from "@/client/lib/format";
 import { requireUserPage } from "@/server/auth/session";
-import { getMyMembership, getMyPassSavings, getMyWallet } from "@/server/queries/account";
+import {
+  getMyMembership,
+  getMyPassSavings,
+  getMyPerks,
+  getMyReferral,
+  getMyWallet,
+} from "@/server/queries/account";
 
 export const metadata = { title: "Membership" };
 
@@ -21,10 +28,12 @@ const SEGMENTS = Array.from({ length: 12 }, (_, month) => month + 1);
  */
 export default async function MembershipPortalPage() {
   const user = await requireUserPage("/account/membership");
-  const [membership, savings, wallet] = await Promise.all([
+  const [membership, savings, wallet, perks, referral] = await Promise.all([
     getMyMembership(user.id),
     getMyPassSavings(user.id),
     getMyWallet(user.id),
+    getMyPerks(user.id),
+    getMyReferral(user.id),
   ]);
   const name = user.name.trim() || user.email;
   const firstName = user.name.trim().split(/\s+/)[0] ?? "";
@@ -37,6 +46,13 @@ export default async function MembershipPortalPage() {
           <h1 className="font-display text-h2 md:text-h1">Membership</h1>
           <WalletPanel {...wallet} />
         </div>
+        <PerksGrid
+          isPass={false}
+          express={perks.express}
+          birthdayMonth={perks.birthdayMonth}
+          hasBirthday={perks.hasBirthday}
+          referral={referral}
+        />
         <PassOffer name={name} />
       </div>
     );
@@ -113,6 +129,14 @@ export default async function MembershipPortalPage() {
       </section>
 
       <WalletPanel {...wallet} isPass />
+
+      <PerksGrid
+        isPass
+        express={perks.express}
+        birthdayMonth={perks.birthdayMonth}
+        hasBirthday={perks.hasBirthday}
+        referral={referral}
+      />
 
       <section aria-labelledby="pass-benefits" className="flex flex-col gap-8">
         <div className="flex flex-col gap-2">

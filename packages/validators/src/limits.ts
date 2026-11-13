@@ -59,6 +59,58 @@ export function passDiscountFor(subtotalPaisa: number): number {
   return Math.floor(Math.floor((subtotalPaisa * PASS_DISCOUNT_PERCENT) / 100) / 100) * 100;
 }
 
+// Member perks (owner 2026-11-13, docs/specs/member-perks.md). Pure rules; the server is the only place that charges.
+
+/** Gift wrapping: Rs 150 for a guest, Rs 100 for a MONO Member, free for the Pass. */
+export const GIFT_WRAP_PAISA: Record<DeliveryTier, number> = { GUEST: 15_000, MEMBER: 10_000, PASS: 0 };
+
+/** The birthday reward: this much off the products in the member's birthday month (a promo code replaces it). */
+export const BIRTHDAY_DISCOUNT_PERCENT: Record<DeliveryTier, number> = { GUEST: 0, MEMBER: 5, PASS: 15 };
+
+/** Express Delivery (3 hours in Kathmandu and Pokhara) a member may use each calendar month. */
+export const EXPRESS_PER_MONTH: Record<DeliveryTier, number> = { GUEST: 0, MEMBER: 1, PASS: 3 };
+
+/** What a referral pays the member who gave the code (credit, in paisa), once the friend's first order is delivered. */
+export const REFERRAL_REWARD_PAISA: Record<"MEMBER" | "PASS", number> = { MEMBER: 20_000, PASS: 30_000 };
+
+/** A Pass referrer's friend gets this many months of the Pass free. */
+export const REFERRAL_FRIEND_PASS_MONTHS = 1;
+
+/** Early access: how many hours before a product's public time each tier may see and buy it. */
+export const EARLY_ACCESS_HOURS: Record<DeliveryTier, number> = { GUEST: 0, MEMBER: 12, PASS: 48 };
+
+const NEPAL_OFFSET_MS = (5 * 60 + 45) * 60_000;
+
+/** The month (0 to 11) of an instant in Nepal time. */
+export function nepalMonthOf(instant: Date): number {
+  return new Date(instant.getTime() + NEPAL_OFFSET_MS).getUTCMonth();
+}
+
+/** The first moment of the instant's calendar month in Nepal time, as an instant (for "this month" counts). */
+export function nepalMonthStart(instant: Date): Date {
+  const shifted = new Date(instant.getTime() + NEPAL_OFFSET_MS);
+  return new Date(Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth(), 1) - NEPAL_OFFSET_MS);
+}
+
+/** True when `now` falls in the month of the member's birthday (a date, no time) in Nepal time. */
+export function isBirthdayMonth(birthday: Date | null | undefined, now: Date): boolean {
+  return Boolean(birthday) && (birthday as Date).getUTCMonth() === nepalMonthOf(now);
+}
+
+/** The birthday reward on a subtotal: a percentage rounded down, then whole rupees (same rounding as a code). */
+export function birthdayDiscountFor(tier: DeliveryTier, subtotalPaisa: number): number {
+  return Math.floor(Math.floor((subtotalPaisa * BIRTHDAY_DISCOUNT_PERCENT[tier]) / 100) / 100) * 100;
+}
+
+/** Express Delivery goes to the Kathmandu Valley and Pokhara (the Kaski district) only. */
+export const EXPRESS_DISTRICTS: readonly string[] = ["Kathmandu", "Lalitpur", "Bhaktapur", "Kaski"];
+
+/** Express Delivery is promised within 3 hours for orders confirmed 9 AM to 6 PM Nepal time; later ones by 11 AM next day. */
+export function isExpressHours(instant: Date): boolean {
+  const hour = new Date(instant.getTime() + NEPAL_OFFSET_MS).getUTCHours();
+  return hour >= 9 && hour < 18;
+}
+
 /** The delivery fee for a bag worth `payablePaisa` (after any discount) for this tier. */
 export function deliveryFeeFor(tier: DeliveryTier, payablePaisa: number): number {
   const rule = DELIVERY_FEES[tier];

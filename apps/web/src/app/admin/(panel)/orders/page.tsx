@@ -57,6 +57,12 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams: 
                   {row.orderNumber}
                 </Link>
                 <span className="text-ink-muted">{formatDateTime(row.createdAt)}</span>
+                {(row.express || row.giftWrap) && (
+                  <span className="flex flex-wrap gap-1">
+                    {row.express && <Badge>Express</Badge>}
+                    {row.giftWrap && <Badge>Gift wrap</Badge>}
+                  </span>
+                )}
                 <span className="md:hidden">
                   <Badge variant={orderStatus(row.status).variant}>{orderStatus(row.status).label}</Badge>
                 </span>

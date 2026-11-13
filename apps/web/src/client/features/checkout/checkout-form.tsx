@@ -26,7 +26,7 @@ import type { CheckoutTotals } from "./checkout-types";
 import { DiscountCodeField } from "./discount-code-field";
 import { readStoredPromo, storePromo } from "./promo-storage";
 import { EMPTY_GUEST_DETAILS, GuestDetailsForm } from "./guest-details-form";
-import { OrderSummaryLines, OrderSummaryTotals } from "./order-summary-lines";
+import { discountLabel, expressPromise, OrderSummaryLines, OrderSummaryTotals } from "./order-summary-lines";
 import { submitProviderForm } from "./submit-provider-form";
 
 type Method = "COD" | "ESEWA" | "KHALTI";
@@ -172,12 +172,17 @@ export function CheckoutForm({
   // Pay with points and/or credit (specs/wallet.md): asked for here, worked out and spent by the server.
   const [usePoints, setUsePoints] = useState(false);
   const [useCredit, setUseCredit] = useState(false);
+  // Gift wrapping and Express Delivery (specs/member-perks.md): asked for here, priced and checked by the server.
+  const [giftWrap, setGiftWrap] = useState(false);
+  const [express, setExpress] = useState(false);
   const [isRefreshing, startRefresh] = useTransition();
   const [isApplying, setApplying] = useState(false);
   const [isPlacing, startPlacing] = useTransition();
   const [redirecting, setRedirecting] = useState(false);
   // The applied code is whatever the server last put in the totals.
   const discountCode = totals.discountCode;
+  // Express counts only while the server says the member can use it (a new address can make it unavailable).
+  const expressOn = express && totals.express.available;
   // A form error shows just above "Place order", at the end of the steps.
   const errorRef = useRef<HTMLDivElement>(null);
   const focusTarget = useRef<FocusTarget | null>(null);
@@ -241,9 +246,14 @@ export function CheckoutForm({
   }
 
   /** Who the server should price for: a member's saved address, or what a guest typed. */
-  function walletFlags(points = usePoints, credit = useCredit) {
-    if (isGuest) return {};
-    return { ...(points ? { usePoints: true } : {}), ...(credit ? { useCredit: true } : {}) };
+  function walletFlags(points = usePoints, credit = useCredit, wrap = giftWrap) {
+    const wrapFlag = wrap ? { giftWrap: true } : {};
+    if (isGuest) return wrapFlag;
+    return {
+      ...wrapFlag,
+      ...(points ? { usePoints: true } : {}),
+      ...(credit ? { useCredit: true } : {}),
+    };
   }
 
   /** Turns paying with points or credit on or off and asks the server for the new totals. */
@@ -255,18 +265,31 @@ export function CheckoutForm({
     setFormError(null);
     startRefresh(async () => {
       const result = await previewCheckoutAction({
-        ...whoFor(guestDetails, addressId),
+        ...whoFor(guestDetails, addressId, walletFlags(points, credit)),
         ...(discountCode ? { discountCode } : {}),
-        ...walletFlags(points, credit),
       });
       if (result.ok) setTotals(result.data);
       else toast.error(messageFor(result.error));
     });
   }
 
-  function whoFor(guest: GuestDetailsInput | null, id: string | null) {
-    if (!isGuest) return { addressId: id, ...walletFlags() };
-    return guest ? { district: guest.district, email: guest.email } : {};
+  /** Turns gift wrapping on or off and asks the server for the new totals. */
+  function toggleGiftWrap(on: boolean) {
+    setGiftWrap(on);
+    setFormError(null);
+    startRefresh(async () => {
+      const result = await previewCheckoutAction({
+        ...whoFor(guestDetails, addressId, walletFlags(usePoints, useCredit, on)),
+        ...(discountCode ? { discountCode } : {}),
+      });
+      if (result.ok) setTotals(result.data);
+      else toast.error(messageFor(result.error));
+    });
+  }
+
+  function whoFor(guest: GuestDetailsInput | null, id: string | null, flags = walletFlags()) {
+    if (!isGuest) return { addressId: id, ...flags };
+    return { ...(guest ? { district: guest.district, email: guest.email } : {}), ...flags };
   }
 
   /** Totals without a discount code, after the server said the applied one no longer works. */
@@ -372,8 +395,19 @@ export function CheckoutForm({
       const code = discountCode ? { discountCode } : {};
       const result =
         isGuest && guestDetails
-          ? await placeGuestOrderAction({ ...guestDetails, paymentMethod: selected.value, ...code })
-          : await placeOrderAction({ addressId, paymentMethod: selected.value, ...code, ...walletFlags() });
+          ? await placeGuestOrderAction({
+              ...guestDetails,
+              paymentMethod: selected.value,
+              ...code,
+              ...(giftWrap ? { giftWrap: true } : {}),
+            })
+          : await placeOrderAction({
+              addressId,
+              paymentMethod: selected.value,
+              ...code,
+              ...walletFlags(),
+              ...(expressOn ? { express: true } : {}),
+            });
       if (!result.ok) {
         const notice = BAG_NOTICES[result.error.code];
         if (notice) return router.push(`/cart?notice=${notice}`);
@@ -404,8 +438,11 @@ export function CheckoutForm({
 
   const summaryBody = (testId?: string) => (
     <>
-      <OrderSummaryTotals totals={totals} {...(testId ? { totalTestId: testId } : {})} />
-      <OrderSummaryLines items={cart.items} arrives={totals.arrivesBy} />
+      <OrderSummaryTotals totals={totals} giftWrap={giftWrap} {...(testId ? { totalTestId: testId } : {})} />
+      <OrderSummaryLines
+        items={cart.items}
+        arrives={expressOn ? expressPromise(totals.express.withinHours) : totals.arrivesBy}
+      />
       <Link href="/cart" className="self-start underline underline-offset-4">
         Edit bag
       </Link>
@@ -543,6 +580,49 @@ export function CheckoutForm({
               </p>
             }
           >
+            {!isGuest && (
+              <FormField label="Delivery speed">
+                <RadioGroup
+                  variant="card"
+                  value={expressOn ? "express" : "standard"}
+                  onValueChange={(value) => setExpress(value === "express")}
+                  className="grid-cols-1"
+                  data-testid="delivery-speed"
+                >
+                  <RadioGroupItem
+                    value="standard"
+                    label="Standard delivery"
+                    description={`Arrives by ${totals.arrivesBy}`}
+                  />
+                  <RadioGroupItem
+                    value="express"
+                    label="Express Delivery"
+                    disabled={!totals.express.available}
+                    description={
+                      totals.express.available
+                        ? `${expressPromise(totals.express.withinHours)} · ${totals.express.left} of ${totals.express.allowed} left this month`
+                        : totals.express.reason === "USED"
+                          ? "Used this month"
+                          : "Kathmandu Valley and Pokhara only"
+                    }
+                  />
+                </RadioGroup>
+              </FormField>
+            )}
+            <Checkbox
+              checked={giftWrap}
+              disabled={isBusy}
+              onCheckedChange={(checked) => toggleGiftWrap(checked === true)}
+              label={
+                totals.giftWrapPricePaisa > 0 ? (
+                  <>
+                    Add gift wrapping (<Price paisa={totals.giftWrapPricePaisa} />)
+                  </>
+                ) : (
+                  "Add gift wrapping (free with your Pass)"
+                )
+              }
+            />
             {!isGuest && (totals.walletPoints > 0 || totals.walletCreditPaisa > 0) && (
               <div className="flex flex-col gap-1" data-testid="wallet-panel">
                 {totals.walletCreditPaisa > 0 && (
@@ -605,8 +685,11 @@ export function CheckoutForm({
                 disabled={isRefreshing || isPlacing}
               />
             )}
-            {totals.isPassDiscount && !discountCode && (
-              <p className="text-small text-ink-muted">A promo code replaces your 10% Pass discount.</p>
+            {(totals.isPassDiscount || totals.isBirthdayDiscount) && !discountCode && (
+              <p className="text-small text-ink-muted">
+                A promo code replaces your{" "}
+                {totals.isBirthdayDiscount ? "birthday reward" : "10% Pass discount"}.
+              </p>
             )}
           </StepShell>
 
@@ -629,8 +712,16 @@ export function CheckoutForm({
               </div>
               <div className="flex justify-between gap-4">
                 <dt className="text-ink-muted">Arrives by</dt>
-                <dd>{totals.arrivesBy}</dd>
+                <dd>
+                  {expressOn ? `Express · ${expressPromise(totals.express.withinHours)}` : totals.arrivesBy}
+                </dd>
               </div>
+              {giftWrap && (
+                <div className="flex justify-between gap-4" data-testid="review-gift-wrap">
+                  <dt className="text-ink-muted">Gift wrapping</dt>
+                  <dd>{totals.giftWrapPaisa > 0 ? <Price paisa={totals.giftWrapPaisa} /> : "Free"}</dd>
+                </div>
+              )}
               {totals.pointsUsed > 0 && (
                 <div className="flex justify-between gap-4" data-testid="review-points">
                   <dt className="text-ink-muted">Points ({totals.pointsUsed})</dt>
@@ -649,9 +740,7 @@ export function CheckoutForm({
               )}
               {totals.discountPaisa > 0 && (
                 <div className="flex justify-between gap-4" data-testid="review-discount">
-                  <dt className="text-ink-muted">
-                    {totals.isPassDiscount ? "Monochrome Pass discount" : "Promo code discount"}
-                  </dt>
+                  <dt className="text-ink-muted">{discountLabel(totals)}</dt>
                   <dd>
                     −<Price paisa={totals.discountPaisa} />
                   </dd>

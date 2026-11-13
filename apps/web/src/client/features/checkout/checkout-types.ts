@@ -5,6 +5,20 @@ export type CheckoutTotals = {
   discountPaisa: number;
   /** True when `discountPaisa` is the Monochrome Pass 10%, not a code's. */
   isPassDiscount: boolean;
+  /** True when `discountPaisa` is the birthday reward (5% MONO Member, 15% Pass), not a code's. */
+  isBirthdayDiscount: boolean;
+  /** Gift wrapping in the total (0 when not chosen, and for the Pass), and what it costs this buyer (specs/member-perks.md). */
+  giftWrapPaisa: number;
+  giftWrapPricePaisa: number;
+  /** Express Delivery for this buyer and address, with this month's uses. */
+  express: {
+    available: boolean;
+    reason: "GUEST" | "AREA" | "USED" | null;
+    allowed: number;
+    used: number;
+    left: number;
+    withinHours: boolean;
+  };
   /** The code whose discount is in these totals (specs/discount-codes.md), or null. */
   discountCode: string | null;
   totalPaisa: number;

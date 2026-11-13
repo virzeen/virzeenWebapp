@@ -170,6 +170,25 @@ export const memberService = {
    * optional birthday, the marketing tick, and when the terms were agreed (the tick is required, so this is the time of
    * the submit).
    */
+  async setBirthday(userId: string, birthday: string): Promise<void> {
+    const date = new Date(`${birthday}T00:00:00.000Z`);
+    if (Number.isNaN(date.getTime())) {
+      throw new AppError("VALIDATION_FAILED", "Enter a valid date.", {
+        fields: { birthday: "Enter a valid date" },
+      });
+    }
+    // Once only: a saved birthday isn't changed here, so the birthday reward can't be moved to a month that suits.
+    const result = await db.user.updateMany({
+      where: { id: userId, birthday: null },
+      data: { birthday: date },
+    });
+    if (result.count === 0) {
+      throw new AppError("VALIDATION_FAILED", "Your birthday is already saved.", {
+        fields: { birthday: "Your birthday is already saved" },
+      });
+    }
+  },
+
   async saveSignupProfile(userId: string, profile: SignupProfile): Promise<void> {
     const birthday = profile.birthday ? new Date(`${profile.birthday}T00:00:00.000Z`) : null;
     if (birthday && Number.isNaN(birthday.getTime())) {

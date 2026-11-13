@@ -16,6 +16,9 @@ export const checkoutSchema = z.strictObject({
   /** Pay with the member's points and/or credit (specs/wallet.md); the server works out how much. */
   usePoints: z.boolean().optional(),
   useCredit: z.boolean().optional(),
+  /** Gift wrapping and Express Delivery (specs/member-perks.md); the server prices and checks both. */
+  giftWrap: z.boolean().optional(),
+  express: z.boolean().optional(),
 });
 
 /**
@@ -67,6 +70,7 @@ export const guestCheckoutSchema = guestDetailsShape
   .extend({
     paymentMethod: z.enum(PAYMENT_METHODS, { error: "Choose a payment method" }),
     discountCode: discountCodeInputSchema.optional(),
+    giftWrap: z.boolean().optional(),
   })
   .refine((a) => isDistrictInProvince(a.province, a.district), districtInProvince);
 export type GuestCheckoutInput = z.input<typeof guestCheckoutSchema>;
@@ -82,6 +86,7 @@ export const checkoutPreviewSchema = z.strictObject({
   discountCode: discountCodeInputSchema.optional(),
   usePoints: z.boolean().optional(),
   useCredit: z.boolean().optional(),
+  giftWrap: z.boolean().optional(),
 });
 export type CheckoutInput = z.infer<typeof checkoutSchema>;
 

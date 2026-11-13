@@ -67,6 +67,44 @@ describe("buildEsewaForm", () => {
     expect(form.fields.signature).toBe(signEsewa(message, TEST_ESEWA.secretKey));
   });
 
+  it("adds gift wrapping and takes points and credit off, so the lines still add up to the total", () => {
+    // Items रु 4,500 + gift wrapping रु 100 − points रु 200 − credit रु 300 + delivery रु 100 = रु 4,200.
+    const form = buildEsewaForm({
+      transactionUuid: "VZ-260928-0001-1",
+      subtotalPaisa: 450_000,
+      shippingPaisa: 10_000,
+      discountPaisa: 0,
+      adjustmentPaisa: 10_000 - 20_000 - 30_000,
+      totalPaisa: 420_000,
+      successUrl: "https://virzeen.test/api/payments/esewa/success",
+      failureUrl: "https://virzeen.test/api/payments/esewa/failure",
+    });
+    expect(form.fields).toMatchObject({
+      amount: "4100.00",
+      product_delivery_charge: "100.00",
+      total_amount: "4200.00",
+    });
+  });
+
+  it("shows the rest as delivery when credit covers more than the items", () => {
+    // Items रु 1,000, credit रु 1,050, delivery रु 150: pay रु 100, all of it shown as delivery.
+    const form = buildEsewaForm({
+      transactionUuid: "VZ-260928-0001-1",
+      subtotalPaisa: 100_000,
+      shippingPaisa: 15_000,
+      discountPaisa: 0,
+      adjustmentPaisa: -105_000,
+      totalPaisa: 10_000,
+      successUrl: "https://virzeen.test/api/payments/esewa/success",
+      failureUrl: "https://virzeen.test/api/payments/esewa/failure",
+    });
+    expect(form.fields).toMatchObject({
+      amount: "0.00",
+      product_delivery_charge: "100.00",
+      total_amount: "100.00",
+    });
+  });
+
   it("refuses amounts that don't add up", () => {
     expect(() =>
       buildEsewaForm({

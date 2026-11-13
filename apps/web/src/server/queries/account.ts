@@ -6,6 +6,8 @@ import {
   favouriteService,
   memberService,
   orderService,
+  perksService,
+  referralService,
   reviewService,
   stockAlertService,
   variantPath,
@@ -25,6 +27,18 @@ export const tierFor = (userId: string | null) => memberService.tierFor(userId);
 /** Points and credit: balances, what expires first and the newest lines (specs/wallet.md). */
 export const getMyWallet = (userId: string) => walletService.summary(userId);
 export const getMyMembership = (userId: string) => memberService.membership(userId);
+/** The member's referral code, friends and credit earned (specs/member-perks.md). */
+export const getMyReferral = (userId: string) => referralService.summary(userId);
+/** Express Delivery uses this month and whether it is the birthday month, for the portal's perks. */
+export const getMyPerks = async (userId: string) => {
+  const tier = await memberService.tierFor(userId);
+  const [express, birthdayMonth, hasBirthday] = await Promise.all([
+    perksService.expressStatus({ userId, tier, district: "Kathmandu" }),
+    perksService.isBirthdayMonth(userId),
+    perksService.hasBirthday(userId),
+  ]);
+  return { tier, express, birthdayMonth, hasBirthday };
+};
 /** What the Pass has saved this member so far, for the Pass portal. */
 export const getMyPassSavings = (userId: string) => memberService.passSavings(userId);
 export const listMyAddresses = (userId: string) => addressService.list(userId);

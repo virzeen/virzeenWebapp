@@ -26,7 +26,7 @@ export async function previewCheckoutAction(input: unknown) {
     if (user)
       await rateLimit("account", `user:${user.id}`); // 2. rate-limit
     else await rateLimitGuestCheckout();
-    const { addressId, district, email, discountCode, usePoints, useCredit } =
+    const { addressId, district, email, discountCode, usePoints, useCredit, giftWrap } =
       checkoutPreviewSchema.parse(input); // 3. validate
     if (discountCode) {
       if (user) await rateLimitDiscountCheck(user.id);
@@ -43,6 +43,7 @@ export async function previewCheckoutAction(input: unknown) {
       ...(discountCode ? { discountCode } : {}),
       ...(user && usePoints ? { usePoints: true } : {}),
       ...(user && useCredit ? { useCredit: true } : {}),
+      ...(giftWrap ? { giftWrap: true } : {}),
     });
   });
 }
@@ -83,6 +84,8 @@ export async function placeOrderAction(input: unknown) {
       ...(data.discountCode ? { discountCode: data.discountCode } : {}),
       ...(data.usePoints ? { usePoints: true } : {}),
       ...(data.useCredit ? { useCredit: true } : {}),
+      ...(data.giftWrap ? { giftWrap: true } : {}),
+      ...(data.express ? { express: true } : {}),
     });
     revalidatePath("/", "layout");
     return result;
@@ -123,6 +126,7 @@ export async function placeGuestOrderAction(input: unknown) {
       ...(data.notes ? { deliveryNotes: data.notes } : {}),
       paymentMethod: data.paymentMethod,
       ...(data.discountCode ? { discountCode: data.discountCode } : {}),
+      ...(data.giftWrap ? { giftWrap: true } : {}),
     });
     await grantGuestOrderAccess(result.orderNumber);
     revalidatePath("/", "layout");

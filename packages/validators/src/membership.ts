@@ -96,7 +96,7 @@ export const BENEFITS: readonly Benefit[] = [
     guest: null,
     free: "Within 3 hours, in Kathmandu and Pokhara only, 1 time a month",
     pass: "Within 3 hours, in Kathmandu and Pokhara only, 3 times a month",
-    live: [],
+    live: ["FREE", "PASS"],
   },
   {
     id: "priority-packing",
@@ -279,7 +279,7 @@ export const BENEFITS: readonly Benefit[] = [
     guest: "{p:15000}",
     free: "{p:10000}",
     pass: "Free",
-    live: [],
+    live: ["GUEST", "FREE", "PASS"],
   },
   {
     id: "birthday",
@@ -288,7 +288,7 @@ export const BENEFITS: readonly Benefit[] = [
     guest: null,
     free: "5% coupon",
     pass: "Small gift and 15% off for the birthday month",
-    live: [],
+    live: ["FREE", "PASS"],
   },
   {
     id: "anniversary",
@@ -371,7 +371,7 @@ export const BENEFITS: readonly Benefit[] = [
     guest: null,
     free: "{p:20000} credit after your friend's first order",
     pass: "{p:30000} credit, and your friend gets 1 month of the Pass free",
-    live: [],
+    live: ["FREE", "PASS"],
   },
   {
     id: "pause",

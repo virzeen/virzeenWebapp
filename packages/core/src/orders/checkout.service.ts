@@ -8,6 +8,7 @@ import { getCoreConfig } from "../config";
 import { checkDiscount, claimDiscount } from "../discounts/discount.service";
 import { AppError } from "../errors";
 import { memberService } from "../members/member.service";
+import { perksService, type ExpressStatus } from "../members/perks.service";
 import { reserveStock } from "../inventory/stock";
 import { notifications } from "../notifications/notifications";
 import { COD_MAX_TOTAL_PAISA, isCodAvailable } from "../pricing/cod-rules";
@@ -17,7 +18,7 @@ import {
   calculateTotals,
   type Totals,
 } from "../pricing/calculate-totals";
-import { walletApplication } from "@virzeen/validators/limits";
+import { GIFT_WRAP_PAISA, isBirthdayMonth, walletApplication } from "@virzeen/validators/limits";
 import { walletService } from "../wallet/wallet.service";
 import {
   arrivalWindow,
@@ -64,6 +65,9 @@ export type PlaceOrderInput = {
   /** Pay with the member's points and/or credit (specs/wallet.md); the amounts are worked out and spent here. */
   usePoints?: boolean;
   useCredit?: boolean;
+  /** Gift wrapping (Rs 150 guest, Rs 100 MONO Member, free for the Pass) and Express Delivery (specs/member-perks.md). */
+  giftWrap?: boolean;
+  express?: boolean;
   now?: Date;
 };
 
@@ -85,6 +89,10 @@ export type CheckoutPreview = Totals & {
   /** The member's points and credit available now (zero for guests); what was applied is in `pointsUsed` and `creditUsedPaisa`. */
   walletPoints: number;
   walletCreditPaisa: number;
+  /** What gift wrapping costs this buyer (0 for the Pass); what was chosen is in `giftWrapPaisa`. */
+  giftWrapPricePaisa: number;
+  /** Express Delivery for this buyer and address, with this month's uses. */
+  express: ExpressStatus;
   isCodAvailable: boolean;
   /** null = no limit. */
   codLimitPaisa: number | null;
@@ -135,6 +143,7 @@ export const checkoutService = {
     discountCode?: string;
     usePoints?: boolean;
     useCredit?: boolean;
+    giftWrap?: boolean;
     now?: Date;
   }): Promise<CheckoutPreview> {
     const now = input.now ?? new Date();
@@ -155,7 +164,9 @@ export const checkoutService = {
           now,
         })
       : null;
-    const base = calculateTotals(lines, tier, discount);
+    const birthday = await perksService.isBirthdayMonth(input.userId, now);
+    const base = calculateTotals(lines, tier, discount, { birthday, giftWrap: input.giftWrap === true });
+    const express = await perksService.expressStatus({ userId: input.userId, tier, district, now });
     const wallet = input.userId
       ? await walletService.balances(input.userId, now)
       : { points: 0, creditPaisa: 0 };
@@ -181,14 +192,17 @@ export const checkoutService = {
       memberSavingPaisa: tier === "GUEST" && lines.length > 0 ? memberDeliverySaving(payable) : 0,
       passSavingPaisa:
         tier === "PASS" && lines.length > 0
-          ? (totals.isPassDiscount ? totals.discountPaisa : 0) +
+          ? (totals.isPassDiscount || totals.isBirthdayDiscount ? totals.discountPaisa : 0) +
             deliveryFeeFor(
               "MEMBER",
-              totals.subtotalPaisa - (totals.isPassDiscount ? 0 : totals.discountPaisa),
+              totals.subtotalPaisa -
+                (totals.isPassDiscount || totals.isBirthdayDiscount ? 0 : totals.discountPaisa),
             )
           : 0,
       walletPoints: wallet.points,
       walletCreditPaisa: wallet.creditPaisa,
+      giftWrapPricePaisa: lines.length === 0 ? 0 : GIFT_WRAP_PAISA[tier],
+      express,
       isCodAvailable: isCodAvailable(totals.totalPaisa),
       codLimitPaisa: COD_MAX_TOTAL_PAISA,
     };
@@ -256,7 +270,17 @@ export const checkoutService = {
             now,
           })
         : null;
-      const base = calculateTotals(lines, tier, discount);
+      const birthday = input.userId
+        ? isBirthdayMonth(
+            (await tx.user.findUnique({ where: { id: input.userId }, select: { birthday: true } }))?.birthday,
+            now,
+          )
+        : false;
+      const base = calculateTotals(lines, tier, discount, { birthday, giftWrap: input.giftWrap === true });
+      // Express Delivery takes one of the member's uses this month; refused when none is left or the address is out of area.
+      if (input.express) {
+        await perksService.claimExpress(tx, { userId: input.userId, tier, district: address.district, now });
+      }
       // Points and credit: the member is locked first so two checkouts can't spend the same ones.
       const balances =
         input.userId && (input.usePoints || input.useCredit)
@@ -304,6 +328,9 @@ export const checkoutService = {
           discountPaisa: totals.discountPaisa,
           pointsUsed: totals.pointsUsed,
           creditUsedPaisa: totals.creditUsedPaisa,
+          giftWrap: input.giftWrap === true,
+          giftWrapPaisa: totals.giftWrapPaisa,
+          express: input.express === true,
           totalPaisa: totals.totalPaisa,
           discountCodeId: discount?.id ?? null,
           discountCode: discount?.code ?? null,
@@ -391,6 +418,8 @@ export const checkoutService = {
         {
           orderNumber: created.orderNumber,
           ...created.totals,
+          adjustmentPaisa:
+            created.totals.giftWrapPaisa - created.totals.pointsUsed * 100 - created.totals.creditUsedPaisa,
           customer: { name: address.fullName, email: customerEmail, phone: address.phone },
         },
         1,

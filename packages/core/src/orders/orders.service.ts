@@ -5,6 +5,7 @@ import { recordAudit } from "../audit/audit";
 import { AppError } from "../errors";
 import { notifications } from "../notifications/notifications";
 import { paymentService } from "../payments/payment.service";
+import { referralService } from "../members/referral.service";
 import { walletService } from "../wallet/wallet.service";
 import { cancelOrderAndRestock } from "./cancellation";
 import { transitionOrder, transitionPayment } from "./order-state";
@@ -25,6 +26,9 @@ const summarySelect = {
   paymentStatus: true,
   paymentMethod: true,
   totalPaisa: true,
+  /** Express Delivery and gift wrapping, so admins can see them in the list (specs/member-perks.md). */
+  express: true,
+  giftWrap: true,
   createdAt: true,
   items: { select: { id: true, productName: true, imageUrl: true, quantity: true }, take: 3 },
   _count: { select: { items: true } },
@@ -40,6 +44,9 @@ const detailSelect = {
   shippingPaisa: true,
   discountPaisa: true,
   discountCode: true,
+  giftWrap: true,
+  giftWrapPaisa: true,
+  express: true,
   totalPaisa: true,
   shippingZone: true,
   addressSnapshot: true,
@@ -204,6 +211,8 @@ export const orderService = {
           await transitionOrder(tx, { orderId, to: "DELIVERED", actor, reason: "Delivered" });
           // Points for a delivered order (specs/wallet.md).
           await walletService.earnForOrder(tx, orderId);
+          // A friend's first delivered order pays the member who gave the code (specs/member-perks.md).
+          await referralService.rewardForDelivered(tx, orderId);
           break;
         case "RETURNED":
           await transitionOrder(tx, { orderId, to: "RETURNED", actor, reason: input.reason });

@@ -14,6 +14,11 @@ export type OrderForPayment = {
   shippingPaisa: number;
   /** Discount code money off the subtotal (payment-policy.md §2): total = subtotal − discount + shipping. */
   discountPaisa: number;
+  /**
+   * Gift wrapping added, less the points and credit spent (specs/member-perks.md, specs/wallet.md); 0 when none:
+   * total = subtotal − discount + adjustment + shipping. The providers' item and shipping lines still add up to the total.
+   */
+  adjustmentPaisa?: number;
   totalPaisa: number;
   customer: { name: string; email: string; phone: string };
 };

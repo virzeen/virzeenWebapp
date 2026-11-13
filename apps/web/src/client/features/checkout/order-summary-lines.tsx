@@ -43,8 +43,22 @@ export function OrderSummaryLines({ items, arrives }: { items: SummaryLine[]; ar
   );
 }
 
+/** The name of the discount line: the birthday reward, the Pass discount or a promo code. */
+export function discountLabel(totals: CheckoutTotals, withCode = false): string {
+  if (totals.isBirthdayDiscount) return "Birthday reward";
+  if (totals.isPassDiscount) return "Monochrome Pass discount";
+  return `Promo code discount${withCode && totals.discountCode ? ` (${totals.discountCode})` : ""}`;
+}
+
+/** What Express Delivery promises: within 3 hours between 9 AM and 6 PM, otherwise by 11 AM the next day. */
+export function expressPromise(withinHours: boolean): string {
+  return withinHours ? "Within 3 hours" : "Tomorrow by 11 AM";
+}
+
 type OrderSummaryTotalsProps = {
   totals: CheckoutTotals;
+  /** Gift wrapping was chosen (it shows as "Free" for the Pass, which has no price to show). */
+  giftWrap?: boolean;
   /** Only the summary next to the steps carries the test ids. */
   totalTestId?: string;
 };
@@ -54,7 +68,7 @@ type OrderSummaryTotalsProps = {
  * server-calculated amounts), then, for guests, the member nudge (docs/checkoutfeatures.md §4), hidden when it
  * doesn't apply. The "Add X more for free delivery" hint is on the bag page only (owner 2026-11-11).
  */
-export function OrderSummaryTotals({ totals, totalTestId }: OrderSummaryTotalsProps) {
+export function OrderSummaryTotals({ totals, giftWrap = false, totalTestId }: OrderSummaryTotalsProps) {
   return (
     <div className="flex flex-col gap-3">
       <dl className="flex flex-col gap-3 text-body">
@@ -72,13 +86,17 @@ export function OrderSummaryTotals({ totals, totalTestId }: OrderSummaryTotalsPr
         </div>
         {totals.discountPaisa > 0 && (
           <div className="flex justify-between gap-4">
-            <dt className="wrap-anywhere">
-              {totals.isPassDiscount
-                ? "Monochrome Pass discount"
-                : `Promo code discount${totals.discountCode ? ` (${totals.discountCode})` : ""}`}
-            </dt>
+            <dt className="wrap-anywhere">{discountLabel(totals, true)}</dt>
             <dd className="whitespace-nowrap" data-testid={totalTestId ? "checkout-discount" : undefined}>
               −<Price paisa={totals.discountPaisa} />
+            </dd>
+          </div>
+        )}
+        {giftWrap && (
+          <div className="flex justify-between gap-4">
+            <dt>Gift wrapping</dt>
+            <dd className="whitespace-nowrap" data-testid={totalTestId ? "checkout-gift-wrap" : undefined}>
+              {totals.giftWrapPaisa > 0 ? <Price paisa={totals.giftWrapPaisa} /> : "Free"}
             </dd>
           </div>
         )}

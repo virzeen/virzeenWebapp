@@ -61,6 +61,8 @@ export {
 export { ORDER_TRANSITIONS, PAYMENT_TRANSITIONS } from "./orders/order-state";
 export { walletService, type WalletBalances, type WalletSummary } from "./wallet/wallet.service";
 export { memberService, type SignupProfile } from "./members/member.service";
+export { perksService, type ExpressStatus } from "./members/perks.service";
+export { referralService, type ReferralSummary } from "./members/referral.service";
 export { orderService, type AddressSnapshot, type OrderDetail } from "./orders/orders.service";
 export { paymentService, type VerifyOutcome, type VerifyResult } from "./payments/payment.service";
 export type { CheckoutNext } from "./payments/provider";

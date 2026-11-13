@@ -26,3 +26,23 @@ export const adminWalletSchema = z.strictObject({
   reason: z.string().trim().min(1, { error: "Say why" }).max(200),
 });
 export type AdminWalletInput = z.infer<typeof adminWalletSchema>;
+
+/** A friend's referral code, as typed (the server upper-cases it and looks it up). */
+export const referralCodeSchema = z.strictObject({
+  code: z
+    .string({ error: "Enter a code" })
+    .trim()
+    .min(4, { error: "Enter a code" })
+    .max(20, { error: "That code is too long" }),
+});
+export type ReferralCodeInput = z.infer<typeof referralCodeSchema>;
+
+/** The member's birthday, saved once ("YYYY-MM-DD", not in the future; specs/member-perks.md). */
+export const birthdaySchema = z.strictObject({
+  birthday: z.iso
+    .date({ error: "Enter a valid date" })
+    .refine((value) => value >= "1900-01-01" && value <= new Date().toISOString().slice(0, 10), {
+      error: "Enter a valid date",
+    }),
+});
+export type BirthdayInput = z.infer<typeof birthdaySchema>;

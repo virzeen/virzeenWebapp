@@ -2,7 +2,13 @@ import type { CustomerTier } from "@virzeen/db";
 import { AppError } from "../errors";
 import { discountAmount, type DiscountRule } from "./discounts";
 import { deliveryFeeFor } from "./shipping-rates";
-import { POINT_VALUE_PAISA, passDiscountFor, type WalletApplication } from "@virzeen/validators/limits";
+import {
+  GIFT_WRAP_PAISA,
+  POINT_VALUE_PAISA,
+  birthdayDiscountFor,
+  passDiscountFor,
+  type WalletApplication,
+} from "@virzeen/validators/limits";
 
 export type PricedLine = { unitPricePaisa: number; quantity: number };
 
@@ -16,6 +22,10 @@ export type Totals = {
   discountPaisa: number;
   /** True when `discountPaisa` is the Pass discount, not a code's. */
   isPassDiscount: boolean;
+  /** True when `discountPaisa` is the birthday reward (5% MONO Member, 15% Pass), not a code's (specs/member-perks.md). */
+  isBirthdayDiscount: boolean;
+  /** Gift wrapping added to the total (0 when not asked for, and for the Pass, which has it free). */
+  giftWrapPaisa: number;
   /** Points spent (1 point = Rs 1) and credit spent, in paisa; both already off `totalPaisa` (specs/wallet.md). */
   pointsUsed: number;
   creditUsedPaisa: number;
@@ -46,25 +56,41 @@ export function calculateSubtotal(lines: readonly PricedLine[]): number {
  * and on the bag after the discount (specs/checkout-v2-week1.md). A Pass member gets 10% off unless a code is
  * applied, which replaces it (owner 2026-11-11, specs/membership-portal.md), and free delivery on every order.
  */
+export type TotalsOptions = {
+  /** It is the member's birthday month: the birthday reward applies (a code replaces it). */
+  birthday?: boolean;
+  /** Gift wrapping was asked for. */
+  giftWrap?: boolean;
+};
+
 export function calculateTotals(
   lines: readonly PricedLine[],
   tier: CustomerTier,
   discount: DiscountRule | null = null,
+  options: TotalsOptions = {},
 ): Totals {
   const subtotalPaisa = calculateSubtotal(lines);
-  const isPassDiscount = tier === "PASS" && !discount;
+  // The member discount: the birthday reward in the birthday month (5% MONO Member, 15% Pass), else the Pass's 10%.
+  // A code replaces it.
+  const isBirthdayDiscount = !discount && tier !== "GUEST" && options.birthday === true;
+  const isPassDiscount = !discount && !isBirthdayDiscount && tier === "PASS";
   const discountPaisa = discount
     ? discountAmount(subtotalPaisa, discount)
-    : isPassDiscount
-      ? passDiscountFor(subtotalPaisa)
-      : 0;
+    : isBirthdayDiscount
+      ? birthdayDiscountFor(tier, subtotalPaisa)
+      : isPassDiscount
+        ? passDiscountFor(subtotalPaisa)
+        : 0;
   const shippingPaisa = lines.length === 0 ? 0 : deliveryFeeFor(tier, subtotalPaisa - discountPaisa);
-  const totalPaisa = subtotalPaisa - discountPaisa + shippingPaisa;
+  const giftWrapPaisa = options.giftWrap === true && lines.length > 0 ? GIFT_WRAP_PAISA[tier] : 0;
+  const totalPaisa = subtotalPaisa - discountPaisa + shippingPaisa + giftWrapPaisa;
   return {
     subtotalPaisa,
     shippingPaisa,
     discountPaisa,
     isPassDiscount,
+    isBirthdayDiscount,
+    giftWrapPaisa,
     pointsUsed: 0,
     creditUsedPaisa: 0,
     totalPaisa,
