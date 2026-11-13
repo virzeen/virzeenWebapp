@@ -94,11 +94,7 @@ export function WalletPanel({ points, creditPaisa, expiringSoon, history }: Wall
             </li>
           ))}
         </ul>
-      ) : (
-        <p className="text-body text-ink-muted">
-          Nothing yet. Your first points arrive when an order is delivered.
-        </p>
-      )}
+      ) : null}
     </section>
   );
 }
