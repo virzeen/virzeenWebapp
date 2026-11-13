@@ -102,6 +102,17 @@ export function birthdayDiscountFor(tier: DeliveryTier, subtotalPaisa: number): 
   return Math.floor(Math.floor((subtotalPaisa * BIRTHDAY_DISCOUNT_PERCENT[tier]) / 100) / 100) * 100;
 }
 
+/** A Pass order that leaves after its dispatch promise earns this credit, automatically (owner 2026-11-13). */
+export const MISSED_DISPATCH_CREDIT_PAISA = 10_000;
+
+/** The next 11 AM in Nepal time after `instant`'s day: where an Express order placed after 6 PM is promised. */
+export function nextDayElevenAm(instant: Date): Date {
+  const shifted = new Date(instant.getTime() + NEPAL_OFFSET_MS);
+  return new Date(
+    Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth(), shifted.getUTCDate() + 1, 11) - NEPAL_OFFSET_MS,
+  );
+}
+
 /** Express Delivery goes to the Kathmandu Valley and Pokhara (the Kaski district) only. */
 export const EXPRESS_DISTRICTS: readonly string[] = ["Kathmandu", "Lalitpur", "Bhaktapur", "Kaski"];
 

@@ -29,6 +29,16 @@ export function visibleProductWhere(earlyHours = 0, now: Date = new Date()): Pri
   };
 }
 
+/**
+ * A collection a shopper may see: early access works like a product's (specs/member-perks.md). A collection with a
+ * public time in the future is hidden unless `earlyHours` brings it in range.
+ */
+function collectionVisible(earlyHours: number, now: Date = new Date()): Prisma.CollectionWhereInput {
+  return {
+    OR: [{ publicAt: null }, { publicAt: { lte: new Date(now.getTime() + earlyHours * 3_600_000) } }],
+  };
+}
+
 /** The public rule, with the time read each time it is spread into a query (a getter, so it is never stale). */
 export const publishedProductWhere = {
   isPublished: true,
@@ -376,17 +386,23 @@ export const catalogReads = {
   },
 
   /** Whether a collection is live in the shop (not archived, with a published product): the header's "Sale" link. */
-  async hasLiveCollection(slug: string): Promise<boolean> {
+  async hasLiveCollection(slug: string, earlyHours = 0): Promise<boolean> {
     const count = await db.collection.count({
-      where: { slug, archivedAt: null, products: { some: publishedProductWhere } },
+      where: {
+        slug,
+        archivedAt: null,
+        ...collectionVisible(earlyHours),
+        products: { some: publishedProductWhere },
+      },
     });
     return count > 0;
   },
 
-  async listCollections(options: { featuredOnly?: boolean } = {}) {
+  async listCollections(options: { featuredOnly?: boolean; earlyHours?: number } = {}) {
     return db.collection.findMany({
       where: {
         archivedAt: null,
+        ...collectionVisible(options.earlyHours ?? 0),
         ...(options.featuredOnly ? { isFeatured: true } : {}),
         products: { some: publishedProductWhere },
       },
@@ -406,9 +422,9 @@ export const catalogReads = {
     });
   },
 
-  async getCollectionBySlug(slug: string) {
+  async getCollectionBySlug(slug: string, earlyHours = 0) {
     return db.collection.findFirst({
-      where: { slug, archivedAt: null },
+      where: { slug, archivedAt: null, ...collectionVisible(earlyHours) },
       select: { id: true, slug: true, name: true, description: true },
     });
   },

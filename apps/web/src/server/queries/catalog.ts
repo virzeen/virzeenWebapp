@@ -20,7 +20,9 @@ export const getViewerEarlyHours = cache(async (): Promise<number> => {
 });
 
 export const listCategories = cache(() => catalogReads.listCategories());
-export const hasLiveCollection = cache((slug: string) => catalogReads.hasLiveCollection(slug));
+export const hasLiveCollection = cache(async (slug: string) =>
+  catalogReads.hasLiveCollection(slug, await getViewerEarlyHours()),
+);
 export const listProducts = async (filters: ShopFilters) =>
   catalogReads.listProducts(filters, undefined, await getViewerEarlyHours());
 export const getProductBySlug = cache(async (slug: string) =>
@@ -39,8 +41,11 @@ export const listRecommendations = async (product: { id: string; categoryId: str
 export const listNewArrivals = async (limit?: number) =>
   catalogReads.listNewArrivals(limit, await getViewerEarlyHours());
 export const getCategoryBySlug = cache((slug: string) => catalogReads.getCategoryBySlug(slug));
-export const getCollectionBySlug = cache((slug: string) => catalogReads.getCollectionBySlug(slug));
-export const listCollections = (featuredOnly = false) => catalogReads.listCollections({ featuredOnly });
+export const getCollectionBySlug = cache(async (slug: string) =>
+  catalogReads.getCollectionBySlug(slug, await getViewerEarlyHours()),
+);
+export const listCollections = async (featuredOnly = false) =>
+  catalogReads.listCollections({ featuredOnly, earlyHours: await getViewerEarlyHours() });
 export const getFilterOptions = (scope: { category?: string | undefined; collection?: string | undefined }) =>
   catalogReads.getFilterOptions(scope);
 

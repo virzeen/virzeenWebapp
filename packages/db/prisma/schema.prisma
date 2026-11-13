@@ -223,19 +223,22 @@ model Address {
 /// A friend who joined with a member's code (specs/member-perks.md). The reward is paid once, when the friend's first
 /// order is delivered.
 model Referral {
-  id          String    @id @default(cuid(2))
-  referrerId  String
-  referrer    User      @relation("Referrer", fields: [referrerId], references: [id], onDelete: Cascade)
+  id            String    @id @default(cuid(2))
+  referrerId    String
+  referrer      User      @relation("Referrer", fields: [referrerId], references: [id], onDelete: Cascade)
   /// One referral per friend: a friend can use one code, once.
-  referredId  String    @unique
-  referred    User      @relation("Referred", fields: [referredId], references: [id], onDelete: Cascade)
+  referredId    String    @unique
+  referred      User      @relation("Referred", fields: [referredId], references: [id], onDelete: Cascade)
   /// Set when the reward was paid; null while the friend hasn't had a first order delivered.
-  rewardedAt  DateTime?
+  rewardedAt    DateTime?
   /// What the referrer got, in paisa of credit (0 until rewarded).
-  rewardPaisa Int       @default(0)
+  rewardPaisa   Int       @default(0)
   /// The friend got a free month of the Pass with it.
-  passGranted Boolean   @default(false)
-  createdAt   DateTime  @default(now())
+  passGranted   Boolean   @default(false)
+  /// The wallet line that paid the reward, and when it was taken back (the friend's first order was returned).
+  rewardEntryId String?
+  reversedAt    DateTime?
+  createdAt     DateTime  @default(now())
 
   @@index([referrerId, createdAt])
 }
@@ -320,6 +323,9 @@ model Collection {
   name        String
   description String?
   isFeatured  Boolean   @default(false)
+  /// Early access for a festival sale or a drop (specs/member-perks.md): the public sees the collection from this time;
+  /// MONO Members 12 hours and Pass members 48 hours earlier. Null = no wait.
+  publicAt    DateTime?
   archivedAt  DateTime?
   products    Product[]
   createdAt   DateTime  @default(now())
@@ -527,58 +533,61 @@ enum CustomerTier {
 }
 
 model Order {
-  id              String        @id @default(cuid(2))
+  id                 String        @id @default(cuid(2))
   /// Human-facing number: VZ-YYMMDD-XXXX
-  orderNumber     String        @unique
+  orderNumber        String        @unique
   /// Null for a guest order (specs/checkout-v2-week1.md); the guest's email is in customerEmail.
-  userId          String?
-  user            User?         @relation(fields: [userId], references: [id], onDelete: Restrict)
+  userId             String?
+  user               User?         @relation(fields: [userId], references: [id], onDelete: Restrict)
   /// Which delivery rate applied: guest or MONO Member (decides the fee and the dispatch promise).
-  tier            CustomerTier  @default(MEMBER)
+  tier               CustomerTier  @default(MEMBER)
   /// Optional note for the rider, e.g. "Call at the gate".
-  deliveryNotes   String?
-  status          OrderStatus   @default(PENDING)
-  paymentStatus   PaymentStatus @default(UNPAID)
-  paymentMethod   PaymentMethod
-  subtotalPaisa   Int
-  shippingPaisa   Int
+  deliveryNotes      String?
+  status             OrderStatus   @default(PENDING)
+  paymentStatus      PaymentStatus @default(UNPAID)
+  paymentMethod      PaymentMethod
+  subtotalPaisa      Int
+  shippingPaisa      Int
   /// Taken off the subtotal by the discount code (specs/discount-codes.md); totalPaisa already has it off.
-  discountPaisa   Int           @default(0)
-  totalPaisa      Int
+  discountPaisa      Int           @default(0)
+  totalPaisa         Int
   /// Points spent on this order (1 point = Rs 1) and credit spent, in paisa; totalPaisa already has both off
   /// (specs/wallet.md).
-  pointsUsed      Int           @default(0)
-  creditUsedPaisa Int           @default(0)
+  pointsUsed         Int           @default(0)
+  creditUsedPaisa    Int           @default(0)
   /// Gift wrapping asked for, and its price (by tier: Rs 150 guest, Rs 100 MONO Member, free for the Pass); the total
   /// has it in (specs/member-perks.md).
-  giftWrap        Boolean       @default(false)
-  giftWrapPaisa   Int           @default(0)
+  giftWrap           Boolean       @default(false)
+  giftWrapPaisa      Int           @default(0)
   /// Express Delivery (3 hours in Kathmandu and Pokhara) chosen with a member's monthly quota (specs/member-perks.md).
-  express         Boolean       @default(false)
+  express            Boolean       @default(false)
+  /// When the order should leave us (specs/member-perks.md): 48 hours for a guest, 24 for a member, 3 for Express. A Pass
+  /// order shipped after it earns Rs 100 credit. Null for orders made before this existed.
+  dispatchPromisedAt DateTime?
   /// The discount code used, if any. Codes are never deleted, so the link stays.
-  discountCodeId  String?
-  discount        DiscountCode? @relation(fields: [discountCodeId], references: [id], onDelete: Restrict)
+  discountCodeId     String?
+  discount           DiscountCode? @relation(fields: [discountCodeId], references: [id], onDelete: Restrict)
   /// Snapshot of the code's text as applied, e.g. "WELCOME10".
-  discountCode    String?
-  shippingZone    ShippingZone
+  discountCode       String?
+  shippingZone       ShippingZone
   /// Snapshot of the delivery address at purchase time.
-  addressSnapshot Json
+  addressSnapshot    Json
   /// Snapshot of the customer's email for order emails.
-  customerEmail   String
+  customerEmail      String
   /// Online payments hold stock until this time (payment-policy.md §4).
-  reservedUntil   DateTime?
-  courierName     String?
-  trackingNumber  String?
-  cancelReason    String?
-  confirmedAt     DateTime?
-  shippedAt       DateTime?
-  deliveredAt     DateTime?
-  cancelledAt     DateTime?
-  items           OrderItem[]
-  payments        Payment[]
-  events          OrderEvent[]
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  reservedUntil      DateTime?
+  courierName        String?
+  trackingNumber     String?
+  cancelReason       String?
+  confirmedAt        DateTime?
+  shippedAt          DateTime?
+  deliveredAt        DateTime?
+  cancelledAt        DateTime?
+  items              OrderItem[]
+  payments           Payment[]
+  events             OrderEvent[]
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
 
   @@index([userId, createdAt])
   @@index([status, createdAt])
@@ -587,6 +596,7 @@ model Order {
   @@index([createdAt])
   @@index([discountCodeId, userId])
   @@index([userId, express, createdAt])
+  @@index([status, dispatchPromisedAt])
 }
 
 /// A code the owners make in /admin/discounts (specs/discount-codes.md, payment-policy.md §2).

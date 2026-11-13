@@ -10,17 +10,17 @@ Members earn points when an order is delivered, hold credit (from the shop), and
 
 ## Rules
 
-| Rule            | Value                                                                                                                                                   |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Earning         | On **delivered** orders: **1 point per Rs 1,200 paid** (the order's total), **2 per Rs 1,200** for the Pass tier. Once per order. Guests earn none.     |
-| Points expiry   | MONO Member points expire **12 months** after they are earned. Pass points never expire. (A refund of spent points never expires.)                      |
-| Points value    | **1 point = Rs 1.**                                                                                                                                     |
-| Spending points | At most **20% of the products' price after any discount**, in whole points, never more than the order total.                                            |
-| Credit          | Rupees, never expires. Sources today: an admin adds it (a goodwill credit or gift). Later: referrals, missed dispatch, price drops.                     |
-| Order of use    | Points first, then credit for what is left of the total (delivery included). The customer chooses each with a tick at the Payment step.                 |
-| Total           | `total = subtotal − discount + delivery − points − credit`, worked out only on the server; VAT is the share in what is actually paid.                   |
-| Cancelling      | Points and credit an order spent go back (a REFUND line each) when it is cancelled for any reason: customer, admin, refused, failed or expired payment. |
-| Free orders     | If credit covers everything, only cash on delivery can place it (online payment needs a total above zero).                                              |
+| Rule            | Value                                                                                                                                                                                    |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Earning         | On **delivered** orders: **1 point per Rs 1,200 paid** (the order's total), **2 per Rs 1,200** for the Pass tier. Once per order. Guests earn none.                                      |
+| Points expiry   | MONO Member points expire **12 months** after they are earned. Pass points never expire. (A refund of spent points never expires.)                                                       |
+| Points value    | **1 point = Rs 1.**                                                                                                                                                                      |
+| Spending points | At most **20% of the products' price after any discount**, in whole points, never more than the order total.                                                                             |
+| Credit          | Rupees, never expires. Sources today: an admin adds it (a goodwill credit or gift), a referral reward and the Pass's missed-dispatch credit (specs/member-perks.md). Later: price drops. |
+| Order of use    | Points first, then credit for what is left of the total (delivery included). The customer chooses each with a tick at the Payment step.                                                  |
+| Total           | `total = subtotal − discount + delivery − points − credit`, worked out only on the server; VAT is the share in what is actually paid.                                                    |
+| Cancelling      | Points and credit an order spent go back (a REFUND line each) when it is cancelled for any reason: customer, admin, refused, failed or expired payment.                                  |
+| Free orders     | If credit covers everything, only cash on delivery can place it (online payment needs a total above zero).                                                                               |
 
 ## Data
 

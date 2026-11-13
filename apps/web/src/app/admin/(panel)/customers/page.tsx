@@ -97,6 +97,19 @@ export default async function AdminCustomersPage({ searchParams }: { searchParam
             header: "Wallet",
             cell: (row) => <MemberWalletActions userId={row.id} label={row.name.trim() || row.email} />,
           },
+          {
+            key: "referral",
+            header: "Referral",
+            hideBelow: "xl",
+            cell: (row) => (
+              <span className="flex flex-col whitespace-nowrap">
+                <span className="font-mono">{row.referralCode ?? "—"}</span>
+                <span className="text-ink-muted">
+                  {row._count.referralsMade} {row._count.referralsMade === 1 ? "friend" : "friends"}
+                </span>
+              </span>
+            ),
+          },
           { key: "since", header: "Joined", hideOnMobile: true, cell: (row) => formatDate(row.createdAt) },
           {
             key: "orders",

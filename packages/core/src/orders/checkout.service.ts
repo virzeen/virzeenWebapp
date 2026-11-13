@@ -23,6 +23,7 @@ import { walletService } from "../wallet/wallet.service";
 import {
   arrivalWindow,
   deliveryFeeFor,
+  dispatchPromiseAt,
   memberDeliverySaving,
   remainingForFreeDelivery,
   shippingZoneFor,
@@ -331,6 +332,7 @@ export const checkoutService = {
           giftWrap: input.giftWrap === true,
           giftWrapPaisa: totals.giftWrapPaisa,
           express: input.express === true,
+          dispatchPromisedAt: dispatchPromiseAt(tier, input.express === true, now),
           totalPaisa: totals.totalPaisa,
           discountCodeId: discount?.id ?? null,
           discountCode: discount?.code ?? null,

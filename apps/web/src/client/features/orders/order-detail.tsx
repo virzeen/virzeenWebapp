@@ -18,6 +18,8 @@ export type OrderDetailView = {
   giftWrap?: boolean;
   giftWrapPaisa?: number;
   express?: boolean;
+  /** When the order should leave us; shown until it is shipped. */
+  dispatchPromisedAt?: Date | null;
   totalPaisa: number;
   courierName: string | null;
   trackingNumber: string | null;
@@ -63,6 +65,9 @@ export function OrderDetail({ order, reviewLinks = false }: OrderDetailProps) {
           <Badge variant={status.variant}>{status.label}</Badge>
           <Badge variant={payment.variant}>{payment.label}</Badge>
           {order.express && <Badge>Express</Badge>}
+          {order.dispatchPromisedAt && ["CONFIRMED", "PROCESSING"].includes(order.status) && (
+            <Badge data-testid="dispatch-promise">Ships by {formatDateTime(order.dispatchPromisedAt)}</Badge>
+          )}
           {order.giftWrap && <Badge>Gift wrap</Badge>}
           <span className="text-small text-ink-muted">Placed {formatDateTime(order.createdAt)}</span>
         </div>

@@ -675,6 +675,7 @@ export const catalogService = {
           slug: input.slug,
           description: emptyToNull(input.description),
           isFeatured: input.isFeatured,
+          publicAt: input.publicAt ? new Date(input.publicAt) : null,
         };
         const saved = input.id
           ? await tx.collection.update({ where: { id: input.id }, data, select: { id: true } })

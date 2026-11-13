@@ -1,6 +1,6 @@
 # Spec: Member perks (gift wrapping, birthday reward, Express Delivery, referrals, early access)
 
-**Status:** Built: gift wrapping, birthday reward, Express Delivery, referrals and early access. Branch `feat/checkout-v2` (migration `20261113100000_member_perks`)
+**Status:** Built: gift wrapping, birthday reward, Express Delivery (with its dispatch promise), referrals (with the clawback on a return), early access for products and collections, and the Pass's missed-dispatch credit. Branch `feat/checkout-v2` (migration `20261113100000_member_perks`)
 **Owner approval:** owner, 2026-11-13 in chat (the answers below)
 **Related docs:** `docs/Monochrome Membership & Store Features — Implementation Guide.md`; `specs/membership-portal.md`; `specs/wallet.md`; `payments/payment-policy.md` §2
 
@@ -52,6 +52,13 @@ The member portal (`/account/membership`) has a perks grid under the points card
 - Points and credit are not part of the referral reward: it is a credit line on the member's wallet, never expiring.
 - A returned first order doesn't take the referral reward back.
 
+## Added 2026-11-13 (second batch)
+
+- **Dispatch promise (the 3-hour timer):** every order stores `dispatchPromisedAt` when it is placed: 48 hours for a guest, 24 for a member and the Pass, 3 hours for Express ordered 9 AM to 6 PM Nepal time, otherwise 11 AM the next day. Admin sees "Due in …" or "Late by …" on waiting orders (list and dashboard tiles "Express waiting" and "Late dispatch", each with its own list view, soonest promise first); customers see "Ships by …" until the order is shipped. Dispatch itself stays manual. For online payment the clock starts when the order is placed, not when it is paid.
+- **Missed-dispatch credit (Pass):** a Pass order that is shipped after its promise, or is still waiting past it, earns **Rs 100 credit**, once, automatically (a wallet line, never expires). There is no scheduled job: it is given when the order is shipped, when an admin opens the orders or dashboard, and when the member opens their points. Cancelled and unpaid orders earn nothing.
+- **Referral clawback:** if the friend's first order is returned (and they have no other delivered order), the referrer's unspent reward credit is taken back (a negative line); what was already spent stays spent. The friend keeps the Pass month.
+- **Festival early access:** a collection has an optional "Public from" (Collections admin form). Before it the collection is hidden from the public, shop menu and header "Sale" link; MONO Members see it 12 hours early, Pass members 48. The Pass's "extra member discount" on festival sales is not built.
+
 ## Not built
 
-Festival-sale early access (there is no sale entity yet), paid Express, the missed-dispatch credit, the 3-hour timer itself (the promise is shown; dispatch is manual).
+A paid Express fee (owner chose no fee), the extra member discount on festival sales for the Pass, and everything else in the guide that has `live: []` in the catalog (priority packing, delivery time slots, gift address, extra 5% on looks, double points days, monthly flash sale, price lock, member-only products, pre-orders, reserve, voting, anniversary gift, priority support line, free size exchange, same-day replacement, pausing the Pass, and buying the Pass online).

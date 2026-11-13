@@ -26,9 +26,10 @@ const summarySelect = {
   paymentStatus: true,
   paymentMethod: true,
   totalPaisa: true,
-  /** Express Delivery and gift wrapping, so admins can see them in the list (specs/member-perks.md). */
+  /** Express Delivery, gift wrapping and when the order should leave, so admins see them in the list. */
   express: true,
   giftWrap: true,
+  dispatchPromisedAt: true,
   createdAt: true,
   items: { select: { id: true, productName: true, imageUrl: true, quantity: true }, take: 3 },
   _count: { select: { items: true } },
@@ -47,6 +48,7 @@ const detailSelect = {
   giftWrap: true,
   giftWrapPaisa: true,
   express: true,
+  dispatchPromisedAt: true,
   totalPaisa: true,
   shippingZone: true,
   addressSnapshot: true,
@@ -132,8 +134,13 @@ export const orderService = {
   // ── Admin ──
 
   async listForAdmin(filters: AdminOrderFilters) {
+    await walletService.sweepMissedDispatch();
+    const waiting: OrderStatus[] = ["CONFIRMED", "PROCESSING"];
     const where: Prisma.OrderWhereInput = {
       ...(filters.status ? { status: filters.status } : {}),
+      // Dashboard views: Express orders still to leave, and orders past their dispatch promise.
+      ...(filters.view === "express" ? { express: true, status: { in: waiting } } : {}),
+      ...(filters.view === "late" ? { dispatchPromisedAt: { lt: new Date() }, status: { in: waiting } } : {}),
       ...(filters.q
         ? {
             OR: [
@@ -148,7 +155,8 @@ export const orderService = {
       db.order.findMany({
         where,
         select: { id: true, ...summarySelect, customerEmail: true },
-        orderBy: { createdAt: "desc" },
+        // Views that are about time list the soonest promise first.
+        orderBy: filters.view ? { dispatchPromisedAt: "asc" } : { createdAt: "desc" },
         skip: (filters.page - 1) * ADMIN_PAGE_SIZE,
         take: ADMIN_PAGE_SIZE,
       }),
@@ -206,6 +214,8 @@ export const orderService = {
             reason: `Shipped with ${input.courierName}`,
             data: { courierName: input.courierName, trackingNumber: input.trackingNumber },
           });
+          // A Pass order that leaves after its dispatch promise earns credit (specs/member-perks.md).
+          await walletService.creditMissedDispatch(tx, orderId);
           break;
         case "DELIVERED":
           await transitionOrder(tx, { orderId, to: "DELIVERED", actor, reason: "Delivered" });
@@ -216,6 +226,8 @@ export const orderService = {
           break;
         case "RETURNED":
           await transitionOrder(tx, { orderId, to: "RETURNED", actor, reason: input.reason });
+          // A friend's returned first order takes the referral reward back (specs/member-perks.md).
+          await referralService.reverseForReturn(tx, orderId);
           break;
         case "CANCELLED": {
           if (current.paymentStatus === "PENDING") {
@@ -423,16 +435,20 @@ export const orderService = {
    * counts with the same filter as listForAdmin, so the number matches the list it opens.
    */
   async dashboardStats(now = new Date()) {
+    await walletService.sweepMissedDispatch(now);
     const nepalOffset = 345 * 60_000; // Nepal is UTC+5:45
     const nepalMidnight = new Date(now.getTime() + nepalOffset);
     nepalMidnight.setUTCHours(0, 0, 0, 0);
     const startOfDay = new Date(nepalMidnight.getTime() - nepalOffset);
     const paidStatuses: PaymentStatus[] = ["PAID", "COD_DUE", "COD_COLLECTED"];
     const countWithStatus = (status: OrderStatus) => db.order.count({ where: { status } });
-    const [toPack, toShip, awaitingPayment, today] = await Promise.all([
+    const waiting: OrderStatus[] = ["CONFIRMED", "PROCESSING"];
+    const [toPack, toShip, awaitingPayment, expressWaiting, lateDispatch, today] = await Promise.all([
       countWithStatus("CONFIRMED"),
       countWithStatus("PROCESSING"),
       countWithStatus("PENDING"),
+      db.order.count({ where: { express: true, status: { in: waiting } } }),
+      db.order.count({ where: { dispatchPromisedAt: { lt: now }, status: { in: waiting } } }),
       db.order.aggregate({
         where: { createdAt: { gte: startOfDay }, paymentStatus: { in: paidStatuses } },
         _sum: { totalPaisa: true },
@@ -443,6 +459,8 @@ export const orderService = {
       toPack,
       toShip,
       awaitingPayment,
+      expressWaiting,
+      lateDispatch,
       todayOrders: today._count._all,
       todayRevenuePaisa: today._sum.totalPaisa ?? 0,
     };

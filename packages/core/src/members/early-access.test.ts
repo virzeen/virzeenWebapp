@@ -57,6 +57,34 @@ describe("early access in the shop", () => {
   });
 });
 
+describe("early access for a collection", () => {
+  beforeEach(resetDatabase);
+
+  it("hides a collection until its public time, except for a member inside their window", async () => {
+    const variant = await createVariant({ stock: 5, pricePaisa: 100_000 });
+    const collection = await db.collection.create({
+      data: {
+        slug: "festival",
+        name: "Festival",
+        publicAt: new Date(Date.now() + 6 * HOUR),
+        products: { connect: { id: variant.productId } },
+      },
+    });
+    expect(await catalogReads.getCollectionBySlug(collection.slug)).toBeNull();
+    expect(await catalogReads.getCollectionBySlug(collection.slug, 12)).not.toBeNull();
+    expect(await catalogReads.hasLiveCollection(collection.slug)).toBe(false);
+    expect(await catalogReads.hasLiveCollection(collection.slug, 12)).toBe(true);
+    expect(await catalogReads.listCollections()).toHaveLength(0);
+    expect(await catalogReads.listCollections({ earlyHours: 12 })).toHaveLength(1);
+    // Past its time it is for everyone.
+    await db.collection.update({
+      where: { id: collection.id },
+      data: { publicAt: new Date(Date.now() - HOUR) },
+    });
+    expect(await catalogReads.getCollectionBySlug(collection.slug)).not.toBeNull();
+  });
+});
+
 describe("early access in the bag", () => {
   beforeEach(resetDatabase);
 

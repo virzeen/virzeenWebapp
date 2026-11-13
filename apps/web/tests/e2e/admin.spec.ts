@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
-import { E2E_ADMIN_EMAIL } from "./env";
+import { createDbClient } from "@virzeen/db";
+import { E2E_ADMIN_EMAIL, E2E_DATABASE_URL } from "./env";
 import { completeEmailSignIn, createMember, signIn, totp, uniqueEmail } from "./helpers";
 
 // Journeys 6–7 (testing-strategy.md §2) plus the admin TOTP step-up (security-policy.md §2).
@@ -486,6 +487,80 @@ test("admin sets up two-factor, builds a product on its page and it appears in t
   await expect(
     page.getByRole("table", { name: "Referrals" }).or(page.getByText("No referrals yet.")),
   ).toBeVisible();
+
+  // Dispatch promise (specs/member-perks.md): an Express order still to leave and a Pass order past its promise. The
+  // dashboard counts them, their lists show "Due in" and "Late by", and the late Pass order earns Rs 100 credit.
+  const promiseDb = createDbClient(E2E_DATABASE_URL);
+  try {
+    const owner = await promiseDb.user.findUniqueOrThrow({
+      where: { email: passCustomer },
+      select: { id: true },
+    });
+    const base = {
+      userId: owner.id,
+      customerEmail: passCustomer,
+      paymentMethod: "COD" as const,
+      paymentStatus: "COD_DUE" as const,
+      status: "CONFIRMED" as const,
+      subtotalPaisa: 100_000,
+      shippingPaisa: 0,
+      totalPaisa: 100_000,
+      shippingZone: "KATHMANDU_VALLEY" as const,
+      addressSnapshot: {},
+    };
+    await promiseDb.order.create({
+      data: {
+        ...base,
+        orderNumber: "VZ-261113-7001",
+        express: true,
+        dispatchPromisedAt: new Date(Date.now() + 2 * 60 * 60 * 1000),
+      },
+    });
+    await promiseDb.order.create({
+      data: {
+        ...base,
+        orderNumber: "VZ-261113-7002",
+        tier: "PASS",
+        dispatchPromisedAt: new Date(Date.now() - 3 * 60 * 60 * 1000),
+      },
+    });
+  } finally {
+    await promiseDb.$disconnect();
+  }
+  await page.goto("/admin");
+  const expressTile = page
+    .locator("div")
+    .filter({ hasText: /^Express waiting/ })
+    .last();
+  await expect(expressTile).toContainText("1");
+  await page.goto("/admin/orders?view=express");
+  await expect(page.getByTestId("orders-view")).toContainText("Express orders still to leave");
+  const expressRow = page.getByRole("row").filter({ hasText: "VZ-261113-7001" });
+  await expect(expressRow).toContainText("Express");
+  await expect(expressRow).toContainText("Due in");
+  await page.goto("/admin/orders?view=late");
+  await expect(page.getByRole("row").filter({ hasText: "VZ-261113-7002" })).toContainText("Late by");
+  // Opening the orders gave the late Pass order's credit: रु 250 + रु 100.
+  await page.getByRole("navigation", { name: "Admin" }).getByRole("link", { name: "Customers" }).click();
+  await page.getByLabel("Search customers by email or name").fill(passCustomer);
+  await page.getByRole("button", { name: "Search" }).click();
+  await expect(page.getByRole("row").filter({ hasText: passCustomer })).toContainText("रु 350");
+
+  // Collections: a festival sale can open to members first (specs/member-perks.md): the list shows its public time.
+  await page.getByRole("navigation", { name: "Admin" }).getByRole("link", { name: "Collections" }).click();
+  const festival = page.getByRole("form", { name: "Add a collection" });
+  await festival.getByLabel(/^Name/).fill("E2E Festival");
+  const weekAhead = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  await festival
+    .getByLabel("Public from")
+    .fill(new Date(weekAhead.getTime() - weekAhead.getTimezoneOffset() * 60_000).toISOString().slice(0, 16));
+  await festival.getByRole("button", { name: "Add collection" }).click();
+  await expect(page.getByRole("listitem").filter({ hasText: "E2E Festival" })).toContainText("Public from");
+  const guestView = await page.context().browser()!.newContext();
+  const guestPage = await guestView.newPage();
+  await guestPage.goto("/collections/e2e-festival");
+  await expect(guestPage.getByRole("heading", { name: "E2E Festival" })).toHaveCount(0);
+  await guestView.close();
 
   // A mistyped admin address stays inside the admin frame, with a way back.
   await page.goto("/admin/no-such-page");

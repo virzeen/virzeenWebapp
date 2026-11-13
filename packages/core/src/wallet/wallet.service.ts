@@ -1,6 +1,6 @@
 import "server-only";
 import { db, type Prisma, type WalletEntry, type WalletKind } from "@virzeen/db";
-import { POINTS_EXPIRY_DAYS, pointsEarned } from "@virzeen/validators/limits";
+import { MISSED_DISPATCH_CREDIT_PAISA, POINTS_EXPIRY_DAYS, pointsEarned } from "@virzeen/validators/limits";
 import { recordAudit } from "../audit/audit";
 import { AppError } from "../errors";
 
@@ -205,8 +205,79 @@ export const walletService = {
     return points;
   },
 
+  /**
+   * The missed-dispatch promise of the Pass (owner 2026-11-13): a Pass order that is shipped (or still waiting) after its
+   * dispatch promise earns Rs 100 credit, once. Returns the credit given, or 0.
+   */
+  async creditMissedDispatch(tx: Tx, orderId: string, now: Date = new Date()): Promise<number> {
+    const order = await tx.order.findUnique({
+      where: { id: orderId },
+      select: {
+        userId: true,
+        tier: true,
+        status: true,
+        dispatchPromisedAt: true,
+        shippedAt: true,
+        orderNumber: true,
+      },
+    });
+    if (!order?.userId || order.tier !== "PASS" || !order.dispatchPromisedAt) return 0;
+    if (order.status === "CANCELLED" || order.status === "PENDING") return 0;
+    if ((order.shippedAt ?? now) <= order.dispatchPromisedAt) return 0;
+    const already = await tx.walletEntry.findFirst({
+      where: { orderId, type: "EARN", kind: "CREDIT" },
+      select: { id: true },
+    });
+    if (already) return 0;
+    try {
+      await tx.walletEntry.create({
+        data: {
+          userId: order.userId,
+          kind: "CREDIT",
+          type: "EARN",
+          amount: MISSED_DISPATCH_CREDIT_PAISA,
+          remaining: MISSED_DISPATCH_CREDIT_PAISA,
+          expiresAt: null,
+          orderId,
+          reason: `Order ${order.orderNumber} left later than promised`,
+          createdAt: now,
+        },
+      });
+    } catch (error) {
+      // Another request gave it at the same moment (the unique line per order): nothing more to do.
+      if ((error as { code?: string }).code === "P2002") return 0;
+      throw error;
+    }
+    return MISSED_DISPATCH_CREDIT_PAISA;
+  },
+
+  /**
+   * Gives the missed-dispatch credit to Pass orders that are still waiting past their promise (everyone's, or one
+   * member's). Run when an admin opens the orders and when a member opens their points, so it is automatic without a
+   * scheduled job. Returns how many orders it credited.
+   */
+  async sweepMissedDispatch(now: Date = new Date(), userId?: string): Promise<number> {
+    const late = await db.order.findMany({
+      where: {
+        tier: "PASS",
+        status: { in: ["CONFIRMED", "PROCESSING"] },
+        dispatchPromisedAt: { lt: now },
+        ...(userId ? { userId } : {}),
+      },
+      select: { id: true },
+      take: 100,
+    });
+    let credited = 0;
+    for (const order of late) {
+      const given = await db.$transaction((tx) => walletService.creditMissedDispatch(tx, order.id, now));
+      if (given > 0) credited += 1;
+    }
+    return credited;
+  },
+
   /** What the account page shows: balances, what expires first, and the newest lines. */
   async summary(userId: string, now: Date = new Date()): Promise<WalletSummary> {
+    await walletService.sweepMissedDispatch(now, userId);
     return db.$transaction(async (tx) => {
       const balances = await balancesIn(tx, userId, now);
       const user = await tx.user.findUnique({ where: { id: userId }, select: { createdAt: true } });

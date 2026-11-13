@@ -427,6 +427,8 @@ export const collectionSchema = z.strictObject({
     .optional()
     .or(z.literal("")),
   isFeatured: z.boolean(),
+  /** Early access (specs/member-perks.md): the public sees the collection from this time; null or missing = no wait. */
+  publicAt: z.iso.datetime({ error: "Enter a valid date and time" }).nullable().optional(),
 });
 export type CollectionInput = z.infer<typeof collectionSchema>;
 

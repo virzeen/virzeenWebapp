@@ -87,7 +87,7 @@ export const BENEFITS: readonly Benefit[] = [
     guest: null,
     free: null,
     pass: "{p:10000} credit automatically",
-    live: [],
+    live: ["PASS"],
   },
   {
     id: "express",
@@ -205,7 +205,7 @@ export const BENEFITS: readonly Benefit[] = [
     guest: "Public sale",
     free: "Early access",
     pass: "Early access and an extra member discount",
-    live: [],
+    live: ["FREE", "PASS"],
   },
   {
     id: "price-lock",

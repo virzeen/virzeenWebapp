@@ -62,7 +62,7 @@ export const referralService = {
     const [made, invited, orders] = await Promise.all([
       db.referral.findMany({
         where: { referrerId: userId },
-        select: { rewardedAt: true, rewardPaisa: true },
+        select: { rewardedAt: true, rewardPaisa: true, reversedAt: true },
       }),
       db.referral.findUnique({
         where: { referredId: userId },
@@ -73,8 +73,8 @@ export const referralService = {
     return {
       code,
       friends: made.length,
-      rewarded: made.filter((row) => row.rewardedAt !== null).length,
-      earnedPaisa: made.reduce((sum, row) => sum + row.rewardPaisa, 0),
+      rewarded: made.filter((row) => row.rewardedAt !== null && row.reversedAt === null).length,
+      earnedPaisa: made.reduce((sum, row) => sum + (row.reversedAt ? 0 : row.rewardPaisa), 0),
       invitedBy: invited ? { name: invited.referrer.name.trim().split(/\s+/)[0] || "A friend" } : null,
       canEnterCode: !invited && orders === 0,
     };
@@ -145,7 +145,8 @@ export const referralService = {
       data: { rewardedAt: now, rewardPaisa, passGranted: isPass },
     });
     if (claimed.count !== 1) return 0;
-    await tx.walletEntry.create({
+    // No order id on the line: its once-only guard is the claim above, and an order's own credit lines stay free.
+    const entry = await tx.walletEntry.create({
       data: {
         userId: referral.referrerId,
         kind: "CREDIT",
@@ -153,11 +154,12 @@ export const referralService = {
         amount: rewardPaisa,
         remaining: rewardPaisa,
         expiresAt: null,
-        orderId,
         reason: `A friend's first order ${order.orderNumber} was delivered`,
         createdAt: now,
       },
+      select: { id: true },
     });
+    await tx.referral.update({ where: { id: referral.id }, data: { rewardEntryId: entry.id } });
     if (isPass) {
       const friend = await tx.user.findUnique({
         where: { id: order.userId },
@@ -176,6 +178,50 @@ export const referralService = {
     return rewardPaisa;
   },
 
+  /**
+   * Call when an order is returned (inside its transaction). If it was the friend's only delivered order and its
+   * referral reward was paid, takes back what of the credit is still unspent. The friend keeps the Pass month.
+   * Returns the credit taken back.
+   */
+  async reverseForReturn(tx: Tx, orderId: string, now: Date = new Date()): Promise<number> {
+    const order = await tx.order.findUnique({ where: { id: orderId }, select: { userId: true } });
+    if (!order?.userId) return 0;
+    const referral = await tx.referral.findUnique({
+      where: { referredId: order.userId },
+      select: { id: true, referrerId: true, rewardedAt: true, reversedAt: true, rewardEntryId: true },
+    });
+    if (!referral?.rewardedAt || referral.reversedAt) return 0;
+    const stillDelivered = await tx.order.count({ where: { userId: order.userId, status: "DELIVERED" } });
+    if (stillDelivered > 0) return 0;
+    const claimed = await tx.referral.updateMany({
+      where: { id: referral.id, reversedAt: null },
+      data: { reversedAt: now },
+    });
+    if (claimed.count !== 1) return 0;
+    const entry = referral.rewardEntryId
+      ? await tx.walletEntry.findUnique({
+          where: { id: referral.rewardEntryId },
+          select: { id: true, remaining: true },
+        })
+      : null;
+    const taken = entry?.remaining ?? 0;
+    if (entry && taken > 0) {
+      await tx.walletEntry.update({ where: { id: entry.id }, data: { remaining: 0 } });
+      await tx.walletEntry.create({
+        data: {
+          userId: referral.referrerId,
+          kind: "CREDIT",
+          type: "ADJUST",
+          amount: -taken,
+          remaining: 0,
+          reason: "Referral reward taken back: the friend's first order was returned",
+          createdAt: now,
+        },
+      });
+    }
+    return taken;
+  },
+
   /** Admin: every referral, newest first, with who invited whom and whether the reward was paid. */
   async adminList(limit = 100) {
     return db.referral.findMany({
@@ -187,6 +233,7 @@ export const referralService = {
         rewardedAt: true,
         rewardPaisa: true,
         passGranted: true,
+        reversedAt: true,
         referrer: { select: { name: true, email: true } },
         referred: { select: { name: true, email: true } },
       },

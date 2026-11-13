@@ -1,5 +1,6 @@
 import { KATHMANDU_VALLEY_DISTRICTS } from "@virzeen/validators";
 import type { CustomerTier, ShippingZone } from "@virzeen/db";
+import { isExpressHours, nextDayElevenAm } from "@virzeen/validators/limits";
 
 // Delivery fees (owner decision 2026-11-11, specs/checkout-v2-week1.md; replaces "shipping folded into the
 // price" of 2026-09-28). The fee depends on who is buying, not where: guests pay Rs. 200 and members Rs. 150, and
@@ -46,4 +47,17 @@ export function arrivalWindow(tier: CustomerTier, zone: ShippingZone, orderedAt:
   const a = `${MONTHS[first.month]} ${first.day}`;
   if (min === max) return a;
   return first.month === last.month ? `${a} to ${last.day}` : `${a} to ${MONTHS[last.month]} ${last.day}`;
+}
+
+/**
+ * When an order placed at `orderedAt` should leave us (specs/member-perks.md): 48 hours for a guest, 24 for a member and
+ * the Pass; an Express order 3 hours later if it was placed 9 AM to 6 PM Nepal time, otherwise by 11 AM the next day.
+ */
+export function dispatchPromiseAt(tier: CustomerTier, express: boolean, orderedAt: Date): Date {
+  if (express) {
+    return isExpressHours(orderedAt)
+      ? new Date(orderedAt.getTime() + 3 * 3_600_000)
+      : nextDayElevenAm(orderedAt);
+  }
+  return new Date(orderedAt.getTime() + DISPATCH_HOURS[tier] * 3_600_000);
 }

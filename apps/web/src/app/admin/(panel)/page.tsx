@@ -35,6 +35,18 @@ export default async function AdminDashboardPage() {
       linkContext: "orders to ship",
     },
     {
+      label: "Express waiting",
+      value: String(stats.expressWaiting),
+      href: "/admin/orders?view=express",
+      linkContext: "Express orders waiting",
+    },
+    {
+      label: "Late dispatch",
+      value: String(stats.lateDispatch),
+      href: "/admin/orders?view=late",
+      linkContext: "orders past their dispatch promise",
+    },
+    {
       label: "Payments pending",
       value: String(stats.awaitingPayment),
       href: "/admin/orders?status=PENDING",

@@ -3,7 +3,7 @@ import { adminOrderFiltersSchema, ORDER_STATUSES } from "@virzeen/validators";
 import { Price } from "@/client/components/shared/price";
 import { AdminPageHeader } from "@/client/features/admin/admin-page-header";
 import { OrderFilters } from "@/client/features/admin/order-filters";
-import { formatDateTime } from "@/client/lib/format";
+import { dueLabel, formatDateTime } from "@/client/lib/format";
 import { orderStatus, PAYMENT_METHOD_LABELS, paymentStatus } from "@/client/lib/order-labels";
 import { requireAdminPage } from "@/server/auth/session";
 import { listAdminOrders } from "@/server/queries/admin";
@@ -21,10 +21,22 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams: 
   const params = flattenSearchParams(await searchParams);
   const filters = adminOrderFiltersSchema.parse(params);
   const { rows, total, page, pageCount } = await listAdminOrders(filters);
+  const now = new Date();
 
   return (
     <div className="flex flex-col gap-6">
       <AdminPageHeader title="Orders" description={`${total} ${total === 1 ? "order" : "orders"}`} />
+
+      {filters.view && (
+        <p className="flex items-center gap-3 text-small" data-testid="orders-view">
+          {filters.view === "express"
+            ? "Express orders still to leave"
+            : "Orders past their dispatch promise"}
+          <Link href="/admin/orders" className="underline underline-offset-4">
+            Show all orders
+          </Link>
+        </p>
+      )}
 
       <OrderFilters
         q={filters.q ?? ""}
@@ -57,6 +69,11 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams: 
                   {row.orderNumber}
                 </Link>
                 <span className="text-ink-muted">{formatDateTime(row.createdAt)}</span>
+                {row.dispatchPromisedAt && ["CONFIRMED", "PROCESSING"].includes(row.status) && (
+                  <Badge variant={dueLabel(row.dispatchPromisedAt, now).late ? "danger" : "neutral"}>
+                    {dueLabel(row.dispatchPromisedAt, now).text}
+                  </Badge>
+                )}
                 {(row.express || row.giftWrap) && (
                   <span className="flex flex-wrap gap-1">
                     {row.express && <Badge>Express</Badge>}
