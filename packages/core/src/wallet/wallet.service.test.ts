@@ -58,20 +58,20 @@ describe("wallet: earning points on a delivered order", () => {
     return { fixture, order };
   }
 
-  it("gives a MONO Member 1 point per Rs. 1,200 paid, expiring after a year, and only once", async () => {
+  it("gives a MONO Member 1 point per Rs. 2,999 paid, expiring after a year, and only once", async () => {
     const { fixture, order } = await deliveredOrder("MEMBER");
-    // Rs. 5,000 paid, delivery free from Rs. 3,000: floor(5000 / 1200) = 4 points.
-    expect(await db.$transaction((tx) => walletService.earnForOrder(tx, order.id, NOW))).toBe(4);
+    // Rs. 5,000 paid, delivery free from Rs. 3,000: floor(5000 / 2999) = 1 point.
+    expect(await db.$transaction((tx) => walletService.earnForOrder(tx, order.id, NOW))).toBe(1);
     expect(await db.$transaction((tx) => walletService.earnForOrder(tx, order.id, NOW))).toBe(0);
     const lines = await db.walletEntry.findMany({ where: { userId: fixture.user.id } });
     expect(lines).toHaveLength(1);
-    expect(lines[0]).toMatchObject({ kind: "POINTS", type: "EARN", amount: 4, remaining: 4 });
+    expect(lines[0]).toMatchObject({ kind: "POINTS", type: "EARN", amount: 1, remaining: 1 });
     expect(lines[0]?.expiresAt?.getTime()).toBe(NOW.getTime() + 365 * DAY_MS);
   });
 
-  it("gives a Pass member 2 points per Rs. 1,200 that never expire", async () => {
+  it("gives a Pass member 2 points per Rs. 2,999 that never expire", async () => {
     const { fixture, order } = await deliveredOrder("PASS");
-    expect(await db.$transaction((tx) => walletService.earnForOrder(tx, order.id, NOW))).toBe(8);
+    expect(await db.$transaction((tx) => walletService.earnForOrder(tx, order.id, NOW))).toBe(2);
     const line = await db.walletEntry.findFirstOrThrow({ where: { userId: fixture.user.id } });
     expect(line.expiresAt).toBeNull();
   });

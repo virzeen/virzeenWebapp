@@ -78,8 +78,8 @@ export function memberDeliverySaving(payablePaisa: number): number {
 // Points and credit (owner 2026-11-11, docs/specs/wallet.md). Pure rules, shared so the checkout shows what the
 // server applies; only the server spends them.
 
-/** A member earns points on a delivered order: 1 per Rs 1,200 paid (Pass members 2 per Rs 1,200). */
-export const POINT_EARN_UNIT_PAISA = 120_000;
+/** A member earns points on a delivered order: 1 per Rs 2,999 paid (Pass members 2 per Rs 2,999; owner 2026-11-13). */
+export const POINT_EARN_UNIT_PAISA = 299_900;
 /** 1 point is worth Rs 1 at checkout. */
 export const POINT_VALUE_PAISA = 100;
 /** Points can pay for at most this share of the products' price (after any discount). */

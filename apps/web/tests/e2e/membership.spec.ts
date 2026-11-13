@@ -15,7 +15,7 @@ async function grantPass(email: string, endsAt: Date) {
   }
 }
 
-test("a free MONO Member sees their card, the free benefits and the Pass offer", async ({ page }) => {
+test("a free MONO Member sees their card, and the Pass offer in the portal", async ({ page }) => {
   await page.setExtraHTTPHeaders({ "X-Forwarded-For": "198.51.100.41" });
   await page.goto("/login?next=%2Faccount");
   await completeEmailSignIn(page, uniqueEmail("freemember"));
@@ -23,16 +23,19 @@ test("a free MONO Member sees their card, the free benefits and the Pass offer",
 
   await expect(page.getByRole("heading", { level: 2, name: "MONO Member" })).toBeVisible();
   await expect(page.getByRole("img", { name: "MONO Member card" })).toBeVisible();
-  const highlights = page.getByTestId("member-highlights");
-  await expect(highlights).toContainText("Ships in 24 hours");
-  await expect(highlights).toContainText("Delivery रु 150");
+  // The benefits live on the Membership page, not here: the profile has the card and links.
+  await expect(page.getByTestId("member-highlights")).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "The Monochrome Pass" })).toHaveCount(0);
 
-  // The Pass offer: both plans, and no way to buy it yet.
+  // The portal: the Pass offer with both plans, and no way to buy it yet.
+  await page.getByRole("link", { name: "Your membership" }).click();
+  await expect(page).toHaveURL(/\/account\/membership$/);
   const offer = page.getByRole("region", { name: "The Monochrome Pass" });
   await expect(offer).toContainText("रु 499");
   await expect(offer).toContainText("रु 2,999");
   await expect(offer).toContainText("रु 4,599");
   await expect(offer.getByRole("button", { name: "Pass opens soon" })).toBeDisabled();
+  await page.goBack();
 
   await page.getByRole("link", { name: "See every benefit" }).click();
   await expect(page).toHaveURL(/\/membership$/);
@@ -54,7 +57,7 @@ test("a Monochrome Pass member sees the black card and no offer", async ({ page 
   await expect(page.getByRole("img", { name: "Monochrome Pass card" })).toContainText(
     "Valid until 10 May 2027",
   );
-  await expect(page.getByTestId("member-highlights")).toContainText("Free delivery");
+  await expect(page.getByTestId("member-highlights")).toHaveCount(0);
   await expect(page.getByRole("region", { name: "The Monochrome Pass" })).toHaveCount(0);
 });
 
@@ -81,7 +84,7 @@ test("the Membership portal shows a free member their benefits and a Pass member
   await page.goto("/login?next=%2Faccount%2Fmembership");
   await completeEmailSignIn(page, email);
   await expect(page).toHaveURL(/\/account\/membership$/);
-  await expect(page.getByRole("heading", { level: 2, name: "Your MONO Member benefits" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: "Redeem points" })).toBeVisible();
   await expect(page.getByRole("region", { name: "The Monochrome Pass" })).toBeVisible();
 
   await grantPass(email, new Date(Date.now() + 40 * 24 * 60 * 60 * 1000));

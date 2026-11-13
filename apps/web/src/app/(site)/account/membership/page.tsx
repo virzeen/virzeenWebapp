@@ -35,15 +35,8 @@ export default async function MembershipPortalPage() {
       <div className="flex flex-col gap-16 lg:gap-24">
         <header className="flex flex-col gap-4">
           <h1 className="font-display text-h2 md:text-h1">Membership</h1>
-          <p className="text-body-lg text-ink-muted">You are a {LEVEL_NAMES.FREE}. Here is what you get.</p>
         </header>
         <WalletPanel {...wallet} />
-        <section aria-labelledby="free-benefits" className="flex flex-col gap-8">
-          <h2 id="free-benefits" className="font-display text-h2">
-            Your MONO Member benefits
-          </h2>
-          <BenefitList level="FREE" />
-        </section>
         <PassOffer name={name} />
       </div>
     );
@@ -126,10 +119,6 @@ export default async function MembershipPortalPage() {
           <h2 id="pass-benefits" className="font-display text-h2">
             Everything your Pass includes
           </h2>
-          <p className="text-body text-ink-muted">
-            A tick means it works now. Benefits marked Soon are being added; they are yours as soon as they
-            open.
-          </p>
         </div>
         <BenefitList level="PASS" />
         <p className="text-small text-ink-muted">{THREE_HOUR_SMALL_PRINT}</p>

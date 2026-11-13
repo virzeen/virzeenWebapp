@@ -1,4 +1,4 @@
-import { Badge } from "@virzeen/ui";
+import { Badge, ButtonLink } from "@virzeen/ui";
 import { POINT_VALUE_PAISA } from "@virzeen/validators/limits";
 import { Price } from "@/client/components/shared/price";
 import { formatDate } from "@/client/lib/format";
@@ -34,38 +34,51 @@ const TYPE_LABEL: Record<WalletLine["type"], string> = {
 export function WalletPanel({ points, creditPaisa, expiringSoon, history }: WalletPanelProps) {
   return (
     <section aria-labelledby="wallet-heading" className="flex flex-col gap-8" data-testid="wallet-panel">
-      <div className="flex flex-col gap-2">
-        <h2 id="wallet-heading" className="font-display text-h2">
-          Points and credit
-        </h2>
-        <p className="text-body text-ink-muted">
-          Earn points on every delivered order and spend them, with your credit, at checkout.
-        </p>
+      <h2 id="wallet-heading" className="font-display text-h2">
+        Redeem points
+      </h2>
+      <div className="relative isolate overflow-hidden rounded-xl border border-line bg-surface p-8 lg:p-12">
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 left-0 -z-10 w-1/3 bg-linear-to-r from-transparent via-canvas/70 to-transparent motion-safe:animate-shine-sweep"
+        />
+        <div className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
+          <div className="flex flex-col gap-3">
+            <p className="text-caption tracking-widest text-ink-muted uppercase">Your points</p>
+            <p
+              className="font-display text-display leading-none motion-safe:animate-reveal"
+              data-testid="wallet-points"
+            >
+              {points}
+            </p>
+            <p className="text-body text-ink-muted">
+              Worth <Price paisa={points * POINT_VALUE_PAISA} /> off your next order
+            </p>
+            {expiringSoon && (
+              <p
+                className="w-fit rounded-full border border-line bg-canvas px-4 py-1 text-small"
+                data-testid="wallet-expiring"
+              >
+                {expiringSoon.points} {expiringSoon.points === 1 ? "point expires" : "points expire"} on{" "}
+                {formatDate(expiringSoon.at)}
+              </p>
+            )}
+          </div>
+          <div className="flex flex-col items-start gap-4 md:items-end">
+            {creditPaisa > 0 && (
+              <p className="flex items-baseline gap-2 text-body">
+                <span className="text-ink-muted">Credit</span>
+                <span className="font-display text-h2" data-testid="wallet-credit">
+                  <Price paisa={creditPaisa} />
+                </span>
+              </p>
+            )}
+            <ButtonLink href="/shop" shape="pill" size="lg">
+              Shop and redeem
+            </ButtonLink>
+          </div>
+        </div>
       </div>
-      <dl className="grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-2">
-        <div className="flex flex-col gap-2 bg-canvas p-6">
-          <dt className="text-small text-ink-muted">Points</dt>
-          <dd className="font-display text-h2" data-testid="wallet-points">
-            {points}
-          </dd>
-          <dd className="text-small text-ink-muted">
-            Worth <Price paisa={points * POINT_VALUE_PAISA} /> at checkout
-          </dd>
-          {expiringSoon && (
-            <dd className="text-small text-ink-muted" data-testid="wallet-expiring">
-              {expiringSoon.points} {expiringSoon.points === 1 ? "point expires" : "points expire"} on{" "}
-              {formatDate(expiringSoon.at)}
-            </dd>
-          )}
-        </div>
-        <div className="flex flex-col gap-2 bg-canvas p-6">
-          <dt className="text-small text-ink-muted">Credit</dt>
-          <dd className="font-display text-h2" data-testid="wallet-credit">
-            <Price paisa={creditPaisa} />
-          </dd>
-          <dd className="text-small text-ink-muted">Never expires</dd>
-        </div>
-      </dl>
       {history.length > 0 ? (
         <ul className="flex flex-col divide-y divide-line" aria-label="Recent points and credit">
           {history.map((line) => (

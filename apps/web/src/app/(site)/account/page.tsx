@@ -1,10 +1,7 @@
 import { ButtonLink, EmptyState, Link, MembershipCard } from "@virzeen/ui";
-import { THREE_HOUR_SMALL_PRINT, SHORT_POINTS, LEVEL_NAMES } from "@virzeen/validators/membership";
+import { LEVEL_NAMES } from "@virzeen/validators/membership";
 import { Heart } from "lucide-react";
 import { LogoMark } from "@/client/components/layout/logo-mark";
-import { Bullet } from "@/client/features/membership/bullet";
-import { BenefitText } from "@/client/features/membership/benefit-text";
-import { PassOffer } from "@/client/features/membership/pass-offer";
 import { ProductCarousel } from "@/client/features/products/product-carousel";
 import { StockAlertList } from "@/client/features/stock-alerts/stock-alert-list";
 import { formatDate, formatMonthYear } from "@/client/lib/format";
@@ -65,15 +62,10 @@ export default async function ProfilePage() {
 
       {/* The member's level (specs/membership-portal.md): the plain card for a free MONO Member, the black one for the Pass. */}
       <section aria-labelledby="membership-heading" className="flex flex-col gap-8">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
-          <h2 id="membership-heading" className="font-display text-h2">
-            {isPass ? LEVEL_NAMES.PASS : LEVEL_NAMES.FREE}
-          </h2>
-          <Link href="/membership" variant="header">
-            See every benefit
-          </Link>
-        </div>
-        <div className="grid items-start gap-10 lg:grid-cols-2 lg:gap-16">
+        <h2 id="membership-heading" className="font-display text-h2">
+          {isPass ? LEVEL_NAMES.PASS : LEVEL_NAMES.FREE}
+        </h2>
+        <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
           <MembershipCard
             level={isPass ? "pass" : "member"}
             name={name}
@@ -87,28 +79,16 @@ export default async function ProfilePage() {
             role="img"
             aria-label={`${isPass ? LEVEL_NAMES.PASS : LEVEL_NAMES.FREE} card`}
           />
-          <div className="flex flex-col gap-4">
-            <p className="text-body-lg">
-              {isPass
-                ? "Your Pass is active. Here is what it gives you."
-                : "Your space in the Monochrome world."}
-            </p>
-            <ul className="grid grid-cols-2 gap-x-4 gap-y-3" data-testid="member-highlights">
-              {SHORT_POINTS[isPass ? "PASS" : "FREE"].map((point) => (
-                <li key={point} className="flex items-start gap-2 text-body">
-                  <Bullet />
-                  <span>
-                    <BenefitText text={point} />
-                  </span>
-                </li>
-              ))}
-            </ul>
-            {isPass && <p className="text-small text-ink-muted">{THREE_HOUR_SMALL_PRINT}</p>}
+          <div className="flex flex-col items-start gap-4">
+            <ButtonLink href="/account/membership" shape="pill" size="lg">
+              Your membership
+            </ButtonLink>
+            <Link href="/membership" variant="header">
+              See every benefit
+            </Link>
           </div>
         </div>
       </section>
-
-      {!isPass && <PassOffer name={name} />}
 
       {products.length > 0 ? (
         <ProductCarousel

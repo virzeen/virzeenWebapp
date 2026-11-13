@@ -101,10 +101,10 @@ export default async function MembershipPage() {
                 <Price paisa={PASS_PER_MONTH_PAISA} className="font-display text-h1" />
                 <span className="text-small text-canvas/70">/ month</span>
               </p>
-              <p className="text-small text-canvas/70">
-                Bought for 6 months (<Price paisa={PASS_PLANS[0].pricePaisa} />) or 1 year (
-                <Price paisa={PASS_PLANS[1].pricePaisa} />
-                ), never month to month.
+              <p className="flex items-center gap-2 text-small text-canvas/70">
+                <Price paisa={PASS_PLANS[0].pricePaisa} /> for 6 months
+                <span aria-hidden>·</span>
+                <Price paisa={PASS_PLANS[1].pricePaisa} /> for 1 year
               </p>
             </div>
             <LevelAction entry="PASS" level={level} signedIn={Boolean(user)} />
@@ -142,9 +142,6 @@ export default async function MembershipPage() {
         </h2>
         <BenefitComparison current={level} />
         <p className="text-small text-ink-muted">{THREE_HOUR_SMALL_PRINT}</p>
-        <p className="text-small text-ink-muted">
-          Some benefits start after launch; the account page marks each one as available or coming soon.
-        </p>
       </section>
     </Container>
   );

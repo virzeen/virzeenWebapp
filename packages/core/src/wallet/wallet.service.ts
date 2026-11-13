@@ -171,7 +171,7 @@ export const walletService = {
   },
 
   /**
-   * Points for a delivered order: 1 per Rs 1,200 paid (Pass 2). MONO Member points expire after a year, Pass points
+   * Points for a delivered order: 1 per Rs 2,999 paid (Pass 2). MONO Member points expire after a year, Pass points
    * never. Once per order (a repeat does nothing); guests earn none.
    */
   async earnForOrder(tx: Tx, orderId: string, now: Date = new Date()) {

@@ -1,7 +1,7 @@
 # Spec: Points and credit wallet
 
 **Status:** Built, branch `feat/checkout-v2` (migration `20261111160000_wallet`)
-**Owner approval:** owner, 2026-11-11 in chat ("Go for it" to the points and credit wallet; rates from the Monochrome guide and the owner's 1 point per Rs 1,200)
+**Owner approval:** owner, 2026-11-11 in chat ("Go for it" to the points and credit wallet; rates from the Monochrome guide and the owner's 1 point per Rs 2,999, changed 2026-11-13)
 **Related docs:** `docs/Monochrome Membership & Store Features — Implementation Guide.md` §4 and "Guardrails"; `specs/membership-portal.md`; `payments/payment-policy.md` §2
 
 ## Goal

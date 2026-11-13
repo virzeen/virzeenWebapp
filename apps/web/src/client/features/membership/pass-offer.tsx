@@ -54,10 +54,6 @@ export function PassOffer({ name }: { name: string }) {
           <Button shape="pill" size="lg" disabled className="w-full">
             Pass opens soon
           </Button>
-          <p className="text-small text-ink-muted">
-            Bought for 6 months or 1 year, never month to month. The Pass is bought inside your MONO Member
-            account, with online payment, and opens soon.
-          </p>
         </div>
       </div>
     </section>

@@ -61,7 +61,7 @@ test("a member pays part of an order with credit and points and sees their balan
 
   await page.goto("/account/membership");
   await expect(page.getByTestId("wallet-points")).toHaveText("510");
-  await expect(page.getByTestId("wallet-credit")).toHaveText("रु 0");
+  await expect(page.getByTestId("wallet-credit")).toHaveCount(0);
   const lines = page.getByRole("list", { name: "Recent points and credit" });
   await expect(lines).toContainText("Spent");
   await expect(lines).toContainText("Welcome gift");

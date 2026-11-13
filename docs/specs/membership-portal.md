@@ -15,7 +15,7 @@ Three levels: **Guest**, **MONO Member** (free account) and the **Monochrome Pas
 | What to build now | The member portal UI first. Real data where it exists today; "Soon" on the rest. The Pass can't be bought until online payment is on.                        |
 | Pass price        | Rs 2,999 for 6 months, Rs 4,599 for a year (the guide's tables, not its copy).                                                                               |
 | Returns           | Free pickup **only for the Pass** (15 days). Guest and MONO Member: 7 days, customer pays pickup. This replaces the earlier "free returns for MONO Members". |
-| Points            | 1 point per Rs 1,200 (MONO Member), 2 per Rs 1,200 (Pass). Not built yet (shown as Soon).                                                                    |
+| Points            | 1 point per Rs 2,999 (MONO Member), 2 per Rs 2,999 (Pass; changed 2026-11-13). Not built yet (shown as Soon).                                                |
 
 ## What is built
 
@@ -46,3 +46,8 @@ Everything that needs new back-end: the extra 5% on complete looks, points and c
 ## Tests
 
 Core: `memberService` Pass (level, grant 6 and 12 months, renewal, expiry, end, unknown email). E2E `membership.spec.ts`: a free member's profile (card, highlights, Pass offer with its disabled button), a Pass member's profile (black card, valid-until date, no offer), the public Membership page for a guest. Storybook: `MembershipCard` stories.
+
+## Changes 2026-11-13
+
+- Points are earned at **1 per Rs 2,999** (MONO Member) and **2 per Rs 2,999** (Pass); expiry is unchanged (MONO Member 12 months, Pass never).
+- The benefits are listed only on `/membership`. The profile (`/account`) shows the card and a link to the portal; the portal shows the points card ("Redeem points", credit only when above zero) and, for a free member, the Pass offer. The long "bought for 6 months..." notes are removed.
