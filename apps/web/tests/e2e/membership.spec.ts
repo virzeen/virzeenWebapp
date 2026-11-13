@@ -84,7 +84,7 @@ test("the Membership portal shows a free member their benefits and a Pass member
   await page.goto("/login?next=%2Faccount%2Fmembership");
   await completeEmailSignIn(page, email);
   await expect(page).toHaveURL(/\/account\/membership$/);
-  await expect(page.getByRole("heading", { level: 2, name: "Redeem points" })).toBeVisible();
+  await expect(page.getByTestId("wallet-panel")).toBeVisible();
   await expect(page.getByRole("region", { name: "The Monochrome Pass" })).toBeVisible();
 
   await grantPass(email, new Date(Date.now() + 40 * 24 * 60 * 60 * 1000));

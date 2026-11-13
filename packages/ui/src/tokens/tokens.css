@@ -66,6 +66,7 @@
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-xl: 32px; /* the one-field popups (promo code), like Nike's sign-in popup (owner 2026-11-11) */
+  --radius-2xl: 48px; /* the points card in the member portal (owner 2026-11-13): rounder than the popups */
   --shadow-*: initial;
   --shadow-sm: 0 1px 2px 0 rgb(20 20 20 / 0.06), 0 1px 3px 0 rgb(20 20 20 / 0.04);
   --shadow-md: 0 8px 24px -4px rgb(20 20 20 / 0.12), 0 2px 6px -2px rgb(20 20 20 / 0.06);
@@ -112,78 +113,61 @@
      Use with motion-safe:. */
   --animate-shine-sweep: shine-sweep 7s ease-in-out infinite;
   --animate-shine-border: shine-border 3.5s ease-in-out infinite;
-  /* The points coin (CoinStack, owner 2026-11-13): a slow sway while it waits; on hover or tap it spins, jumps and
-     lands flat on a pile of coins that drop in one after another. Use with motion-safe:. */
-  --animate-coin-idle: coin-idle 5s ease-in-out infinite;
-  --animate-coin-stack: coin-stack 1.8s linear forwards;
-  --animate-coin-drop-1: coin-drop 560ms linear 0.75s both;
-  --animate-coin-drop-2: coin-drop 560ms linear 0.85s both;
-  --animate-coin-drop-3: coin-drop 560ms linear 0.95s both;
-  --animate-coin-drop-4: coin-drop 560ms linear 1.05s both;
+  /* The points card's icons (owner 2026-11-13): an hourglass whose sand runs down and which then turns over, and a coin that
+     flips. The sand parts use `origin-bottom fill-box`. Use with motion-safe:. */
+  --animate-hourglass: hourglass 6s ease-in-out infinite;
+  --animate-sand-top: sand-top 6s linear infinite;
+  --animate-sand-bottom: sand-bottom 6s linear infinite;
+  --animate-sand-stream: sand-stream 6s linear infinite;
+  --animate-icon-flip: icon-flip 4s ease-in-out infinite;
 
-  @keyframes coin-idle {
+  /* Sand runs for 4 of the 6 seconds, the glass turns over between 4.6s and 5.2s, then the cycle starts again. */
+  @keyframes hourglass {
     0%,
-    100% {
-      transform: translateY(0) rotateX(0deg) rotateY(-30deg) scale(1);
-    }
-    50% {
-      transform: translateY(-4%) rotateX(0deg) rotateY(-8deg) scale(1);
-    }
-  }
-  /* Spins three times on the spot, jumps, then turns flat and lands on top of the pile (CoinStack geometry). */
-  @keyframes coin-stack {
-    0% {
-      transform: translateY(0) rotateX(0deg) rotateY(-30deg) scale(1);
-      animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
-    }
-    48% {
-      transform: translateY(0) rotateX(0deg) rotateY(1080deg) scale(1);
-      animation-timing-function: cubic-bezier(0.2, 0.6, 0.35, 1);
-    }
-    66% {
-      transform: translateY(-34%) rotateX(20deg) rotateY(1080deg) scale(1);
-      animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45);
-    }
-    88% {
-      transform: translateY(26%) rotateX(72deg) rotateY(1080deg) scale(0.9);
-      animation-timing-function: cubic-bezier(0, 0.55, 0.45, 1);
-    }
-    94% {
-      transform: translateY(21%) rotateX(72deg) rotateY(1080deg) scale(0.9);
-      animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45);
-    }
-    100% {
-      transform: translateY(24%) rotateX(72deg) rotateY(1080deg) scale(0.9);
-    }
-  }
-  @keyframes coin-drop {
-    0% {
-      opacity: 0;
-      transform: translateY(-420%);
-      animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45);
-    }
-    12% {
-      opacity: 1;
-    }
-    62% {
-      transform: translateY(0) scaleY(0.94);
-      animation-timing-function: cubic-bezier(0, 0.55, 0.45, 1);
-    }
     76% {
-      transform: translateY(-14%) scaleY(1);
-      animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45);
+      transform: rotate(0deg);
     }
-    86% {
-      transform: translateY(0) scaleY(0.97);
-      animation-timing-function: cubic-bezier(0, 0.55, 0.45, 1);
-    }
-    93% {
-      transform: translateY(-4%) scaleY(1);
-      animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45);
-    }
+    88%,
     100% {
+      transform: rotate(180deg);
+    }
+  }
+  @keyframes sand-top {
+    0% {
+      transform: scaleY(1);
+    }
+    66%,
+    100% {
+      transform: scaleY(0);
+    }
+  }
+  @keyframes sand-bottom {
+    0% {
+      transform: scaleY(0);
+    }
+    66%,
+    100% {
+      transform: scaleY(1);
+    }
+  }
+  @keyframes sand-stream {
+    0%,
+    66% {
       opacity: 1;
-      transform: translateY(0) scaleY(1);
+    }
+    67%,
+    100% {
+      opacity: 0;
+    }
+  }
+  @keyframes icon-flip {
+    0%,
+    55% {
+      transform: perspective(3rem) rotateY(0deg);
+    }
+    85%,
+    100% {
+      transform: perspective(3rem) rotateY(360deg);
     }
   }
 
@@ -357,6 +341,10 @@
    `pt-safe`: the top bar (site header, the phone menu). `pb-safe-bar`: a bar fixed at the bottom that has 0.75rem
    padding (py-3). `pull-under-header`: the home hero reaches up under the see-through header, whose height is 4rem
    plus the top inset. */
+/* An SVG part that scales or turns around its own box (the hourglass sand). */
+@utility fill-box {
+  transform-box: fill-box;
+}
 @utility pt-safe {
   padding-top: env(safe-area-inset-top, 0px);
 }

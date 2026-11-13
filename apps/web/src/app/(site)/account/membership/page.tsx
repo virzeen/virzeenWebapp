@@ -33,10 +33,10 @@ export default async function MembershipPortalPage() {
   if (!isPass) {
     return (
       <div className="flex flex-col gap-16 lg:gap-24">
-        <header className="flex flex-col gap-4">
+        <div className="flex flex-col gap-6">
           <h1 className="font-display text-h2 md:text-h1">Membership</h1>
-        </header>
-        <WalletPanel {...wallet} />
+          <WalletPanel {...wallet} />
+        </div>
         <PassOffer name={name} />
       </div>
     );
@@ -112,7 +112,7 @@ export default async function MembershipPortalPage() {
         </dl>
       </section>
 
-      <WalletPanel {...wallet} />
+      <WalletPanel {...wallet} isPass />
 
       <section aria-labelledby="pass-benefits" className="flex flex-col gap-8">
         <div className="flex flex-col gap-2">

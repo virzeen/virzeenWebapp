@@ -15,8 +15,10 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 export type WalletBalances = { points: number; creditPaisa: number };
 
 export type WalletSummary = WalletBalances & {
+  /** Whole days since the member joined (the ring of the points card fills with them). */
+  memberDays: number;
   /** Points that expire first, and when; null when none will. */
-  expiringSoon: { points: number; at: Date } | null;
+  expiringSoon: { points: number; at: Date; daysLeft: number } | null;
   /** The newest lines, for the account page. */
   history: Pick<WalletEntry, "id" | "kind" | "type" | "amount" | "reason" | "createdAt">[];
 };
@@ -207,6 +209,7 @@ export const walletService = {
   async summary(userId: string, now: Date = new Date()): Promise<WalletSummary> {
     return db.$transaction(async (tx) => {
       const balances = await balancesIn(tx, userId, now);
+      const user = await tx.user.findUnique({ where: { id: userId }, select: { createdAt: true } });
       const soonest = await tx.walletEntry.findFirst({
         where: { userId, kind: "POINTS", remaining: { gt: 0 }, expiresAt: { not: null } },
         orderBy: { expiresAt: "asc" },
@@ -226,9 +229,14 @@ export const walletService = {
       });
       return {
         ...balances,
+        memberDays: user ? Math.max(0, Math.floor((now.getTime() - user.createdAt.getTime()) / DAY_MS)) : 0,
         expiringSoon:
           soonest?.expiresAt && expiring
-            ? { points: expiring._sum.remaining ?? 0, at: soonest.expiresAt }
+            ? {
+                points: expiring._sum.remaining ?? 0,
+                at: soonest.expiresAt,
+                daysLeft: Math.max(0, Math.ceil((soonest.expiresAt.getTime() - now.getTime()) / DAY_MS)),
+              }
             : null,
         history,
       };
