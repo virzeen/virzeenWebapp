@@ -171,7 +171,7 @@ export function CartPageContent({ notice, favourites, suggestions, delivery }: C
             </div>
             <div
               data-sticky-cta
-              className="fixed inset-x-0 bottom-0 z-10 border-t border-line bg-canvas/95 px-4 py-3 backdrop-blur-md md:hidden"
+              className="fixed inset-x-0 bottom-0 z-10 border-t border-line bg-canvas/95 px-4 pt-3 pb-safe-bar backdrop-blur-md md:hidden"
             >
               <div className={isGuest ? "grid grid-cols-2 gap-3" : "flex flex-col"}>
                 <CheckoutButtons isGuest={isGuest} />

@@ -278,6 +278,24 @@
   line-height: 0;
 }
 
+/* iPhone "notch" and home bar (owner 2026-11-13): with viewport-fit=cover the page is drawn under the status bar and the
+   home indicator, so the first and last bars add the device's safe-area insets (0 on computers and Android).
+   `pt-safe`: the top bar (site header, the phone menu). `pb-safe-bar`: a bar fixed at the bottom that has 0.75rem
+   padding (py-3). `pull-under-header`: the home hero reaches up under the see-through header, whose height is 4rem
+   plus the top inset. */
+@utility pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+@utility pb-safe-bar {
+  padding-bottom: calc(--spacing(3) + env(safe-area-inset-bottom, 0px));
+}
+@utility pb-safe-float {
+  padding-bottom: calc(--spacing(4) + env(safe-area-inset-bottom, 0px));
+}
+@utility pull-under-header {
+  margin-top: calc(-4rem - env(safe-area-inset-top, 0px));
+}
+
 @utility tone-inverse {
   --color-focus: #ffffff;
   --color-ink: #ffffff;
@@ -290,6 +308,8 @@
 
 @layer base {
   html {
+    /* The page colour also fills the area under the iPhone status bar when the page is drawn under it. */
+    background-color: var(--color-canvas);
     -webkit-text-size-adjust: 100%;
     text-rendering: optimizeLegibility;
     /* No blue flash on tap (Android Chrome, iOS Safari): buttons and links show their own pressed/hover states. */

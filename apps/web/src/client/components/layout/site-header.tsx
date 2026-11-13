@@ -46,7 +46,7 @@ export function SiteHeader({ isSignedIn, firstName, categories, hasSale }: SiteH
         if (!event.currentTarget.contains(event.relatedTarget)) setKeyboardFocus(false);
       }}
       className={cn(
-        "sticky top-0 z-10 transition duration-150 ease-standard",
+        "sticky top-0 z-10 pt-safe transition duration-150 ease-standard",
         !overHero && "border-b border-line bg-canvas/85 backdrop-blur-md",
         overHero && !scrolled && "bg-transparent tone-inverse",
         overHero && scrolled && "bg-canvas/70 backdrop-blur-xl",

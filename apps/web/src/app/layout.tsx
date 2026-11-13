@@ -2,6 +2,7 @@ import { Toaster } from "@virzeen/ui";
 import { colors } from "@virzeen/ui/tokens";
 import type { Metadata, Viewport } from "next";
 import { Inter, Inter_Tight, Noto_Sans_Devanagari } from "next/font/google";
+import { ThemeColorSync } from "@/client/components/layout/theme-color-sync";
 import { PrefetchOnIntent } from "@/client/components/shared/prefetch-on-intent";
 import { ServiceWorker } from "@/client/components/shared/service-worker";
 import { ResumeSignIn } from "@/client/features/auth/resume-sign-in";
@@ -29,7 +30,7 @@ export const metadata: Metadata = {
   applicationName: "Virzeen",
   openGraph: { type: "website", siteName: "Virzeen", locale: "en_NP" },
   twitter: { card: "summary_large_image" },
-  appleWebApp: { capable: true, title: "Virzeen", statusBarStyle: "default" },
+  appleWebApp: { capable: true, title: "Virzeen", statusBarStyle: "black-translucent" },
   formatDetection: { telephone: false },
 };
 
@@ -37,6 +38,9 @@ export const viewport: Viewport = {
   themeColor: colors.canvas,
   width: "device-width",
   initialScale: 1,
+  // The page is drawn under the iPhone status bar and notch (the header and bars add the safe-area insets), so the
+  // strip at the very top shows the page's own colour, black over the home hero and white elsewhere.
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -44,6 +48,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${text.variable} ${display.variable} ${rupee.variable}`}>
       <body>
         {children}
+        <ThemeColorSync />
         <Toaster />
         <ServiceWorker />
         <PrefetchOnIntent />
