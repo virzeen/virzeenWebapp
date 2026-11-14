@@ -132,7 +132,7 @@ export function ProductPurchase({
         */}
         <div
           data-sticky-cta
-          className="pointer-events-none fixed inset-x-0 bottom-0 z-10 px-4 pb-4 md:pointer-events-auto md:static md:p-0"
+          className="pointer-events-none fixed inset-x-0 bottom-0 z-10 px-4 pb-safe-float md:pointer-events-auto md:static md:p-0"
         >
           {notify ? (
             <NotifyMeButton

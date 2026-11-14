@@ -8,7 +8,7 @@ import { SHOP_TITLE, searchHeading, searchTitle } from "@/server/seo";
 const SHOP_METADATA: Metadata = {
   title: { absolute: SHOP_TITLE },
   description:
-    "Shop Virzeen: monochrome, black and white clothing and accessories from Nepal. Prices include VAT. Free shipping and cash on delivery.",
+    "Shop Virzeen: monochrome, black and white clothing and accessories from Nepal. Prices include VAT. Free delivery on larger orders and cash on delivery.",
   alternates: { canonical: "/shop" },
 };
 

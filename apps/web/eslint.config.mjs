@@ -10,6 +10,7 @@ const config = [
     ignores: [
       ".next/**",
       ".next-e2e/**",
+      ".next-agent/**",
       "next-env.d.ts",
       "playwright-report/**",
       "test-results/**",

@@ -189,6 +189,7 @@ export const adminReads = {
         fromPricePaisa: true,
         updatedAt: true,
         category: { select: { name: true } },
+        publicAt: true,
         images: { select: { url: true, alt: true }, orderBy: { sortOrder: "asc" }, take: 1 },
         variants: { where: { isActive: true }, select: { stock: true } },
       },
@@ -304,32 +305,66 @@ export const adminReads = {
         slug: true,
         description: true,
         isFeatured: true,
+        publicAt: true,
         _count: { select: { products: { where: { archivedAt: null } } } },
       },
       orderBy: { createdAt: "desc" },
     });
   },
 
-  /** Customers (read-only in phase 1). No addresses or phone numbers in the list. */
-  async listCustomers(page = 1) {
+  /**
+   * Customers, searchable by email or name, with their Monochrome Pass end date (Pass actions are in the members
+   * actions). No addresses or phone numbers in the list.
+   */
+  async listCustomers(page = 1, query = "") {
     const take = 25;
+    const where = {
+      role: "CUSTOMER" as const,
+      ...(query
+        ? {
+            OR: [
+              { email: { contains: query, mode: "insensitive" as const } },
+              { name: { contains: query, mode: "insensitive" as const } },
+            ],
+          }
+        : {}),
+    };
     const [total, rows] = await Promise.all([
-      db.user.count({ where: { role: "CUSTOMER" } }),
+      db.user.count({ where }),
       db.user.findMany({
-        where: { role: "CUSTOMER" },
+        where,
         select: {
           id: true,
           name: true,
           email: true,
           createdAt: true,
-          _count: { select: { orders: true } },
+          passEndsAt: true,
+          referralCode: true,
+          _count: { select: { orders: true, referralsMade: true } },
         },
         orderBy: { createdAt: "desc" },
         skip: (page - 1) * take,
         take,
       }),
     ]);
-    return { rows, total, page, pageCount: Math.max(1, Math.ceil(total / take)) };
+    // Each customer's points and credit now (lines still unspent), for the Customers list.
+    const balances = await db.walletEntry.groupBy({
+      by: ["userId", "kind"],
+      where: { userId: { in: rows.map((row) => row.id) }, remaining: { gt: 0 } },
+      _sum: { remaining: true },
+    });
+    const sum = (userId: string, kind: "POINTS" | "CREDIT") =>
+      balances.find((entry) => entry.userId === userId && entry.kind === kind)?._sum.remaining ?? 0;
+    return {
+      rows: rows.map((row) => ({
+        ...row,
+        points: sum(row.id, "POINTS"),
+        creditPaisa: sum(row.id, "CREDIT"),
+      })),
+      total,
+      page,
+      pageCount: Math.max(1, Math.ceil(total / take)),
+    };
   },
 
   async listProductOptions() {

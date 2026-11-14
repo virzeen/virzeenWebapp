@@ -12,6 +12,7 @@ const ITEMS = [
   { href: "/admin/size-guides", label: "Size guides" },
   { href: "/admin/portfolio", label: "Portfolio" },
   { href: "/admin/customers", label: "Customers" },
+  { href: "/admin/referrals", label: "Referrals" },
   { href: "/admin/reviews", label: "Reviews" },
   { href: "/admin/discounts", label: "Discounts" },
   { href: "/admin/settings", label: "Settings" },

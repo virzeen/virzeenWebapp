@@ -6,13 +6,13 @@ import { checkoutService } from "../orders/checkout.service";
 import { orderService } from "../orders/orders.service";
 import { paymentService } from "../payments/payment.service";
 import { reconcilePayments } from "../payments/reconcile";
-import { SHIPPING_RATES_PAISA } from "../pricing/shipping-rates";
 import { discountService } from "./discount.service";
 
 // Discount codes against the test database (docs/specs/discount-codes.md, payment-policy.md §2).
 
 const NOW = new Date("2026-11-09T06:00:00Z");
-const SHIPPING = SHIPPING_RATES_PAISA.KATHMANDU_VALLEY;
+// Every order in this file is a member order of Rs. 3,000 or more, so delivery is free.
+const SHIPPING = 0;
 
 type CodeOptions = {
   code?: string;
@@ -211,20 +211,15 @@ describe("checkoutService.placeOrder with a discount code", () => {
     expect((await db.productVariant.findUniqueOrThrow({ where: { id: fixture.variant.id } })).stock).toBe(4);
   });
 
-  it.runIf(SHIPPING === 0)("only allows cash on delivery for an order the code makes free", async () => {
+  it("still charges the delivery fee when a 100% code makes the goods free (threshold is after the discount)", async () => {
     await createCode({ code: "FREE", percentOff: 100 });
     const fixture = await checkoutFixture({ pricePaisa: 450_000 });
-
-    await expect(place(fixture, "FREE", "ESEWA")).rejects.toMatchObject({
-      code: "VALIDATION_FAILED",
-      fields: { paymentMethod: "Choose cash on delivery for this order" },
-    });
-    expect(await usedCount("FREE")).toBe(0);
 
     const { orderNumber } = await place(fixture, "FREE", "COD");
     expect(await db.order.findUniqueOrThrow({ where: { orderNumber } })).toMatchObject({
       discountPaisa: 450_000,
-      totalPaisa: 0,
+      shippingPaisa: 15_000, // member fee: Rs. 0 is below the Rs. 3,000 free-delivery line
+      totalPaisa: 15_000,
     });
   });
 });

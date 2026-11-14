@@ -7,11 +7,11 @@ import { SITE } from "@/client/lib/site";
 
 /** Google shows about this many characters of a description. */
 const DESCRIPTION_LENGTH = 160;
-const PROMISE = "Free shipping across Nepal. Cash on delivery.";
+const PROMISE = "Free delivery on larger orders. Cash on delivery.";
 
 export const HOME_TITLE = "Virzeen | Monochrome, black & white fashion from Nepal";
 export const HOME_DESCRIPTION =
-  "Virzeen is a monochrome fashion label from Nepal: black and white, aesthetic pieces for everyday. Free shipping across Nepal and cash on delivery.";
+  "Virzeen is a monochrome fashion label from Nepal: black and white, aesthetic pieces for everyday. Free delivery on larger orders across Nepal and cash on delivery.";
 export const SHOP_TITLE = "Shop Virzeen | Monochrome, black & white fashion in Nepal";
 
 /** The shop page's h1 for a search (specs/search.md): `Results for "black tee"`. */

@@ -40,7 +40,7 @@ describe("search descriptions", () => {
     });
     expect(text.length).toBeLessThanOrEqual(160);
     expect(text).toMatch(/^A relaxed overshirt in washed linen, cut long/);
-    expect(text).toContain("… From Rs 3,500. Free shipping across Nepal. Cash on delivery.");
+    expect(text).toContain("… From Rs 3,500. Free delivery on larger orders. Cash on delivery.");
   });
 
   it("drops 'From' when every size costs the same", () => {
@@ -50,12 +50,12 @@ describe("search descriptions", () => {
       lowestPaisa: 150_000,
       highestPaisa: 150_000,
     });
-    expect(text).toBe("Black vase. Rs 1,500. Free shipping across Nepal. Cash on delivery.");
+    expect(text).toBe("Black vase. Rs 1,500. Free delivery on larger orders. Cash on delivery.");
   });
 
   it("describes a category", () => {
     expect(categoryDescription("Vases")).toBe(
-      "Shop vases by Virzeen: monochrome, black and white pieces from Nepal. Free shipping across Nepal. Cash on delivery.",
+      "Shop vases by Virzeen: monochrome, black and white pieces from Nepal. Free delivery on larger orders. Cash on delivery.",
     );
   });
 

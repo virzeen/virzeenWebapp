@@ -54,7 +54,7 @@ Show the plan. For payment, auth, or schema work, wait for approval of the plan.
 
 - `pnpm turbo run lint typecheck test --affected`
 - UI changed → run the `verify-ui` skill.
-- Payments/auth changed → run the `security-reviewer` agent on the diff.
+- Payments/auth changed → go through `docs/reviews/security-review.md` yourself on the diff (never a subagent).
 
 ## Step 7 — Done and recorded
 

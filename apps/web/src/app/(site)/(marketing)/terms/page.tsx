@@ -15,7 +15,10 @@ export default function TermsPage() {
   return (
     <ContentPage eyebrow="Legal" title="Terms of sale">
       <ContentHeading>Prices</ContentHeading>
-      <p>All prices are in Nepali rupees and include 13% VAT and delivery. Shipping within Nepal is free.</p>
+      <p>
+        All prices are in Nepali rupees and include 13% VAT. Delivery fees, if any, are shown before you place
+        an order.
+      </p>
       <ContentHeading>Orders</ContentHeading>
       <p>
         Your order is confirmed when we email you an order number. To change or cancel an order, email{" "}
@@ -25,8 +28,8 @@ export default function TermsPage() {
       <p>Pay the courier in cash when your order arrives.</p>
       <ContentHeading>Returns</ContentHeading>
       <p>
-        You can return items within 7 days of delivery, free of charge. See our{" "}
-        <Link href="/returns">returns policy</Link>.
+        You can return items within 7 days of delivery (15 days with the Monochrome Pass, which also gets free
+        pickup). See our <Link href="/returns">returns policy</Link>.
       </p>
     </ContentPage>
   );

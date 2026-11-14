@@ -29,6 +29,9 @@
   --font-display: var(--font-display-loaded), "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-text: var(--font-text-loaded), "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  /* The rupee sign "रु" in prices: a heavy Devanagari face (owner 2026-11-11), with the system ones as fallback. */
+  --font-rupee:
+    var(--font-rupee-loaded), "Nirmala UI", "Noto Sans Devanagari", "Kohinoor Devanagari", sans-serif;
 
   /* Sizes, line heights and weights as nike.com's (owner 2026-11-10, measured on its UK store; our own typefaces
      stay): display 40px → 76px (hero titles), h1 32/38 (section titles), h2 24/29 (page and card titles), h3 20/24
@@ -62,6 +65,8 @@
   --radius-*: initial;
   --radius-sm: 4px;
   --radius-md: 8px;
+  --radius-xl: 32px; /* the one-field popups (promo code), like Nike's sign-in popup (owner 2026-11-11) */
+  --radius-2xl: 48px; /* the points card in the member portal (owner 2026-11-13): rounder than the popups */
   --shadow-*: initial;
   --shadow-sm: 0 1px 2px 0 rgb(20 20 20 / 0.06), 0 1px 3px 0 rgb(20 20 20 / 0.04);
   --shadow-md: 0 8px 24px -4px rgb(20 20 20 / 0.12), 0 2px 6px -2px rgb(20 20 20 / 0.06);
@@ -104,6 +109,87 @@
   --animate-nudge-in-left: nudge-in-left 250ms cubic-bezier(0.2, 0, 0, 1);
   /* A wrong one-time code (CodeInput): a short, damped side-to-side shake, played once. Use with motion-safe:. */
   --animate-shake: shake 400ms cubic-bezier(0.2, 0, 0, 1);
+  /* The Monochrome Pass panel (PremiumPanel): a soft band of light sweeping across, and a border that glows and fades.
+     Use with motion-safe:. */
+  --animate-shine-sweep: shine-sweep 7s ease-in-out infinite;
+  --animate-shine-border: shine-border 3.5s ease-in-out infinite;
+  /* The points card's icons (owner 2026-11-13): an hourglass whose sand runs down and which then turns over, and a coin that
+     flips. The sand parts use `origin-bottom fill-box`. Use with motion-safe:. */
+  --animate-hourglass: hourglass 6s ease-in-out infinite;
+  --animate-sand-top: sand-top 6s linear infinite;
+  --animate-sand-bottom: sand-bottom 6s linear infinite;
+  --animate-sand-stream: sand-stream 6s linear infinite;
+  --animate-icon-flip: icon-flip 4s ease-in-out infinite;
+
+  /* Sand runs for 4 of the 6 seconds, the glass turns over between 4.6s and 5.2s, then the cycle starts again. */
+  @keyframes hourglass {
+    0%,
+    76% {
+      transform: rotate(0deg);
+    }
+    88%,
+    100% {
+      transform: rotate(180deg);
+    }
+  }
+  @keyframes sand-top {
+    0% {
+      transform: scaleY(1);
+    }
+    66%,
+    100% {
+      transform: scaleY(0);
+    }
+  }
+  @keyframes sand-bottom {
+    0% {
+      transform: scaleY(0);
+    }
+    66%,
+    100% {
+      transform: scaleY(1);
+    }
+  }
+  @keyframes sand-stream {
+    0%,
+    66% {
+      opacity: 1;
+    }
+    67%,
+    100% {
+      opacity: 0;
+    }
+  }
+  @keyframes icon-flip {
+    0%,
+    55% {
+      transform: perspective(3rem) rotateY(0deg);
+    }
+    85%,
+    100% {
+      transform: perspective(3rem) rotateY(360deg);
+    }
+  }
+
+  @keyframes shine-sweep {
+    0%,
+    30% {
+      transform: translateX(-120%) skewX(-12deg);
+    }
+    80%,
+    100% {
+      transform: translateX(380%) skewX(-12deg);
+    }
+  }
+  @keyframes shine-border {
+    0%,
+    100% {
+      opacity: 0.2;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
 
   @keyframes spin {
     to {
@@ -241,6 +327,267 @@
   }
 }
 
+/* One card's width in the profile's sideways row of member benefits (cards `gap-3` apart), like Nike's: 70% on phones,
+   then whole cards with 0.4 of the next showing, so the row reads as scrolling: 3 and a bit from 768px, 4 and a bit
+   from 960px. */
+@utility w-perk-slide {
+  width: 70%;
+  @media (width >= 48rem) {
+    width: calc((100% - 3 * 0.75rem) / 3.4);
+  }
+  @media (width >= 60rem) {
+    width: calc((100% - 4 * 0.75rem) / 4.4);
+  }
+}
+
+/* The rupee sign "रु" in prices (owner 2026-11-11: bold, then "a bit bigger", then "a bit lighter"): Devanagari Bold at 1.2em of the
+   amount's own size, so it grows and shrinks with the price; line-height 0 keeps rows from getting taller. */
+@utility rupee-sign {
+  font-family: var(--font-rupee);
+  font-weight: 600;
+  font-size: 1.2em;
+  line-height: 0;
+}
+
+/* iPhone "notch" and home bar (owner 2026-11-13): with viewport-fit=cover the page is drawn under the status bar and the
+   home indicator, so the first and last bars add the device's safe-area insets (0 on computers and Android).
+   `pt-safe`: the top bar (site header, the phone menu). `pb-safe-bar`: a bar fixed at the bottom that has 0.75rem
+   padding (py-3). `pull-under-header`: the home hero reaches up under the see-through header, whose height is 4rem
+   plus the top inset. */
+/* An SVG part that scales or turns around its own box (the hourglass sand). */
+@utility fill-box {
+  transform-box: fill-box;
+}
+@utility pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+@utility pb-safe-bar {
+  padding-bottom: calc(--spacing(3) + env(safe-area-inset-bottom, 0px));
+}
+@utility pb-safe-float {
+  padding-bottom: calc(--spacing(4) + env(safe-area-inset-bottom, 0px));
+}
+@utility pull-under-header {
+  margin-top: calc(-4rem - env(safe-area-inset-top, 0px));
+}
+
+/*
+ * The points coin (CoinStack, owner 2026-11-13): a thick silver-white coin with concentric engraved rings and a raised
+ * emblem, drawn in 3D. Fixed size: a 10rem coin on a 10rem x 14rem stage, the pile coins 9rem wide, each 0.75rem
+ * thick (the keyframes coin-stack and coin-drop are worked out for this geometry). Colours are the palette greys.
+ */
+@utility coin-stage {
+  position: relative;
+  isolation: isolate;
+  width: 10rem;
+  height: 14rem;
+  perspective: 50rem;
+}
+@utility coin-hero {
+  position: absolute;
+  left: 0;
+  top: 2rem;
+  width: 10rem;
+  height: 10rem;
+  transform-style: preserve-3d;
+  transform: rotateY(-30deg);
+}
+/* The rim: thin discs one behind another, so the coin has a real edge when it turns. */
+@utility coin-edge {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  & > span {
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    background:
+      repeating-conic-gradient(
+        color-mix(in srgb, var(--color-ink) 16%, transparent) 0 1.5deg,
+        transparent 1.5deg 3deg
+      ),
+      linear-gradient(
+        100deg,
+        color-mix(in srgb, var(--color-ink-muted) 80%, var(--color-canvas)),
+        var(--color-line) 30%,
+        var(--color-canvas) 50%,
+        var(--color-line) 70%,
+        color-mix(in srgb, var(--color-ink-muted) 80%, var(--color-canvas))
+      );
+  }
+  & > span:nth-child(1) {
+    transform: translateZ(-0.375rem);
+  }
+  & > span:nth-child(2) {
+    transform: translateZ(-0.3rem);
+  }
+  & > span:nth-child(3) {
+    transform: translateZ(-0.225rem);
+  }
+  & > span:nth-child(4) {
+    transform: translateZ(-0.15rem);
+  }
+  & > span:nth-child(5) {
+    transform: translateZ(-0.075rem);
+  }
+  & > span:nth-child(6) {
+    transform: translateZ(0rem);
+  }
+  & > span:nth-child(7) {
+    transform: translateZ(0.075rem);
+  }
+  & > span:nth-child(8) {
+    transform: translateZ(0.15rem);
+  }
+  & > span:nth-child(9) {
+    transform: translateZ(0.225rem);
+  }
+  & > span:nth-child(10) {
+    transform: translateZ(0.3rem);
+  }
+  & > span:nth-child(11) {
+    transform: translateZ(0.375rem);
+  }
+}
+/* A face: brushed silver with a soft highlight, a raised rim and engraved rings around the emblem. */
+@utility coin-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  backface-visibility: hidden;
+  transform: translateZ(0.45rem);
+  background:
+    radial-gradient(circle at 30% 24%, var(--color-canvas) 0 6%, transparent 46%),
+    conic-gradient(
+      from 200deg,
+      var(--color-canvas),
+      color-mix(in srgb, var(--color-line-strong) 45%, var(--color-canvas)) 14%,
+      var(--color-surface) 28%,
+      color-mix(in srgb, var(--color-line-strong) 85%, var(--color-canvas)) 44%,
+      var(--color-surface) 58%,
+      var(--color-canvas) 72%,
+      color-mix(in srgb, var(--color-line-strong) 50%, var(--color-canvas)) 86%,
+      var(--color-canvas)
+    );
+  box-shadow:
+    inset 0 0 0 1px var(--color-canvas),
+    inset 0 0 0 0.2rem color-mix(in srgb, var(--color-line-strong) 60%, transparent),
+    inset 0 -0.5rem 1rem color-mix(in srgb, var(--color-ink) 22%, transparent),
+    inset 0 0.4rem 0.8rem var(--color-canvas);
+  /* The raised rim: a groove a little inside the edge. */
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 7%;
+    border-radius: 9999px;
+    box-shadow:
+      inset 0.1rem 0.1rem 0 color-mix(in srgb, var(--color-ink) 35%, transparent),
+      inset -0.1rem -0.1rem 0 var(--color-canvas),
+      0.1rem 0.1rem 0 var(--color-canvas),
+      -0.1rem -0.1rem 0 color-mix(in srgb, var(--color-ink) 28%, transparent);
+  }
+  /* Engraved rings, fading out towards the rim. */
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 14%;
+    border-radius: 9999px;
+    background: repeating-radial-gradient(
+      circle,
+      transparent 0 0.3rem,
+      color-mix(in srgb, var(--color-ink) 14%, transparent) 0.3rem 0.36rem,
+      color-mix(in srgb, var(--color-canvas) 90%, transparent) 0.36rem 0.42rem
+    );
+    mask-image: radial-gradient(circle, black 55%, transparent 72%);
+  }
+}
+@utility coin-face-back {
+  transform: rotateY(180deg) translateZ(0.45rem);
+}
+/* The raised emblem in the middle of a face: lit from the top left, shadowed bottom right. */
+@utility coin-emboss {
+  position: absolute;
+  inset: 30% 27%;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  color: color-mix(in srgb, var(--color-line-strong) 30%, var(--color-canvas));
+  filter: drop-shadow(-0.08rem -0.08rem 0 var(--color-canvas))
+    drop-shadow(0.1rem 0.12rem 0 color-mix(in srgb, var(--color-ink) 60%, transparent))
+    drop-shadow(0.2rem 0.3rem 0.25rem color-mix(in srgb, var(--color-ink) 30%, transparent));
+}
+/* A coin lying in the pile: an ellipse (the 10rem coin tilted 72deg, at 90%) with its edge below it. */
+@utility coin-flat {
+  position: absolute;
+  left: 0.5rem;
+  isolation: isolate;
+  width: 9rem;
+  height: 2.8rem;
+  border-radius: 50%;
+  background:
+    radial-gradient(ellipse at 34% 30%, var(--color-canvas) 0 10%, transparent 55%),
+    conic-gradient(
+      from 200deg,
+      var(--color-canvas),
+      var(--color-line) 20%,
+      var(--color-surface) 40%,
+      color-mix(in srgb, var(--color-line-strong) 75%, var(--color-canvas)) 60%,
+      var(--color-surface) 80%,
+      var(--color-canvas)
+    );
+  box-shadow:
+    inset 0 0 0 1px var(--color-canvas),
+    inset 0 0 0 0.3rem color-mix(in srgb, var(--color-line-strong) 35%, transparent),
+    inset 0 0 0 0.36rem var(--color-canvas),
+    inset 0 -0.4rem 0.6rem color-mix(in srgb, var(--color-ink) 12%, transparent);
+  &::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: calc(50% + 0.75rem);
+    border-radius: 0 0 4.5rem 4.5rem / 0 0 1.4rem 1.4rem;
+    background:
+      repeating-linear-gradient(
+        90deg,
+        transparent 0 0.14rem,
+        color-mix(in srgb, var(--color-ink) 14%, transparent) 0.14rem 0.2rem,
+        color-mix(in srgb, var(--color-canvas) 60%, transparent) 0.2rem 0.24rem
+      ),
+      linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--color-ink-muted) 90%, var(--color-canvas)),
+        color-mix(in srgb, var(--color-line-strong) 60%, var(--color-canvas)) 12%,
+        var(--color-line) 26%,
+        var(--color-canvas) 40%,
+        var(--color-surface) 52%,
+        color-mix(in srgb, var(--color-line-strong) 55%, var(--color-canvas)) 74%,
+        color-mix(in srgb, var(--color-ink-muted) 95%, var(--color-canvas))
+      );
+    box-shadow:
+      inset 0 -0.09rem 0 color-mix(in srgb, var(--color-ink) 45%, transparent),
+      inset 0 0.06rem 0 var(--color-canvas),
+      0 0.15rem 0.3rem color-mix(in srgb, var(--color-ink) 28%, transparent);
+  }
+}
+/* The soft shadow on the ground under the coin and the pile. */
+@utility coin-ground {
+  position: absolute;
+  left: 0.5rem;
+  bottom: 0;
+  z-index: -1;
+  width: 9rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse,
+    color-mix(in srgb, var(--color-ink) 22%, transparent),
+    transparent 70%
+  );
+}
+
 @utility tone-inverse {
   --color-focus: #ffffff;
   --color-ink: #ffffff;
@@ -251,8 +598,21 @@
   color: var(--color-ink);
 }
 
+/* Undoes tone-inverse inside it: a white panel (the header's account menu) opened over the dark hero. */
+@utility tone-default {
+  --color-focus: #141414;
+  --color-ink: #141414;
+  --color-ink-muted: #666666;
+  --color-canvas: #ffffff;
+  --color-surface: #f5f5f5;
+  --color-line: #e5e5e5;
+  color: var(--color-ink);
+}
+
 @layer base {
   html {
+    /* The page colour also fills the area under the iPhone status bar when the page is drawn under it. */
+    background-color: var(--color-canvas);
     -webkit-text-size-adjust: 100%;
     text-rendering: optimizeLegibility;
     /* No blue flash on tap (Android Chrome, iOS Safari): buttons and links show their own pressed/hover states. */

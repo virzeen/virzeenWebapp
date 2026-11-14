@@ -10,6 +10,7 @@ import {
   UserRound,
 } from "lucide-react";
 import type { Ref } from "react";
+import { MenuSignOut } from "./menu-sign-out";
 import { shopNavItems } from "./nav-current";
 
 export type MenuCategory = { slug: string; name: string };
@@ -105,9 +106,14 @@ export function MenuMain({
             </Link>
           </li>
         ))}
+        {isSignedIn && (
+          <li data-stagger={2 + items.length + shortcuts.length}>
+            <MenuSignOut onDone={onNavigate} />
+          </li>
+        )}
         {/* Empty where the button renders nothing: then the row is gone for screen readers too. */}
         {install && (
-          <li className="empty:hidden" data-stagger={2 + items.length + shortcuts.length}>
+          <li className="empty:hidden" data-stagger={3 + items.length + shortcuts.length}>
             {install}
           </li>
         )}

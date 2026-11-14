@@ -52,7 +52,8 @@ export default async function AdminOrderPage({ params }: Props) {
         title={order.orderNumber}
         description={
           <>
-            {order.user.name ? `${order.user.name} · ` : ""}
+            {order.user?.name ? `${order.user.name} · ` : ""}
+            {order.user ? "" : "Guest · "}
             {order.customerEmail}
           </>
         }

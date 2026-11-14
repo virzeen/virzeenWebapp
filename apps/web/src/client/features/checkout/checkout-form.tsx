@@ -5,45 +5,48 @@ import {
   AccordionItem,
   Alert,
   Button,
+  Checkbox,
   FormField,
+  Link,
   RadioGroup,
   RadioGroupItem,
   Stack,
   toast,
 } from "@virzeen/ui";
+import type { GuestDetailsInput } from "@virzeen/validators";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { formatPaisa, Price } from "@/client/components/shared/price";
+import { Price } from "@/client/components/shared/price";
 import { AddressForm } from "@/client/features/account/address-form";
 import type { AddressView } from "@/client/features/account/address-book";
 import { useCart } from "@/client/features/cart/cart-provider";
 import { messageFor } from "@/client/lib/error-messages";
-import { placeOrderAction, previewCheckoutAction } from "@/server/actions/checkout";
+import { placeGuestOrderAction, placeOrderAction, previewCheckoutAction } from "@/server/actions/checkout";
+import type { CheckoutTotals } from "./checkout-types";
 import { DiscountCodeField } from "./discount-code-field";
-import { OrderSummaryLines, OrderSummaryTotals } from "./order-summary-lines";
+import { readStoredPromo, storePromo } from "./promo-storage";
+import { EMPTY_GUEST_DETAILS, GuestDetailsForm } from "./guest-details-form";
+import { discountLabel, expressPromise, OrderSummaryLines, OrderSummaryTotals } from "./order-summary-lines";
 import { submitProviderForm } from "./submit-provider-form";
 
-type Totals = {
-  subtotalPaisa: number;
-  shippingPaisa: number;
-  discountPaisa: number;
-  /** The code whose discount is in these totals (specs/discount-codes.md), or null. */
-  discountCode: string | null;
-  totalPaisa: number;
-  totalBeforeShippingPaisa: number;
-  vatPaisa: number;
-  deliveryEstimate: string;
-  isCodAvailable: boolean;
-  codLimitPaisa: number | null;
-};
-
 type Method = "COD" | "ESEWA" | "KHALTI";
+type Step = "delivery" | "payment" | "review";
+const STEP_ORDER: Step[] = ["delivery", "payment", "review"];
+
+/** Where checkout goes once delivery is settled: Payment, or straight to Order Review when there's one method. */
+const afterDelivery = (methodCount: number): Step => (methodCount === 1 ? "review" : "payment");
+const countMethods = (enabled: Record<Method, boolean>, codAvailable: boolean) =>
+  METHODS.filter((m) => enabled[m.value] && (m.value !== "COD" || codAvailable)).length;
 
 type CheckoutFormProps = {
+  /** Guests type their details; members pick a saved address. */
+  mode: "guest" | "member";
   addresses: AddressView[];
   initialAddressId: string | null;
-  initialTotals: Totals;
+  initialTotals: CheckoutTotals;
   enabledMethods: { COD: boolean; ESEWA: boolean; KHALTI: boolean };
+  /** A member's own email (shown on the review step). */
+  memberEmail?: string;
 };
 
 const METHODS: { value: Method; label: string; description: string; cta: string }[] = [
@@ -82,47 +85,104 @@ const ADDRESS_GONE = "That address is no longer saved. Choose another address or
 // (the pressed button unmounts, which would drop focus to the page). Same approach as the address book.
 type FocusTarget = { to: "heading" } | { to: "add" } | { to: "address"; id: string };
 
-/** Why "Place order" is disabled, from the same conditions as the button; null when it can be pressed. */
-function placeOrderHint(state: {
-  showAddressForm: boolean;
-  hasSavedAddresses: boolean;
-  addressId: string | null;
-  hasMethod: boolean;
-}): string | null {
-  if (state.showAddressForm) {
-    return state.hasSavedAddresses
-      ? "Save the new address to continue."
-      : "Add a delivery address to continue.";
-  }
-  if (!state.addressId) return "Choose a delivery address to continue.";
-  if (!state.hasMethod) return "Choose a payment method to continue.";
-  return null;
+/** A finished step collapses to a short summary with an Edit link; a step that isn't reached yet is greyed. */
+function StepShell({
+  id,
+  title,
+  state,
+  summary,
+  onEdit,
+  children,
+  headingRef,
+}: {
+  id: string;
+  title: string;
+  state: "open" | "done" | "waiting";
+  summary?: React.ReactNode;
+  onEdit?: () => void;
+  children?: React.ReactNode;
+  headingRef?: React.Ref<HTMLHeadingElement>;
+}) {
+  return (
+    <section
+      aria-labelledby={`${id}-heading`}
+      aria-disabled={state === "waiting" || undefined}
+      className={`motion-safe:duration-fast flex flex-col gap-4 py-8 motion-safe:transition-opacity ${
+        state === "waiting" ? "opacity-40" : ""
+      }`}
+      data-testid={`step-${id}`}
+      data-state={state}
+    >
+      <div className="flex items-baseline justify-between gap-4">
+        <h2
+          id={`${id}-heading`}
+          ref={headingRef}
+          tabIndex={-1}
+          className="font-display text-h3 focus:outline-none"
+        >
+          {title}
+        </h2>
+        {state === "done" && onEdit && (
+          <Button variant="link" onClick={onEdit} aria-label={`Edit ${title.toLowerCase()}`}>
+            Edit
+          </Button>
+        )}
+      </div>
+      {state === "done" && summary}
+      {state === "open" && children}
+    </section>
+  );
+}
+
+function addressLine(a: { street: string; city: string; district: string; province: string }) {
+  return `${a.street}, ${a.city}, ${a.district}, ${a.province}`;
 }
 
 /**
- * Single-page checkout laid out like Nike's (owner request 2026-09-30, patterns.md §8): the steps on the left
- * (Delivery address → Delivery → Payment, divided by hairlines, "Place order" at the end), the order summary on the
- * right from lg. Below lg the summary is a collapsible at the top.
+ * Checkout on one page (docs/checkoutfeatures.md §3.5, patterns.md §8): Delivery, Payment and Order review stack on
+ * the left, each collapsing to a summary with an Edit link when done; the order summary stays on the right from `lg`
+ * and is a bar at the top below it. Guests type their details; members pick a saved address.
  */
 export function CheckoutForm({
+  mode,
   addresses,
   initialAddressId,
   initialTotals,
   enabledMethods,
+  memberEmail,
 }: CheckoutFormProps) {
   const router = useRouter();
   const { cart } = useCart();
+  const isGuest = mode === "guest";
+  // A member with a saved address already chosen starts at Payment: nothing to confirm in Delivery Options.
+  const [step, setStep] = useState<Step>(() =>
+    !isGuest && initialAddressId && addresses.length > 0
+      ? afterDelivery(countMethods(enabledMethods, initialTotals.isCodAvailable))
+      : "delivery",
+  );
+  // The furthest step the customer has been to. Steps up to it stay enabled (with an Edit link) while another is
+  // being edited, so going back never locks the later ones (owner 2026-11-11).
+  const [reached, setReached] = useState<Step>(step);
   const [addressId, setAddressId] = useState(initialAddressId);
   const [addingAddress, setAddingAddress] = useState(addresses.length === 0);
+  const [guestDetails, setGuestDetails] = useState<GuestDetailsInput | null>(null);
   const [totals, setTotals] = useState(initialTotals);
   const [method, setMethod] = useState<Method | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  // Pay with points and/or credit (specs/wallet.md): asked for here, worked out and spent by the server.
+  const [usePoints, setUsePoints] = useState(false);
+  const [useCredit, setUseCredit] = useState(false);
+  // Gift wrapping and Express Delivery (specs/member-perks.md): asked for here, priced and checked by the server.
+  const [giftWrap, setGiftWrap] = useState(false);
+  const [express, setExpress] = useState(false);
   const [isRefreshing, startRefresh] = useTransition();
   const [isApplying, setApplying] = useState(false);
   const [isPlacing, startPlacing] = useTransition();
   const [redirecting, setRedirecting] = useState(false);
   // The applied code is whatever the server last put in the totals.
   const discountCode = totals.discountCode;
+  // Express counts only while the server says the member can use it (a new address can make it unavailable).
+  const expressOn = express && totals.express.available;
   // A form error shows just above "Place order", at the end of the steps.
   const errorRef = useRef<HTMLDivElement>(null);
   const focusTarget = useRef<FocusTarget | null>(null);
@@ -136,14 +196,19 @@ export function CheckoutForm({
   // When only one method is offered (cash on delivery at launch), it is already chosen.
   const selected =
     available.find((m) => m.value === method) ?? (available.length === 1 ? available[0] : undefined);
-  // The form also opens by itself when the last saved address was deleted elsewhere.
+  /** Delivery is settled: Payment opens, or Order Review when only one method is offered (nothing to choose). */
+  function toPayment() {
+    // Back from an edit: a method is already chosen and the review was reached, so return straight to it.
+    goTo(reached === "review" && selected ? "review" : afterDelivery(available.length));
+  }
+  function goTo(next: Step) {
+    setStep(next);
+    setReached((current) => (STEP_ORDER.indexOf(next) > STEP_ORDER.indexOf(current) ? next : current));
+  }
+  // The member form also opens by itself when the last saved address was deleted elsewhere.
   const showAddressForm = addingAddress || (addresses.length === 0 && !addressId);
-  const hint = placeOrderHint({
-    showAddressForm,
-    hasSavedAddresses: addresses.length > 0,
-    addressId,
-    hasMethod: selected !== undefined,
-  });
+  const chosenAddress = addresses.find((a) => a.id === addressId) ?? null;
+  const itemCount = cart.items.filter((item) => item.isAvailable).reduce((n, item) => n + item.quantity, 0);
 
   // Bring a new error into view and move focus to it, so "Place order" never seems to do nothing.
   useEffect(() => {
@@ -176,12 +241,61 @@ export function CheckoutForm({
   // The chosen address no longer exists: unselect it and reload the saved addresses.
   function dropDeletedAddress() {
     setAddressId(null);
+    setStep("delivery");
     router.refresh();
   }
 
+  /** Who the server should price for: a member's saved address, or what a guest typed. */
+  function walletFlags(points = usePoints, credit = useCredit, wrap = giftWrap) {
+    const wrapFlag = wrap ? { giftWrap: true } : {};
+    if (isGuest) return wrapFlag;
+    return {
+      ...wrapFlag,
+      ...(points ? { usePoints: true } : {}),
+      ...(credit ? { useCredit: true } : {}),
+    };
+  }
+
+  /** Turns paying with points or credit on or off and asks the server for the new totals. */
+  function toggleWallet(kind: "points" | "credit", on: boolean) {
+    const points = kind === "points" ? on : usePoints;
+    const credit = kind === "credit" ? on : useCredit;
+    setUsePoints(points);
+    setUseCredit(credit);
+    setFormError(null);
+    startRefresh(async () => {
+      const result = await previewCheckoutAction({
+        ...whoFor(guestDetails, addressId, walletFlags(points, credit)),
+        ...(discountCode ? { discountCode } : {}),
+      });
+      if (result.ok) setTotals(result.data);
+      else toast.error(messageFor(result.error));
+    });
+  }
+
+  /** Turns gift wrapping on or off and asks the server for the new totals. */
+  function toggleGiftWrap(on: boolean) {
+    setGiftWrap(on);
+    setFormError(null);
+    startRefresh(async () => {
+      const result = await previewCheckoutAction({
+        ...whoFor(guestDetails, addressId, walletFlags(usePoints, useCredit, on)),
+        ...(discountCode ? { discountCode } : {}),
+      });
+      if (result.ok) setTotals(result.data);
+      else toast.error(messageFor(result.error));
+    });
+  }
+
+  function whoFor(guest: GuestDetailsInput | null, id: string | null, flags = walletFlags()) {
+    if (!isGuest) return { addressId: id, ...flags };
+    return { ...(guest ? { district: guest.district, email: guest.email } : {}), ...flags };
+  }
+
   /** Totals without a discount code, after the server said the applied one no longer works. */
-  async function refreshWithoutCode(id: string | null) {
-    const result = await previewCheckoutAction({ addressId: id });
+  async function refreshWithoutCode(guest: GuestDetailsInput | null, id: string | null) {
+    storePromo(null);
+    const result = await previewCheckoutAction(whoFor(guest, id));
     if (result.ok) setTotals(result.data);
   }
 
@@ -192,6 +306,7 @@ export function CheckoutForm({
       const result = await previewCheckoutAction({
         addressId: id,
         ...(discountCode ? { discountCode } : {}),
+        ...walletFlags(),
       });
       if (result.ok) {
         setTotals(result.data);
@@ -200,10 +315,32 @@ export function CheckoutForm({
         toast.error(ADDRESS_GONE);
       } else if (result.error.fields?.discountCode) {
         toast.error(result.error.fields.discountCode);
-        await refreshWithoutCode(id);
+        await refreshWithoutCode(null, id);
       } else {
         toast.error(messageFor(result.error));
       }
+    });
+  }
+
+  /** Guest: keep what was typed, refresh the arrival date for the district, then open Payment. */
+  function saveGuestDetails(values: GuestDetailsInput) {
+    setFormError(null);
+    startRefresh(async () => {
+      const result = await previewCheckoutAction({
+        ...whoFor(values, null),
+        ...(discountCode ? { discountCode } : {}),
+      });
+      if (result.ok) {
+        setTotals(result.data);
+      } else if (result.error.fields?.discountCode) {
+        toast.error(result.error.fields.discountCode);
+        await refreshWithoutCode(values, null);
+      } else {
+        toast.error(messageFor(result.error));
+        return;
+      }
+      setGuestDetails(values);
+      toPayment();
     });
   }
 
@@ -212,9 +349,10 @@ export function CheckoutForm({
     setFormError(null);
     setApplying(true);
     try {
-      const result = await previewCheckoutAction({ addressId, discountCode: code });
+      const result = await previewCheckoutAction({ ...whoFor(guestDetails, addressId), discountCode: code });
       if (result.ok) {
         setTotals(result.data);
+        storePromo(result.data.discountCode);
         return null;
       }
       if (result.error.code === "NOT_FOUND") {
@@ -227,24 +365,49 @@ export function CheckoutForm({
     }
   }
 
+  // A code entered on the bag page is applied as checkout opens; the server decides whether it still works.
+  useEffect(() => {
+    const stored = readStoredPromo();
+    if (!stored || initialTotals.discountCode) return;
+    void previewCheckoutAction({ ...whoFor(null, addressId), discountCode: stored }).then((result) => {
+      if (result.ok) setTotals(result.data);
+      else storePromo(null);
+    });
+    // Once, on arrival.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function removeDiscount() {
     setFormError(null);
+    storePromo(null);
     startRefresh(async () => {
-      const result = await previewCheckoutAction({ addressId });
+      const result = await previewCheckoutAction(whoFor(guestDetails, addressId));
       if (result.ok) setTotals(result.data);
       else toast.error(messageFor(result.error));
     });
   }
 
   function placeOrder() {
-    if (!addressId || !selected) return;
+    if (!selected) return;
+    if (isGuest ? !guestDetails : !addressId) return;
     setFormError(null);
     startPlacing(async () => {
-      const result = await placeOrderAction({
-        addressId,
-        paymentMethod: selected.value,
-        ...(discountCode ? { discountCode } : {}),
-      });
+      const code = discountCode ? { discountCode } : {};
+      const result =
+        isGuest && guestDetails
+          ? await placeGuestOrderAction({
+              ...guestDetails,
+              paymentMethod: selected.value,
+              ...code,
+              ...(giftWrap ? { giftWrap: true } : {}),
+            })
+          : await placeOrderAction({
+              addressId,
+              paymentMethod: selected.value,
+              ...code,
+              ...walletFlags(),
+              ...(expressOn ? { express: true } : {}),
+            });
       if (!result.ok) {
         const notice = BAG_NOTICES[result.error.code];
         if (notice) return router.push(`/cart?notice=${notice}`);
@@ -255,7 +418,7 @@ export function CheckoutForm({
         // The code stopped working since it was applied: nothing was ordered. Take it off and say why.
         const discountRefusal = result.error.fields?.discountCode;
         if (discountRefusal) {
-          await refreshWithoutCode(addressId);
+          await refreshWithoutCode(guestDetails, addressId);
           return setFormError(discountRefusal);
         }
         setFormError(messageFor(result.error));
@@ -263,15 +426,28 @@ export function CheckoutForm({
       }
       const { orderNumber, next } = result.data;
       setRedirecting(true);
+      storePromo(null);
       if (next.type === "done") router.push(`/checkout/success?order=${orderNumber}`);
       else if (next.type === "redirect") window.location.assign(next.url);
       else submitProviderForm(next.action, next.fields);
     });
   }
 
-  const summaryTotal = addressId ? totals.totalPaisa : totals.totalBeforeShippingPaisa;
   const isBusy = isRefreshing || isApplying;
-  const arrives = addressId ? totals.deliveryEstimate : null;
+  const deliveryDone = step !== "delivery";
+
+  const summaryBody = (testId?: string) => (
+    <>
+      <OrderSummaryTotals totals={totals} giftWrap={giftWrap} {...(testId ? { totalTestId: testId } : {})} />
+      <OrderSummaryLines
+        items={cart.items}
+        arrives={expressOn ? expressPromise(totals.express.withinHours) : totals.arrivesBy}
+      />
+      <Link href="/cart" className="self-start underline underline-offset-4">
+        Edit bag
+      </Link>
+    </>
+  );
 
   return (
     <div className="mx-auto grid w-full max-w-4xl grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-16">
@@ -282,31 +458,71 @@ export function CheckoutForm({
           <AccordionItem
             value="summary"
             headingLevel={2}
-            title={`Order summary · ${formatPaisa(summaryTotal)}`}
+            title={
+              <>
+                In your bag ({itemCount}) · <Price paisa={totals.totalPaisa} />
+              </>
+            }
           >
             <Stack gap={6} className="pt-2 text-ink">
-              <OrderSummaryTotals totals={totals} hasAddress={addressId !== null} />
-              <OrderSummaryLines items={cart.items} arrives={arrives} />
+              {summaryBody()}
             </Stack>
           </AccordionItem>
         </Accordion>
 
         <div className="flex flex-col divide-y divide-line">
-          <section aria-labelledby="address-heading" className="flex flex-col gap-4 py-8 lg:pt-0">
-            <h2
-              id="address-heading"
-              ref={addressHeadingRef}
-              tabIndex={-1}
-              className="font-display text-h3 focus:outline-none"
-            >
-              Delivery address
-            </h2>
-            {showAddressForm ? (
+          {/* 1. Delivery */}
+          <StepShell
+            id="address"
+            title="Delivery Options"
+            state={deliveryDone ? "done" : "open"}
+            headingRef={addressHeadingRef}
+            onEdit={() => {
+              setStep("delivery");
+              setFormError(null);
+            }}
+            summary={
+              isGuest && guestDetails ? (
+                <div className="text-body text-ink-muted" data-testid="delivery-summary">
+                  <p className="text-ink">
+                    {guestDetails.firstName} {guestDetails.lastName}
+                  </p>
+                  <p>
+                    {addressLine({
+                      street: `Ward ${guestDetails.ward}, ${guestDetails.street}`,
+                      city: guestDetails.municipality,
+                      district: guestDetails.district,
+                      province: guestDetails.province,
+                    })}
+                  </p>
+                  <p>
+                    {guestDetails.email} · +977 {guestDetails.phone}
+                  </p>
+                </div>
+              ) : chosenAddress ? (
+                <div className="text-body text-ink-muted" data-testid="delivery-summary">
+                  <p className="text-ink">{chosenAddress.fullName}</p>
+                  <p>{addressLine(chosenAddress)}</p>
+                  <p>
+                    {memberEmail ? `${memberEmail} · ` : ""}+977 {chosenAddress.phone}
+                  </p>
+                </div>
+              ) : null
+            }
+          >
+            {isGuest ? (
+              <GuestDetailsForm
+                defaultValues={guestDetails ?? EMPTY_GUEST_DETAILS}
+                onSave={saveGuestDetails}
+                isSaving={isRefreshing}
+              />
+            ) : showAddressForm ? (
               <AddressForm
                 submitLabel="Use this address"
                 onSaved={(id) => {
                   showForm(false, { to: "address", id });
                   chooseAddress(id);
+                  toPayment();
                   router.refresh();
                 }}
                 onCancel={addresses.length > 0 ? () => showForm(false, { to: "add" }) : undefined}
@@ -317,7 +533,11 @@ export function CheckoutForm({
                   aria-labelledby="address-heading"
                   variant="card"
                   value={addressId ?? ""}
-                  onValueChange={chooseAddress}
+                  onValueChange={(id) => {
+                    // Picking an address is the decision: Payment opens at once (owner 2026-11-11).
+                    chooseAddress(id);
+                    toPayment();
+                  }}
                   className="grid-cols-1"
                 >
                   {addresses.map((address) => (
@@ -328,6 +548,8 @@ export function CheckoutForm({
                         else addressRefs.current.delete(address.id);
                       }}
                       value={address.id}
+                      // Picking the address that is already chosen (after an Edit) moves on too.
+                      onClick={() => addressId === address.id && toPayment()}
                       label={address.fullName}
                       description={`${address.street}, ${address.city}, ${address.district} · ${address.phone}`}
                     />
@@ -343,32 +565,109 @@ export function CheckoutForm({
                 </Button>
               </>
             )}
-          </section>
+          </StepShell>
 
-          <section aria-labelledby="delivery-heading" className="flex flex-col gap-2 py-8">
-            <h2 id="delivery-heading" className="font-display text-h3">
-              Delivery
-            </h2>
-            <p className="text-body text-ink-muted">
-              {arrives
-                ? `Free shipping. Arrives in ${arrives}.`
-                : "Choose an address to see the delivery time."}
-            </p>
-          </section>
-
-          <section aria-labelledby="payment-heading" className="flex flex-col gap-4 py-8">
-            <h2 id="payment-heading" className="font-display text-h3">
-              Payment
-            </h2>
+          {/* 2. Payment */}
+          <StepShell
+            id="payment"
+            title="Payment"
+            state={step === "payment" ? "open" : reached !== "delivery" && selected ? "done" : "waiting"}
+            onEdit={() => setStep("payment")}
+            summary={
+              <p className="text-body text-ink-muted" data-testid="payment-summary">
+                {selected?.label}
+                {discountCode ? ` · ${discountCode} applied` : ""}
+              </p>
+            }
+          >
+            {!isGuest && (
+              <FormField label="Delivery speed">
+                <RadioGroup
+                  variant="card"
+                  value={expressOn ? "express" : "standard"}
+                  onValueChange={(value) => setExpress(value === "express")}
+                  className="grid-cols-1"
+                  data-testid="delivery-speed"
+                >
+                  <RadioGroupItem
+                    value="standard"
+                    label="Standard delivery"
+                    description={`Arrives by ${totals.arrivesBy}`}
+                  />
+                  <RadioGroupItem
+                    value="express"
+                    label="Express Delivery"
+                    disabled={!totals.express.available}
+                    description={
+                      totals.express.available
+                        ? `${expressPromise(totals.express.withinHours)} · ${totals.express.left} of ${totals.express.allowed} left this month`
+                        : totals.express.reason === "USED"
+                          ? "Used this month"
+                          : "Kathmandu Valley and Pokhara only"
+                    }
+                  />
+                </RadioGroup>
+              </FormField>
+            )}
+            <Checkbox
+              checked={giftWrap}
+              disabled={isBusy}
+              onCheckedChange={(checked) => toggleGiftWrap(checked === true)}
+              label={
+                totals.giftWrapPricePaisa > 0 ? (
+                  <>
+                    Add gift wrapping (<Price paisa={totals.giftWrapPricePaisa} />)
+                  </>
+                ) : (
+                  "Add gift wrapping (free with your Pass)"
+                )
+              }
+            />
+            {!isGuest && (totals.walletPoints > 0 || totals.walletCreditPaisa > 0) && (
+              <div className="flex flex-col gap-1" data-testid="wallet-panel">
+                {totals.walletCreditPaisa > 0 && (
+                  <Checkbox
+                    checked={useCredit}
+                    disabled={isBusy}
+                    onCheckedChange={(checked) => toggleWallet("credit", checked === true)}
+                    label={
+                      <>
+                        Use my credit (<Price paisa={totals.walletCreditPaisa} /> available)
+                      </>
+                    }
+                  />
+                )}
+                {totals.walletPoints > 0 && (
+                  <Checkbox
+                    checked={usePoints}
+                    disabled={isBusy}
+                    onCheckedChange={(checked) => toggleWallet("points", checked === true)}
+                    label={`Use my points (${totals.walletPoints} available)`}
+                    description="1 point is worth Rs 1. Points can pay for up to 20% of the products."
+                  />
+                )}
+              </div>
+            )}
             <FormField label="Payment method" required>
               <RadioGroup
                 variant="card"
                 value={selected?.value ?? ""}
-                onValueChange={(value) => setMethod(value as Method)}
+                onValueChange={(value) => {
+                  // Choosing a method is the decision: Order Review opens at once (owner 2026-11-11).
+                  setMethod(value as Method);
+                  goTo("review");
+                }}
                 className="grid-cols-1"
               >
                 {available.map((m) => (
-                  <RadioGroupItem key={m.value} value={m.value} label={m.label} description={m.description} />
+                  <RadioGroupItem
+                    key={m.value}
+                    value={m.value}
+                    label={m.label}
+                    description={m.description}
+                    // Picking the method that is already chosen (after an Edit) moves on too.
+                    onClick={() => selected?.value === m.value && goTo("review")}
+                  />
                 ))}
               </RadioGroup>
             </FormField>
@@ -377,15 +676,83 @@ export function CheckoutForm({
                 Cash on delivery is available for orders up to <Price paisa={totals.codLimitPaisa} />.
               </p>
             )}
-            <DiscountCodeField
-              applied={discountCode}
-              onApply={applyDiscount}
-              onRemove={removeDiscount}
-              disabled={isRefreshing || isPlacing}
-            />
-          </section>
+            {/* A code already added in the bag shows in the totals instead of a field here. */}
+            {!discountCode && (
+              <DiscountCodeField
+                applied={discountCode}
+                onApply={applyDiscount}
+                onRemove={removeDiscount}
+                disabled={isRefreshing || isPlacing}
+              />
+            )}
+            {(totals.isPassDiscount || totals.isBirthdayDiscount) && !discountCode && (
+              <p className="text-small text-ink-muted">
+                A promo code replaces your{" "}
+                {totals.isBirthdayDiscount ? "birthday reward" : "10% Pass discount"}.
+              </p>
+            )}
+          </StepShell>
 
-          <div className="flex flex-col gap-3 py-8">
+          {/* 3. Order review */}
+          <StepShell
+            id="review"
+            title="Order Review"
+            state={step === "review" ? "open" : reached === "review" ? "done" : "waiting"}
+            onEdit={() => setStep("review")}
+            summary={
+              <p className="text-body text-ink-muted" data-testid="review-summary">
+                Total <Price paisa={totals.totalPaisa} />
+              </p>
+            }
+          >
+            <dl className="flex flex-col gap-3 text-body">
+              <div className="flex justify-between gap-4">
+                <dt className="text-ink-muted">Items</dt>
+                <dd>{itemCount}</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-ink-muted">Arrives by</dt>
+                <dd>
+                  {expressOn ? `Express · ${expressPromise(totals.express.withinHours)}` : totals.arrivesBy}
+                </dd>
+              </div>
+              {giftWrap && (
+                <div className="flex justify-between gap-4" data-testid="review-gift-wrap">
+                  <dt className="text-ink-muted">Gift wrapping</dt>
+                  <dd>{totals.giftWrapPaisa > 0 ? <Price paisa={totals.giftWrapPaisa} /> : "Free"}</dd>
+                </div>
+              )}
+              {totals.pointsUsed > 0 && (
+                <div className="flex justify-between gap-4" data-testid="review-points">
+                  <dt className="text-ink-muted">Points ({totals.pointsUsed})</dt>
+                  <dd>
+                    −<Price paisa={totals.pointsUsed * 100} />
+                  </dd>
+                </div>
+              )}
+              {totals.creditUsedPaisa > 0 && (
+                <div className="flex justify-between gap-4" data-testid="review-credit">
+                  <dt className="text-ink-muted">Credit</dt>
+                  <dd>
+                    −<Price paisa={totals.creditUsedPaisa} />
+                  </dd>
+                </div>
+              )}
+              {totals.discountPaisa > 0 && (
+                <div className="flex justify-between gap-4" data-testid="review-discount">
+                  <dt className="text-ink-muted">{discountLabel(totals)}</dt>
+                  <dd>
+                    −<Price paisa={totals.discountPaisa} />
+                  </dd>
+                </div>
+              )}
+              <div className="flex justify-between gap-4">
+                <dt className="text-ink-muted">Total</dt>
+                <dd className="font-medium">
+                  <Price paisa={totals.totalPaisa} />
+                </dd>
+              </div>
+            </dl>
             {formError && (
               <Alert ref={errorRef} variant="danger" tabIndex={-1}>
                 {formError}
@@ -396,19 +763,14 @@ export function CheckoutForm({
               shape="pill"
               className="w-full"
               loading={isPlacing || redirecting}
-              disabled={hint !== null || isBusy}
-              aria-describedby={hint ? "place-order-hint" : undefined}
+              disabled={!selected || isBusy}
               onClick={placeOrder}
               data-testid="place-order"
             >
               {selected?.cta ?? "Place order"}
             </Button>
-            {hint && (
-              <p id="place-order-hint" className="text-center text-small text-ink-muted">
-                {hint}
-              </p>
-            )}
-          </div>
+            <p className="text-center text-small text-ink-muted">You will receive a confirmation by email.</p>
+          </StepShell>
         </div>
       </div>
 
@@ -418,10 +780,9 @@ export function CheckoutForm({
         className="hidden flex-col gap-6 lg:sticky lg:top-24 lg:flex lg:self-start"
       >
         <h2 id="summary-heading" className="font-display text-h3">
-          Order summary
+          In Your Bag
         </h2>
-        <OrderSummaryTotals totals={totals} hasAddress={addressId !== null} totalTestId="checkout-total" />
-        <OrderSummaryLines items={cart.items} arrives={arrives} />
+        {summaryBody("checkout-total")}
       </aside>
     </div>
   );

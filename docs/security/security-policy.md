@@ -10,7 +10,7 @@
 
 ## 2. Authentication (Better Auth)
 
-- Methods: Google OAuth and email OTP. No passwords for customers in phase 1.
+- Methods: Google OAuth and email OTP. Customers have no password at sign-up; they may set an optional one in Settings (sign-in with it is rate-limited per IP and per email, one message for every failure). Admins never use a password (specs/sign-in-v2.md).
 - Session cookies: `httpOnly`, `secure`, `sameSite=lax`. Session rotated on login and role change.
 - OTP: 6 digits, expires in 10 minutes, max 5 attempts, rate-limited per email and IP.
 - Admins must enable TOTP two-factor. Admin routes reject sessions without 2FA.

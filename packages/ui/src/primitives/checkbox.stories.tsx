@@ -24,6 +24,14 @@ export const WithDescription: Story = {
   args: { label: "Make this my default address", description: "Used first at checkout" },
 };
 export const Disabled: Story = { args: { disabled: true } };
+/** A picture row, as in the profile's "Choose your picks" list: thumbnail, name, box on the right. */
+export const PictureRow: Story = {
+  args: {
+    label: "VWear",
+    boxAtEnd: true,
+    media: <span aria-hidden className="size-16 shrink-0 bg-surface" />,
+  },
+};
 
 export const SwitchSetting: Story = {
   render: () => (

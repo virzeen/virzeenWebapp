@@ -10,7 +10,7 @@
 | End-to-end               | Playwright                      | `apps/web/tests/e2e/*.spec.ts` | critical user journeys in a real browser                                     |
 | Exploratory verification | Playwright MCP (agent)          | —                              | agent checks UI changes visually before finishing (`verify-ui` skill)        |
 
-Playwright MCP is for the agent to look and click; it does not replace written e2e tests.
+Playwright MCP is for the agent to look and click; it does not replace written e2e tests. It always uses its own dev server on port **3200**, never 3000 (the owner's `pnpm dev`) and not 3100/4010 (the e2e suite).
 
 ## 2. What must be tested
 

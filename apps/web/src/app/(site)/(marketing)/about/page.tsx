@@ -22,9 +22,9 @@ export default function AboutPage() {
       </p>
       <ContentHeading>Shop with confidence</ContentHeading>
       <p>
-        Prices include VAT and shipping across Nepal is free: 1–3 days inside Kathmandu Valley, 3–7 days
-        elsewhere. Pay in cash when your order arrives, follow every order from your account, and send
-        anything back within 7 days, free.
+        Prices include VAT. Delivery is free on larger orders: the same day inside Kathmandu Valley after
+        dispatch, 2–4 days elsewhere. Pay in cash when your order arrives, follow every order from your
+        account, and send anything back within 7 days, free.
       </p>
       <div>
         <ButtonLink href="/shop" shape="pill">

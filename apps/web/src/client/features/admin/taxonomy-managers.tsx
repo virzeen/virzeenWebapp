@@ -23,6 +23,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { messageFor } from "@/client/lib/error-messages";
+import { formatDateTime } from "@/client/lib/format";
 import { saveCategoryAction, saveCollectionAction } from "@/server/actions/admin/catalog";
 import { ArchiveButton } from "./archive-button";
 
@@ -188,13 +189,25 @@ type Collection = {
   slug: string;
   description: string | null;
   isFeatured: boolean;
+  publicAt: Date | null;
   _count: { products: number };
 };
+
+/** The value a `datetime-local` field takes: the browser's local time as "YYYY-MM-DDTHH:mm". */
+function toLocalInput(date: Date | null): string {
+  if (!date) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
 
 function CollectionForm({ initial, onDone }: { initial?: Collection; onDone: () => void }) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  // Early access: when the public may see the collection (members 12 or 48 hours earlier); empty = no wait.
+  const [publicLocal, setPublicLocal] = useState(
+    toLocalInput(initial?.publicAt ? new Date(initial.publicAt) : null),
+  );
   const empty: CollectionInput = { name: "", slug: "", description: "", isFeatured: false };
   const form = useForm<CollectionInput>({
     resolver: zodResolver(collectionSchema),
@@ -220,7 +233,10 @@ function CollectionForm({ initial, onDone }: { initial?: Collection; onDone: () 
 
   async function onSubmit(values: CollectionInput) {
     setFormError(null);
-    const result = await saveCollectionAction(values);
+    const result = await saveCollectionAction({
+      ...values,
+      publicAt: publicLocal ? new Date(publicLocal).toISOString() : null,
+    });
     if (!result.ok) {
       if (result.error.fields?.slug) form.setError("slug", { message: result.error.fields.slug });
       else setFormError(messageFor(result.error));
@@ -228,6 +244,7 @@ function CollectionForm({ initial, onDone }: { initial?: Collection; onDone: () 
     }
     toast.success("Collection saved");
     form.reset(empty);
+    setPublicLocal("");
     onDone();
     router.refresh();
   }
@@ -268,6 +285,13 @@ function CollectionForm({ initial, onDone }: { initial?: Collection; onDone: () 
       >
         <Textarea rows={2} {...form.register("description")} />
       </FormField>
+      <FormField
+        label="Public from"
+        helper="Early access: MONO Members see it 12 hours before, Pass members 48 hours before. Empty = everyone now."
+        className="sm:col-span-2"
+      >
+        <Input type="datetime-local" value={publicLocal} onChange={(e) => setPublicLocal(e.target.value)} />
+      </FormField>
       <Controller
         control={form.control}
         name="isFeatured"
@@ -304,6 +328,7 @@ export function CollectionManager({ collections }: { collections: Collection[] }
                 <span className="flex items-center gap-2 text-body">
                   {collection.name}
                   {collection.isFeatured && <Badge variant="accent">Featured</Badge>}
+                  {collection.publicAt && <Badge>Public from {formatDateTime(collection.publicAt)}</Badge>}
                 </span>
                 <span className="text-small text-ink-muted">
                   /collections/{collection.slug} · {productCount(collection._count.products)} · add products

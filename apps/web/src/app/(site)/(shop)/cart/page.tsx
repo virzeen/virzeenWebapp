@@ -1,8 +1,10 @@
+import { arrivalWindow } from "@virzeen/core";
 import { Container } from "@virzeen/ui";
 import type { Metadata } from "next";
 import { CartPageContent } from "@/client/features/cart/cart-page-content";
 import { BAG_FAVOURITES_SHOWN } from "@/client/features/favourites/favourite-bag";
 import { getUser } from "@/server/auth/session";
+import { tierFor } from "@/server/queries/account";
 import { listMyFavourites } from "@/server/queries/account";
 import { listNewArrivals } from "@/server/queries/catalog";
 import { flattenSearchParams, type SearchParams } from "@/server/queries/params";
@@ -32,10 +34,22 @@ async function favouritesPreview() {
 
 export default async function CartPage({ searchParams }: { searchParams: SearchParams }) {
   const notice = NOTICES[flattenSearchParams(await searchParams).notice ?? ""];
-  const [favourites, suggestions] = await Promise.all([favouritesPreview(), listNewArrivals(SUGGESTIONS)]);
+  const [favourites, suggestions, user] = await Promise.all([
+    favouritesPreview(),
+    listNewArrivals(SUGGESTIONS),
+    getUser(),
+  ]);
+  const tier = await tierFor(user?.id ?? null);
+  // The bag doesn't know the district yet, so the estimate is the slower (outside the valley) range.
+  const delivery = { tier, arrivesBy: arrivalWindow(tier, "OUTSIDE_VALLEY", new Date()) } as const;
   return (
     <Container className="py-8 lg:py-12">
-      <CartPageContent notice={notice ?? null} favourites={favourites} suggestions={suggestions} />
+      <CartPageContent
+        notice={notice ?? null}
+        favourites={favourites}
+        suggestions={suggestions}
+        delivery={delivery}
+      />
     </Container>
   );
 }

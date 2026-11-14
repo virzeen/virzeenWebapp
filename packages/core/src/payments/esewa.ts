@@ -38,20 +38,26 @@ export function buildEsewaForm(input: {
   shippingPaisa: number;
   /** A discount code's money off: eSewa gets the items after it, so amount + delivery still equals the total. */
   discountPaisa: number;
+  /** Gift wrapping less points and credit (see OrderForPayment); 0 when none. */
+  adjustmentPaisa?: number;
   totalPaisa: number;
   successUrl: string;
   failureUrl: string;
 }) {
   const { esewa } = getCoreConfig();
-  const itemsPaisa = input.subtotalPaisa - input.discountPaisa;
-  if (input.discountPaisa < 0 || itemsPaisa < 0 || itemsPaisa + input.shippingPaisa !== input.totalPaisa) {
+  const afterDiscount = input.subtotalPaisa - input.discountPaisa;
+  const itemsRaw = afterDiscount + (input.adjustmentPaisa ?? 0);
+  if (input.discountPaisa < 0 || afterDiscount < 0 || itemsRaw + input.shippingPaisa !== input.totalPaisa) {
     throw new AppError("INTERNAL", "eSewa amounts don't add up.");
   }
+  // Credit and points can cover more than the items: then the rest of the total is shown as the delivery charge.
+  const itemsPaisa = Math.max(0, Math.min(itemsRaw, input.totalPaisa));
+  const deliveryPaisa = input.totalPaisa - itemsPaisa;
   const fields: Record<string, string> = {
     amount: toEsewaAmount(itemsPaisa),
     tax_amount: "0",
     product_service_charge: "0",
-    product_delivery_charge: toEsewaAmount(input.shippingPaisa),
+    product_delivery_charge: toEsewaAmount(deliveryPaisa),
     total_amount: toEsewaAmount(input.totalPaisa),
     transaction_uuid: input.transactionUuid,
     product_code: esewa.productCode,
@@ -128,6 +134,7 @@ export const esewaProvider: PaymentProvider = {
       subtotalPaisa: order.subtotalPaisa,
       shippingPaisa: order.shippingPaisa,
       discountPaisa: order.discountPaisa,
+      adjustmentPaisa: order.adjustmentPaisa ?? 0,
       totalPaisa: order.totalPaisa,
       successUrl: `${siteUrl}/api/payments/esewa/success`,
       failureUrl: `${siteUrl}/api/payments/esewa/failure?ref=${encodeURIComponent(transactionUuid)}`,

@@ -8,6 +8,7 @@ export * from "./checkout";
 export * from "./discounts";
 export * from "./favourites";
 export * from "./limits";
+export * from "./members";
 export * from "./orders";
 export * from "./portfolio";
 export * from "./reviews";

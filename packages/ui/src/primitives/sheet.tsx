@@ -30,8 +30,8 @@ const sheetVariants = cva("fixed z-40 flex flex-col bg-canvas shadow-md outline-
         "inset-y-0 right-0 h-full w-full max-w-md data-[state=closed]:animate-slide-out-right data-[state=open]:animate-slide-in-right",
       bottom:
         "inset-x-0 bottom-0 max-h-5/6 rounded-t-md data-[state=closed]:animate-slide-out-bottom data-[state=open]:animate-slide-in-bottom",
-      top: "inset-x-0 top-0 h-dvh w-full shadow-none data-[state=closed]:animate-lift-up data-[state=open]:animate-drop-down",
-      drop: "inset-x-0 top-0 h-dvh w-full shadow-none data-[state=closed]:animate-lift-up data-[state=open]:animate-drop-down md:h-auto md:max-h-dvh md:shadow-md",
+      top: "inset-x-0 top-0 h-dvh w-full pt-safe shadow-none data-[state=closed]:animate-lift-up data-[state=open]:animate-drop-down",
+      drop: "inset-x-0 top-0 h-dvh w-full pt-safe shadow-none data-[state=closed]:animate-lift-up data-[state=open]:animate-drop-down md:h-auto md:max-h-dvh md:shadow-md",
     },
   },
   defaultVariants: { side: "right" },

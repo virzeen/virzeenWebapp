@@ -24,7 +24,9 @@ Rules: text on `canvas`/`surface` uses `ink` or `ink-muted` only. On dark imager
 
 ## 2. Typography
 
-Two families: **display** (headings, brand moments) and **text** (everything else), loaded with `next/font` and exposed as `--font-display` / `--font-text` ◆. Phase-1 placeholders: **Inter Tight** (display) and **Inter** (text), light weights echoing the posters. The wordmark and the V mark are the owner's artwork (`apps/web/public/brand/logo/`, 2026-09-30) drawn as inline SVG in `currentColor` (`client/components/layout/wordmark.tsx`, `logo-mark.tsx`: black on light, white on dark), never set in a web font.
+**Perk row width:** the `w-perk-slide` utility (`tokens.css`, owner request 2026-11-14) is one card's width in the profile's sideways row of member benefits, like Nike's: 70% on phones, then whole cards with 0.4 of the next showing (3 and a bit from 768px, 4 and a bit from 960px), cards `gap-3` apart.
+
+Two families: **display** (headings, brand moments) and **text** (everything else), loaded with `next/font` and exposed as `--font-display` / `--font-text` ◆. Phase-1 placeholders: **Inter Tight** (display) and **Inter** (text), light weights echoing the posters. A third face, **Noto Sans Devanagari SemiBold**, is used only for the rupee sign "रु" in prices (the `rupee-sign` utility: SemiBold 600 at 1.2em of the amount's size, owner requests 2026-11-11), exposed as `--font-rupee`. The wordmark and the V mark are the owner's artwork (`apps/web/public/brand/logo/`, 2026-09-30) drawn as inline SVG in `currentColor` (`client/components/layout/wordmark.tsx`, `logo-mark.tsx`: black on light, white on dark), never set in a web font.
 
 | Token            | Utility        | Size / line-height                                      | Weight                        | Use                                                                                   |
 | ---------------- | -------------- | ------------------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------- |
@@ -50,13 +52,15 @@ Tailwind's 4px base. Use only these steps: `1 (4px) · 2 (8) · 3 (12) · 4 (16)
 
 ## 4. Radius, borders, shadow
 
-| Token          | Value  | Use                                |
-| -------------- | ------ | ---------------------------------- |
-| `rounded-sm`   | 4px    | Inputs, small buttons              |
-| `rounded-md`   | 8px    | Cards, sheets, dialogs             |
-| `rounded-full` | 9999px | Pills, avatars, icon buttons       |
-| `shadow-sm`    | subtle | Sticky header on scroll, dropdowns |
-| `shadow-md`    | medium | Dialogs, drawers                   |
+| Token          | Value  | Use                                           |
+| -------------- | ------ | --------------------------------------------- |
+| `rounded-sm`   | 4px    | Inputs, small buttons                         |
+| `rounded-md`   | 8px    | Cards, sheets, dialogs                        |
+| `rounded-xl`   | 32px   | One-field popups (promo code), the Pass panel |
+| `rounded-2xl`  | 48px   | The points card in the member portal          |
+| `rounded-full` | 9999px | Pills, avatars, icon buttons                  |
+| `shadow-sm`    | subtle | Sticky header on scroll, dropdowns            |
+| `shadow-md`    | medium | Dialogs, drawers                              |
 
 Borders are 1px `border-line`. Prefer borders and whitespace over shadows.
 
@@ -75,13 +79,17 @@ Never start a hero or page heading at `opacity: 0`: browsers don't count invisib
 
 Named animations (`animate-*`, defined with their keyframes in `tokens.css`): `spin`, `shimmer`, `fade-in`/`fade-out`, `slide-in-*`/`slide-out-*` (right, bottom) and `reveal`, used by the primitives, plus these:
 
-| Token                                                              | Value                                                                                                                 | Use                                                                                                                                                                                                  |
-| ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--animate-shake`                                                  | 400ms, `ease-standard`, played once; a damped 6px side-shake                                                          | A wrong one-time code (`CodeInput`), always as `motion-safe:animate-shake`. Nothing else shakes.                                                                                                     |
-| `--animate-nudge-in-right`, `--animate-nudge-in-left`              | 250ms, `ease-standard`; a 16px slide in with a fade                                                                   | A second panel inside a `Sheet` coming in (the phone menu's Shop, from the right) and the way back (from the left), as `motion-safe:`. 16px stays inside the sheet's 24px gutter: no sideways scroll |
-| `--animate-drop-down`, `--animate-lift-up`                         | 350ms / 250ms, `ease-standard`; a `clip-path` that grows down from the top / shrinks back up                          | `Sheet side="top"` (the phone menu, like apple.com)                                                                                                                                                  |
-| `tone-inverse` (utility in `tokens.css`)                           | Swaps `ink`/`canvas`/`ink-muted`/`surface`/`line` for an element and its children, so they draw white on a dark photo | The home page header over the hero, before scrolling                                                                                                                                                 |
-| `stagger-rows` (utility in `globals.css`, keyframes `menu-row-in`) | 350ms; each `[data-stagger="n"]` row fades in and drops 0.5rem, n × 30ms later (0–15); off with reduced motion        | The phone menu's rows as it opens                                                                                                                                                                    |
+| Token                                                                                                                | Value                                                                                                                 | Use                                                                                                                                                                                                  |
+| -------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--animate-shake`                                                                                                    | 400ms, `ease-standard`, played once; a damped 6px side-shake                                                          | A wrong one-time code (`CodeInput`), always as `motion-safe:animate-shake`. Nothing else shakes.                                                                                                     |
+| `--animate-nudge-in-right`, `--animate-nudge-in-left`                                                                | 250ms, `ease-standard`; a 16px slide in with a fade                                                                   | A second panel inside a `Sheet` coming in (the phone menu's Shop, from the right) and the way back (from the left), as `motion-safe:`. 16px stays inside the sheet's 24px gutter: no sideways scroll |
+| `--animate-drop-down`, `--animate-lift-up`                                                                           | 350ms / 250ms, `ease-standard`; a `clip-path` that grows down from the top / shrinks back up                          | `Sheet side="top"` (the phone menu, like apple.com)                                                                                                                                                  |
+| `--animate-shine-sweep`, `--animate-shine-border`                                                                    | 7s / 3.5s, infinite; a band of light crossing the panel, and a border that glows and fades                            | `PremiumPanel` (the Monochrome Pass panel on the Membership page), always as `motion-safe:`. Nothing else shines.                                                                                    |
+| `--animate-coin-idle`, `--animate-coin-stack`, `--animate-coin-drop-1`…`-4`                                          | 5s sway; 1.8s spin, jump and land flat; 560ms falls with two small bounces, 0.1s apart                                | `CoinStack` only (the points coin), always as `motion-safe:`. Coin look: `coin-*` utilities in `tokens.css` (silver from the palette greys, fixed 10rem coin).                                       |
+| `--animate-hourglass`, `--animate-sand-top`, `--animate-sand-bottom`, `--animate-sand-stream`, `--animate-icon-flip` | 6s hourglass (sand runs 4s, glass turns over, repeats); 4s coin flip, infinite                                        | The expiry hourglass and the worth coin on the points card (member portal), always as `motion-safe:`. Sand parts use `origin-bottom fill-box`.                                                       |
+| `tone-inverse` (utility in `tokens.css`)                                                                             | Swaps `ink`/`canvas`/`ink-muted`/`surface`/`line` for an element and its children, so they draw white on a dark photo | The home page header over the hero, before scrolling                                                                                                                                                 |
+| `tone-default` (utility in `tokens.css`)                                                                             | Puts the light `ink`/`canvas`/`ink-muted`/`surface`/`line` back inside a `tone-inverse` element                       | The header's account menu panel, so it stays white over the dark hero, like Nike's                                                                                                                   |
+| `stagger-rows` (utility in `globals.css`, keyframes `menu-row-in`)                                                   | 350ms; each `[data-stagger="n"]` row fades in and drops 0.5rem, n × 30ms later (0–15); off with reduced motion        | The phone menu's rows as it opens                                                                                                                                                                    |
 
 ## 6. Breakpoints and layout
 
@@ -92,7 +100,7 @@ Page width `max-w-page` (1920px with the gutters, so content is at most 1824px w
 
 ## 7. Z-index scale (use only these)
 
-`z-10` sticky header (and the product editor's top bar) · `z-20` dropdowns/popovers · `z-40` drawers/sheets + overlay · `z-50` dialogs, and the `Select` list (it also opens from inside a Dialog or Sheet, so it must sit above their overlay) · `z-60` toasts. Never invent other values.
+`z-10` sticky bars (the shop's filter bar, the product editor's top bar) · `z-20` the sticky header (so its account menu opens over those bars) and dropdowns/popovers · `z-40` drawers/sheets + overlay · `z-50` dialogs, and the `Select` list (it also opens from inside a Dialog or Sheet, so it must sit above their overlay) · `z-60` toasts. Never invent other values.
 
 ## 8. Icons
 
