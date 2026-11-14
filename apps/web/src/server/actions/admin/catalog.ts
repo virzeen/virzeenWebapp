@@ -11,6 +11,7 @@ import {
   relatedByCategorySchema,
   saveProductSchema,
   saveSizeGuideSchema,
+  setPublicAtSchema,
   uploadSignatureSchema,
 } from "@virzeen/validators";
 import { revalidatePath } from "next/cache";
@@ -70,6 +71,17 @@ export async function listRecommendationsAction(input: unknown) {
   return runAdminAction("listRecommendations", async () => {
     const { categoryId, excludeId } = relatedByCategorySchema.parse(input);
     return catalogReads.listRecommendations({ categoryId, excludeId });
+  });
+}
+
+/** Sets when the public may see a product, for early access (specs/member-perks.md). Audited in core. */
+export async function setPublicAtAction(input: unknown) {
+  return runAdminAction("setPublicAt", async (admin) => {
+    const { id, publicAt } = setPublicAtSchema.parse(input);
+    const result = await catalogService.setPublicAt(admin.id, id, publicAt ? new Date(publicAt) : null);
+    refreshCatalog();
+    revalidatePath("/admin/products");
+    return { id: result.id, publicAt: result.publicAt?.toISOString() ?? null };
   });
 }
 

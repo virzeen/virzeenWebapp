@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { BagButton } from "@/client/features/cart/bag-button";
 import { SearchPanel } from "@/client/features/search/search-panel";
+import { AccountMenu } from "./account-menu";
 import { MobileNav } from "./mobile-nav";
 import { NavLinks } from "./nav-links";
 import { useScrolled, useScrollingDown } from "./use-scrolled";
@@ -23,8 +24,9 @@ type SiteHeaderProps = {
 
 /**
  * Global header, sticky. The wordmark on the left; from xl Nike's links in the middle (New and Featured, Sale, the
- * categories; owner 2026-11-08); on the right Search, Favourites, My profile (from md) and Bag, and below xl Menu
- * (phones find the account in the menu).
+ * categories; owner 2026-11-08); on the right Search, Favourites, My profile (from md; signed in it opens Nike's hover
+ * menu, `AccountMenu`; signed out it is a plain Sign in link, as on Nike's) and Bag, and below xl Menu (phones find
+ * the account in the menu).
  * On the home page it lies over the hero photo (owner, 2026-09-30): no background and white until the page scrolls,
  * then a 70% white, blurred background with black text; no border there, so the photo reaches the top edge (a 1px
  * border would leave a white line above it). Other pages keep the white header with its line.
@@ -46,7 +48,7 @@ export function SiteHeader({ isSignedIn, firstName, categories, hasSale }: SiteH
         if (!event.currentTarget.contains(event.relatedTarget)) setKeyboardFocus(false);
       }}
       className={cn(
-        "sticky top-0 z-10 transition duration-150 ease-standard",
+        "sticky top-0 z-20 pt-safe transition duration-150 ease-standard",
         !overHero && "border-b border-line bg-canvas/85 backdrop-blur-md",
         overHero && !scrolled && "bg-transparent tone-inverse",
         overHero && scrolled && "bg-canvas/70 backdrop-blur-xl",
@@ -67,16 +69,20 @@ export function SiteHeader({ isSignedIn, firstName, categories, hasSale }: SiteH
           <ButtonLink href="/favourites" variant="ghost" size="icon" shape="pill" aria-label="Favourites">
             <HeartIcon />
           </ButtonLink>
-          <ButtonLink
-            href={isSignedIn ? "/account" : "/login"}
-            variant="ghost"
-            size="icon"
-            shape="pill"
-            aria-label={isSignedIn ? "My profile" : "Sign in"}
-            className="hidden md:inline-flex"
-          >
-            <UserRound className="size-5" strokeWidth={1.5} aria-hidden />
-          </ButtonLink>
+          {isSignedIn ? (
+            <AccountMenu firstName={firstName} />
+          ) : (
+            <ButtonLink
+              href="/login"
+              variant="ghost"
+              size="icon"
+              shape="pill"
+              aria-label="Sign in"
+              className="hidden md:inline-flex"
+            >
+              <UserRound className="size-5" strokeWidth={1.5} aria-hidden />
+            </ButtonLink>
+          )}
           <BagButton />
           <MobileNav
             categories={categories}

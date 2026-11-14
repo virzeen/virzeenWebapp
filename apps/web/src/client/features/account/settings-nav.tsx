@@ -1,7 +1,7 @@
 "use client";
 
 import { Link } from "@virzeen/ui";
-import { ChevronRight, House, UserRound } from "lucide-react";
+import { ChevronRight, CreditCard, Mail, Package, Share2, UserCheck, UserRound } from "lucide-react";
 import { usePathname } from "next/navigation";
 
 const SECTIONS = [
@@ -9,16 +9,45 @@ const SECTIONS = [
     href: "/account/settings",
     // Phones: the Settings page is only the list, so the section has its own address.
     phoneHref: "/account/settings/details",
-    paths: ["/account/settings", "/account/settings/details"],
+    // Password is reached from the Password row of Account details, so it counts as this section.
+    paths: ["/account/settings", "/account/settings/details", "/account/settings/password"],
     label: "Account details",
     icon: UserRound,
+  },
+  {
+    href: "/account/settings/payment-methods",
+    phoneHref: "/account/settings/payment-methods",
+    paths: ["/account/settings/payment-methods"],
+    label: "Payment methods",
+    icon: CreditCard,
   },
   {
     href: "/account/addresses",
     phoneHref: "/account/addresses",
     paths: ["/account/addresses"],
     label: "Delivery addresses",
-    icon: House,
+    icon: Package,
+  },
+  {
+    href: "/account/settings/communication-preferences",
+    phoneHref: "/account/settings/communication-preferences",
+    paths: ["/account/settings/communication-preferences"],
+    label: "Communication preferences",
+    icon: Mail,
+  },
+  {
+    href: "/account/settings/profile-visibility",
+    phoneHref: "/account/settings/profile-visibility",
+    paths: ["/account/settings/profile-visibility"],
+    label: "Profile visibility",
+    icon: Share2,
+  },
+  {
+    href: "/account/settings/privacy",
+    phoneHref: "/account/settings/privacy",
+    paths: ["/account/settings/privacy"],
+    label: "Privacy",
+    icon: UserCheck,
   },
 ] as const;
 

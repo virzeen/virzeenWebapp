@@ -1,27 +1,37 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Alert, Button, FormField, Input, Stack } from "@virzeen/ui";
+import { Alert, Button, FloatingInput, Stack } from "@virzeen/ui";
 import { requestOtpSchema, type RequestOtpInput } from "@virzeen/validators";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { authClient } from "@/client/lib/auth-client";
+import { messageFor } from "@/client/lib/error-messages";
 import { rememberPendingSignIn } from "@/client/lib/pending-sign-in";
+import { identifyEmailAction } from "@/server/actions/auth";
 import { authErrorMessage } from "./auth-errors";
 import { GoogleIcon } from "./google-icon";
 
-type LoginFormProps = { next: string; googleEnabled: boolean };
+type LoginFormProps = {
+  next: string;
+  googleEnabled: boolean;
+  /** Typed in already: coming back with Edit from the code page. */
+  defaultEmail?: string;
+};
 
-/** Sign in with a 6-digit email code or Google (no passwords). */
-export function LoginForm({ next, googleEnabled }: LoginFormProps) {
+/**
+ * Email first (docs/checkoutfeatures.md §3.2): the email decides what comes next. A member gets a code (and "Use
+ * Password" if they set one) on the code page; a new email gets one on the create-account page. Or Google.
+ */
+export function LoginForm({ next, googleEnabled, defaultEmail = "" }: LoginFormProps) {
   const router = useRouter();
   const [formError, setFormError] = useState<string | null>(null);
   const [googlePending, setGooglePending] = useState(false);
   const form = useForm<RequestOtpInput>({
     resolver: zodResolver(requestOtpSchema),
     mode: "onBlur",
-    defaultValues: { email: "" },
+    defaultValues: { email: defaultEmail },
   });
   const { errors, isSubmitting } = form.formState;
 
@@ -35,11 +45,16 @@ export function LoginForm({ next, googleEnabled }: LoginFormProps) {
 
   async function onSubmit({ email }: RequestOtpInput) {
     setFormError(null);
+    const identified = await identifyEmailAction(email);
+    if (!identified.ok) return setFormError(messageFor(identified.error));
+    const { registered, hasPassword } = identified.data;
     const { error } = await authClient.emailOtp.sendVerificationOtp({ email, type: "sign-in" });
     if (error) return setFormError(authErrorMessage(error, email));
+    const query = `email=${encodeURIComponent(email)}&next=${encodeURIComponent(next)}`;
+    if (!registered) return router.push(`/signup?${query}`);
     // So the installed app can come back to the code screen after a trip to the mail app (ResumeSignIn).
     rememberPendingSignIn(email, next);
-    router.push(`/verify?email=${encodeURIComponent(email)}&next=${encodeURIComponent(next)}`);
+    router.push(`/verify?${query}${hasPassword ? "&pw=1" : ""}`);
   }
 
   async function signInWithGoogle() {
@@ -54,12 +69,18 @@ export function LoginForm({ next, googleEnabled }: LoginFormProps) {
 
   // Email first, Google second, no "or" divider (owner choice 2026-09-28).
   return (
-    <Stack gap={6}>
+    <Stack gap={3}>
       {formError && <Alert variant="danger">{formError}</Alert>}
-      <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
-        <FormField label="Email" error={errors.email?.message} required>
-          <Input type="email" inputMode="email" autoComplete="email" {...form.register("email")} />
-        </FormField>
+      <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="flex flex-col gap-3">
+        <FloatingInput
+          label="Email"
+          type="email"
+          inputMode="email"
+          autoComplete="email"
+          required
+          error={errors.email?.message}
+          {...form.register("email")}
+        />
         <Button type="submit" size="lg" shape="pill" loading={isSubmitting}>
           Continue with email
         </Button>

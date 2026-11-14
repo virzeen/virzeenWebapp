@@ -50,7 +50,9 @@ export function CartDrawer() {
                   <Price paisa={cart.subtotalPaisa} className="text-h3" />
                 </span>
               </div>
-              <p className="text-small text-ink-muted">Free shipping across Nepal. Prices include VAT.</p>
+              <p className="text-small text-ink-muted">
+                Delivery is worked out at checkout. Prices include VAT.
+              </p>
               <ButtonLink href="/checkout" size="lg" shape="pill" className="w-full" onClick={close}>
                 Checkout
               </ButtonLink>

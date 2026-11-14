@@ -8,11 +8,9 @@ import {
   DialogContent,
   DialogFooter,
   DialogTrigger,
-  EmptyState,
   toast,
 } from "@virzeen/ui";
 import { addressFormValues } from "@virzeen/validators";
-import { MapPin } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { messageFor } from "@/client/lib/error-messages";
@@ -114,17 +112,19 @@ export function AddressBook({ addresses }: { addresses: AddressView[] }) {
 
   const addButton = (
     <Button ref={addRef} shape="pill" onClick={() => show("new", { to: "heading" })}>
-      Add an address
+      Add address
     </Button>
   );
 
   if (addresses.length === 0) {
     return (
-      <EmptyState
-        icon={<MapPin className="size-5" strokeWidth={1.5} aria-hidden />}
-        title="No saved addresses yet."
-        action={addButton}
-      />
+      <div className="flex flex-col gap-6">
+        <p className="text-body">
+          You currently don&apos;t have any saved delivery addresses. Add an address here to be pre-filled for
+          quicker checkout.
+        </p>
+        <div className="flex justify-end">{addButton}</div>
+      </div>
     );
   }
 

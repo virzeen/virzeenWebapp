@@ -3,12 +3,14 @@
 //   pnpm admin grant <email>       make an admin (creates the account if needed)
 //   pnpm admin reset-2fa <email>   lost phone: set up the authenticator again at /admin
 //   pnpm admin revoke <email>      remove admin rights
+//   pnpm admin pass <email> <6|12> give the Monochrome Pass for 6 or 12 months (until it can be bought online)
+//   pnpm admin pass-end <email>    end the Monochrome Pass
 // Changes to a database that isn't on this computer need --yes.
 import { config } from "dotenv";
 
 config({ path: ["../../apps/web/.env.local", "../../apps/web/.env"], quiet: true });
 
-const USAGE = `Usage: pnpm admin <list | grant <email> | reset-2fa <email> | revoke <email>> [--yes]`;
+const USAGE = `Usage: pnpm admin <list | grant <email> | reset-2fa <email> | revoke <email> | pass <email> <6|12> | pass-end <email>> [--yes]`;
 
 function fail(message: string): never {
   console.error(message);
@@ -17,7 +19,7 @@ function fail(message: string): never {
 
 const args = process.argv.slice(2).filter((arg) => arg !== "--");
 const confirmed = args.includes("--yes");
-const [command, email] = args.filter((arg) => arg !== "--yes");
+const [command, email, extra] = args.filter((arg) => arg !== "--yes");
 
 let host = "";
 let name = "";
@@ -36,12 +38,13 @@ const isLocal = ["localhost", "127.0.0.1", "::1", "[::1]"].includes(host) && !is
 console.log(`Database: ${name} on ${host}${isLocal ? " (this computer)" : isRailway ? " (Railway)" : ""}`);
 
 if (command !== "list") {
-  if (!["grant", "reset-2fa", "revoke"].includes(command ?? "") || !email) fail(USAGE);
+  if (!["grant", "reset-2fa", "revoke", "pass", "pass-end"].includes(command ?? "") || !email) fail(USAGE);
   if (!isLocal && !confirmed) fail("This database is not on this computer. Run again with --yes to confirm.");
 }
 
 const { adminAccounts } = await import("../src/admin/admin-accounts");
 const { isAppError } = await import("../src/errors");
+const { memberService } = await import("../src/members/member.service");
 const { db } = await import("@virzeen/db");
 
 try {
@@ -62,6 +65,13 @@ try {
     console.log(
       `Authenticator removed and ${email} signed out everywhere. They set up a new one on their next visit to /admin.`,
     );
+  } else if (command === "pass") {
+    if (extra !== "6" && extra !== "12") fail(USAGE);
+    const { passEndsAt } = await memberService.grantPass(email as string, extra === "6" ? 6 : 12);
+    console.log(`${email} has the Monochrome Pass until ${passEndsAt.toISOString().slice(0, 10)}.`);
+  } else if (command === "pass-end") {
+    await memberService.endPass(email as string);
+    console.log(`${email} no longer has the Monochrome Pass.`);
   } else {
     await adminAccounts.revoke(email as string);
     console.log(`${email} is no longer an admin and has been signed out everywhere.`);

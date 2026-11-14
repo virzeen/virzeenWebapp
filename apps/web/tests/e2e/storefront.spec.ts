@@ -24,7 +24,7 @@ test.describe("Add to bag", () => {
     const bag = page.getByRole("dialog", { name: "Bag" });
     await expect(bag).toHaveAccessibleDescription("Added to bag · 1 item");
     await expect(bag.getByText("Linen Overshirt")).toBeVisible();
-    await expect(bag.getByTestId("cart-subtotal")).toContainText("Rs 4,500");
+    await expect(bag.getByTestId("cart-subtotal")).toContainText("रु 4,500");
     await expect(bag.getByRole("link", { name: "Checkout" })).toHaveAttribute("href", "/checkout");
 
     // The drawer is modal (the page behind it is hidden from assistive tech), so close it first; focus goes back.
@@ -35,7 +35,7 @@ test.describe("Add to bag", () => {
 
     await page.getByTestId("open-bag").click();
     await expect(page.getByRole("heading", { level: 1, name: "Bag" })).toBeVisible();
-    await expect(page.getByTestId("cart-subtotal")).toContainText("Rs 4,500");
+    await expect(page.getByTestId("cart-subtotal")).toContainText("रु 4,500");
   });
 
   test("an out-of-stock size can be picked but offers Notify me instead of Add to bag", async ({ page }) => {
@@ -58,17 +58,17 @@ test.describe("Add to bag", () => {
 
     const quantity = page.getByRole("group", { name: "Quantity of Logo Cap" });
     await quantity.getByRole("button", { name: "Increase quantity" }).click();
-    await expect(page.getByTestId("cart-subtotal")).toContainText("Rs 3,600");
+    await expect(page.getByTestId("cart-subtotal")).toContainText("रु 3,600");
 
     // Like Nike's bag: "−" lowers the quantity, and at 1 it becomes a bin that removes the line.
     await quantity.getByRole("button", { name: "Decrease quantity" }).click();
-    await expect(page.getByTestId("cart-subtotal")).toContainText("Rs 1,800");
+    await expect(page.getByTestId("cart-subtotal")).toContainText("रु 1,800");
     await quantity.getByRole("button", { name: "Remove" }).click();
     await expect(page.getByText("There are no items in your bag.")).toBeVisible();
     await expect(page.getByText("Removed Logo Cap.")).toBeVisible();
     await page.getByRole("button", { name: "Undo" }).click();
     await expect(quantity).toBeVisible();
-    await expect(page.getByTestId("cart-subtotal")).toContainText("Rs 1,800");
+    await expect(page.getByTestId("cart-subtotal")).toContainText("रु 1,800");
   });
 });
 

@@ -1,8 +1,26 @@
 "use server";
 
 import "server-only";
-import { addressService } from "@virzeen/core";
-import { addressIdSchema, addressSchema, idSchema, profileSchema } from "@virzeen/validators";
+import {
+  addressService,
+  interestService,
+  memberService,
+  referralService,
+  settingsService,
+} from "@virzeen/core";
+import {
+  addressIdSchema,
+  addressSchema,
+  birthdaySchema,
+  communicationSchema,
+  deleteAccountSchema,
+  idSchema,
+  interestsSchema,
+  profileSchema,
+  referralCodeSchema,
+  reviewNameSchema,
+  paymentMethodPreferenceSchema,
+} from "@virzeen/validators";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { z } from "zod";
@@ -47,5 +65,88 @@ export async function updateProfileAction(input: unknown) {
     await auth.api.updateUser({ body: { name }, headers: await headers() });
     revalidatePath("/account", "layout");
     return { name };
+  });
+}
+
+/** A new member enters a friend's referral code, before their first order (specs/member-perks.md). */
+export async function applyReferralCodeAction(input: unknown) {
+  return runAction("applyReferralCode", async () => {
+    const user = await requireUser();
+    await rateLimit("account", `user:${user.id}`);
+    const { code } = referralCodeSchema.parse(input);
+    await referralService.applyCode(user.id, code);
+    revalidatePath("/account/membership");
+    return { applied: true };
+  });
+}
+
+/** The member saves their birthday, once, for the birthday reward (specs/member-perks.md). */
+export async function setBirthdayAction(input: unknown) {
+  return runAction("setBirthday", async () => {
+    const user = await requireUser();
+    await rateLimit("account", `user:${user.id}`);
+    const { birthday } = birthdaySchema.parse(input);
+    await memberService.setBirthday(user.id, birthday);
+    revalidatePath("/account/membership");
+    return { saved: true };
+  });
+}
+
+/** Profile, Interests: the member's categories and collections, replaced by this set (specs/member-area-nike-layout.md). */
+export async function saveInterestsAction(input: unknown) {
+  return runAction("saveInterests", async () => {
+    const user = await requireUser();
+    await rateLimit("account", `user:${user.id}`);
+    await interestService.save(user.id, interestsSchema.parse(input));
+    revalidatePath("/account");
+    return { saved: true };
+  });
+}
+
+/** Settings, Payment methods: ticking cash on delivery saves it at once (no Save button). */
+export async function savePaymentMethodAction(input: unknown) {
+  return runAction("savePaymentMethod", async () => {
+    const user = await requireUser();
+    await rateLimit("account", `user:${user.id}`);
+    await settingsService.savePaymentMethod(user.id, paymentMethodPreferenceSchema.parse(input));
+    revalidatePath("/account/settings/payment-methods");
+    return { saved: true };
+  });
+}
+
+/** Settings, Communication preferences: the marketing email tick. */
+export async function saveCommunicationAction(input: unknown) {
+  return runAction("saveCommunication", async () => {
+    const user = await requireUser();
+    await rateLimit("account", `user:${user.id}`);
+    await settingsService.saveCommunication(user.id, communicationSchema.parse(input));
+    revalidatePath("/account/settings/communication-preferences");
+    return { saved: true };
+  });
+}
+
+/** Settings, Profile visibility: the name a product review shows. */
+export async function saveReviewNameAction(input: unknown) {
+  return runAction("saveReviewName", async () => {
+    const user = await requireUser();
+    await rateLimit("account", `user:${user.id}`);
+    await settingsService.saveReviewName(user.id, reviewNameSchema.parse(input));
+    revalidatePath("/account/settings/profile-visibility");
+    return { saved: true };
+  });
+}
+
+/**
+ * Settings, Delete account: anonymises the signed-in member's account and signs them out (their sessions are deleted;
+ * orders and the points ledger stay as the shop's records). Refused while an order is open.
+ */
+export async function deleteAccountAction(input: unknown) {
+  return runAction("deleteAccount", async () => {
+    const user = await requireUser();
+    await rateLimit("account", `delete:${user.id}`);
+    deleteAccountSchema.parse(input);
+    await settingsService.deleteAccount(user.id);
+    revalidatePath("/", "layout");
+    return { deleted: true };
   });
 }

@@ -23,8 +23,8 @@ export function EditorAccordions() {
     <Accordion type="multiple" value={value} onValueChange={setOpen}>
       <AccordionItem value="delivery" title="Delivery and returns" headingLevel={2}>
         <p>
-          Free delivery in 1–3 days inside Kathmandu Valley and 3–7 days elsewhere in Nepal. Free returns
-          within 7 days of delivery. <Link href="/returns">Read our returns policy</Link>.
+          Free delivery in 1–3 days inside Kathmandu Valley and 3–7 days elsewhere in Nepal. Returns within 7
+          days of delivery, 15 with the Monochrome Pass. <Link href="/returns">Read our returns policy</Link>.
         </p>
       </AccordionItem>
       <AccordionItem value={SIZE_AND_FIT} title="Size and fit" headingLevel={2}>

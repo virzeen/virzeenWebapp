@@ -45,5 +45,5 @@ Make sure Storybook is running (`pnpm storybook`), then use the Storybook MCP:
 
 1. `node scripts/check-ui.mjs --changed` → zero problems.
 2. Run the `verify-ui` skill (Playwright MCP) and fix everything it finds.
-3. For larger UI changes, run the `ui-reviewer` agent on the diff.
+3. For larger UI changes, go through `docs/reviews/ui-review.md` yourself on the diff (never a subagent).
 4. Walk through the self-review checklist in `docs/ui/ui-discipline.md` §9.

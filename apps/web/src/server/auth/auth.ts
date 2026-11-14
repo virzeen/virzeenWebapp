@@ -10,7 +10,7 @@ import { env, features, siteUrl } from "@/server/env";
 import { CLIENT_IP_HEADER } from "@/server/security/client-ip";
 import { markOtpDeliveryFailed } from "./otp-delivery";
 
-// Better Auth (docs/security/security-policy.md §2): Google + email OTP, no customer passwords.
+// Better Auth (docs/security/security-policy.md §2): Google + email OTP, and an optional password set in Settings.
 // Admin TOTP is enrolled with the two-factor plugin and enforced per session by requireAdmin()
 // (the plugin itself only challenges password sign-ins).
 
@@ -24,7 +24,10 @@ export const auth = betterAuth({
   baseURL: env.BETTER_AUTH_URL,
   secret: env.BETTER_AUTH_SECRET,
   database: prismaAdapter(db, { provider: "postgresql" }),
-  emailAndPassword: { enabled: false },
+  // A password is optional and set later in Settings (specs/sign-in-v2.md). Nobody can sign up with one: accounts are
+  // made by an emailed code. Password sign-in only runs through passwordSignInAction (the /api/auth route doesn't
+  // expose it), which refuses admins.
+  emailAndPassword: { enabled: true, disableSignUp: true, minPasswordLength: 8, maxPasswordLength: 128 },
   socialProviders: features.google
     ? {
         google: {

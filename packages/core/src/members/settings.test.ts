@@ -1,0 +1,204 @@
+import { db } from "@virzeen/db";
+import { beforeEach, describe, expect, it } from "vitest";
+import { createUser, createVariant, resetDatabase } from "../../test/factories";
+import { authorLabel, reviewService } from "../reviews/review.service";
+import { settingsService } from "./settings.service";
+
+// Settings (docs/specs/member-area-nike-layout.md).
+
+describe("payment, communication and review-name settings", () => {
+  beforeEach(resetDatabase);
+
+  it("starts with today's behaviour and saves each choice", async () => {
+    const me = await createUser();
+    expect(await settingsService.get(me.id)).toMatchObject({
+      paymentMethod: null,
+      marketingOptIn: false,
+      reviewNameStyle: "FIRST_NAME",
+    });
+    await settingsService.savePaymentMethod(me.id, { method: "COD" });
+    await settingsService.saveCommunication(me.id, { marketingOptIn: true });
+    await settingsService.saveReviewName(me.id, { style: "ANONYMOUS" });
+    expect(await settingsService.get(me.id)).toEqual({
+      paymentMethod: "COD",
+      marketingOptIn: true,
+      reviewNameStyle: "ANONYMOUS",
+      birthday: null,
+    });
+    await settingsService.savePaymentMethod(me.id, { method: null });
+    expect((await settingsService.get(me.id)).paymentMethod).toBeNull();
+  });
+
+  it("shows the review author by the member's choice", async () => {
+    expect(authorLabel("Asha Rai", "FIRST_NAME")).toBe("Asha");
+    expect(authorLabel("Asha  Rai", "FULL_NAME")).toBe("Asha Rai");
+    expect(authorLabel("Asha Rai", "ANONYMOUS")).toBe("Anonymous");
+    expect(authorLabel("", "FULL_NAME")).toBe("Customer");
+
+    const me = await createUser();
+    const variant = await createVariant();
+    await db.user.update({ where: { id: me.id }, data: { name: "Asha Rai", reviewNameStyle: "FULL_NAME" } });
+    await db.review.create({
+      data: { userId: me.id, productId: variant.productId, rating: 5, title: "", body: "Lovely" },
+    });
+    const [review] = await reviewService.listForProduct(variant.productId);
+    expect(review?.authorName).toBe("Asha Rai");
+  });
+});
+
+describe("the data download", () => {
+  beforeEach(resetDatabase);
+
+  it("exports the member's own data and no secrets", async () => {
+    const me = await createUser();
+    const other = await createUser();
+    await db.account.create({
+      data: {
+        id: "acc-3-" + me.id,
+        userId: me.id,
+        accountId: me.id,
+        providerId: "credential",
+        password: "super-secret-hash",
+        accessToken: "tok-123",
+      },
+    });
+    await db.session.create({
+      data: {
+        id: "s1",
+        userId: me.id,
+        token: "session-token-xyz",
+        expiresAt: new Date(Date.now() + 1000),
+      },
+    });
+    await db.address.create({
+      data: {
+        userId: me.id,
+        fullName: "Me",
+        phone: "9800000000",
+        province: "Bagmati",
+        district: "Lalitpur",
+        city: "Lalitpur",
+        street: "Pulchowk",
+      },
+    });
+    await db.address.create({
+      data: {
+        userId: other.id,
+        fullName: "Someone Else",
+        phone: "9811111111",
+        province: "Bagmati",
+        district: "Lalitpur",
+        city: "Lalitpur",
+        street: "Elsewhere",
+      },
+    });
+    const data = await settingsService.exportData(me.id);
+    const text = JSON.stringify(data);
+    expect(data.email).toBe(me.email);
+    expect(data.addresses).toHaveLength(1);
+    expect(text).not.toContain("super-secret-hash");
+    expect(text).not.toContain("tok-123");
+    expect(text).not.toContain("session-token-xyz");
+    expect(text).not.toContain("Someone Else");
+    expect(text).not.toMatch(/"(password|token|accessToken|refreshToken|twoFactor)/i);
+  });
+});
+
+describe("deleting an account", () => {
+  beforeEach(resetDatabase);
+
+  async function member() {
+    const me = await createUser();
+    const variant = await createVariant();
+    await db.user.update({
+      where: { id: me.id },
+      data: { name: "Asha Rai", birthday: new Date("1995-05-02T00:00:00.000Z"), marketingOptIn: true },
+    });
+    await db.account.create({
+      data: {
+        id: "acc-del-" + me.id,
+        userId: me.id,
+        accountId: me.id,
+        providerId: "google",
+        accessToken: "t",
+      },
+    });
+    await db.session.create({
+      data: {
+        id: "s-del-" + me.id,
+        userId: me.id,
+        token: "tok-" + me.id,
+        expiresAt: new Date(Date.now() + 1000),
+      },
+    });
+    await db.address.create({
+      data: {
+        userId: me.id,
+        fullName: "Asha Rai",
+        phone: "9800000000",
+        province: "Bagmati",
+        district: "Lalitpur",
+        city: "Lalitpur",
+        street: "Pulchowk",
+      },
+    });
+    await db.favourite.create({ data: { userId: me.id, productId: variant.productId, color: "" } });
+    await db.review.create({
+      data: { userId: me.id, productId: variant.productId, rating: 5, title: "", body: "Lovely" },
+    });
+    await db.walletEntry.create({
+      data: { userId: me.id, kind: "CREDIT", type: "EARN", amount: 5_000, remaining: 5_000, reason: "Gift" },
+    });
+    return { me, variant };
+  }
+
+  async function orderFor(userId: string, status: "PENDING" | "DELIVERED" | "SHIPPED", n: number) {
+    return db.order.create({
+      data: {
+        orderNumber: `VZ-261114-${String(n).padStart(4, "0")}`,
+        userId,
+        customerEmail: "asha@example.com",
+        paymentMethod: "COD",
+        subtotalPaisa: 100_000,
+        shippingPaisa: 0,
+        totalPaisa: 100_000,
+        shippingZone: "KATHMANDU_VALLEY",
+        addressSnapshot: { fullName: "Asha Rai" },
+        status,
+      },
+    });
+  }
+
+  it("anonymises the account, keeps orders and the points ledger, and frees the email", async () => {
+    const { me } = await member();
+    const order = await orderFor(me.id, "DELIVERED", 1);
+    await settingsService.deleteAccount(me.id);
+
+    const user = await db.user.findUniqueOrThrow({ where: { id: me.id } });
+    expect(user).toMatchObject({ name: "Deleted member", birthday: null, marketingOptIn: false });
+    expect(user.email).toBe(`deleted-${me.id}@deleted.invalid`);
+    for (const count of await Promise.all([
+      db.session.count({ where: { userId: me.id } }),
+      db.account.count({ where: { userId: me.id } }),
+      db.address.count({ where: { userId: me.id } }),
+      db.favourite.count({ where: { userId: me.id } }),
+      db.review.count({ where: { userId: me.id } }),
+    ])) {
+      expect(count).toBe(0);
+    }
+    // The shop's records stay.
+    expect(await db.order.count({ where: { id: order.id } })).toBe(1);
+    expect(await db.walletEntry.count({ where: { userId: me.id } })).toBe(1);
+    expect(await db.auditLog.count({ where: { action: "account.delete", entityId: me.id } })).toBe(1);
+  });
+
+  it("refuses while an order is still open, and for an admin", async () => {
+    const { me } = await member();
+    await orderFor(me.id, "SHIPPED", 2);
+    await expect(settingsService.deleteAccount(me.id)).rejects.toMatchObject({ code: "CONFLICT" });
+    expect((await db.user.findUniqueOrThrow({ where: { id: me.id } })).name).toBe("Asha Rai");
+
+    const admin = await createUser({ role: "ADMIN" });
+    await expect(settingsService.deleteAccount(admin.id)).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+});

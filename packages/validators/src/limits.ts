@@ -8,6 +8,9 @@ export const MAX_QTY_PER_LINE = 10;
 /** Most favourites one account (or one browser) keeps. */
 export const MAX_FAVOURITES = 100;
 
+/** Interests a member can keep (categories and collections each; specs/member-area-nike-layout.md). */
+export const MAX_INTERESTS = 12;
+
 /** Most "Notify me when it's back" requests one account keeps waiting (specs/notify-me.md). */
 export const MAX_STOCK_ALERTS = 20;
 
@@ -37,4 +40,147 @@ export function toFavouriteKey(
   if (typeof productId !== "string" || !CUID2.test(productId) || typeof color !== "string") return null;
   const style = color.trim();
   return style.length <= MAX_FAVOURITE_COLOR ? { productId, color: style } : null;
+}
+
+// Delivery fees (owner decision 2026-11-11, docs/specs/checkout-v2-week1.md). Pure rules, shared so the bag page can
+// show the same hints the server charges by. The server is the only place that charges: `calculateTotals` in core.
+
+export type DeliveryTier = "GUEST" | "MEMBER" | "PASS";
+
+export const DELIVERY_FEES: Record<DeliveryTier, { feePaisa: number; freeFromPaisa: number }> = {
+  GUEST: { feePaisa: 20_000, freeFromPaisa: 999_900 },
+  MEMBER: { feePaisa: 15_000, freeFromPaisa: 300_000 },
+  // The Monochrome Pass: free delivery on every order, no minimum.
+  PASS: { feePaisa: 0, freeFromPaisa: 0 },
+};
+
+/** The Monochrome Pass takes this much off the products' price (owner 2026-11-11; a promo code replaces it). */
+export const PASS_DISCOUNT_PERCENT = 10;
+
+/** The Pass discount on a subtotal: a percentage rounded down, then whole rupees (the same rounding as a code). */
+export function passDiscountFor(subtotalPaisa: number): number {
+  return Math.floor(Math.floor((subtotalPaisa * PASS_DISCOUNT_PERCENT) / 100) / 100) * 100;
+}
+
+// Member perks (owner 2026-11-13, docs/specs/member-perks.md). Pure rules; the server is the only place that charges.
+
+/** Gift wrapping: Rs 150 for a guest, Rs 100 for a MONO Member, free for the Pass. */
+export const GIFT_WRAP_PAISA: Record<DeliveryTier, number> = { GUEST: 15_000, MEMBER: 10_000, PASS: 0 };
+
+/** The birthday reward: this much off the products in the member's birthday month (a promo code replaces it). */
+export const BIRTHDAY_DISCOUNT_PERCENT: Record<DeliveryTier, number> = { GUEST: 0, MEMBER: 5, PASS: 15 };
+
+/** Express Delivery (3 hours in Kathmandu and Pokhara) a member may use each calendar month. */
+export const EXPRESS_PER_MONTH: Record<DeliveryTier, number> = { GUEST: 0, MEMBER: 1, PASS: 3 };
+
+/** What a referral pays the member who gave the code (credit, in paisa), once the friend's first order is delivered. */
+export const REFERRAL_REWARD_PAISA: Record<"MEMBER" | "PASS", number> = { MEMBER: 20_000, PASS: 30_000 };
+
+/** A Pass referrer's friend gets this many months of the Pass free. */
+export const REFERRAL_FRIEND_PASS_MONTHS = 1;
+
+/** Early access: how many hours before a product's public time each tier may see and buy it. */
+export const EARLY_ACCESS_HOURS: Record<DeliveryTier, number> = { GUEST: 0, MEMBER: 12, PASS: 48 };
+
+const NEPAL_OFFSET_MS = (5 * 60 + 45) * 60_000;
+
+/** The month (0 to 11) of an instant in Nepal time. */
+export function nepalMonthOf(instant: Date): number {
+  return new Date(instant.getTime() + NEPAL_OFFSET_MS).getUTCMonth();
+}
+
+/** The first moment of the instant's calendar month in Nepal time, as an instant (for "this month" counts). */
+export function nepalMonthStart(instant: Date): Date {
+  const shifted = new Date(instant.getTime() + NEPAL_OFFSET_MS);
+  return new Date(Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth(), 1) - NEPAL_OFFSET_MS);
+}
+
+/** True when `now` falls in the month of the member's birthday (a date, no time) in Nepal time. */
+export function isBirthdayMonth(birthday: Date | null | undefined, now: Date): boolean {
+  return Boolean(birthday) && (birthday as Date).getUTCMonth() === nepalMonthOf(now);
+}
+
+/** The birthday reward on a subtotal: a percentage rounded down, then whole rupees (same rounding as a code). */
+export function birthdayDiscountFor(tier: DeliveryTier, subtotalPaisa: number): number {
+  return Math.floor(Math.floor((subtotalPaisa * BIRTHDAY_DISCOUNT_PERCENT[tier]) / 100) / 100) * 100;
+}
+
+/** A Pass order that leaves after its dispatch promise earns this credit, automatically (owner 2026-11-13). */
+export const MISSED_DISPATCH_CREDIT_PAISA = 10_000;
+
+/** The next 11 AM in Nepal time after `instant`'s day: where an Express order placed after 6 PM is promised. */
+export function nextDayElevenAm(instant: Date): Date {
+  const shifted = new Date(instant.getTime() + NEPAL_OFFSET_MS);
+  return new Date(
+    Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth(), shifted.getUTCDate() + 1, 11) - NEPAL_OFFSET_MS,
+  );
+}
+
+/** Express Delivery goes to the Kathmandu Valley and Pokhara (the Kaski district) only. */
+export const EXPRESS_DISTRICTS: readonly string[] = ["Kathmandu", "Lalitpur", "Bhaktapur", "Kaski"];
+
+/** Express Delivery is promised within 3 hours for orders confirmed 9 AM to 6 PM Nepal time; later ones by 11 AM next day. */
+export function isExpressHours(instant: Date): boolean {
+  const hour = new Date(instant.getTime() + NEPAL_OFFSET_MS).getUTCHours();
+  return hour >= 9 && hour < 18;
+}
+
+/** The delivery fee for a bag worth `payablePaisa` (after any discount) for this tier. */
+export function deliveryFeeFor(tier: DeliveryTier, payablePaisa: number): number {
+  const rule = DELIVERY_FEES[tier];
+  return payablePaisa >= rule.freeFromPaisa ? 0 : rule.feePaisa;
+}
+
+/** What more the customer must add for free delivery; 0 when it is already free. */
+export function remainingForFreeDelivery(tier: DeliveryTier, payablePaisa: number): number {
+  return Math.max(0, DELIVERY_FEES[tier].freeFromPaisa - payablePaisa);
+}
+
+/** How much a MONO Member would save on delivery against a guest for the same bag (never negative). */
+export function memberDeliverySaving(payablePaisa: number): number {
+  return Math.max(0, deliveryFeeFor("GUEST", payablePaisa) - deliveryFeeFor("MEMBER", payablePaisa));
+}
+
+// Points and credit (owner 2026-11-11, docs/specs/wallet.md). Pure rules, shared so the checkout shows what the
+// server applies; only the server spends them.
+
+/** A member earns points on a delivered order: 1 per Rs 2,999 paid (Pass members 2 per Rs 2,999; owner 2026-11-13). */
+export const POINT_EARN_UNIT_PAISA = 299_900;
+/** 1 point is worth Rs 1 at checkout. */
+export const POINT_VALUE_PAISA = 100;
+/** Points can pay for at most this share of the products' price (after any discount). */
+export const POINTS_MAX_SHARE_PERCENT = 20;
+/** MONO Member points expire this many days after they are earned; Pass members' never do. */
+export const POINTS_EXPIRY_DAYS = 365;
+
+/** Points earned by a delivered order worth `totalPaisa`, for the buyer's tier (guests earn none). */
+export function pointsEarned(totalPaisa: number, tier: DeliveryTier | "GUEST"): number {
+  if (tier === "GUEST") return 0;
+  return Math.floor(totalPaisa / POINT_EARN_UNIT_PAISA) * (tier === "PASS" ? 2 : 1);
+}
+
+export type WalletApplication = { pointsUsed: number; creditUsedPaisa: number };
+
+/**
+ * How much of the member's points and credit pay for this order. Points first (whole points, at most 20% of the
+ * products' price after discount, never more than the order's total), then credit for what is left of the total.
+ */
+export function walletApplication(input: {
+  /** Subtotal less any discount: the base of the 20% cap. */
+  goodsPayablePaisa: number;
+  /** Total before points and credit (goods, discount and delivery). */
+  totalBeforeWalletPaisa: number;
+  pointsBalance: number;
+  creditBalancePaisa: number;
+  usePoints: boolean;
+  useCredit: boolean;
+}): WalletApplication {
+  const maxByShare = Math.floor(
+    (input.goodsPayablePaisa * POINTS_MAX_SHARE_PERCENT) / 100 / POINT_VALUE_PAISA,
+  );
+  const maxByTotal = Math.floor(input.totalBeforeWalletPaisa / POINT_VALUE_PAISA);
+  const pointsUsed = input.usePoints ? Math.max(0, Math.min(input.pointsBalance, maxByShare, maxByTotal)) : 0;
+  const left = input.totalBeforeWalletPaisa - pointsUsed * POINT_VALUE_PAISA;
+  const creditUsedPaisa = input.useCredit ? Math.max(0, Math.min(input.creditBalancePaisa, left)) : 0;
+  return { pointsUsed, creditUsedPaisa };
 }

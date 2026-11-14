@@ -59,7 +59,8 @@ export function Accordion({ className, ...props }: React.ComponentProps<typeof A
   return <AccordionPrimitive.Root className={cn("border-t border-line", className)} {...props} />;
 }
 
-export type AccordionItemProps = React.ComponentProps<typeof AccordionPrimitive.Item> & {
+export type AccordionItemProps = Omit<React.ComponentProps<typeof AccordionPrimitive.Item>, "title"> & {
+  /** The row's title: text or inline content such as a `<Price>`. */
   title: React.ReactNode;
   /** Level of the heading around the trigger: 3 by default, 2 when the accordion sits right under the h1. */
   headingLevel?: 2 | 3 | 4;

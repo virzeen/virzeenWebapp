@@ -5,6 +5,7 @@ import {
   adminPageSchema,
   ALL_DISTRICTS,
   emailSchema,
+  guestCheckoutSchema,
   parsePortfolioBody,
   phoneSchema,
   productSchema,
@@ -168,5 +169,44 @@ describe("parsePortfolioBody", () => {
       { type: "video" },
     ]);
     expect(body).toEqual([{ type: "text", text: "Hello" }]);
+  });
+});
+
+describe("guestCheckoutSchema", () => {
+  const valid = {
+    email: "Sita@Example.com",
+    firstName: "Sita",
+    lastName: "Rai",
+    phone: "98 12345678",
+    province: "Bagmati",
+    district: "Kathmandu",
+    municipality: "Kathmandu",
+    ward: "4",
+    street: "Baneshwor",
+    paymentMethod: "COD",
+  };
+
+  it("accepts a complete guest form and cleans the phone and email", () => {
+    const parsed = guestCheckoutSchema.parse(valid);
+    expect(parsed.phone).toBe("9812345678");
+    expect(parsed.email).toBe("sita@example.com");
+  });
+
+  it("explains each wrong field in plain words", () => {
+    const result = guestCheckoutSchema.safeParse({
+      ...valid,
+      phone: "1234567890",
+      ward: "99",
+      district: "Kaski",
+    });
+    expect(result.success).toBe(false);
+    const fields = Object.fromEntries(result.error!.issues.map((i) => [i.path[0], i.message]));
+    expect(fields.phone).toMatch(/10-digit mobile number starting with 97 or 98/);
+    expect(fields.ward).toBe("Enter your ward number (1 to 35)");
+  });
+
+  it("refuses a district outside the province and unknown fields", () => {
+    expect(guestCheckoutSchema.safeParse({ ...valid, district: "Kaski" }).success).toBe(false);
+    expect(guestCheckoutSchema.safeParse({ ...valid, totalPaisa: 1 }).success).toBe(false);
   });
 });

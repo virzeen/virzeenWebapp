@@ -42,6 +42,28 @@ export const Confirmation: Story = {
   },
 };
 
+/** One field and one button in a popup with large rounded corners (the bag's promo code). */
+export const Prompt: Story = {
+  render: () => (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button>Enter a promo code</Button>
+      </DialogTrigger>
+      <DialogContent size="prompt" title="Enter a promo code" description="Get instant savings on your order">
+        <Button shape="pill" size="lg" className="w-full">
+          Apply promo code
+        </Button>
+      </DialogContent>
+    </Dialog>
+  ),
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(canvas.getByRole("button", { name: "Enter a promo code" }));
+    const dialog = await screen.findByRole("dialog", { name: "Enter a promo code" });
+    await waitFor(() => expect(dialog).toBeVisible());
+    await expect(within(dialog).getByRole("button", { name: "Apply promo code" })).toBeVisible();
+  },
+};
+
 export const OpenByDefault: Story = {
   render: () => (
     <Dialog defaultOpen>
@@ -104,6 +126,63 @@ export const Large: Story = {
     await expect(body).toHaveFocus();
     await userEvent.click(screen.getByRole("button", { name: "Done" }));
     await waitFor(() => expect(canvas.getByRole("button", { name: "Edit Mountain print" })).toHaveFocus());
+  },
+};
+
+/**
+ * `size="picker"`: Nike's "Select your interests" list (the profile's "Select your picks"). A larger title, the tab row
+ * under it, rows scrolling beneath and the buttons at the bottom.
+ */
+export const Picker: Story = {
+  render: () => (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="secondary">Select your picks</Button>
+      </DialogTrigger>
+      <DialogContent
+        size="picker"
+        title="Select your picks"
+        tabs={
+          <div role="tablist" aria-label="Pick type" className="flex border-b border-line px-6">
+            {["All", "Categories", "Collections"].map((label, index) => (
+              <button
+                key={label}
+                type="button"
+                role="tab"
+                aria-selected={index === 0}
+                className={`min-h-11 border-b-2 px-4 text-body ${index === 0 ? "border-ink" : "border-transparent text-ink-muted"}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        }
+        footer={
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="secondary" shape="pill">
+                Cancel
+              </Button>
+            </DialogClose>
+            <Button shape="pill">Save</Button>
+          </DialogFooter>
+        }
+      >
+        <ul className="flex flex-col">
+          {["VHome", "VWear", "Accessories", "Outerwear", "Tops", "Bottoms", "Festival"].map((name) => (
+            <li key={name} className="flex h-20 items-center border-b border-line text-body last:border-b-0">
+              {name}
+            </li>
+          ))}
+        </ul>
+      </DialogContent>
+    </Dialog>
+  ),
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(canvas.getByRole("button", { name: "Select your picks" }));
+    const dialog = await screen.findByRole("dialog", { name: "Select your picks" });
+    await waitFor(() => expect(dialog).toBeVisible());
+    await expect(within(dialog).getByRole("tab", { name: "All" })).toHaveAttribute("aria-selected", "true");
   },
 };
 

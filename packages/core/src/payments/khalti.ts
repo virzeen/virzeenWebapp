@@ -33,10 +33,14 @@ export const khaltiProvider: PaymentProvider = {
       throw new AppError("PAYMENT_FAILED", "Khalti needs an order of at least Rs 10.");
     }
     // Khalti's breakdown must add up to the amount, so the items line is after any discount code.
-    const itemsPaisa = order.subtotalPaisa - order.discountPaisa;
-    if (order.discountPaisa < 0 || itemsPaisa < 0 || itemsPaisa + order.shippingPaisa !== order.totalPaisa) {
+    const afterDiscount = order.subtotalPaisa - order.discountPaisa;
+    const itemsRaw = afterDiscount + (order.adjustmentPaisa ?? 0);
+    if (order.discountPaisa < 0 || afterDiscount < 0 || itemsRaw + order.shippingPaisa !== order.totalPaisa) {
       throw new AppError("INTERNAL", "Khalti amounts don't add up.");
     }
+    // Credit and points can cover more than the items: then the rest of the total is shown as shipping.
+    const itemsPaisa = Math.max(0, Math.min(itemsRaw, order.totalPaisa));
+    const shippingLinePaisa = order.totalPaisa - itemsPaisa;
     let body: InitiateResponse;
     try {
       const response = await khaltiRequest("/epayment/initiate/", {
@@ -52,7 +56,7 @@ export const khaltiProvider: PaymentProvider = {
         },
         amount_breakdown: [
           { label: "Items", amount: itemsPaisa },
-          { label: "Shipping", amount: order.shippingPaisa },
+          { label: "Shipping", amount: shippingLinePaisa },
         ],
       });
       if (!response.ok) throw new AppError("PAYMENT_FAILED", `Khalti initiate HTTP ${response.status}`);

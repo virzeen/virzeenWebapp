@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 /** Each tab with the paths it covers: Settings holds the addresses too. */
 const TABS = [
   { href: "/account", label: "Profile", covers: [] },
+  { href: "/account/membership", label: "Membership", covers: [] },
   { href: "/account/orders", label: "Orders", covers: ["/account/reviews"] },
   // Its own page outside the account (guests have favourites too), listed here as well.
   { href: "/favourites", label: "Favourites", covers: [] },
