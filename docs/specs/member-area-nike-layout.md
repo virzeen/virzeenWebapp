@@ -1,6 +1,6 @@
 # Member area, laid out like Nike's (Interests, recommendations, Settings)
 
-Status: in progress, started 2026-11-14.
+Status: built 2026-11-14 (Delete account pending the owner's rule).
 Source: the owner's package `nike-member-ui-package` (spec and 19 screenshots of Nike Singapore's member area, desktop). Only the layout, structure and states are followed. Nike's pictures, logos and wording are not used; the copy is Virzeen's.
 
 ## Owner decisions (2026-11-14)
@@ -14,7 +14,7 @@ Source: the owner's package `nike-member-ui-package` (spec and 19 screenshots of
 
 1. Identity: circle, name (h1, id `profile-name`), "Member since {month year}". (Already built.)
 2. The points card (`WalletPanel`). Kept from the earlier request; Nike has no equivalent.
-3. **Interests**: h2 "Interests" with an "Edit" link on the right; a tab row **All · Categories · Collections** (active one underlined black, a thin line under the row); the line "Add your interests to shop a collection of products that are based on what you're into."; then a row of square tiles. With none saved: one light-grey square tile with a ⊕ and "Add interests". With some: one tile per interest (its name) and the Add tile last. "Edit" and the Add tile open a dialog listing every live category and collection as checkboxes (up to 12 may be chosen) with Save.
+3. **Interests**: h2 "Interests" with an "Edit" link on the right; a tab row **All · Categories · Collections** (active one underlined black, a thin line under the row); the line "Add your interests to shop a collection of products that are based on what you're into."; then a row of square tiles. With none saved: one light-grey square tile with a ⊕ and "Add interests". With some: one tile per interest (its name) and the Add tile last. "Edit" and the Add tile open a dialog listing every live category and collection as checkboxes (up to 12 in all may be chosen) with Save.
 4. **Find your next favourite**: a sideways row of product cards (the shared `ProductCarousel`): live products in the member's chosen categories or collections that they have not already favourited, newest first, up to 12. With no interests, or none left to show, the newest live products. Early-access rules apply (a member sees early drops, nobody else).
 5. **Member Benefits**: the image cards from `specs/member-benefit-pages.md`, tiles with **square corners** as in Nike's screenshot, the name under each.
 6. Favourites row, then "Notify me" when there are requests. (Kept; the owner asked for the Favourites row earlier.)
@@ -39,7 +39,7 @@ Save buttons are disabled until a field changes, then black. Each saves through 
 ## Privacy rules
 
 - **Download your data**: one JSON file of what the member gave us: profile (name, email, birthday, preferences), addresses, favourites, reviews, notify-me requests, interests, points and credit lines, orders (number, date, status, totals, items). Never password hashes, sessions, tokens, 2FA secrets or other members' data.
-- **Delete account**: pending the owner's rule (the docs are silent). Orders cannot be removed from the shop's books, so deleting means anonymising: see the decision recorded below when made.
+- **Delete account**: the docs say nothing about deleting an account, so this is the owner's decision. Orders cannot be removed from the shop's books (`Order.userId` is `Restrict`), so deleting would mean anonymising. Until the owner decides, the section says to contact us (`/contact`) and has no delete button.
 
 ## Acceptance
 

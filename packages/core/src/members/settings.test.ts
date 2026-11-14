@@ -26,6 +26,7 @@ describe("shop, communication and review-name settings", () => {
       unit: "IMPERIAL",
       marketingOptIn: true,
       reviewNameStyle: "ANONYMOUS",
+      birthday: null,
     });
     await settingsService.saveShopPreferences(me.id, { preference: "BOTH", size: "", unit: "METRIC" });
     expect((await settingsService.get(me.id)).size).toBe("");

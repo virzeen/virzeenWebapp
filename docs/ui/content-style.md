@@ -512,3 +512,18 @@ Frame and rules: backend-policies.md §9. The sign-in code email's heading is th
 - Counts take the right plural: "1 product", "2 products". Never "product(s)".
 - Numbers from 1,000 up are grouped: "4,000 characters", "100,000 or less".
 - Phone numbers in order details are tap-to-call links.
+
+## Profile and Settings (`specs/member-area-nike-layout.md`)
+
+| Where                                       | Text                                                                                                                                                   |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Profile blocks, in order                    | Interests · Find your next favourite · Member Benefits · Favourites                                                                                    |
+| Interests help line                         | Add your interests to shop a collection of products that are based on what you're into.                                                                |
+| Interests tabs, tile, links                 | All · Categories · Collections · Add interests · Edit                                                                                                  |
+| Interests dialog                            | Your interests · Choose up to 12. {n} chosen. · Cancel · Save                                                                                          |
+| Settings sections (the list, in this order) | Account details · Payment methods · Delivery addresses · Shop preferences · Communication preferences · Profile visibility · Linked accounts · Privacy |
+| Payment methods                             | Virzeen doesn't save your card or wallet details. You choose how to pay each time at checkout. · Payment options                                       |
+| Communication preferences                   | Yes, send me emails. · Emails about your orders and your account are always sent.                                                                      |
+| Profile visibility                          | First name · Full name · Anonymous                                                                                                                     |
+| Linked accounts (none)                      | You don't have any connected apps or services.                                                                                                         |
+| Privacy                                     | Download my data · Delete account · Contact us                                                                                                         |

@@ -12,6 +12,8 @@ export type MemberSettings = {
   unit: "METRIC" | "IMPERIAL";
   marketingOptIn: boolean;
   reviewNameStyle: "FIRST_NAME" | "FULL_NAME" | "ANONYMOUS";
+  /** "YYYY-MM-DD", or null until they add it (it is locked once set: specs/member-perks.md). */
+  birthday: string | null;
 };
 
 export const settingsService = {
@@ -24,6 +26,7 @@ export const settingsService = {
         measureUnit: true,
         marketingOptIn: true,
         reviewNameStyle: true,
+        birthday: true,
       },
     });
     if (!user) throw new AppError("NOT_FOUND", "Account not found.");
@@ -33,6 +36,7 @@ export const settingsService = {
       unit: user.measureUnit,
       marketingOptIn: user.marketingOptIn,
       reviewNameStyle: user.reviewNameStyle,
+      birthday: user.birthday ? user.birthday.toISOString().slice(0, 10) : null,
     };
   },
 

@@ -156,6 +156,10 @@ type OrderItemSnapshot = {
 
 Address management for the app (list/add/edit) is not part of v1 yet; the app uses the web account pages in the Capacitor shell. The same goes for favourites (`specs/favourites.md`): the app uses the web Favourites page.
 
+## Account (signed in, not part of `/api/v1`)
+
+`GET /api/account/export`: the member's own data as one JSON attachment ("Download my data", Settings > Privacy; `specs/member-area-nike-layout.md`). 401 when signed out, 429 when rate limited. Explicit field selects: no password hash, sessions, tokens or two-factor secrets, and nothing about other members.
+
 ## Not public
 
 `/api/payments/*` (provider callbacks), `/api/cron/*` (secret-protected), `/api/auth/*` (Better Auth) are not part of this contract.
