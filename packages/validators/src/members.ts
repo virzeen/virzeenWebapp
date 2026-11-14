@@ -63,16 +63,9 @@ export const interestsSchema = z.strictObject({
 });
 export type InterestsInput = z.infer<typeof interestsSchema>;
 
-/** The clothing sizes a member can keep as their own (Settings, Shop preferences). */
-export const CLOTHING_SIZES = ["XS", "S", "M", "L", "XL", "XXL"] as const;
-
-/** Settings, Shop preferences: what they shop for, the size to pre-select ("" = none) and the unit of measure. */
-export const shopPreferencesSchema = z.strictObject({
-  preference: z.enum(["HOME", "CLOTHING", "BOTH"], { error: "Choose what you shop for" }),
-  size: z.union([z.enum(CLOTHING_SIZES), z.literal("")]),
-  unit: z.enum(["METRIC", "IMPERIAL"], { error: "Choose a unit" }),
-});
-export type ShopPreferencesInput = z.infer<typeof shopPreferencesSchema>;
+/** Settings, Payment methods: the method the member ticked as theirs (only cash on delivery is offered at launch); null clears it. */
+export const paymentMethodPreferenceSchema = z.strictObject({ method: z.literal("COD").nullable() });
+export type PaymentMethodPreferenceInput = z.infer<typeof paymentMethodPreferenceSchema>;
 
 /** Settings, Communication preferences: the marketing email tick. */
 export const communicationSchema = z.strictObject({ marketingOptIn: z.boolean() });

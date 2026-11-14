@@ -56,7 +56,7 @@ export default async function BenefitPage({ params }: Props) {
         ratio="hero"
         sizes="100vw"
         priority
-        imageClassName={page.hero.position}
+        imageClassName={`${page.hero.position} grayscale contrast-110`}
       />
 
       <Container className="flex flex-col gap-16 lg:gap-24">
@@ -75,7 +75,7 @@ export default async function BenefitPage({ params }: Props) {
             alt={page.featurePicture.alt}
             ratio="landscape"
             sizes="(min-width: 768px) 672px, 100vw"
-            imageClassName={page.featurePicture.position}
+            imageClassName={`${page.featurePicture.position} grayscale contrast-110`}
           />
           <div className="flex flex-col items-start gap-4">
             <h2 id="benefit-feature" className="font-display text-h3">

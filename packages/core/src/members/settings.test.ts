@@ -6,30 +6,27 @@ import { settingsService } from "./settings.service";
 
 // Settings (docs/specs/member-area-nike-layout.md).
 
-describe("shop, communication and review-name settings", () => {
+describe("payment, communication and review-name settings", () => {
   beforeEach(resetDatabase);
 
   it("starts with today's behaviour and saves each choice", async () => {
     const me = await createUser();
     expect(await settingsService.get(me.id)).toMatchObject({
-      size: "",
-      unit: "METRIC",
+      paymentMethod: null,
       marketingOptIn: false,
       reviewNameStyle: "FIRST_NAME",
     });
-    await settingsService.saveShopPreferences(me.id, { preference: "CLOTHING", size: "L", unit: "IMPERIAL" });
+    await settingsService.savePaymentMethod(me.id, { method: "COD" });
     await settingsService.saveCommunication(me.id, { marketingOptIn: true });
     await settingsService.saveReviewName(me.id, { style: "ANONYMOUS" });
     expect(await settingsService.get(me.id)).toEqual({
-      preference: "CLOTHING",
-      size: "L",
-      unit: "IMPERIAL",
+      paymentMethod: "COD",
       marketingOptIn: true,
       reviewNameStyle: "ANONYMOUS",
       birthday: null,
     });
-    await settingsService.saveShopPreferences(me.id, { preference: "BOTH", size: "", unit: "METRIC" });
-    expect((await settingsService.get(me.id)).size).toBe("");
+    await settingsService.savePaymentMethod(me.id, { method: null });
+    expect((await settingsService.get(me.id)).paymentMethod).toBeNull();
   });
 
   it("shows the review author by the member's choice", async () => {
@@ -49,32 +46,8 @@ describe("shop, communication and review-name settings", () => {
   });
 });
 
-describe("linked accounts and the data download", () => {
+describe("the data download", () => {
   beforeEach(resetDatabase);
-
-  it("lists only sign-in providers, never the account rows or tokens", async () => {
-    const me = await createUser();
-    await db.account.create({
-      data: {
-        id: "acc-1-" + me.id,
-        userId: me.id,
-        accountId: "g-1",
-        providerId: "google",
-        accessToken: "secret-access",
-        refreshToken: "secret-refresh",
-      },
-    });
-    await db.account.create({
-      data: {
-        id: "acc-2-" + me.id,
-        userId: me.id,
-        accountId: me.id,
-        providerId: "credential",
-        password: "hash",
-      },
-    });
-    expect(await settingsService.linkedProviders(me.id)).toEqual(["google"]);
-  });
 
   it("exports the member's own data and no secrets", async () => {
     const me = await createUser();

@@ -1,17 +1,7 @@
 "use client";
 
 import { Link } from "@virzeen/ui";
-import {
-  ChevronRight,
-  CreditCard,
-  Link2,
-  Mail,
-  Package,
-  Ruler,
-  Share2,
-  UserCheck,
-  UserRound,
-} from "lucide-react";
+import { ChevronRight, CreditCard, Mail, Package, Share2, UserCheck, UserRound } from "lucide-react";
 import { usePathname } from "next/navigation";
 
 const SECTIONS = [
@@ -39,13 +29,6 @@ const SECTIONS = [
     icon: Package,
   },
   {
-    href: "/account/settings/shop-preferences",
-    phoneHref: "/account/settings/shop-preferences",
-    paths: ["/account/settings/shop-preferences"],
-    label: "Shop preferences",
-    icon: Ruler,
-  },
-  {
     href: "/account/settings/communication-preferences",
     phoneHref: "/account/settings/communication-preferences",
     paths: ["/account/settings/communication-preferences"],
@@ -58,13 +41,6 @@ const SECTIONS = [
     paths: ["/account/settings/profile-visibility"],
     label: "Profile visibility",
     icon: Share2,
-  },
-  {
-    href: "/account/settings/linked-accounts",
-    phoneHref: "/account/settings/linked-accounts",
-    paths: ["/account/settings/linked-accounts"],
-    label: "Linked accounts",
-    icon: Link2,
   },
   {
     href: "/account/settings/privacy",

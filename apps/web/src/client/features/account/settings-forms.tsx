@@ -1,18 +1,19 @@
 "use client";
 
-import { Alert, Button, Checkbox, RadioGroup, RadioGroupItem, Select, toast } from "@virzeen/ui";
-import { CLOTHING_SIZES, REVIEW_NAME_STYLES } from "@virzeen/validators";
+import { Alert, Button, Checkbox, RadioGroup, RadioGroupItem, toast } from "@virzeen/ui";
+import { REVIEW_NAME_STYLES } from "@virzeen/validators";
 import { useRouter } from "next/navigation";
-import { useId, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { messageFor } from "@/client/lib/error-messages";
 import {
   saveCommunicationAction,
+  savePaymentMethodAction,
   saveReviewNameAction,
-  saveShopPreferencesAction,
 } from "@/server/actions/account";
 
-// The editable Settings sections, laid out like Nike's (docs/specs/member-area-nike-layout.md): plain group titles,
-// tight radio and checkbox rows, a Save on the right that stays off until something changes, then turns black.
+// The editable Settings sections, laid out like Nike's (docs/specs/member-area-nike-layout.md): tight radio and
+// checkbox rows, a Save on the right that stays off until something changes, then turns black. Payment methods has no
+// Save: a tick is saved at once.
 
 type SaveResult = { ok: true } | { ok: false; message: string };
 
@@ -53,84 +54,36 @@ function SaveRow({ dirty, pending, onSave }: { dirty: boolean; pending: boolean;
   );
 }
 
-/** A group title (16px, medium) over its choices, like Nike's "Shopping Preferences". */
-function Group({ title, children }: { title: string; children: React.ReactNode }) {
-  const id = useId();
-  return (
-    <div role="group" aria-labelledby={id} className="flex flex-col gap-3">
-      <h3 id={id} className="text-body font-medium">
-        {title}
-      </h3>
-      {children}
-    </div>
-  );
-}
+/**
+ * Settings, Payment methods: cash on delivery is the one method offered, ticked or not. There is no Save button: a tick
+ * (or an untick) is saved straight away, the box turning at once and going back with a message if the save fails.
+ */
+export function PaymentMethodForm({ initial }: { initial: "COD" | null }) {
+  const router = useRouter();
+  const [chosen, setChosen] = useState(initial === "COD");
+  const [isPending, startTransition] = useTransition();
 
-type Shop = { preference: "HOME" | "CLOTHING" | "BOTH"; size: string; unit: "METRIC" | "IMPERIAL" };
+  function change(next: boolean) {
+    setChosen(next);
+    startTransition(async () => {
+      const result = await savePaymentMethodAction({ method: next ? "COD" : null });
+      if (!result.ok) {
+        setChosen(!next);
+        toast.error(messageFor(result.error));
+        return;
+      }
+      toast.success("Saved");
+      router.refresh();
+    });
+  }
 
-/** Settings, Shop preferences: the size to have pre-selected, what they shop for and the unit of measure. */
-export function ShopPreferencesForm({ initial }: { initial: Shop }) {
-  const form = useSaver<Shop>(
-    initial,
-    (a, b) => a.preference === b.preference && a.size === b.size && a.unit === b.unit,
-    async (value) => {
-      const result = await saveShopPreferencesAction(value);
-      return result.ok ? { ok: true } : { ok: false, message: messageFor(result.error) };
-    },
-  );
-  const { value, setValue } = form;
   return (
-    <div className="flex flex-col gap-8">
-      {form.error && <Alert variant="danger">{form.error}</Alert>}
-      {/* Nike's size box: the label sits on the top border of a 56px outlined select. */}
-      <div className="flex flex-col gap-2">
-        <div className="relative">
-          <Select
-            aria-label="Clothing size"
-            className="h-14 px-4"
-            value={value.size}
-            onValueChange={(size) => setValue({ ...value, size: size === "none" ? "" : size })}
-            placeholder="Clothing size"
-            options={[{ value: "none", label: "No size" }, ...CLOTHING_SIZES]}
-          />
-          {value.size && (
-            <span
-              aria-hidden
-              className="pointer-events-none absolute top-0 left-3 -translate-y-1/2 bg-canvas px-1 text-small text-ink-muted"
-            >
-              Clothing size
-            </span>
-          )}
-        </div>
-        <p className="px-4 text-small text-ink-muted">
-          Provide your size to have it pre-selected when you shop.
-        </p>
-      </div>
-      <Group title="Shopping preferences">
-        <RadioGroup
-          aria-label="Shopping preferences"
-          className="gap-0"
-          value={value.preference}
-          onValueChange={(preference) => setValue({ ...value, preference: preference as Shop["preference"] })}
-        >
-          <RadioGroupItem value="CLOTHING" label="Clothing" />
-          <RadioGroupItem value="HOME" label="Home" />
-          <RadioGroupItem value="BOTH" label="Both" />
-        </RadioGroup>
-      </Group>
-      <Group title="Unit of measure">
-        <RadioGroup
-          aria-label="Unit of measure"
-          className="gap-0"
-          value={value.unit}
-          onValueChange={(unit) => setValue({ ...value, unit: unit as Shop["unit"] })}
-        >
-          <RadioGroupItem value="METRIC" label="Metric" />
-          <RadioGroupItem value="IMPERIAL" label="Imperial" />
-        </RadioGroup>
-      </Group>
-      <SaveRow dirty={form.dirty} pending={form.isPending} onSave={form.save} />
-    </div>
+    <Checkbox
+      label="Cash on delivery"
+      checked={chosen}
+      disabled={isPending}
+      onCheckedChange={(value) => change(value === true)}
+    />
   );
 }
 

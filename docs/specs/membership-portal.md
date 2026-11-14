@@ -23,7 +23,7 @@ Three levels: **Guest**, **MONO Member** (free account) and the **Monochrome Pas
 - **Granting a Pass:** `pnpm admin pass <email> <6|12>` (renews from the end date if one is running) and `pnpm admin pass-end <email>`. This is the "admin button" of the guide until the Pass can be bought online.
 - **Catalog:** `@virzeen/validators/membership` holds the levels, the Pass plans, every benefit of the guide by level, the headline lines and which benefits work today (`live`). One list feeds the portal, the Membership page and the tests.
 - **Primitive:** `MembershipCard` (`level="member"` grey, `level="pass"` black with a faint sheen and an inner hairline frame), with stories and a catalog row.
-- **Profile (`/account`):** the member's card, the level's headline benefits, "See every benefit"; a free member also sees the Pass offer (black card, benefits, the two plans, a disabled "Pass opens soon").
+- **Profile (`/account`):** the member's card, the level's headline benefits, "See every benefit"; a free member also sees the Pass offer (it now sits on the profile after Your picks, owner 2026-11-14: black card, benefits, the two plans, a disabled "Pass opens soon").
 - **Membership page (`/membership`, public):** three level cards (the viewer's marked), "Log in to get the Pass" for guests, and the side-by-side table of every benefit by group with the viewer's whole column in bold.
 
 ## Phase 2 (built 2026-11-11)

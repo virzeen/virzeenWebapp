@@ -3,6 +3,7 @@ import { Heart } from "lucide-react";
 import { BenefitImageCard } from "@/client/features/membership/benefit-image-card";
 import { BENEFIT_PAGES } from "@/client/features/membership/benefit-pages";
 import { BenefitsCarousel } from "@/client/features/membership/benefits-carousel";
+import { PassOffer } from "@/client/features/membership/pass-offer";
 import { InterestsSection } from "@/client/features/profile/interests-section";
 import { WalletPanel } from "@/client/features/membership/wallet-panel";
 import { ProductCarousel } from "@/client/features/products/product-carousel";
@@ -24,7 +25,7 @@ const FAVOURITES_SHOWN = 12;
 
 /**
  * The profile, like Nike's member page (owner 2026-11-08): a round initial, the name as the h1 with "Member since
- * {month year}", then the points card, Interests, "Find your next favourite" and Member Benefits (Nike's order, specs/member-area-nike-layout.md), then the
+ * {month year}", then the points card, Your picks, the Pass offer (not for a Pass member), "Find your next favourite" and Member Benefits (Nike's order, specs/member-area-nike-layout.md), then the
  * customer's favourites as a row of cards with "View all" (one card per product, newest first), then the sizes they asked to hear about ("Notify me", specs/notify-me.md; only when there are some).
  */
 export default async function ProfilePage() {
@@ -82,6 +83,9 @@ export default async function ProfilePage() {
       {/* Nike's order (specs/member-area-nike-layout.md): Interests, "Find your next favourite", Member Benefits. */}
       <InterestsSection interests={interests} options={interestOptions} />
 
+      {/* The Monochrome Pass offer, moved here from the membership page (owner 2026-11-14); a Pass member has it already. */}
+      {!isPass && <PassOffer name={name} />}
+
       <ProductCarousel title="Find your next favourite" products={recommendations} />
 
       <BenefitsCarousel
@@ -93,6 +97,7 @@ export default async function ProfilePage() {
         <ProductCarousel
           title="Favourites"
           products={products}
+          heart={false}
           action={
             <Link href="/favourites" variant="header">
               View all

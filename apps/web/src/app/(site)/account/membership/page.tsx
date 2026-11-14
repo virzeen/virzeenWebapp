@@ -3,7 +3,6 @@ import { LEVEL_NAMES, THREE_HOUR_SMALL_PRINT } from "@virzeen/validators/members
 import { LogoMark } from "@/client/components/layout/logo-mark";
 import { Price } from "@/client/components/shared/price";
 import { BenefitList } from "@/client/features/membership/benefit-list";
-import { PassOffer } from "@/client/features/membership/pass-offer";
 import { PerksGrid } from "@/client/features/membership/perks-grid";
 import { WalletPanel } from "@/client/features/membership/wallet-panel";
 import { formatDate, formatMonthYear } from "@/client/lib/format";
@@ -24,7 +23,7 @@ const SEGMENTS = Array.from({ length: 12 }, (_, month) => month + 1);
 /**
  * The member's portal (specs/membership-portal.md). A Monochrome Pass member sees the black Pass hero with the card,
  * how long the Pass runs, what it has saved them and everything it includes; a free MONO Member sees their own
- * benefits and the Pass offer. Benefits that aren't built yet are marked "Soon" (the catalog's `live` list).
+ * benefits (the Pass offer moved to the profile, owner 2026-11-14). Benefits that aren't built yet are marked "Soon" (the catalog's `live` list).
  */
 export default async function MembershipPortalPage() {
   const user = await requireUserPage("/account/membership");
@@ -54,7 +53,6 @@ export default async function MembershipPortalPage() {
           early={perks.early}
           referral={referral}
         />
-        <PassOffer name={name} />
       </div>
     );
   }

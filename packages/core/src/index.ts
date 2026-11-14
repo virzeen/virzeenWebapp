@@ -65,6 +65,8 @@ export {
   RECOMMENDATIONS_SHOWN,
   type InterestChoice,
   type MemberInterests,
+  type PickOption,
+  type PickOptions,
 } from "./members/interest.service";
 export { memberService, type SignupProfile } from "./members/member.service";
 export { perksService, type ExpressStatus } from "./members/perks.service";

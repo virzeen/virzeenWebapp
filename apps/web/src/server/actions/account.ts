@@ -19,7 +19,7 @@ import {
   profileSchema,
   referralCodeSchema,
   reviewNameSchema,
-  shopPreferencesSchema,
+  paymentMethodPreferenceSchema,
 } from "@virzeen/validators";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
@@ -103,13 +103,13 @@ export async function saveInterestsAction(input: unknown) {
   });
 }
 
-/** Settings, Shop preferences. */
-export async function saveShopPreferencesAction(input: unknown) {
-  return runAction("saveShopPreferences", async () => {
+/** Settings, Payment methods: ticking cash on delivery saves it at once (no Save button). */
+export async function savePaymentMethodAction(input: unknown) {
+  return runAction("savePaymentMethod", async () => {
     const user = await requireUser();
     await rateLimit("account", `user:${user.id}`);
-    await settingsService.saveShopPreferences(user.id, shopPreferencesSchema.parse(input));
-    revalidatePath("/account/settings/shop-preferences");
+    await settingsService.savePaymentMethod(user.id, paymentMethodPreferenceSchema.parse(input));
+    revalidatePath("/account/settings/payment-methods");
     return { saved: true };
   });
 }

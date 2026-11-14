@@ -1,28 +1,27 @@
 import { expect, test } from "@playwright/test";
 import { completeEmailSignIn, uniqueEmail } from "./helpers";
 
-// Settings, laid out like Nike's: eight sections, each Save off until something changes
+// Settings, laid out like Nike's: six sections (Shop preferences and Linked accounts were taken out, owner
+// 2026-11-14), each Save off until something changes, and Payment methods saving on a tick
 // (docs/specs/member-area-nike-layout.md).
 
 const SECTIONS = [
   "Account details",
   "Payment methods",
   "Delivery addresses",
-  "Shop preferences",
   "Communication preferences",
   "Profile visibility",
-  "Linked accounts",
   "Privacy",
 ];
 
-test("a member works through the eight Settings sections", async ({ page }) => {
+test("a member works through the six Settings sections", async ({ page }) => {
   await page.setExtraHTTPHeaders({ "X-Forwarded-For": "198.51.100.52" });
   const email = uniqueEmail("settings");
   await page.goto("/login?next=%2Faccount%2Fsettings");
   await completeEmailSignIn(page, email);
   await expect(page).toHaveURL(/\/account\/settings$/);
 
-  // The list on the left has all eight, in Nike's order, and Account details shows the Password row.
+  // The list on the left has all six, in Nike's order, and Account details shows the Password row.
   const nav = page.getByRole("navigation", { name: "Settings" });
   await expect(nav.getByRole("link")).toHaveText(SECTIONS);
   await expect(page.getByRole("link", { name: "Edit" })).toHaveAttribute(
@@ -40,25 +39,20 @@ test("a member works through the eight Settings sections", async ({ page }) => {
   await expect(page.getByText("Saved", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Save" })).toBeDisabled();
 
-  // Payment methods: nothing is saved, it says how to pay.
+  // Payment methods: just Cash on delivery, and no Save button: a tick is saved at once.
   await nav.getByRole("link", { name: "Payment methods" }).click();
-  await expect(page.getByRole("heading", { level: 2, name: "Saved payment methods" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Payment options" })).toHaveAttribute("href", "/shipping");
-
-  // Shop preferences: Save is off until a choice changes, then it saves and goes off again.
-  await nav.getByRole("link", { name: "Shop preferences" }).click();
-  const save = page.getByRole("button", { name: "Save" });
-  await expect(save).toBeDisabled();
-  await page.getByRole("combobox", { name: "Clothing size" }).click();
-  await page.getByRole("option", { name: "L", exact: true }).click();
-  await page.getByRole("radio", { name: "Imperial" }).click();
-  await expect(save).toBeEnabled();
-  await save.click();
+  await expect(page.getByRole("heading", { level: 2, name: "Payment methods" })).toBeVisible();
+  const cod = page.getByRole("checkbox", { name: "Cash on delivery" });
+  await expect(cod).not.toBeChecked();
+  await expect(page.getByRole("button", { name: "Save" })).toHaveCount(0);
+  await cod.click();
   await expect(page.getByText("Saved", { exact: true })).toBeVisible();
-  await expect(save).toBeDisabled();
   await page.reload();
-  await expect(page.getByRole("combobox", { name: "Clothing size" })).toHaveText("L");
-  await expect(page.getByRole("radio", { name: "Imperial" })).toBeChecked();
+  await expect(page.getByRole("checkbox", { name: "Cash on delivery" })).toBeChecked();
+  await page.getByRole("checkbox", { name: "Cash on delivery" }).click();
+  await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("checkbox", { name: "Cash on delivery" })).not.toBeChecked();
 
   // Communication preferences: the email tick.
   await nav.getByRole("link", { name: "Communication preferences" }).click();
@@ -83,12 +77,6 @@ test("a member works through the eight Settings sections", async ({ page }) => {
   await page.reload();
   await expect(page.getByRole("radio", { name: /Anonymous/ })).toBeChecked();
 
-  // Linked accounts: signed in by email code, so nothing is connected.
-  await nav.getByRole("link", { name: "Linked accounts" }).click();
-  await expect(page.getByTestId("no-linked-accounts")).toContainText(
-    "You don't have any connected apps or services.",
-  );
-
   // Privacy: the download is a JSON attachment with the member's own data and no secrets.
   await nav.getByRole("link", { name: "Privacy" }).click();
   await expect(page.getByRole("link", { name: "Download my data" })).toHaveAttribute(
@@ -99,7 +87,7 @@ test("a member works through the eight Settings sections", async ({ page }) => {
   expect(download.status()).toBe(200);
   expect(download.headers()["content-disposition"]).toContain("attachment");
   const body = await download.text();
-  expect(JSON.parse(body)).toMatchObject({ email, reviewNameStyle: "ANONYMOUS", measureUnit: "IMPERIAL" });
+  expect(JSON.parse(body)).toMatchObject({ email, reviewNameStyle: "ANONYMOUS" });
   expect(body).not.toMatch(/"(password|token|accessToken|refreshToken)"/i);
 });
 
@@ -132,4 +120,33 @@ test("a member deletes their account and is signed out, and the email can start 
   await completeEmailSignIn(page, email);
   await expect(page).toHaveURL(/\/account$/);
   await expect(page.getByTestId("interests")).toBeVisible();
+});
+
+// Nike's hover menu on the profile icon (docs/specs/member-area-nike-layout.md). Signed out there is no menu.
+test("the profile icon opens an account menu on hover, and Sign out ends the session", async ({ page }) => {
+  await page.setExtraHTTPHeaders({ "X-Forwarded-For": "198.51.100.54" });
+  await page.goto("/");
+  await expect(page.getByTestId("account-menu")).toHaveCount(0);
+  await expect(page.getByRole("banner").getByRole("link", { name: "Sign in" })).toBeVisible();
+
+  await page.goto("/login?next=%2Faccount");
+  await completeEmailSignIn(page, uniqueEmail("accountmenu"));
+  await expect(page).toHaveURL(/\/account$/);
+  await page.goto("/");
+
+  const menu = page.getByRole("navigation", { name: "Account" });
+  await expect(menu).toBeHidden();
+  await page.getByRole("link", { name: "My profile" }).hover();
+  await expect(menu).toBeVisible();
+  await expect(menu.getByRole("link")).toHaveText(["Profile", "Orders", "Favourites", "Account settings"]);
+  await expect(menu.getByRole("button", { name: "Sign out" })).toBeVisible();
+
+  // Moving down into the panel keeps it open, and a link works.
+  await menu.getByRole("link", { name: "Account settings" }).click();
+  await expect(page).toHaveURL(/\/account\/settings$/);
+
+  await page.getByRole("link", { name: "My profile" }).hover();
+  await menu.getByRole("button", { name: "Sign out" }).click();
+  await expect(page).toHaveURL((url) => url.pathname === "/");
+  await expect(page.getByRole("banner").getByRole("link", { name: "Sign in" })).toBeVisible();
 });

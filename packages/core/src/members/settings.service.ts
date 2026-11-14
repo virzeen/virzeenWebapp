@@ -1,16 +1,15 @@
 import "server-only";
 import { db } from "@virzeen/db";
-import type { CommunicationInput, ReviewNameInput, ShopPreferencesInput } from "@virzeen/validators";
+import type { CommunicationInput, PaymentMethodPreferenceInput, ReviewNameInput } from "@virzeen/validators";
 import { recordAudit } from "../audit/audit";
 import { AppError } from "../errors";
 
-// The member's Settings (docs/specs/member-area-nike-layout.md): shop preferences, the email tick, the name shown on
-// reviews, the sign-in methods and a copy of their data.
+// The member's Settings (docs/specs/member-area-nike-layout.md): the payment method they tick, the email tick, the
+// name shown on reviews and a copy of their data.
 
 export type MemberSettings = {
-  preference: "HOME" | "CLOTHING" | "BOTH" | null;
-  size: string;
-  unit: "METRIC" | "IMPERIAL";
+  /** The method the member ticked under Payment methods (only cash on delivery is offered), or null. */
+  paymentMethod: "COD" | null;
   marketingOptIn: boolean;
   reviewNameStyle: "FIRST_NAME" | "FULL_NAME" | "ANONYMOUS";
   /** "YYYY-MM-DD", or null until they add it (it is locked once set: specs/member-perks.md). */
@@ -22,9 +21,7 @@ export const settingsService = {
     const user = await db.user.findUnique({
       where: { id: userId },
       select: {
-        shoppingPreference: true,
-        preferredSize: true,
-        measureUnit: true,
+        preferredPaymentMethod: true,
         marketingOptIn: true,
         reviewNameStyle: true,
         birthday: true,
@@ -32,24 +29,16 @@ export const settingsService = {
     });
     if (!user) throw new AppError("NOT_FOUND", "Account not found.");
     return {
-      preference: user.shoppingPreference,
-      size: user.preferredSize ?? "",
-      unit: user.measureUnit,
+      paymentMethod: user.preferredPaymentMethod === "COD" ? "COD" : null,
       marketingOptIn: user.marketingOptIn,
       reviewNameStyle: user.reviewNameStyle,
       birthday: user.birthday ? user.birthday.toISOString().slice(0, 10) : null,
     };
   },
 
-  async saveShopPreferences(userId: string, input: ShopPreferencesInput): Promise<void> {
-    await db.user.update({
-      where: { id: userId },
-      data: {
-        shoppingPreference: input.preference,
-        preferredSize: input.size === "" ? null : input.size,
-        measureUnit: input.unit,
-      },
-    });
+  /** Payment methods: ticking cash on delivery keeps it as the member's method, unticking clears it. */
+  async savePaymentMethod(userId: string, input: PaymentMethodPreferenceInput): Promise<void> {
+    await db.user.update({ where: { id: userId }, data: { preferredPaymentMethod: input.method } });
   },
 
   async saveCommunication(userId: string, input: CommunicationInput): Promise<void> {
@@ -58,19 +47,6 @@ export const settingsService = {
 
   async saveReviewName(userId: string, input: ReviewNameInput): Promise<void> {
     await db.user.update({ where: { id: userId }, data: { reviewNameStyle: input.style } });
-  },
-
-  /**
-   * How the member signs in, other than the code we email: just the provider names ("google"). Never the account rows
-   * themselves, which hold the sign-in tokens.
-   */
-  async linkedProviders(userId: string): Promise<string[]> {
-    const rows = await db.account.findMany({
-      where: { userId, providerId: { not: "credential" } },
-      select: { providerId: true },
-      orderBy: { createdAt: "asc" },
-    });
-    return [...new Set(rows.map((row) => row.providerId))];
   },
 
   /**
@@ -85,8 +61,7 @@ export const settingsService = {
         email: true,
         birthday: true,
         shoppingPreference: true,
-        preferredSize: true,
-        measureUnit: true,
+        preferredPaymentMethod: true,
         marketingOptIn: true,
         reviewNameStyle: true,
         passStartsAt: true,
@@ -195,7 +170,7 @@ export const settingsService = {
           image: null,
           birthday: null,
           shoppingPreference: null,
-          preferredSize: null,
+          preferredPaymentMethod: null,
           marketingOptIn: false,
           referralCode: null,
           passStartsAt: null,

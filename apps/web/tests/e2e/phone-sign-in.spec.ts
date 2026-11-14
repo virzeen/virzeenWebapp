@@ -1,5 +1,5 @@
 import { devices, expect, test } from "@playwright/test";
-import { createMember, readEmail, uniqueEmail } from "./helpers";
+import { completeEmailSignIn, createMember, readEmail, uniqueEmail } from "./helpers";
 
 // Owner report 2026-10-01: "from the phone, Sign in returns me to the home page". In the installed app, going to
 // the mail app for the code and coming back through the app's icon restarts the app on the home page; it must
@@ -54,6 +54,27 @@ test.describe("Phone sign-in", () => {
     const code = /\b(\d{6})\b/.exec(await readEmail(email, /sign-in code/))?.[1] ?? "";
     await page.getByLabel(/6-digit code/).fill(code);
     await expect(page).toHaveURL(/\/account/);
+  });
+
+  test("a signed-in member signs out from the last row of the menu, under Help", async ({ page }) => {
+    await ownAddress(page, 13);
+    await page.goto("/login?next=%2Faccount");
+    await completeEmailSignIn(page, uniqueEmail("phone-signout"));
+    await expect(page).toHaveURL(/\/account$/);
+    await page.goto("/product/linen-overshirt");
+    await page.getByRole("button", { name: "Open menu" }).click();
+    const menu = page.getByRole("dialog", { name: "Menu" });
+    const help = menu.getByRole("link", { name: "Help" });
+    const signOut = menu.getByRole("button", { name: "Sign out" });
+    await expect(signOut).toBeVisible();
+    const [helpBox, outBox] = [await help.boundingBox(), await signOut.boundingBox()];
+    expect(outBox!.y).toBeGreaterThan(helpBox!.y);
+    await signOut.click();
+    await expect(page).toHaveURL((url) => url.pathname === "/");
+    await page.getByRole("button", { name: "Open menu" }).click();
+    await expect(
+      page.getByRole("dialog", { name: "Menu" }).getByRole("link", { name: "Sign in" }),
+    ).toBeVisible();
   });
 
   test("the installed app comes back to the code screen after a trip to the mail app", async ({ page }) => {

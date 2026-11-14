@@ -8,27 +8,52 @@ export type CheckboxProps = Omit<React.ComponentProps<typeof CheckboxPrimitive.R
   /** Visible label next to the box; also the accessible name. */
   label: React.ReactNode;
   description?: React.ReactNode;
+  /** A small picture before the label (decorative: give it alt=""), like Nike's "Select your interests" rows. */
+  media?: React.ReactNode;
+  /** The box at the end of the row instead of the start, the label filling the space between (the picture rows). */
+  boxAtEnd?: boolean;
 };
 
-/** Agree to something or toggle a filter. For instant on/off settings use `Switch`. */
-export function Checkbox({ className, label, description, ...props }: CheckboxProps) {
+/**
+ * Agree to something or toggle a filter. For instant on/off settings use `Switch`. `media` with `boxAtEnd` makes a
+ * picture row: thumbnail, name, box on the right (the profile's "Choose your picks" list).
+ */
+export function Checkbox({
+  className,
+  label,
+  description,
+  media,
+  boxAtEnd = false,
+  ...props
+}: CheckboxProps) {
+  const box = (
+    <CheckboxPrimitive.Root
+      className={cn(
+        "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-sm border border-line-strong bg-canvas transition-colors duration-150 ease-standard focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-50 aria-invalid:border-danger data-[state=checked]:border-ink data-[state=checked]:bg-ink data-[state=checked]:text-canvas",
+        boxAtEnd && "mt-0",
+        className,
+      )}
+      {...props}
+    >
+      <CheckboxPrimitive.Indicator>
+        <Check className="size-4" strokeWidth={2} aria-hidden />
+      </CheckboxPrimitive.Indicator>
+    </CheckboxPrimitive.Root>
+  );
   return (
-    <label className="flex min-h-11 cursor-pointer items-start gap-3 py-2 text-body text-ink has-disabled:cursor-not-allowed has-disabled:text-ink-muted">
-      <CheckboxPrimitive.Root
-        className={cn(
-          "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-sm border border-line-strong bg-canvas transition-colors duration-150 ease-standard focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-50 aria-invalid:border-danger data-[state=checked]:border-ink data-[state=checked]:bg-ink data-[state=checked]:text-canvas",
-          className,
-        )}
-        {...props}
-      >
-        <CheckboxPrimitive.Indicator>
-          <Check className="size-4" strokeWidth={2} aria-hidden />
-        </CheckboxPrimitive.Indicator>
-      </CheckboxPrimitive.Root>
-      <span className="flex flex-col">
+    <label
+      className={cn(
+        "flex min-h-11 cursor-pointer items-start gap-3 py-2 text-body text-ink has-disabled:cursor-not-allowed has-disabled:text-ink-muted",
+        boxAtEnd && "items-center gap-4",
+      )}
+    >
+      {media}
+      {!boxAtEnd && box}
+      <span className={cn("flex flex-col", boxAtEnd && "flex-1")}>
         <span>{label}</span>
         {description && <span className="text-small text-ink-muted">{description}</span>}
       </span>
+      {boxAtEnd && box}
     </label>
   );
 }

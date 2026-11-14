@@ -15,6 +15,9 @@ import { AppError } from "../errors";
 
 export type InterestChoice = { id: string; slug: string; name: string };
 export type MemberInterests = { categories: InterestChoice[]; collections: InterestChoice[] };
+/** A choice in the "Choose your picks" list: the name and a photo (the newest visible product's first), if it has one. */
+export type PickOption = InterestChoice & { imageUrl: string | null; imageAlt: string };
+export type PickOptions = { categories: PickOption[]; collections: PickOption[] };
 
 export const RECOMMENDATIONS_SHOWN = 12;
 
@@ -38,21 +41,44 @@ export const interestService = {
     };
   },
 
-  /** What a member can choose from: live categories, and the collections they may see (early access included). */
-  async options(earlyHours = 0): Promise<MemberInterests> {
+  /**
+   * What a member can choose from: live categories, and the collections they may see (early access included), each with
+   * the first photo of its newest product the member may see (so a hidden draft or an early drop never shows).
+   */
+  async options(earlyHours = 0): Promise<PickOptions> {
+    const photo = {
+      products: {
+        where: visibleProductWhere(earlyHours),
+        orderBy: [{ publishedAt: "desc" as const }, { id: "asc" as const }],
+        take: 1,
+        select: {
+          images: { select: { url: true, alt: true }, orderBy: { sortOrder: "asc" as const }, take: 1 },
+        },
+      },
+    };
     const [categories, collections] = await Promise.all([
       db.category.findMany({
         where: { archivedAt: null },
-        select: { id: true, slug: true, name: true },
+        select: { id: true, slug: true, name: true, ...photo },
         orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
       }),
       db.collection.findMany({
         where: { archivedAt: null, ...collectionVisible(earlyHours) },
-        select: { id: true, slug: true, name: true },
+        select: { id: true, slug: true, name: true, ...photo },
         orderBy: { name: "asc" },
       }),
     ]);
-    return { categories, collections };
+    const shape = (row: (typeof categories)[number]): PickOption => {
+      const image = row.products[0]?.images[0];
+      return {
+        id: row.id,
+        slug: row.slug,
+        name: row.name,
+        imageUrl: image?.url ?? null,
+        imageAlt: image?.alt ?? "",
+      };
+    };
+    return { categories: categories.map(shape), collections: collections.map(shape) };
   },
 
   /** Replaces the member's interests with exactly these (at most MAX_INTERESTS in all, each one live). */
@@ -60,7 +86,7 @@ export const interestService = {
     const categoryIds = [...new Set(input.categoryIds)];
     const collectionIds = [...new Set(input.collectionIds)];
     if (categoryIds.length + collectionIds.length > MAX_INTERESTS) {
-      throw new AppError("VALIDATION_FAILED", `Choose up to ${MAX_INTERESTS} interests.`);
+      throw new AppError("VALIDATION_FAILED", `Choose up to ${MAX_INTERESTS} picks.`);
     }
     await db.$transaction(async (tx) => {
       const [categories, collections] = await Promise.all([

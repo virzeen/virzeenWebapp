@@ -88,6 +88,7 @@ Named animations (`animate-*`, defined with their keyframes in `tokens.css`): `s
 | `--animate-coin-idle`, `--animate-coin-stack`, `--animate-coin-drop-1`…`-4`                                          | 5s sway; 1.8s spin, jump and land flat; 560ms falls with two small bounces, 0.1s apart                                | `CoinStack` only (the points coin), always as `motion-safe:`. Coin look: `coin-*` utilities in `tokens.css` (silver from the palette greys, fixed 10rem coin).                                       |
 | `--animate-hourglass`, `--animate-sand-top`, `--animate-sand-bottom`, `--animate-sand-stream`, `--animate-icon-flip` | 6s hourglass (sand runs 4s, glass turns over, repeats); 4s coin flip, infinite                                        | The expiry hourglass and the worth coin on the points card (member portal), always as `motion-safe:`. Sand parts use `origin-bottom fill-box`.                                                       |
 | `tone-inverse` (utility in `tokens.css`)                                                                             | Swaps `ink`/`canvas`/`ink-muted`/`surface`/`line` for an element and its children, so they draw white on a dark photo | The home page header over the hero, before scrolling                                                                                                                                                 |
+| `tone-default` (utility in `tokens.css`)                                                                             | Puts the light `ink`/`canvas`/`ink-muted`/`surface`/`line` back inside a `tone-inverse` element                       | The header's account menu panel, so it stays white over the dark hero, like Nike's                                                                                                                   |
 | `stagger-rows` (utility in `globals.css`, keyframes `menu-row-in`)                                                   | 350ms; each `[data-stagger="n"]` row fades in and drops 0.5rem, n × 30ms later (0–15); off with reduced motion        | The phone menu's rows as it opens                                                                                                                                                                    |
 
 ## 6. Breakpoints and layout
@@ -99,7 +100,7 @@ Page width `max-w-page` (1920px with the gutters, so content is at most 1824px w
 
 ## 7. Z-index scale (use only these)
 
-`z-10` sticky header (and the product editor's top bar) · `z-20` dropdowns/popovers · `z-40` drawers/sheets + overlay · `z-50` dialogs, and the `Select` list (it also opens from inside a Dialog or Sheet, so it must sit above their overlay) · `z-60` toasts. Never invent other values.
+`z-10` sticky bars (the shop's filter bar, the product editor's top bar) · `z-20` the sticky header (so its account menu opens over those bars) and dropdowns/popovers · `z-40` drawers/sheets + overlay · `z-50` dialogs, and the `Select` list (it also opens from inside a Dialog or Sheet, so it must sit above their overlay) · `z-60` toasts. Never invent other values.
 
 ## 8. Icons
 

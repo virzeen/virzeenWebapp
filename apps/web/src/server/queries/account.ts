@@ -99,7 +99,5 @@ export const getInterestOptions = async (userId: string) =>
 /** "Find your next favourite": by the member's interests, never a product they may not see. */
 export const getMyRecommendations = async (userId: string) =>
   interestService.recommendations(userId, EARLY_ACCESS_HOURS[await tierFor(userId)]);
-/** Settings: shop preferences, the email tick and the name shown on reviews. */
+/** Settings: the payment method they ticked, the email tick and the name shown on reviews. */
 export const getMySettings = (userId: string) => settingsService.get(userId);
-/** Settings, Linked accounts: provider names only ("google"). */
-export const getMyLinkedProviders = (userId: string) => settingsService.linkedProviders(userId);

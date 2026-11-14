@@ -101,12 +101,7 @@ enum ShoppingPreference {
   BOTH
 }
 
-/// Settings (specs/member-area-nike-layout.md): the unit shown in size guides and the name shown on product reviews.
-enum MeasureUnit {
-  METRIC
-  IMPERIAL
-}
-
+/// Settings (specs/member-area-nike-layout.md): the name shown on product reviews.
 enum ReviewNameStyle {
   FIRST_NAME
   FULL_NAME
@@ -125,9 +120,8 @@ model User {
   shoppingPreference ShoppingPreference?
   birthday           DateTime?           @db.Date
   marketingOptIn     Boolean             @default(false)
-  /// Shop preferences (Settings): the clothing size to pre-select and the unit for measurements.
-  preferredSize      String?
-  measureUnit        MeasureUnit         @default(METRIC)
+  /// Payment methods (Settings): the method the member ticked as theirs. Saved on a tick, no Save button.
+  preferredPaymentMethod PaymentMethod?
   /// Profile visibility (Settings): what a product review shows as its author. First name is how reviews always read.
   reviewNameStyle    ReviewNameStyle     @default(FIRST_NAME)
   termsAcceptedAt    DateTime?

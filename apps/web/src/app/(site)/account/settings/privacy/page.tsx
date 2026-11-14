@@ -27,7 +27,7 @@ export default async function PrivacyPage() {
           Download your data
         </h3>
         <p className="text-body text-ink-muted">
-          Get one file with what you have given us: your details, addresses, favourites, reviews, interests,
+          Get one file with what you have given us: your details, addresses, favourites, reviews, picks,
           points and orders.
         </p>
         <ButtonLink

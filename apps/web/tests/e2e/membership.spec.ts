@@ -27,16 +27,24 @@ test("a free MONO Member sees their card, and the Pass offer in the portal", asy
   await expect(benefits.getByTestId("benefit-card")).toHaveCount(6);
   await expect(page.getByTestId("perk-express")).toHaveCount(0);
   await expect(page.getByTestId("member-highlights")).toHaveCount(0);
-  await expect(page.getByRole("region", { name: "The Monochrome Pass" })).toHaveCount(0);
 
-  // The portal: the Pass offer with both plans, and no way to buy it yet.
-  await page.getByRole("navigation", { name: "Account" }).getByRole("link", { name: "Membership" }).click();
-  await expect(page).toHaveURL(/\/account\/membership$/);
+  // The Pass offer sits on the profile, right after Your picks (owner 2026-11-14): both plans, no way to buy it yet.
   const offer = page.getByRole("region", { name: "The Monochrome Pass" });
   await expect(offer).toContainText("रु 499");
   await expect(offer).toContainText("रु 2,999");
   await expect(offer).toContainText("रु 4,599");
   await expect(offer.getByRole("button", { name: "Pass opens soon" })).toBeDisabled();
+  const order = await page
+    .locator("section[aria-labelledby], [data-testid=interests]")
+    .evaluateAll((nodes) =>
+      nodes.map((node) => node.getAttribute("data-testid") ?? node.getAttribute("aria-labelledby")),
+    );
+  expect(order.indexOf("pass-offer-heading")).toBe(order.indexOf("interests") + 1);
+
+  // The membership page no longer holds it.
+  await page.getByRole("navigation", { name: "Account" }).getByRole("link", { name: "Membership" }).click();
+  await expect(page).toHaveURL(/\/account\/membership$/);
+  await expect(page.getByRole("region", { name: "The Monochrome Pass" })).toHaveCount(0);
 
   await page.goto("/membership");
   await expect(page.getByRole("heading", { level: 1, name: "Shop your way" })).toBeVisible();
@@ -57,6 +65,7 @@ test("a Monochrome Pass member sees the black card and no offer", async ({ page 
     6,
   );
   await expect(page.getByTestId("wallet-panel")).toBeVisible();
+  await expect(page.getByRole("region", { name: "The Monochrome Pass" })).toHaveCount(0);
 
   // A benefit's page shows the member's own card for it: a Pass member has 3 Express Deliveries a month.
   await page.goto("/membership/benefits/express-delivery");
@@ -121,7 +130,7 @@ test("the Membership portal shows a free member their benefits and a Pass member
   await completeEmailSignIn(page, email);
   await expect(page).toHaveURL(/\/account\/membership$/);
   await expect(page.getByTestId("wallet-panel")).toBeVisible();
-  await expect(page.getByRole("region", { name: "The Monochrome Pass" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "The Monochrome Pass" })).toHaveCount(0);
 
   await grantPass(email, new Date(Date.now() + 40 * 24 * 60 * 60 * 1000));
   await page.goto("/account/membership");

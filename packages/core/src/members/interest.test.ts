@@ -115,3 +115,27 @@ describe("find your next favourite", () => {
     expect(memberView.sort()).toEqual([live, drop].sort());
   });
 });
+
+describe("the list of picks to choose from", () => {
+  beforeEach(resetDatabase);
+
+  it("shows a category's photo from a live product, never a draft or an early drop", async () => {
+    const category = await createCategory();
+    const empty = await createCategory();
+    const live = await productIn(category.id, { name: "Live" });
+    const draft = await productIn(category.id, { name: "Draft" });
+    await db.product.update({ where: { id: draft }, data: { isPublished: false, publishedAt: new Date() } });
+    const drop = await productIn(category.id, { publicAt: new Date(Date.now() + 6 * 3_600_000) });
+    await db.productImage.deleteMany({ where: { productId: { in: [live, draft, drop] } } });
+    await db.productImage.create({ data: { productId: live, url: "live.jpg", alt: "Live shirt" } });
+    await db.productImage.create({ data: { productId: draft, url: "draft.jpg", alt: "Draft" } });
+    await db.productImage.create({ data: { productId: drop, url: "drop.jpg", alt: "Drop" } });
+
+    const photoOf = async (hours: number, id: string) =>
+      (await interestService.options(hours)).categories.find((row) => row.id === id)?.imageUrl;
+    expect(await photoOf(0, category.id)).toBe("live.jpg");
+    expect(await photoOf(0, empty.id)).toBeNull();
+    // The drop is the newest product, so a MONO Member's list may use its photo; the draft is never used.
+    expect(["live.jpg", "drop.jpg"]).toContain(await photoOf(12, category.id));
+  });
+});

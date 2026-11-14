@@ -3,6 +3,7 @@
 import { Button } from "@virzeen/ui";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
+import { useVerticalWheel } from "@/client/lib/use-vertical-wheel";
 import { rowEdges, type RowEdges } from "../products/product-carousel-scroll";
 
 type BenefitsCarouselProps = {
@@ -25,6 +26,7 @@ export function BenefitsCarousel({ title, action, items }: BenefitsCarouselProps
   const rowRef = useRef<HTMLUListElement>(null);
   const previousRef = useRef<HTMLButtonElement>(null);
   const nextRef = useRef<HTMLButtonElement>(null);
+  useVerticalWheel(rowRef);
   // Both ends reached = everything fits: no arrows until the row is measured.
   const [edges, setEdges] = useState<RowEdges>({ start: true, end: true });
 
@@ -76,7 +78,7 @@ export function BenefitsCarousel({ title, action, items }: BenefitsCarouselProps
           ref={rowRef}
           tabIndex={0}
           aria-labelledby={headingId}
-          className="flex snap-x snap-mandatory scrollbar-none gap-x-3 overflow-x-auto overscroll-x-contain max-md:mx-grid-bleed max-md:scroll-px-gutter max-md:px-gutter"
+          className="flex snap-x snap-mandatory scrollbar-none gap-x-3 overflow-x-auto overflow-y-hidden max-md:mx-grid-bleed max-md:scroll-px-gutter max-md:px-gutter"
         >
           {items.map((item) => (
             <li key={item.id} className="flex w-perk-slide shrink-0 snap-start *:w-full">
