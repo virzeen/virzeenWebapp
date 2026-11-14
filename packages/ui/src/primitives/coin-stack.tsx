@@ -52,7 +52,7 @@ export function CoinStack({ mark, active = false, className, ...props }: CoinSta
       {PILE.map((coin) => (
         <span key={coin.id} className={cn("coin-flat opacity-0", coin.className)} />
       ))}
-      <span className="coin-hero motion-safe:animate-coin-idle motion-safe:group-hover/coin:animate-coin-stack motion-safe:group-data-active/coin:animate-coin-stack">
+      <span className="motion-safe:animate-coin-idle motion-safe:group-hover/coin:animate-coin-stack motion-safe:group-data-active/coin:animate-coin-stack coin-hero">
         <span className="coin-edge">
           {EDGE_LAYERS.map((layer) => (
             <span key={layer} />
