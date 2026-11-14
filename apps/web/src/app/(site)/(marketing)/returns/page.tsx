@@ -4,23 +4,25 @@ import { ContentHeading, ContentPage } from "@/client/components/shared/content-
 
 export const metadata: Metadata = {
   title: "Returns",
-  description: "7-day free returns on every Virzeen order.",
+  description: "7-day returns on every Virzeen order. 15 days and free pickup with the Monochrome Pass.",
   alternates: { canonical: "/returns" },
 };
 
-// Owner decisions 2026-09-28: 7-day returns, no fee; condition, free pickup, refund within 5 working days and
-// free size exchange confirmed the same day (docs/payments/payment-policy.md §10).
+// Owner decisions 2026-09-28: 7-day returns; condition, refund within 5 working days and free size exchange confirmed
+// the same day. 2026-11-11: free pickup and 15 days are for the Monochrome Pass only (docs/payments/payment-policy.md §10).
 export default function ReturnsPage() {
   return (
     <ContentPage
       eyebrow="Help"
       title="Returns & refunds"
-      intro="Changed your mind? Send it back within 7 days. Returns are free."
+      intro="Changed your mind? Send it back within 7 days, or 15 days with the Monochrome Pass."
     >
-      <ContentHeading>7 days, no fee</ContentHeading>
+      <ContentHeading>7 days, or 15 with the Pass</ContentHeading>
       <p>
-        You can return any item within 7 days of delivery. Returns cost you nothing: we arrange the pickup,
-        and you get back the full price you paid.
+        You can return any item within 7 days of delivery, as a guest or a MONO Member. With the{" "}
+        <Link href="/membership">Monochrome Pass</Link> you have 15 days and we collect the items for free.
+        Otherwise you pay for the pickup; we tell you the cost when you contact us. Either way you get back
+        the full price you paid for the items.
       </p>
       <ContentHeading>What we accept</ContentHeading>
       <ul className="flex list-disc flex-col gap-2 pl-6">
@@ -33,7 +35,7 @@ export default function ReturnsPage() {
         <li>
           <Link href="/contact">Contact us</Link> with your order number and the items you&apos;re returning.
         </li>
-        <li>We arrange a free pickup from your address.</li>
+        <li>We arrange the pickup from your address (free with the Monochrome Pass).</li>
         <li>We check the items when they reach us.</li>
       </ol>
       <ContentHeading>Refunds</ContentHeading>

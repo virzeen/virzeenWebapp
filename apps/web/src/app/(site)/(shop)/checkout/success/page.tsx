@@ -5,23 +5,30 @@ import { notFound } from "next/navigation";
 import { cache } from "react";
 import { OrderDetail } from "@/client/features/orders/order-detail";
 import { OrderPaymentState } from "@/client/features/orders/order-payment-state";
-import { requireUserPage } from "@/server/auth/session";
+import { getUser } from "@/server/auth/session";
 import { getMyOrder } from "@/server/queries/account";
+import { getGuestOrder } from "@/server/queries/checkout";
 import { flattenSearchParams, type SearchParams } from "@/server/queries/params";
 
 type Props = { searchParams: SearchParams };
 
-/** The order in `?order=`, read once per request for the title and the page; null when it isn't the user's. */
+/**
+ * The order in `?order=`, read once per request for the title and the page. A member sees their own orders; a guest
+ * sees only the order their signed cookie names (specs/checkout-v2-week1.md). Anything else is null (404).
+ */
 const loadOrder = cache(async (order: string | undefined) => {
   const orderNumber = orderNumberSchema.safeParse(order);
-  const user = await requireUserPage("/account/orders");
-  return orderNumber.success ? getMyOrder(user.id, orderNumber.data) : null;
+  if (!orderNumber.success) return null;
+  const user = await getUser();
+  const found = user ? await getMyOrder(user.id, orderNumber.data) : await getGuestOrder(orderNumber.data);
+  return found ? { order: found, isGuest: !user } : null;
 });
 
 // The tab title says the same as the heading. A missing order gets the not-found page's title.
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
-  const order = await loadOrder(flattenSearchParams(await searchParams).order);
-  if (!order) notFound();
+  const loaded = await loadOrder(flattenSearchParams(await searchParams).order);
+  if (!loaded) notFound();
+  const { order } = loaded;
   const title =
     order.status === "CANCELLED"
       ? "Order cancelled"
@@ -33,8 +40,9 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 
 /** Safe to refresh: this page only reads the order (duplicate callbacks are handled in core). */
 export default async function CheckoutSuccessPage({ searchParams }: Props) {
-  const order = await loadOrder(flattenSearchParams(await searchParams).order);
-  if (!order) notFound();
+  const loaded = await loadOrder(flattenSearchParams(await searchParams).order);
+  if (!loaded) notFound();
+  const { order, isGuest } = loaded;
   const confirmed = order.status !== "PENDING" && order.status !== "CANCELLED";
 
   return (
@@ -47,7 +55,9 @@ export default async function CheckoutSuccessPage({ searchParams }: Props) {
               confirmed.
             </h1>
             <p className="text-body-lg text-ink-muted">
-              We&apos;ve emailed your confirmation. Track your order any time in your account.
+              {isGuest
+                ? `We've emailed your confirmation to ${order.customerEmail}.`
+                : "We've emailed your confirmation. Track your order any time in your account."}
             </p>
           </>
         )}
@@ -74,9 +84,11 @@ export default async function CheckoutSuccessPage({ searchParams }: Props) {
           </>
         )}
         <div className="flex flex-wrap gap-3">
-          <ButtonLink href={`/account/orders/${order.orderNumber}`} shape="pill">
-            View order
-          </ButtonLink>
+          {!isGuest && (
+            <ButtonLink href={`/account/orders/${order.orderNumber}`} shape="pill">
+              View order
+            </ButtonLink>
+          )}
           <ButtonLink href="/shop" variant="secondary" shape="pill">
             Continue shopping
           </ButtonLink>

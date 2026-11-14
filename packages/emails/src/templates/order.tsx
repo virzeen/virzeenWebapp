@@ -61,7 +61,7 @@ function OrderSummary({ order }: { order: OrderEmailData }) {
       </Row>
       <Row>
         <Column>
-          <Text className="vz-muted m-0 text-body text-ink-muted">Shipping</Text>
+          <Text className="vz-muted m-0 text-body text-ink-muted">Delivery</Text>
         </Column>
         <Column className="text-right whitespace-nowrap">
           <Text className="m-0 text-body">

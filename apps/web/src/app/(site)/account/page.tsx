@@ -1,22 +1,46 @@
 import { ButtonLink, EmptyState, Link } from "@virzeen/ui";
 import { Heart } from "lucide-react";
+import { BenefitImageCard } from "@/client/features/membership/benefit-image-card";
+import { BENEFIT_PAGES } from "@/client/features/membership/benefit-pages";
+import { BenefitsCarousel } from "@/client/features/membership/benefits-carousel";
+import { PassOffer } from "@/client/features/membership/pass-offer";
+import { InterestsSection } from "@/client/features/profile/interests-section";
+import { WalletPanel } from "@/client/features/membership/wallet-panel";
 import { ProductCarousel } from "@/client/features/products/product-carousel";
 import { StockAlertList } from "@/client/features/stock-alerts/stock-alert-list";
 import { formatMonthYear } from "@/client/lib/format";
 import { requireUserPage } from "@/server/auth/session";
-import { listMyFavourites, listMyStockAlerts } from "@/server/queries/account";
+import {
+  getInterestOptions,
+  getMyInterests,
+  getMyMembership,
+  getMyRecommendations,
+  getMyWallet,
+  listMyFavourites,
+  listMyStockAlerts,
+} from "@/server/queries/account";
 
 /** How many favourites the profile's row shows; "View all" opens the rest. */
 const FAVOURITES_SHOWN = 12;
 
 /**
  * The profile, like Nike's member page (owner 2026-11-08): a round initial, the name as the h1 with "Member since
- * {month year}", then the customer's favourites as a row of cards with "View all" (one card per product, newest
- * first), then the sizes they asked to hear about ("Notify me", specs/notify-me.md; only when there are some).
+ * {month year}", then the points card, Your picks, the Pass offer (not for a Pass member), "Find your next favourite" and Member Benefits (Nike's order, specs/member-area-nike-layout.md), then the
+ * customer's favourites as a row of cards with "View all" (one card per product, newest first), then the sizes they asked to hear about ("Notify me", specs/notify-me.md; only when there are some).
  */
 export default async function ProfilePage() {
   const user = await requireUserPage("/account");
-  const [favourites, alerts] = await Promise.all([listMyFavourites(user.id), listMyStockAlerts(user.id)]);
+  const [favourites, alerts, membership, wallet, interests, interestOptions, recommendations] =
+    await Promise.all([
+      listMyFavourites(user.id),
+      listMyStockAlerts(user.id),
+      getMyMembership(user.id),
+      getMyWallet(user.id),
+      getMyInterests(user.id),
+      getInterestOptions(user.id),
+      getMyRecommendations(user.id),
+    ]);
+  const isPass = membership.level === "PASS";
   const seen = new Set<string>();
   const products = favourites
     .map((favourite) => favourite.product)
@@ -53,10 +77,27 @@ export default async function ProfilePage() {
         </div>
       </div>
 
+      {/* The points card (the owner's earlier request); Nike's profile has no equivalent. */}
+      <WalletPanel {...wallet} isPass={isPass} />
+
+      {/* Nike's order (specs/member-area-nike-layout.md): Interests, "Find your next favourite", Member Benefits. */}
+      <InterestsSection interests={interests} options={interestOptions} />
+
+      {/* The Monochrome Pass offer, moved here from the membership page (owner 2026-11-14); a Pass member has it already. */}
+      {!isPass && <PassOffer name={name} />}
+
+      <ProductCarousel title="Find your next favourite" products={recommendations} />
+
+      <BenefitsCarousel
+        title="Member Benefits"
+        items={BENEFIT_PAGES.map((page) => ({ id: page.slug, node: <BenefitImageCard page={page} /> }))}
+      />
+
       {products.length > 0 ? (
         <ProductCarousel
           title="Favourites"
           products={products}
+          heart={false}
           action={
             <Link href="/favourites" variant="header">
               View all

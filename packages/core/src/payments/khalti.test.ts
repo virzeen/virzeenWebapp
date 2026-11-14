@@ -63,6 +63,26 @@ describe("khaltiProvider.initiate", () => {
     });
   });
 
+  it("adds gift wrapping and takes points and credit off, with a breakdown that adds up", async () => {
+    let sent: Record<string, unknown> = {};
+    mockProvider(async (_url, init) => {
+      sent = JSON.parse(String(init?.body)) as Record<string, unknown>;
+      return json({ pidx: "p1", payment_url: "https://test-pay.khalti.com/?pidx=p1" });
+    });
+    // Items 4,500 + gift wrapping 100 − points 200 − credit 300 + delivery 100 = 4,200.
+    await khaltiProvider.initiate(
+      { ...order, adjustmentPaisa: 10_000 - 20_000 - 30_000, totalPaisa: 420_000 },
+      1,
+    );
+    expect(sent).toMatchObject({
+      amount: 420_000,
+      amount_breakdown: [
+        { label: "Items", amount: 410_000 },
+        { label: "Shipping", amount: 10_000 },
+      ],
+    });
+  });
+
   it("refuses amounts that don't add up before calling Khalti", async () => {
     let called = false;
     mockProvider(() => {

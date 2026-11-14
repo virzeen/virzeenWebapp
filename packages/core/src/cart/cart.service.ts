@@ -2,6 +2,8 @@ import "server-only";
 import { randomBytes } from "node:crypto";
 import { db, type Prisma } from "@virzeen/db";
 import { MAX_QTY_PER_LINE } from "@virzeen/validators";
+import { EARLY_ACCESS_HOURS } from "@virzeen/validators/limits";
+import { levelOf } from "@virzeen/validators/membership";
 import { AppError } from "../errors";
 import { cartLineSelect, emptyCart, getCartSummary, isLineAvailable, type CartSummary } from "./cart-summary";
 
@@ -94,9 +96,22 @@ export const cartService = {
     return db.$transaction(async (tx) => {
       const variant = await tx.productVariant.findFirst({
         where: { id: input.variantId, isActive: true, product: { isPublished: true, archivedAt: null } },
-        select: { id: true, stock: true, pricePaisa: true },
+        select: { id: true, stock: true, pricePaisa: true, product: { select: { publicAt: true } } },
       });
       if (!variant) throw new AppError("NOT_FOUND", "This item is no longer available.");
+      // Early access (specs/member-perks.md): before its public time only a member inside their window may buy it.
+      if (variant.product.publicAt && variant.product.publicAt > new Date()) {
+        const owner = await tx.cart.findUnique({
+          where: { id: input.cartId },
+          select: { user: { select: { passEndsAt: true } } },
+        });
+        const hours = owner?.user
+          ? EARLY_ACCESS_HOURS[levelOf(owner.user.passEndsAt) === "PASS" ? "PASS" : "MEMBER"]
+          : 0;
+        if (variant.product.publicAt.getTime() > Date.now() + hours * 3_600_000) {
+          throw new AppError("NOT_FOUND", "This item is no longer available.");
+        }
+      }
 
       const existing = await tx.cartItem.findUnique({
         where: { cartId_variantId: { cartId: input.cartId, variantId: input.variantId } },

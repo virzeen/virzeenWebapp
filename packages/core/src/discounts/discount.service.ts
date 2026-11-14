@@ -34,17 +34,19 @@ type Client = Prisma.TransactionClient | typeof db;
 /** A code that passed every check for this bag: what the totals and the order need. */
 export type AppliedDiscount = DiscountRule & { id: string; code: string };
 
-type CheckInput = { code: string; userId: string; subtotalPaisa: number; now: Date };
+/** A guest has no account: "once per customer" is counted by the email they gave. */
+type CheckInput = { code: string; userId: string | null; email?: string; subtotalPaisa: number; now: Date };
 
 /** The customer's orders with this code that aren't cancelled (a cancelled order gave its use back). */
-function customerUses(client: Client, codeId: string, userId: string) {
-  return client.order.count({ where: { userId, discountCodeId: codeId, status: { not: "CANCELLED" } } });
+function customerUses(client: Client, codeId: string, who: { userId: string | null; email?: string }) {
+  const customer = who.userId ? { userId: who.userId } : { customerEmail: (who.email ?? "").toLowerCase() };
+  return client.order.count({ where: { ...customer, discountCodeId: codeId, status: { not: "CANCELLED" } } });
 }
 
 /** Checks a code against a bag without using it. Throws the reason as a field error for the code. */
 export async function checkDiscount(client: Client, input: CheckInput): Promise<AppliedDiscount> {
   const row = await client.discountCode.findUnique({ where: { code: input.code }, select: codeSelect });
-  const uses = row?.oncePerCustomer ? await customerUses(client, row.id, input.userId) : 0;
+  const uses = row?.oncePerCustomer ? await customerUses(client, row.id, input) : 0;
   const refusal = discountRefusal(row, {
     subtotalPaisa: input.subtotalPaisa,
     now: input.now,
@@ -92,7 +94,7 @@ export async function claimDiscount(
     });
     throw discountRefusalError(refusal ?? "USED_UP", row);
   }
-  const uses = row.oncePerCustomer ? await customerUses(tx, row.id, input.userId) : 0;
+  const uses = row.oncePerCustomer ? await customerUses(tx, row.id, input) : 0;
   // The count now includes this order's use; the limits apply to the count before it.
   const refusal = discountRefusal(
     { ...row, usedCount: row.usedCount - 1 },

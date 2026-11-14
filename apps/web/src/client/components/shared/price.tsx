@@ -16,13 +16,18 @@ export function formatPaisa(paisa: number): string {
 
 type PriceSymbol = "Rs" | "रु";
 
-/** "रु" is shown, "Rs" is read: English screen reader voices skip or spell out the Devanagari sign. */
+/**
+ * "रु" is shown in a heavy Devanagari face and read as "Rs" (an image with that name): English screen reader voices
+ * skip or spell out the Devanagari sign. The text stays clean ("रु 2,450") for copying and for tests.
+ */
 function Amount({ paisa, symbol }: { paisa: number; symbol: PriceSymbol }) {
   if (symbol === "Rs") return formatPaisa(paisa);
   return (
     <>
-      <span aria-hidden="true">रु</span>
-      <span className="sr-only">Rs</span> {formatRupees(paisa)}
+      <span role="img" aria-label="Rs" className="rupee-sign">
+        रु
+      </span>{" "}
+      {formatRupees(paisa)}
     </>
   );
 }
@@ -33,7 +38,7 @@ type PriceProps = {
   compareAtPaisa?: number | null;
   /** Prefix "From" for products with several prices. */
   from?: boolean;
-  /** "रु" on product cards (owner request 2026-10-01); "Rs" everywhere else. */
+  /** "रु" everywhere, in bold (owner requests 2026-10-01 and 2026-11-11). "Rs" only where plain text is needed. */
   symbol?: PriceSymbol;
   className?: string;
 };
@@ -43,7 +48,7 @@ type PriceProps = {
  * Each amount stays on one line ("Rs" never ends a line); a narrow slot can still wrap between
  * "From", the price and the old price.
  */
-export function Price({ paisa, compareAtPaisa, from = false, symbol = "Rs", className }: PriceProps) {
+export function Price({ paisa, compareAtPaisa, from = false, symbol = "रु", className }: PriceProps) {
   const onSale = compareAtPaisa != null && compareAtPaisa > paisa;
   return (
     // relative: keeps the sr-only labels inside, so a scrolling row (ProductCarousel) still clips them.

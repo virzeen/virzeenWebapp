@@ -41,7 +41,7 @@ On `/verify` the customer types, pastes or autofills the 6-digit code from their
 
 ## UI
 
-- Screens/components affected: `app/(site)/(auth)/verify/page.tsx` (intro), `client/features/auth/verify-form.tsx`.
+- Screens/components affected: `app/(auth)/verify/page.tsx` (intro), `client/features/auth/verify-form.tsx`.
 - Primitives: `CodeInput` gains `onComplete`, `status` (`checking` / `success`) and `errorKey` (replays the shake); the new token `--animate-shake`. Also `FormField` (helper text), `Alert`, `Button`, `VisuallyHidden`, and lucide `Loader2` / `CheckCircle2` icons.
 - Differences from patterns.md §4, for this field only: there is no submit button (Enter still works), and the code is validated on submit, not on blur, so a half-typed code doesn't turn red while the customer fetches it from their email.
 - States: the page is rendered on the server, so there is no loading state. Checking, accepted and the errors above; copy in content-style.md "Sign-in code".

@@ -4,6 +4,7 @@ import "server-only";
 import { catalogReads } from "@virzeen/core";
 import { productSearchSchema, shopFiltersSchema } from "@virzeen/validators";
 import { runAction } from "@/server/actions/result";
+import { getViewerEarlyHours } from "@/server/queries/catalog";
 import { clientIp, rateLimit } from "@/server/security/rate-limit";
 
 /** How many products the header search panel shows while typing (specs/search.md): 2 full rows from lg, 3 on phones. */
@@ -14,7 +15,11 @@ export async function searchProductsAction(input: unknown) {
   return runAction("searchProducts", async () => {
     await rateLimit("api", await clientIp());
     const { q } = productSearchSchema.parse(input);
-    return catalogReads.listProducts({ q, sort: "newest", inStock: false }, SEARCH_PANEL_RESULTS);
+    return catalogReads.listProducts(
+      { q, sort: "newest", inStock: false },
+      SEARCH_PANEL_RESULTS,
+      await getViewerEarlyHours(),
+    );
   });
 }
 
@@ -23,6 +28,6 @@ export async function loadMoreProductsAction(input: unknown) {
   return runAction("loadMoreProducts", async () => {
     await rateLimit("api", await clientIp());
     const filters = shopFiltersSchema.parse(input);
-    return catalogReads.listProducts(filters);
+    return catalogReads.listProducts(filters, undefined, await getViewerEarlyHours());
   });
 }

@@ -1,6 +1,9 @@
-import { ButtonLink, DataTable, EmptyState, Link } from "@virzeen/ui";
-import { adminPageSchema } from "@virzeen/validators";
+import { Button, ButtonLink, DataTable, EmptyState, Input, Link } from "@virzeen/ui";
+import { adminPageSchema, customerSearchSchema } from "@virzeen/validators";
 import { AdminPageHeader } from "@/client/features/admin/admin-page-header";
+import { MemberPassActions } from "@/client/features/admin/member-pass-actions";
+import { MemberWalletActions } from "@/client/features/admin/member-wallet-actions";
+import { Price } from "@/client/components/shared/price";
 import { formatDate } from "@/client/lib/format";
 import { requireAdminPage } from "@/server/auth/session";
 import { listAdminCustomers } from "@/server/queries/admin";
@@ -11,15 +14,32 @@ export const metadata = { title: "Customers" };
 // The orders list searched by this email. Its search box takes up to 60 characters (adminOrderFiltersSchema).
 const ordersHref = (email: string) => `/admin/orders?q=${encodeURIComponent(email.slice(0, 60))}`;
 
-/** Read-only in phase 1 (project-brief.md §3). */
+/** Customers, searchable, with each one's Monochrome Pass and the Pass actions (specs/membership-portal.md). */
 export default async function AdminCustomersPage({ searchParams }: { searchParams: SearchParams }) {
   await requireAdminPage();
-  const page = adminPageSchema.parse(flattenSearchParams(await searchParams).page);
-  const { rows, total, pageCount } = await listAdminCustomers(page);
+  const params = flattenSearchParams(await searchParams);
+  const page = adminPageSchema.parse(params.page);
+  const query = customerSearchSchema.parse(params.q);
+  const { rows, total, pageCount } = await listAdminCustomers(page, query);
+  const pageHref = (target: number) =>
+    `/admin/customers?${new URLSearchParams({ ...(query ? { q: query } : {}), page: String(target) })}`;
 
   return (
     <div className="flex flex-col gap-6">
       <AdminPageHeader title="Customers" description={`${total} ${total === 1 ? "customer" : "customers"}`} />
+      <form method="get" role="search" className="flex max-w-md gap-3">
+        <Input
+          name="q"
+          defaultValue={query}
+          type="search"
+          maxLength={60}
+          aria-label="Search customers by email or name"
+          placeholder="Search by email or name"
+        />
+        <Button type="submit" variant="secondary" shape="pill">
+          Search
+        </Button>
+      </form>
       <DataTable
         caption="Customers"
         rows={rows}
@@ -42,6 +62,53 @@ export default async function AdminCustomersPage({ searchParams }: { searchParam
               ) : (
                 <span className="wrap-anywhere">{row.email}</span>
               ),
+          },
+          {
+            key: "pass",
+            header: "Level",
+            cell: (row) =>
+              row.passEndsAt && row.passEndsAt > new Date()
+                ? `Pass until ${formatDate(row.passEndsAt)}`
+                : "MONO Member",
+          },
+          {
+            key: "manage",
+            header: "Pass",
+            cell: (row) => (
+              <MemberPassActions
+                userId={row.id}
+                label={row.name.trim() || row.email}
+                passEndsAt={row.passEndsAt ? row.passEndsAt.toISOString() : null}
+              />
+            ),
+          },
+          {
+            key: "wallet",
+            header: "Points / credit",
+            hideOnMobile: true,
+            cell: (row) => (
+              <span className="whitespace-nowrap">
+                {row.points} · <Price paisa={row.creditPaisa} />
+              </span>
+            ),
+          },
+          {
+            key: "addwallet",
+            header: "Wallet",
+            cell: (row) => <MemberWalletActions userId={row.id} label={row.name.trim() || row.email} />,
+          },
+          {
+            key: "referral",
+            header: "Referral",
+            hideBelow: "xl",
+            cell: (row) => (
+              <span className="flex flex-col whitespace-nowrap">
+                <span className="font-mono">{row.referralCode ?? "—"}</span>
+                <span className="text-ink-muted">
+                  {row._count.referralsMade} {row._count.referralsMade === 1 ? "friend" : "friends"}
+                </span>
+              </span>
+            ),
           },
           { key: "since", header: "Joined", hideOnMobile: true, cell: (row) => formatDate(row.createdAt) },
           {
@@ -66,14 +133,14 @@ export default async function AdminCustomersPage({ searchParams }: { searchParam
       {pageCount > 1 && (
         <div className="flex justify-between">
           {page > 1 ? (
-            <ButtonLink href={`/admin/customers?page=${page - 1}`} variant="secondary" size="sm" shape="pill">
+            <ButtonLink href={pageHref(page - 1)} variant="secondary" size="sm" shape="pill">
               Previous
             </ButtonLink>
           ) : (
             <span />
           )}
           {page < pageCount && (
-            <ButtonLink href={`/admin/customers?page=${page + 1}`} variant="secondary" size="sm" shape="pill">
+            <ButtonLink href={pageHref(page + 1)} variant="secondary" size="sm" shape="pill">
               Next
             </ButtonLink>
           )}

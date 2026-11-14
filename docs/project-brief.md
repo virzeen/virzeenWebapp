@@ -394,7 +394,7 @@ Security is layered so that one mistake doesn't expose everything. Full rules: `
 | **Data**           | Nightly encrypted-at-rest backups (B2), audit log for admin actions, minimal personal data in logs                                                      |
 | **Supply chain**   | Dependabot, `pnpm audit` in CI, locked dependencies, justified new packages                                                                             |
 | **Accounts**       | 2FA on GitHub, Railway, Cloudflare, domain registrar, eSewa/Khalti, Google, Cloudinary, Resend, Upstash, Sentry                                         |
-| **Process**        | PR required for `main`, CI must pass, security-reviewer agent on sensitive changes, owner reviews all payment changes                                   |
+| **Process**        | PR required for `main`, CI must pass, security review checklist (`docs/reviews/`) on sensitive changes, no subagents, owner reviews all payment changes |
 
 ## 12. Data model overview
 
@@ -426,16 +426,16 @@ Key principles: money in paisa; orders store snapshots so history never changes;
 
 Virzeen is built with Claude Code. The setup makes the agent follow the docs instead of guessing:
 
-| Piece            | Location                                            | Purpose                                                                                             |
-| ---------------- | --------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Operating manual | `CLAUDE.md`                                         | Golden rule, task protocol, routing table, UI essentials, non-negotiables, working style            |
-| Known traps      | `docs/ai/common-mistakes.md`                        | Loaded every session; lessons log grows with each correction                                        |
-| Auto rules       | `.claude/rules/`                                    | Load automatically for UI, primitives, backend, payments, database, tests                           |
-| Workflows        | `.claude/skills/`                                   | build-feature, ui-component, payment-change, db-change, verify-ui, fix-bug                          |
-| Canonical code   | `docs/examples/`                                    | Patterns to copy for primitives, stories, pages, forms, services, tests                             |
-| Reviewers        | `.claude/agents/`                                   | security-reviewer, ui-reviewer                                                                      |
-| Eyes             | `.mcp.json`                                         | Storybook MCP (real components), Playwright MCP (real browser), Context7 MCP (current library docs) |
-| Enforcement      | `.claude/hooks/`, `scripts/check-ui.mjs`, `.husky/` | Status injected at start, every edit checked, unsafe git blocked, checks must pass before finishing |
+| Piece             | Location                                            | Purpose                                                                                             |
+| ----------------- | --------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Operating manual  | `CLAUDE.md`                                         | Golden rule, task protocol, routing table, UI essentials, non-negotiables, working style            |
+| Known traps       | `docs/ai/common-mistakes.md`                        | Loaded every session; lessons log grows with each correction                                        |
+| Auto rules        | `.claude/rules/`                                    | Load automatically for UI, primitives, backend, payments, database, tests                           |
+| Workflows         | `.claude/skills/`                                   | build-feature, ui-component, payment-change, db-change, verify-ui, fix-bug                          |
+| Canonical code    | `docs/examples/`                                    | Patterns to copy for primitives, stories, pages, forms, services, tests                             |
+| Review checklists | `docs/reviews/`                                     | security-review, ui-review (done in the main session; no subagents, owner 2026-11-11)               |
+| Eyes              | `.mcp.json`                                         | Storybook MCP (real components), Playwright MCP (real browser), Context7 MCP (current library docs) |
+| Enforcement       | `.claude/hooks/`, `scripts/check-ui.mjs`, `.husky/` | Status injected at start, every edit checked, unsafe git blocked, checks must pass before finishing |
 
 **How the owner works with the agent:** one task per session; ask for a plan first on bigger tasks; write a spec before each feature; when the agent makes a mistake, fix the rule (not just the code) so it can't happen again.
 

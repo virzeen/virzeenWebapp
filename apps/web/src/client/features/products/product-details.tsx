@@ -100,8 +100,8 @@ export function ProductDetails({
               waitingVariantIds={waitingVariantIds}
             />
             <p className="text-small text-ink-muted">
-              Prices include 13% VAT. Free shipping across Nepal and 7-day free returns. Pay in cash when it
-              arrives.
+              Prices include 13% VAT. Free delivery on larger orders and 7-day returns, 15 with the Monochrome
+              Pass. Pay in cash when it arrives.
             </p>
             <ProductDescription product={product} />
             <ProductAccordions sizeGuide={product.sizeGuide} />

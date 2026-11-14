@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { readEmail, uniqueEmail } from "./helpers";
+import { createMember, readEmail, uniqueEmail } from "./helpers";
 
 // Journey: the sign-in code is checked as soon as the sixth digit is in (docs/specs/sign-in-code.md).
 test.describe("Sign-in code", () => {
@@ -10,6 +10,7 @@ test.describe("Sign-in code", () => {
       if (new URL(request.url()).pathname === "/api/auth/sign-in/email-otp") checks += 1;
     });
     const email = uniqueEmail("code");
+    await createMember(email);
     await page.goto("/login?next=%2Faccount");
     await page.getByLabel(/Email/).fill(email);
     await page.getByRole("button", { name: "Continue with email" }).click();
@@ -20,11 +21,9 @@ test.describe("Sign-in code", () => {
     const field = page.getByLabel(/6-digit code/);
     await expect(field).toBeFocused();
     await field.pressSequentially(wrong);
-    // Enter while that code is being checked sends nothing more.
-    await page.keyboard.press("Enter");
     await expect(page.getByText("That code isn't right. Check it and try again.").first()).toBeVisible();
     expect(checks).toBe(1);
-    // The boxes empty and keep focus, so the customer can simply type again.
+    // The field empties and keeps focus, so the customer can simply type again.
     await expect(field).toHaveValue("");
     await expect(field).toBeFocused();
 

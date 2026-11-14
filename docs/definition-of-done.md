@@ -32,7 +32,7 @@ A task is done only when every applicable box is true. Agents: go through this l
 
 - [ ] `payment-policy.md` / `security-policy.md` re-read and followed
 - [ ] Tests cover success, failure, amount mismatch, replay/duplicate, and pending
-- [ ] `security-reviewer` agent run on the diff; findings resolved
+- [ ] Security review (`docs/reviews/security-review.md`) done by you on the diff, not a subagent; findings resolved
 - [ ] Owner has reviewed the PR (never self-merge payment changes)
 
 ## If database changed

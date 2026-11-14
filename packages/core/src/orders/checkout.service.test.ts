@@ -1,9 +1,9 @@
 import { db } from "@virzeen/db";
 import { beforeEach, describe, expect, it } from "vitest";
-import { checkoutFixture, resetDatabase } from "../../test/factories";
+import { addToCart, checkoutFixture, createVariant, resetDatabase } from "../../test/factories";
 import { json, mockProvider, sentEmails } from "../../test/setup";
 import { COD_MAX_TOTAL_PAISA } from "../pricing/cod-rules";
-import { SHIPPING_RATES_PAISA } from "../pricing/shipping-rates";
+import { memberService } from "../members/member.service";
 import { checkoutService } from "./checkout.service";
 
 const NOW = new Date("2026-09-28T06:00:00Z"); // 11:45 in Kathmandu
@@ -39,8 +39,8 @@ describe("checkoutService.placeOrder — COD", () => {
       status: "CONFIRMED",
       paymentStatus: "COD_DUE",
       subtotalPaisa: 900_000,
-      shippingPaisa: SHIPPING_RATES_PAISA.KATHMANDU_VALLEY,
-      totalPaisa: 900_000 + SHIPPING_RATES_PAISA.KATHMANDU_VALLEY,
+      shippingPaisa: 0,
+      totalPaisa: 900_000 + 0,
       shippingZone: "KATHMANDU_VALLEY",
       reservedUntil: null,
     });
@@ -63,7 +63,7 @@ describe("checkoutService.placeOrder — COD", () => {
     const { orderNumber } = await place(fixture, "COD");
 
     const order = await db.order.findUniqueOrThrow({ where: { orderNumber } });
-    expect(order.shippingPaisa).toBe(SHIPPING_RATES_PAISA.OUTSIDE_VALLEY);
+    expect(order.shippingPaisa).toBe(0);
   });
 
   it.runIf(COD_MAX_TOTAL_PAISA !== null)(
@@ -153,7 +153,7 @@ describe("checkoutService.placeOrder — online payments", () => {
       action: "https://rc-epay.esewa.com.np/api/epay/main/v2/form",
       fields: {
         transaction_uuid: "VZ-260928-0001-1",
-        total_amount: ((450_000 + SHIPPING_RATES_PAISA.KATHMANDU_VALLEY) / 100).toFixed(2),
+        total_amount: ((450_000 + 0) / 100).toFixed(2),
         product_code: "EPAYTEST",
       },
     });
@@ -180,7 +180,7 @@ describe("checkoutService.placeOrder — online payments", () => {
     expect(payment).toMatchObject({
       provider: "KHALTI",
       status: "PENDING",
-      amountPaisa: 450_000 + SHIPPING_RATES_PAISA.KATHMANDU_VALLEY,
+      amountPaisa: 450_000 + 0,
     });
   });
 
@@ -195,6 +195,194 @@ describe("checkoutService.placeOrder — online payments", () => {
     expect((await db.productVariant.findUniqueOrThrow({ where: { id: fixture.variant.id } })).stock).toBe(5);
     expect(await db.cartItem.findFirst({ where: { cartId: fixture.cart.id } })).toMatchObject({
       quantity: 2,
+    });
+  });
+});
+
+describe("checkoutService — guest checkout (specs/checkout-v2-week1.md)", () => {
+  beforeEach(resetDatabase);
+
+  async function guestFixture(options: { pricePaisa: number; quantity?: number }) {
+    const variant = await createVariant({ stock: 5, pricePaisa: options.pricePaisa });
+    const cart = await db.cart.create({
+      data: { guestToken: "guest-token-test", expiresAt: new Date("2027-01-01T00:00:00Z") },
+    });
+    await addToCart(cart.id, variant.id, options.quantity ?? 1);
+    return { variant, cart };
+  }
+
+  const guestAddress = {
+    fullName: "Sita Rai",
+    phone: "9812345678",
+    province: "Bagmati",
+    district: "Kathmandu",
+    city: "Kathmandu",
+    street: "Ward 4, Baneshwor",
+    landmark: null,
+  };
+
+  it("places a COD order with no account: tier GUEST, Rs. 200 delivery, lower-cased email, notes kept", async () => {
+    const { cart } = await guestFixture({ pricePaisa: 250_000 });
+
+    const result = await checkoutService.placeOrder({
+      userId: null,
+      customerEmail: "  Sita@Example.com ",
+      cartId: cart.id,
+      guestAddress,
+      deliveryNotes: " Call at the gate ",
+      paymentMethod: "COD",
+      now: NOW,
+    });
+
+    const order = await db.order.findUniqueOrThrow({
+      where: { orderNumber: result.orderNumber },
+      include: { payments: true },
+    });
+    expect(order).toMatchObject({
+      userId: null,
+      tier: "GUEST",
+      customerEmail: "sita@example.com",
+      deliveryNotes: "Call at the gate",
+      status: "CONFIRMED",
+      paymentStatus: "COD_DUE",
+      subtotalPaisa: 250_000,
+      shippingPaisa: 20_000,
+      totalPaisa: 270_000,
+    });
+    expect(order.addressSnapshot).toMatchObject({ fullName: "Sita Rai", phone: "9812345678" });
+    expect(order.payments[0]?.amountPaisa).toBe(270_000);
+    expect(await db.cartItem.count({ where: { cartId: cart.id } })).toBe(0);
+  });
+
+  it("charges a guest delivery below Rs. 9,999 while a member only needs Rs. 3,000", async () => {
+    const guest = await guestFixture({ pricePaisa: 350_000 });
+    const guestOrder = await checkoutService.placeOrder({
+      userId: null,
+      customerEmail: "a@example.com",
+      cartId: guest.cart.id,
+      guestAddress,
+      paymentMethod: "COD",
+      now: NOW,
+    });
+    expect(
+      (await db.order.findUniqueOrThrow({ where: { orderNumber: guestOrder.orderNumber } })).shippingPaisa,
+    ).toBe(20_000);
+
+    const member = await checkoutFixture({ pricePaisa: 350_000 });
+    const memberOrder = await place(member, "COD");
+    expect(
+      (await db.order.findUniqueOrThrow({ where: { orderNumber: memberOrder.orderNumber } })).shippingPaisa,
+    ).toBe(0);
+  });
+
+  it("refuses a guest order with no address and creates nothing", async () => {
+    const { cart } = await guestFixture({ pricePaisa: 250_000 });
+    await expect(
+      checkoutService.placeOrder({
+        userId: null,
+        customerEmail: "a@example.com",
+        cartId: cart.id,
+        paymentMethod: "COD",
+        now: NOW,
+      }),
+    ).rejects.toMatchObject({ code: "VALIDATION_FAILED" });
+    expect(await db.order.count()).toBe(0);
+  });
+
+  it("creates one order when the same guest bag is submitted twice at once", async () => {
+    const { cart } = await guestFixture({ pricePaisa: 250_000 });
+    const submit = () =>
+      checkoutService.placeOrder({
+        userId: null,
+        customerEmail: "a@example.com",
+        cartId: cart.id,
+        guestAddress,
+        paymentMethod: "COD",
+        now: NOW,
+      });
+    const results = await Promise.allSettled([submit(), submit()]);
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    expect(await db.order.count()).toBe(1);
+  });
+
+  it("previews the guest fee, the member saving and the arrival date", async () => {
+    const { cart } = await guestFixture({ pricePaisa: 250_000 });
+    const preview = await checkoutService.preview({
+      userId: null,
+      cartId: cart.id,
+      addressId: null,
+      now: NOW,
+    });
+    expect(preview).toMatchObject({
+      tier: "GUEST",
+      shippingPaisa: 20_000,
+      totalPaisa: 270_000,
+      freeDeliveryRemainingPaisa: 749_900,
+      memberSavingPaisa: 5_000,
+      arrivesBy: "Sep 30", // 48 h dispatch, same day in the valley
+    });
+  });
+
+  describe("a member with the Monochrome Pass", () => {
+    const passUntil = new Date("2027-03-01T00:00:00Z");
+
+    it("pays no delivery and gets 10% off, stored on the order as tier PASS", async () => {
+      const fixture = await checkoutFixture({ pricePaisa: 250_000 });
+      await db.user.update({ where: { id: fixture.user.id }, data: { passEndsAt: passUntil } });
+
+      const preview = await checkoutService.preview({
+        userId: fixture.user.id,
+        cartId: fixture.cart.id,
+        addressId: fixture.address.id,
+        now: NOW,
+      });
+      expect(preview).toMatchObject({
+        tier: "PASS",
+        shippingPaisa: 0,
+        discountPaisa: 25_000,
+        isPassDiscount: true,
+        totalPaisa: 225_000,
+        // 10% (Rs. 250) plus the Rs. 150 delivery a MONO Member would have paid on a Rs. 2,500 bag.
+        passSavingPaisa: 40_000,
+        arrivesBy: "Sep 29", // 24 h dispatch, same day in the valley
+      });
+
+      const { orderNumber } = await place(fixture, "COD");
+      const order = await db.order.findUniqueOrThrow({ where: { orderNumber } });
+      expect(order).toMatchObject({
+        tier: "PASS",
+        shippingPaisa: 0,
+        discountPaisa: 25_000,
+        discountCode: null,
+        totalPaisa: 225_000,
+      });
+    });
+
+    it("loses the benefits once the Pass has ended", async () => {
+      const fixture = await checkoutFixture({ pricePaisa: 250_000 });
+      await db.user.update({
+        where: { id: fixture.user.id },
+        data: { passEndsAt: new Date("2026-09-01T00:00:00Z") },
+      });
+      const preview = await checkoutService.preview({
+        userId: fixture.user.id,
+        cartId: fixture.cart.id,
+        addressId: fixture.address.id,
+        now: NOW,
+      });
+      expect(preview).toMatchObject({
+        tier: "MEMBER",
+        shippingPaisa: 15_000,
+        discountPaisa: 0,
+        passSavingPaisa: 0,
+      });
+    });
+
+    it("totals what the Pass saved across their orders", async () => {
+      const fixture = await checkoutFixture({ pricePaisa: 250_000 });
+      await db.user.update({ where: { id: fixture.user.id }, data: { passEndsAt: passUntil } });
+      await place(fixture, "COD");
+      expect(await memberService.passSavings(fixture.user.id)).toEqual({ orders: 1, savedPaisa: 40_000 });
     });
   });
 });

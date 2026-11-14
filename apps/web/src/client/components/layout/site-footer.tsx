@@ -23,6 +23,7 @@ const COLUMNS = [
   {
     title: "Help",
     links: [
+      { href: "/membership", label: "Membership" },
       { href: "/shipping", label: "Shipping" },
       { href: "/returns", label: "Returns" },
       { href: "/account/orders", label: "Track an order" },

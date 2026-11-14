@@ -27,10 +27,10 @@ export default async function HomePage() {
       <JsonLd data={siteJsonLd(siteUrl)} />
       {/*
         Hero: brand moment, LCP image (the owner's photo, 2026-09-30: a man reading in a dark room, a rack of T-shirts
-        on the right). It starts under the see-through header (-mt-16, the header's height), and the words sit in the
+        on the right). It starts under the see-through header (`pull-under-header`: the header's height plus the iPhone top inset), and the words sit in the
         bottom-right corner, with no buttons (owner). On phones it fills the screen, cropped around him.
       */}
-      <section className="relative isolate -mt-16 overflow-hidden bg-ink text-canvas">
+      <section className="relative isolate pull-under-header overflow-hidden bg-ink text-canvas">
         <CloudImage
           src="/brand/hero.jpg"
           alt=""

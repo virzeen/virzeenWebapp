@@ -4,6 +4,8 @@ import { Button } from "@virzeen/ui";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { ProductCard, type ProductCardData } from "./product-card";
+import { ProductCardHeart } from "@/client/features/favourites/product-card-heart";
+import { useVerticalWheel } from "@/client/lib/use-vertical-wheel";
 import { rowEdges, type RowEdges } from "./product-carousel-scroll";
 
 type ProductCarouselProps = {
@@ -14,6 +16,11 @@ type ProductCarouselProps = {
   products: ProductCardData[];
   /** The cards open in a new tab, so the page they sit on stays open (the product editor). */
   newTab?: boolean;
+  /**
+   * A round heart in each card's top right corner to save it to favourites (owner 2026-11-14). On by default; never
+   * in the admin preview (`newTab`: it is outside the favourites provider). Off for the profile's Favourites row.
+   */
+  heart?: boolean;
   /** A link on the right, before the previous/next buttons ("Shop all" on the home page). */
   action?: React.ReactNode;
 };
@@ -31,12 +38,14 @@ export function ProductCarousel({
   description,
   products,
   newTab = false,
+  heart = true,
   action,
 }: ProductCarouselProps) {
   const headingId = useId();
   const rowRef = useRef<HTMLUListElement>(null);
   const previousRef = useRef<HTMLButtonElement>(null);
   const nextRef = useRef<HTMLButtonElement>(null);
+  useVerticalWheel(rowRef, products.length);
   // Both ends reached = everything fits: the buttons stay hidden until the row is measured.
   const [edges, setEdges] = useState<RowEdges>({ start: true, end: true });
 
@@ -136,11 +145,12 @@ export function ProductCarousel({
         ref={rowRef}
         tabIndex={0}
         aria-labelledby={headingId}
-        className="mx-grid-bleed flex snap-x snap-mandatory scrollbar-none gap-x-product-gap overflow-x-auto overscroll-x-contain focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus focus-visible:outline-solid"
+        className="mx-grid-bleed flex snap-x snap-mandatory scrollbar-none gap-x-product-gap overflow-x-auto overflow-y-hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus focus-visible:outline-solid"
       >
         {products.map((product) => (
-          <li key={product.id} className="w-product-slide shrink-0 snap-start">
+          <li key={product.id} className="relative w-product-slide shrink-0 snap-start">
             <ProductCard product={product} />
+            {heart && !newTab && <ProductCardHeart product={product} />}
           </li>
         ))}
       </ul>

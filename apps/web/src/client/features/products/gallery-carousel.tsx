@@ -3,6 +3,7 @@
 import { cn } from "@virzeen/ui";
 import { useEffect, useRef } from "react";
 import { CloudImage } from "@/client/components/shared/cloud-image";
+import { useVerticalWheel } from "@/client/lib/use-vertical-wheel";
 
 export type GalleryImage = { id: string; url: string; alt: string };
 
@@ -31,6 +32,7 @@ export function GalleryCarousel({
   className,
 }: GalleryCarouselProps) {
   const rowRef = useRef<HTMLUListElement>(null);
+  useVerticalWheel(rowRef);
   const indexRef = useRef(index);
   useEffect(() => {
     indexRef.current = index;
@@ -65,7 +67,7 @@ export function GalleryCarousel({
         tabIndex={0}
         aria-label={`${productName} images`}
         onScroll={onScroll}
-        className="flex snap-x snap-mandatory scrollbar-none overflow-x-auto overscroll-x-contain focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus focus-visible:outline-solid"
+        className="flex snap-x snap-mandatory scrollbar-none overflow-x-auto overflow-y-hidden focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus focus-visible:outline-solid"
       >
         {images.map((image, i) => (
           <li key={image.id} className="w-full shrink-0 snap-start snap-always">

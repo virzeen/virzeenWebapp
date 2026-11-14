@@ -13,10 +13,14 @@ import { cn } from "../lib/cn";
  * (specs/product-page.md, specs/size-guides.md). Its body scrolls between the title and a `footer` that stays in
  * view. The body takes keyboard focus (focus starts there when the dialog opens), so arrow keys and Page Down scroll
  * it; `media` puts a small picture (e.g. the product's photo) left of the title.
+ * `size="prompt"`: like `md` but with 32px rounded corners and more padding: the bag's promo-code popup.
  * `size="split"`: a wide popup in two panes, like Nike's quick add (the Favourites "Add to bag" popup): from `lg` the
  * `aside` (a photo with its own controls) fills the left half, and the title, a scrolling body and the `footer` (under
  * a hairline) fill the right. Below `lg` the aside is hidden and `media`, if given, sits left of the title. Its body
  * isn't a focus stop of its own, so it should hold a control (the sizes) or be short.
+ * `size="picker"`: Nike's "Select your interests" list (the profile's "Select your picks"): a larger title with no line
+ * under it, the `tabs` row full width over its own hairline, a scrolling body of rows inset 40px, and the `footer`
+ * buttons with no line above. Rounded corners, like `prompt`. Name the tabs and the body in the content you pass.
  * `hideTitle`: a popup that is just its content, e.g. one picture (the product page's size chart). The title and
  * description are read by screen readers but not shown, and the body starts under the close button.
  *
@@ -42,7 +46,11 @@ const dialogVariants = cva(
     variants: {
       size: {
         md: "max-w-md gap-6 p-6",
+        // A short popup with one field and one button (the bag's promo code), with large rounded corners.
+        prompt: "max-w-md gap-6 rounded-xl p-8",
         lg: "max-h-5/6 max-w-2xl",
+        // Nike's "Select your interests": a long list with tabs under a big title.
+        picker: "max-h-5/6 max-w-xl rounded-xl",
         // Two 4:5 panes from lg; the photo pane crops and the body scrolls when the screen is short.
         split: "max-h-5/6 max-w-xl overflow-hidden lg:aspect-8/5 lg:w-11/12 lg:max-w-5xl lg:flex-row",
       },
@@ -66,6 +74,8 @@ export type DialogContentProps = React.ComponentProps<typeof DialogPrimitive.Con
     media?: React.ReactNode;
     /** `size="split"`: the left pane from `lg`, e.g. the product's photos (fill it: it's as tall as the popup). */
     aside?: React.ReactNode;
+    /** `size="picker"`: a tab row between the title and the scrolling body (full width, with its own hairline). */
+    tabs?: React.ReactNode;
     /** Only screen readers get the title and description (not with `size="split"` or `media`). */
     hideTitle?: boolean;
   };
@@ -79,17 +89,19 @@ export function DialogContent({
   hideClose = false,
   media,
   aside,
+  tabs,
   hideTitle = false,
   children,
   ...props
 }: DialogContentProps) {
-  const large = size === "lg";
+  const picker = size === "picker";
+  const large = size === "lg" || picker;
   const split = size === "split";
   // Names the large dialog's scrolling body after the title (Radix keeps the title's own id to itself).
   const titleTextId = useId();
   const heading = (
     <>
-      <DialogPrimitive.Title className="font-display text-h3 text-ink">
+      <DialogPrimitive.Title className={cn("font-display text-ink", picker ? "text-h2" : "text-h3")}>
         {large ? <span id={titleTextId}>{title}</span> : title}
       </DialogPrimitive.Title>
       {description && (
@@ -127,7 +139,8 @@ export function DialogContent({
               <div
                 className={cn(
                   "flex flex-col gap-2 pr-8",
-                  large && "border-b border-line px-6 pt-6 pr-14 pb-4",
+                  large && !picker && "border-b border-line px-6 pt-6 pr-14 pb-4",
+                  picker && "px-10 pt-10 pr-16 pb-4",
                   media && "flex-row items-center gap-4",
                 )}
               >
@@ -141,6 +154,7 @@ export function DialogContent({
                 )}
               </div>
             )}
+            {picker && tabs}
             {large ? (
               <div
                 // Focusable, so keyboard users can scroll it even when nothing inside takes focus (WCAG 2.1.1, axe
@@ -150,7 +164,9 @@ export function DialogContent({
                 role="region"
                 aria-labelledby={titleTextId}
                 className={cn(
-                  "min-h-0 flex-1 overflow-y-auto p-6 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus focus-visible:outline-solid",
+                  "min-h-0 flex-1 overflow-y-auto p-6",
+                  picker && "px-10 py-2",
+                  "focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus focus-visible:outline-solid",
                   hideTitle && "pt-14",
                 )}
               >
@@ -159,7 +175,14 @@ export function DialogContent({
             ) : (
               children
             )}
-            {footer && (large ? <div className="border-t border-line px-6 py-4">{footer}</div> : footer)}
+            {footer &&
+              (picker ? (
+                <div className="px-10 py-6">{footer}</div>
+              ) : large ? (
+                <div className="border-t border-line px-6 py-4">{footer}</div>
+              ) : (
+                footer
+              ))}
           </>
         )}
         {!hideClose && (

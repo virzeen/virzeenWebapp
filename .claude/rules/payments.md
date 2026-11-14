@@ -17,4 +17,4 @@ paths:
 - Status changes only via `order-state.ts`. Transitions are idempotent: fulfilling an already-paid order is a no-op.
 - Khalti amounts are paisa. eSewa `total_amount` is rupees with 2 decimals. Convert only in the provider adapter, never elsewhere.
 - Every change here needs unit tests for success, failure, amount mismatch, replay, and pending cases.
-- Run the `security-reviewer` agent on the diff before committing.
+- Before committing, go through `docs/reviews/security-review.md` yourself on the diff. Never start a subagent.

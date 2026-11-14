@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { signIn, uniqueEmail } from "./helpers";
+import { completeEmailSignIn, uniqueEmail } from "./helpers";
 
 // Journey: favourites (docs/specs/favourites.md). A guest's favourites live in the browser and move to the
 // account on sign-in; the page (Nike layout) adds a favourite to the bag through the Add to bag popup, removes it
@@ -25,7 +25,13 @@ test.describe("Favourites", () => {
     await expect(favourited).toHaveAttribute("aria-pressed", "true");
     await expect(favourited).toBeFocused();
 
+    // Not signed in: Favourites goes straight to sign-in and, after it, to New and Featured (owner 2026-11-11).
     await page.getByRole("banner").getByRole("link", { name: "Favourites" }).click();
+    await expect(page).toHaveURL(/\/login\?next=%2Fshop$/);
+    await completeEmailSignIn(page, uniqueEmail("favourites"));
+    await expect(page).toHaveURL(/\/shop$/);
+    // What was saved in this browser moved into the new account.
+    await page.goto("/favourites");
     await expect(page).toHaveURL(/\/favourites$/);
     const heading = page.getByRole("heading", { level: 1, name: "Favourites" });
     await expect(heading).toBeVisible();
@@ -37,7 +43,6 @@ test.describe("Favourites", () => {
     // The count is for screen readers only.
     await expect(page.getByText("1 item", { exact: true })).toHaveClass(/sr-only/);
 
-    await signIn(page, uniqueEmail("favourites"), "/favourites");
     await expect(card).toBeVisible();
     // Moved to the account: gone from the browser, and still listed after a reload (rendered from the account).
     await expect.poll(() => page.evaluate(() => localStorage.getItem("virzeen:favourites"))).toBeNull();

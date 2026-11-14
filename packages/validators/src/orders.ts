@@ -45,6 +45,8 @@ export const ORDER_STATUSES = [
 export const adminOrderFiltersSchema = z.object({
   status: z.enum(ORDER_STATUSES).optional().catch(undefined),
   q: z.string().trim().max(60).optional().catch(undefined),
+  /** Express orders still to leave, or orders past their dispatch promise (dashboard tiles, specs/member-perks.md). */
+  view: z.enum(["express", "late"]).optional().catch(undefined),
   page: adminPageSchema,
 });
 export type AdminOrderFilters = z.output<typeof adminOrderFiltersSchema>;

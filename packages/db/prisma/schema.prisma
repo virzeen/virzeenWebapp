@@ -95,26 +95,59 @@ enum SizeGuideKind {
 // ─────────────────── Accounts (Better Auth tables) ───────────────────
 // Shape required by Better Auth; ids are generated as cuid2 by the auth config.
 
+enum ShoppingPreference {
+  HOME
+  CLOTHING
+  BOTH
+}
+
+/// Settings (specs/member-area-nike-layout.md): the name shown on product reviews.
+enum ReviewNameStyle {
+  FIRST_NAME
+  FULL_NAME
+  ANONYMOUS
+}
+
 model User {
-  id               String       @id
-  name             String
-  email            String       @unique
-  emailVerified    Boolean      @default(false)
-  image            String?
-  role             Role         @default(CUSTOMER)
-  twoFactorEnabled Boolean      @default(false)
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
-  sessions         Session[]
-  accounts         Account[]
-  twoFactors       TwoFactor[]
-  addresses        Address[]
-  favourites       Favourite[]
-  reviews          Review[]
-  stockAlerts      StockAlert[]
-  cart             Cart?
-  orders           Order[]
-  auditLogs        AuditLog[]
+  id                     String              @id
+  name                   String
+  email                  String              @unique
+  emailVerified          Boolean             @default(false)
+  image                  String?
+  role                   Role                @default(CUSTOMER)
+  /// Create-account step (specs/sign-in-v2.md): what the member shops for, an optional birthday for the birthday
+  /// reward, the marketing tick (never required) and when they agreed to the terms.
+  shoppingPreference     ShoppingPreference?
+  birthday               DateTime?           @db.Date
+  marketingOptIn         Boolean             @default(false)
+  /// Payment methods (Settings): the method the member ticked as theirs. Saved on a tick, no Save button.
+  preferredPaymentMethod PaymentMethod?
+  /// Profile visibility (Settings): what a product review shows as its author. First name is how reviews always read.
+  reviewNameStyle        ReviewNameStyle     @default(FIRST_NAME)
+  termsAcceptedAt        DateTime?
+  /// Monochrome Pass: active while `passEndsAt` is in the future (specs/membership-portal.md). Granted by `pnpm admin pass`
+  /// until the Pass can be bought online.
+  passStartsAt           DateTime?
+  passEndsAt             DateTime?
+  /// The member's one referral code (made when first needed, specs/member-perks.md).
+  referralCode           String?             @unique
+  twoFactorEnabled       Boolean             @default(false)
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
+  sessions               Session[]
+  accounts               Account[]
+  twoFactors             TwoFactor[]
+  addresses              Address[]
+  favourites             Favourite[]
+  walletEntries          WalletEntry[]
+  referralsMade          Referral[]          @relation("Referrer")
+  referredBy             Referral?           @relation("Referred")
+  reviews                Review[]
+  interests              MemberInterest[]
+  stockAlerts            StockAlert[]
+  cart                   Cart?
+  orders                 Order[]
+  auditLogs              AuditLog[]
 }
 
 model Session {
@@ -199,6 +232,29 @@ model Address {
   @@index([userId])
 }
 
+/// A friend who joined with a member's code (specs/member-perks.md). The reward is paid once, when the friend's first
+/// order is delivered.
+model Referral {
+  id            String    @id @default(cuid(2))
+  referrerId    String
+  referrer      User      @relation("Referrer", fields: [referrerId], references: [id], onDelete: Cascade)
+  /// One referral per friend: a friend can use one code, once.
+  referredId    String    @unique
+  referred      User      @relation("Referred", fields: [referredId], references: [id], onDelete: Cascade)
+  /// Set when the reward was paid; null while the friend hasn't had a first order delivered.
+  rewardedAt    DateTime?
+  /// What the referrer got, in paisa of credit (0 until rewarded).
+  rewardPaisa   Int       @default(0)
+  /// The friend got a free month of the Pass with it.
+  passGranted   Boolean   @default(false)
+  /// The wallet line that paid the reward, and when it was taken back (the friend's first order was returned).
+  rewardEntryId String?
+  reversedAt    DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([referrerId, createdAt])
+}
+
 /// "Notify me when it's back" (specs/notify-me.md): a signed-in customer waiting for a sold-out variant. One email
 /// when it's back in stock, then `notifiedAt` is set; asking again for the same variant starts a new wait.
 model StockAlert {
@@ -234,6 +290,23 @@ model Favourite {
   @@index([productId])
 }
 
+/// A category or collection a member likes (profile "Interests", specs/member-area-nike-layout.md): exactly one of the
+/// two ids is set (the service checks it). Chooses the products in "Find your next favourite".
+model MemberInterest {
+  id           String      @id @default(cuid(2))
+  userId       String
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId   String?
+  category     Category?   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  collectionId String?
+  collection   Collection? @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  createdAt    DateTime    @default(now())
+
+  @@unique([userId, categoryId])
+  @@unique([userId, collectionId])
+  @@index([userId, createdAt])
+}
+
 /// A customer's review of a product they received (specs/reviews.md). One per customer and product; editable.
 model Review {
   id           String    @id @default(cuid(2))
@@ -261,28 +334,33 @@ model Review {
 // ───────────────────────────── Catalog ─────────────────────────────
 
 model Category {
-  id         String    @id @default(cuid(2))
-  slug       String    @unique
+  id         String           @id @default(cuid(2))
+  slug       String           @unique
   name       String
-  sortOrder  Int       @default(0)
+  sortOrder  Int              @default(0)
   archivedAt DateTime?
   products   Product[]
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  interests  MemberInterest[]
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
 
   @@index([sortOrder])
 }
 
 model Collection {
-  id          String    @id @default(cuid(2))
-  slug        String    @unique
+  id          String           @id @default(cuid(2))
+  slug        String           @unique
   name        String
   description String?
-  isFeatured  Boolean   @default(false)
+  isFeatured  Boolean          @default(false)
+  /// Early access for a festival sale or a drop (specs/member-perks.md): the public sees the collection from this time;
+  /// MONO Members 12 hours and Pass members 48 hours earlier. Null = no wait.
+  publicAt    DateTime?
   archivedAt  DateTime?
   products    Product[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  interests   MemberInterest[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 
   @@index([isFeatured])
 }
@@ -306,6 +384,9 @@ model Product {
   shippingPaisa     Int                @default(0)
   isPublished       Boolean            @default(false)
   publishedAt       DateTime?
+  /// Early access (specs/member-perks.md): the public sees the product only from this time; MONO Members 12 hours and
+  /// Pass members 48 hours earlier. Null = no early window.
+  publicAt          DateTime?
   archivedAt        DateTime?
   /// "Benefits" bullets in the product details popup (specs/product-page.md).
   benefits          String[]           @default([])
@@ -475,12 +556,24 @@ model CartItem {
 
 // ───────────────────────────── Orders ─────────────────────────────
 
+enum CustomerTier {
+  GUEST
+  MEMBER
+  /// A member with a running Monochrome Pass (specs/membership-portal.md).
+  PASS
+}
+
 model Order {
   id                    String        @id @default(cuid(2))
   /// Human-facing number: VZ-YYMMDD-XXXX
   orderNumber           String        @unique
-  userId                String
-  user                  User          @relation(fields: [userId], references: [id], onDelete: Restrict)
+  /// Null for a guest order (specs/checkout-v2-week1.md); the guest's email is in customerEmail.
+  userId                String?
+  user                  User?         @relation(fields: [userId], references: [id], onDelete: Restrict)
+  /// Which delivery rate applied: guest or MONO Member (decides the fee and the dispatch promise).
+  tier                  CustomerTier  @default(MEMBER)
+  /// Optional note for the rider, e.g. "Call at the gate".
+  deliveryNotes         String?
   status                OrderStatus   @default(PENDING)
   paymentStatus         PaymentStatus @default(UNPAID)
   paymentMethod         PaymentMethod
@@ -489,6 +582,19 @@ model Order {
   /// Taken off the subtotal by the discount code (specs/discount-codes.md); totalPaisa already has it off.
   discountPaisa         Int           @default(0)
   totalPaisa            Int
+  /// Points spent on this order (1 point = Rs 1) and credit spent, in paisa; totalPaisa already has both off
+  /// (specs/wallet.md).
+  pointsUsed            Int           @default(0)
+  creditUsedPaisa       Int           @default(0)
+  /// Gift wrapping asked for, and its price (by tier: Rs 150 guest, Rs 100 MONO Member, free for the Pass); the total
+  /// has it in (specs/member-perks.md).
+  giftWrap              Boolean       @default(false)
+  giftWrapPaisa         Int           @default(0)
+  /// Express Delivery (3 hours in Kathmandu and Pokhara) chosen with a member's monthly quota (specs/member-perks.md).
+  express               Boolean       @default(false)
+  /// When the order should leave us (specs/member-perks.md): 48 hours for a guest, 24 for a member, 3 for Express. A Pass
+  /// order shipped after it earns Rs 100 credit. Null for orders made before this existed.
+  dispatchPromisedAt    DateTime?
   /// The discount code used, if any. Codes are never deleted, so the link stays.
   discountCodeId        String?
   discount              DiscountCode? @relation(fields: [discountCodeId], references: [id], onDelete: Restrict)
@@ -526,6 +632,8 @@ model Order {
   @@index([reservedUntil])
   @@index([createdAt])
   @@index([discountCodeId, userId])
+  @@index([userId, express, createdAt])
+  @@index([status, dispatchPromisedAt])
 }
 
 /// A code the owners make in /admin/discounts (specs/discount-codes.md, payment-policy.md §2).
@@ -663,4 +771,39 @@ model AuditLog {
   @@index([entity, entityId])
   @@index([actorId])
   @@index([createdAt])
+}
+
+enum WalletKind {
+  POINTS
+  CREDIT
+}
+
+enum WalletEntryType {
+  EARN
+  SPEND
+  EXPIRE
+  REFUND
+  ADJUST
+}
+
+/// One line of a member's points and credit ledger (specs/wallet.md). `amount` is signed (points, or paisa for credit).
+/// A line that adds balance keeps `remaining`: what of it is still unspent. A spend uses the oldest first; the
+/// daily expiry takes what is left of lines past `expiresAt`. Balance = the sum of `remaining`.
+model WalletEntry {
+  id        String          @id @default(cuid(2))
+  userId    String
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      WalletKind
+  type      WalletEntryType
+  amount    Int
+  remaining Int             @default(0)
+  expiresAt DateTime?
+  orderId   String?
+  reason    String
+  createdAt DateTime        @default(now())
+
+  /// Earn, spend and refund happen at most once per order and kind (a nullable orderId allows many adjustments).
+  @@unique([orderId, type, kind])
+  @@index([userId, kind, createdAt])
+  @@index([kind, expiresAt])
 }

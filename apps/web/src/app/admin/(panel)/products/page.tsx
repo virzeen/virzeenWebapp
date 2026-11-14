@@ -4,10 +4,12 @@ import { CloudImage } from "@/client/components/shared/cloud-image";
 import { Price } from "@/client/components/shared/price";
 import { AdminPageHeader } from "@/client/features/admin/admin-page-header";
 import { DuplicateProductButton } from "@/client/features/admin/duplicate-product-button";
+import { EarlyAccessButton } from "@/client/features/admin/early-access-button";
 import { NewProductDialog } from "@/client/features/admin/editor/new-product-dialog";
 import { ProductSearch } from "@/client/features/admin/product-search";
 import { requireAdminPage } from "@/server/auth/session";
 import { getProductStatusCounts, listAdminCategories, listAdminProducts } from "@/server/queries/admin";
+import { formatDateTime } from "@/client/lib/format";
 import { flattenSearchParams, type SearchParams } from "@/server/queries/params";
 
 export const metadata = { title: "Products" };
@@ -36,6 +38,7 @@ function RowBadges({ row }: { row: ProductRow }) {
       <StatusBadge published={row.isPublished} />
       {row.images.length === 0 && <Badge variant="warning">No photos</Badge>}
       {stock === 0 && <Badge variant="warning">Out of stock</Badge>}
+      {row.publicAt && row.publicAt > new Date() && <Badge>Public {formatDateTime(row.publicAt)}</Badge>}
     </span>
   );
 }
@@ -170,7 +173,16 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
             header: <span className="sr-only">Actions</span>,
             align: "right",
             hideOnMobile: true,
-            cell: (row) => <DuplicateProductButton id={row.id} productName={row.name} />,
+            cell: (row) => (
+              <span className="flex justify-end">
+                <EarlyAccessButton
+                  id={row.id}
+                  productName={row.name}
+                  publicAt={row.publicAt?.toISOString() ?? null}
+                />
+                <DuplicateProductButton id={row.id} productName={row.name} />
+              </span>
+            ),
           },
         ]}
       />

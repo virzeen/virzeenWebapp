@@ -34,13 +34,17 @@ Changing a shape here requires updating this doc in the same PR. Breaking change
 
 ### Checkout & orders
 
-| Method | Path                          | Auth         | Body                                                                    | Returns                                                                                                    |
-| ------ | ----------------------------- | ------------ | ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| POST   | `/api/v1/checkout`            | user         | `{ addressId, paymentMethod: "ESEWA"\|"KHALTI"\|"COD", discountCode? }` | `{ orderNumber, next: { type: "redirect", url } \| { type: "form", action, fields } \| { type: "done" } }` |
-| GET    | `/api/v1/orders`              | user         | `cursor?, limit?`                                                       | `OrderSummary[]`                                                                                           |
-| GET    | `/api/v1/orders/:orderNumber` | user (owner) | —                                                                       | `OrderDetail`                                                                                              |
+| Method | Path                          | Auth         | Body                                                                                                                 | Returns                                                                                                    |
+| ------ | ----------------------------- | ------------ | -------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| POST   | `/api/v1/checkout`            | user         | `{ addressId, paymentMethod: "ESEWA"\|"KHALTI"\|"COD", discountCode?, usePoints?, useCredit?, giftWrap?, express? }` | `{ orderNumber, next: { type: "redirect", url } \| { type: "form", action, fields } \| { type: "done" } }` |
+| GET    | `/api/v1/orders`              | user         | `cursor?, limit?`                                                                                                    | `OrderSummary[]`                                                                                           |
+| GET    | `/api/v1/orders/:orderNumber` | user (owner) | —                                                                                                                    | `OrderDetail`                                                                                              |
 
 `discountCode` (optional, any case; specs/discount-codes.md) is checked on the server inside the order transaction. A code that can't be used answers `VALIDATION_FAILED` with `fields.discountCode` holding the reason ("This code has ended.") and no order is created. Code checks count against the `discount:user` and `discount:ip` rate limits.
+
+`giftWrap` and `express` (optional booleans; specs/member-perks.md) add gift wrapping (priced by tier, free for the Pass) and use one of the member's monthly Express Delivery uses (`VALIDATION_FAILED` with `fields.express` when none is left, the address is outside the Kathmandu Valley and Pokhara, or the buyer is a guest).
+
+`usePoints` and `useCredit` (optional booleans; specs/wallet.md) pay for part of the order with the member's points (1 point = Rs 1, at most 20% of the products' price) and credit. The server works out how much, inside the order transaction, and `totalPaisa` of the order already has it off; nothing is spent if the member doesn't have it (`VALIDATION_FAILED`).
 
 ## Shapes
 
@@ -151,6 +155,10 @@ type OrderItemSnapshot = {
 ```
 
 Address management for the app (list/add/edit) is not part of v1 yet; the app uses the web account pages in the Capacitor shell. The same goes for favourites (`specs/favourites.md`): the app uses the web Favourites page.
+
+## Account (signed in, not part of `/api/v1`)
+
+`GET /api/account/export`: the member's own data as one JSON attachment ("Download my data", Settings > Privacy; `specs/member-area-nike-layout.md`). 401 when signed out, 429 when rate limited. Explicit field selects: no password hash, sessions, tokens or two-factor secrets, and nothing about other members.
 
 ## Not public
 

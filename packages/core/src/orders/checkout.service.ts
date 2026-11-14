@@ -1,16 +1,33 @@
 import "server-only";
-import { db, type PaymentMethod, type Prisma } from "@virzeen/db";
+import { db, type CustomerTier, type PaymentMethod, type Prisma } from "@virzeen/db";
 import { cartService } from "../cart/cart.service";
+import { getCartSummary } from "../cart/cart-summary";
 import { imageForColor } from "../catalog/style-images";
 import { cartLineSelect, isLineAvailable, variantLabelOf } from "../cart/cart-summary";
 import { getCoreConfig } from "../config";
 import { checkDiscount, claimDiscount } from "../discounts/discount.service";
 import { AppError } from "../errors";
+import { memberService } from "../members/member.service";
+import { perksService, type ExpressStatus } from "../members/perks.service";
 import { reserveStock } from "../inventory/stock";
 import { notifications } from "../notifications/notifications";
 import { COD_MAX_TOTAL_PAISA, isCodAvailable } from "../pricing/cod-rules";
-import { calculateSubtotal, calculateTotals, type Totals } from "../pricing/calculate-totals";
-import { DELIVERY_ESTIMATES, shippingZoneFor } from "../pricing/shipping-rates";
+import {
+  applyWalletToTotals,
+  calculateSubtotal,
+  calculateTotals,
+  type Totals,
+} from "../pricing/calculate-totals";
+import { GIFT_WRAP_PAISA, isBirthdayMonth, walletApplication } from "@virzeen/validators/limits";
+import { walletService } from "../wallet/wallet.service";
+import {
+  arrivalWindow,
+  deliveryFeeFor,
+  dispatchPromiseAt,
+  memberDeliverySaving,
+  remainingForFreeDelivery,
+  shippingZoneFor,
+} from "../pricing/shipping-rates";
 import { providerFor } from "../payments/payment.service";
 import type { CheckoutNext } from "../payments/provider";
 import { cancelOrderAndRestock } from "./cancellation";
@@ -22,14 +39,37 @@ import { transitionOrder, transitionPayment } from "./order-state";
 /** How long an online order waits for its payment, holding its stock (owner 2026-11-09, specs/payment-window.md). */
 export const RESERVATION_MINUTES = 15;
 
+/** The address a guest typed (nothing is saved for them; it is copied onto the order). */
+export type GuestAddress = {
+  fullName: string;
+  phone: string;
+  province: string;
+  district: string;
+  city: string;
+  street: string;
+  landmark: string | null;
+};
+
 export type PlaceOrderInput = {
-  userId: string;
+  /** The signed-in customer, or null for a guest checkout (specs/checkout-v2-week1.md). */
+  userId: string | null;
   customerEmail: string;
   cartId: string;
-  addressId: string;
+  /** A member's saved address. */
+  addressId?: string;
+  /** A guest's typed address. Exactly one of `addressId` and `guestAddress` is given. */
+  guestAddress?: GuestAddress;
+  /** Optional note for the rider ("Call at the gate"). */
+  deliveryNotes?: string;
   paymentMethod: PaymentMethod;
   /** Upper-case, as checkoutSchema normalises it. Checked again and claimed inside the order transaction. */
   discountCode?: string;
+  /** Pay with the member's points and/or credit (specs/wallet.md); the amounts are worked out and spent here. */
+  usePoints?: boolean;
+  useCredit?: boolean;
+  /** Gift wrapping (Rs 150 guest, Rs 100 MONO Member, free for the Pass) and Express Delivery (specs/member-perks.md). */
+  giftWrap?: boolean;
+  express?: boolean;
   now?: Date;
 };
 
@@ -38,10 +78,23 @@ export type PlaceOrderResult = { orderNumber: string; next: CheckoutNext };
 export type CheckoutPreview = Totals & {
   /** The code whose discount is in these totals, or null. */
   discountCode: string | null;
-  /** The total without shipping: what the summary shows before an address is chosen. */
-  totalBeforeShippingPaisa: number;
+  tier: CustomerTier;
   zone: "KATHMANDU_VALLEY" | "OUTSIDE_VALLEY";
-  deliveryEstimate: string;
+  /** "Nov 17 to 19": dispatch promise for the tier plus the days on the road. */
+  arrivesBy: string;
+  /** What more the bag needs for free delivery; 0 when it is already free. */
+  freeDeliveryRemainingPaisa: number;
+  /** What a MONO Member would save on delivery for this bag (0 for members and when delivery is free anyway). */
+  memberSavingPaisa: number;
+  /** A Pass member's saving on this bag: the 10% (when no code replaces it) plus the delivery fee a MONO Member would pay. */
+  passSavingPaisa: number;
+  /** The member's points and credit available now (zero for guests); what was applied is in `pointsUsed` and `creditUsedPaisa`. */
+  walletPoints: number;
+  walletCreditPaisa: number;
+  /** What gift wrapping costs this buyer (0 for the Pass); what was chosen is in `giftWrapPaisa`. */
+  giftWrapPricePaisa: number;
+  /** Express Delivery for this buyer and address, with this month's uses. */
+  express: ExpressStatus;
   isCodAvailable: boolean;
   /** null = no limit. */
   codLimitPaisa: number | null;
@@ -66,37 +119,92 @@ async function loadAddress(userId: string, addressId: string) {
 
 export const checkoutService = {
   /**
+   * Whether a MONO account uses this email, for the guest's "Log in to get member prices" banner. The caller
+   * rate-limits it (an answer to "is this email registered?" must not be free to ask in bulk).
+   */
+  async emailHasAccount(email: string): Promise<boolean> {
+    const user = await db.user.findUnique({
+      where: { email: email.trim().toLowerCase() },
+      select: { id: true },
+    });
+    return user !== null;
+  },
+
+  /**
    * Server-calculated totals for the checkout summary (shipping depends on the chosen address). With a discount
    * code, a code that can't be used throws its reason as a field error and nothing changes.
    */
   async preview(input: {
-    userId: string;
+    userId: string | null;
+    /** Guests' once-per-customer discount check. */
+    email?: string;
     cartId: string;
     addressId: string | null;
+    /** A guest's district, once chosen; decides the arrival estimate. */
+    district?: string;
     discountCode?: string;
+    usePoints?: boolean;
+    useCredit?: boolean;
+    giftWrap?: boolean;
     now?: Date;
   }): Promise<CheckoutPreview> {
-    const summary = await cartService.getSummary({ userId: input.userId });
-    const district = input.addressId
-      ? (await loadAddress(input.userId, input.addressId)).district
-      : "Kathmandu";
+    const now = input.now ?? new Date();
+    const tier: CustomerTier = await memberService.tierFor(input.userId, now);
+    const summary = await getCartSummary(db, input.cartId);
+    const district =
+      input.userId && input.addressId
+        ? (await loadAddress(input.userId, input.addressId)).district
+        : (input.district ?? "Kathmandu");
     const zone = shippingZoneFor(district);
     const lines = summary.items.filter((item) => item.isAvailable);
     const discount = input.discountCode
       ? await checkDiscount(db, {
           code: input.discountCode,
           userId: input.userId,
+          ...(input.email ? { email: input.email } : {}),
           subtotalPaisa: calculateSubtotal(lines),
-          now: input.now ?? new Date(),
+          now,
         })
       : null;
-    const totals = calculateTotals(lines, zone, discount);
+    const birthday = await perksService.isBirthdayMonth(input.userId, now);
+    const base = calculateTotals(lines, tier, discount, { birthday, giftWrap: input.giftWrap === true });
+    const express = await perksService.expressStatus({ userId: input.userId, tier, district, now });
+    const wallet = input.userId
+      ? await walletService.balances(input.userId, now)
+      : { points: 0, creditPaisa: 0 };
+    const totals = applyWalletToTotals(
+      base,
+      walletApplication({
+        goodsPayablePaisa: base.subtotalPaisa - base.discountPaisa,
+        totalBeforeWalletPaisa: base.totalPaisa,
+        pointsBalance: wallet.points,
+        creditBalancePaisa: wallet.creditPaisa,
+        usePoints: input.usePoints === true,
+        useCredit: input.useCredit === true,
+      }),
+    );
+    const payable = totals.subtotalPaisa - totals.discountPaisa;
     return {
       ...totals,
       discountCode: discount?.code ?? null,
-      totalBeforeShippingPaisa: totals.totalPaisa - totals.shippingPaisa,
+      tier,
       zone,
-      deliveryEstimate: DELIVERY_ESTIMATES[zone],
+      arrivesBy: arrivalWindow(tier, zone, now),
+      freeDeliveryRemainingPaisa: lines.length === 0 ? 0 : remainingForFreeDelivery(tier, payable),
+      memberSavingPaisa: tier === "GUEST" && lines.length > 0 ? memberDeliverySaving(payable) : 0,
+      passSavingPaisa:
+        tier === "PASS" && lines.length > 0
+          ? (totals.isPassDiscount || totals.isBirthdayDiscount ? totals.discountPaisa : 0) +
+            deliveryFeeFor(
+              "MEMBER",
+              totals.subtotalPaisa -
+                (totals.isPassDiscount || totals.isBirthdayDiscount ? 0 : totals.discountPaisa),
+            )
+          : 0,
+      walletPoints: wallet.points,
+      walletCreditPaisa: wallet.creditPaisa,
+      giftWrapPricePaisa: lines.length === 0 ? 0 : GIFT_WRAP_PAISA[tier],
+      express,
       isCodAvailable: isCodAvailable(totals.totalPaisa),
       codLimitPaisa: COD_MAX_TOTAL_PAISA,
     };
@@ -109,7 +217,13 @@ export const checkoutService = {
   async placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResult> {
     const now = input.now ?? new Date();
     const { logger } = getCoreConfig();
-    const address = await loadAddress(input.userId, input.addressId);
+    const tier: CustomerTier = await memberService.tierFor(input.userId, now);
+    const customerEmail = input.userId ? input.customerEmail : input.customerEmail.trim().toLowerCase();
+    const actor = input.userId ? `customer:${input.userId}` : "guest";
+    let address: GuestAddress;
+    if (input.userId && input.addressId) address = await loadAddress(input.userId, input.addressId);
+    else if (!input.userId && input.guestAddress) address = input.guestAddress;
+    else throw new AppError("VALIDATION_FAILED", "Add a delivery address to continue.");
 
     // 1. Refresh the bag first so the customer sees what changed (committed even though checkout stops).
     const refresh = await cartService.refreshForCheckout(input.cartId);
@@ -153,11 +267,38 @@ export const checkoutService = {
         ? await claimDiscount(tx, {
             code: input.discountCode,
             userId: input.userId,
+            email: customerEmail,
             subtotalPaisa: calculateSubtotal(lines),
             now,
           })
         : null;
-      const totals = calculateTotals(lines, zone, discount);
+      const birthday = input.userId
+        ? isBirthdayMonth(
+            (await tx.user.findUnique({ where: { id: input.userId }, select: { birthday: true } }))?.birthday,
+            now,
+          )
+        : false;
+      const base = calculateTotals(lines, tier, discount, { birthday, giftWrap: input.giftWrap === true });
+      // Express Delivery takes one of the member's uses this month; refused when none is left or the address is out of area.
+      if (input.express) {
+        await perksService.claimExpress(tx, { userId: input.userId, tier, district: address.district, now });
+      }
+      // Points and credit: the member is locked first so two checkouts can't spend the same ones.
+      const balances =
+        input.userId && (input.usePoints || input.useCredit)
+          ? await walletService.lockedBalances(tx, input.userId, now)
+          : { points: 0, creditPaisa: 0 };
+      const totals = applyWalletToTotals(
+        base,
+        walletApplication({
+          goodsPayablePaisa: base.subtotalPaisa - base.discountPaisa,
+          totalBeforeWalletPaisa: base.totalPaisa,
+          pointsBalance: balances.points,
+          creditBalancePaisa: balances.creditPaisa,
+          usePoints: input.usePoints === true,
+          useCredit: input.useCredit === true,
+        }),
+      );
       if (input.paymentMethod === "COD" && !isCodAvailable(totals.totalPaisa)) {
         throw new AppError("VALIDATION_FAILED", "Cash on delivery isn't available for this order total.", {
           fields: { paymentMethod: "Choose eSewa or Khalti for this order" },
@@ -180,11 +321,19 @@ export const checkoutService = {
         data: {
           orderNumber,
           userId: input.userId,
-          customerEmail: input.customerEmail,
+          customerEmail,
+          tier,
+          deliveryNotes: input.deliveryNotes?.trim() || null,
           paymentMethod: input.paymentMethod,
           subtotalPaisa: totals.subtotalPaisa,
           shippingPaisa: totals.shippingPaisa,
           discountPaisa: totals.discountPaisa,
+          pointsUsed: totals.pointsUsed,
+          creditUsedPaisa: totals.creditUsedPaisa,
+          giftWrap: input.giftWrap === true,
+          giftWrapPaisa: totals.giftWrapPaisa,
+          express: input.express === true,
+          dispatchPromisedAt: dispatchPromiseAt(tier, input.express === true, now),
           totalPaisa: totals.totalPaisa,
           discountCodeId: discount?.id ?? null,
           discountCode: discount?.code ?? null,
@@ -208,14 +357,24 @@ export const checkoutService = {
               type: "ORDER_STATUS",
               from: null,
               to: "PENDING",
-              actor: `customer:${input.userId}`,
+              actor,
               reason: "Order placed",
             },
           },
         },
         select: { id: true },
       });
-      const actor = `customer:${input.userId}`;
+      // Points and credit leave the member's wallet in the same transaction as the order (specs/wallet.md).
+      if (input.userId && (totals.pointsUsed > 0 || totals.creditUsedPaisa > 0)) {
+        await walletService.spendForOrder(tx, {
+          userId: input.userId,
+          orderId: order.id,
+          orderNumber,
+          pointsUsed: totals.pointsUsed,
+          creditUsedPaisa: totals.creditUsedPaisa,
+          now,
+        });
+      }
       if (input.paymentMethod === "COD") {
         const payment = await tx.payment.create({
           data: {
@@ -262,7 +421,9 @@ export const checkoutService = {
         {
           orderNumber: created.orderNumber,
           ...created.totals,
-          customer: { name: address.fullName, email: input.customerEmail, phone: address.phone },
+          adjustmentPaisa:
+            created.totals.giftWrapPaisa - created.totals.pointsUsed * 100 - created.totals.creditUsedPaisa,
+          customer: { name: address.fullName, email: customerEmail, phone: address.phone },
         },
         1,
       );
@@ -282,7 +443,7 @@ export const checkoutService = {
           orderId: created.orderId,
           paymentId: payment.id,
           to: "PENDING",
-          actor: `customer:${input.userId}`,
+          actor,
           reason: `Sent to ${input.paymentMethod}`,
         });
       });

@@ -4,13 +4,12 @@ import { checkoutFixture, createUser, resetDatabase } from "../../test/factories
 import { json, mockProvider, sentEmails, TEST_ESEWA } from "../../test/setup";
 import { checkoutService } from "../orders/checkout.service";
 import { orderService } from "../orders/orders.service";
-import { SHIPPING_RATES_PAISA } from "../pricing/shipping-rates";
 import { signEsewa } from "./esewa";
 import { paymentService } from "./payment.service";
 import { reconcilePayments } from "./reconcile";
 
 // The fixture order: one Rs 4,500 item delivered inside the valley.
-const TOTAL_PAISA = 450_000 + SHIPPING_RATES_PAISA.KATHMANDU_VALLEY;
+const TOTAL_PAISA = 450_000 + 0;
 const TOTAL_RUPEES = TOTAL_PAISA / 100;
 
 const PLACED_AT = new Date("2026-09-28T06:00:00Z");
@@ -890,7 +889,7 @@ describe("admin: Mark paid and refunds when an order has several attempts", () =
   });
 
   it("a second payment is refunded on its own attempt; Record refund on the order marks the attempt that paid it", async () => {
-    const { orderNumber, payment, second, admin } = await twoOpenAttempts();
+    const { orderNumber, payment, second, admin, user } = await twoOpenAttempts();
     await orderService.markPaidManually(admin.id, orderNumber, payment.id, "eSewa ref 000AWEO");
     mockProvider(() =>
       json({ pidx: "PIDX2", status: "Completed", total_amount: TOTAL_PAISA, transaction_id: "T2" }),
@@ -919,8 +918,7 @@ describe("admin: Mark paid and refunds when an order has several attempts", () =
     );
     expect(await orderState(orderNumber)).toMatchObject({ status: "CANCELLED", paymentStatus: "REFUNDED" });
     // An admin-cancelled paid order is an ordinary refund, not a late payment.
-    const user = await db.order.findUniqueOrThrow({ where: { orderNumber }, select: { userId: true } });
-    expect(await orderService.getForUser(user.userId, orderNumber)).toMatchObject({ latePayment: null });
+    expect(await orderService.getForUser(user.id, orderNumber)).toMatchObject({ latePayment: null });
   });
 });
 

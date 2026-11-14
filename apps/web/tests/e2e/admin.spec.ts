@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
-import { E2E_ADMIN_EMAIL } from "./env";
-import { completeEmailSignIn, signIn, totp, uniqueEmail } from "./helpers";
+import { createDbClient } from "@virzeen/db";
+import { E2E_ADMIN_EMAIL, E2E_DATABASE_URL } from "./env";
+import { completeEmailSignIn, createMember, signIn, totp, uniqueEmail } from "./helpers";
 
 // Journeys 6–7 (testing-strategy.md §2) plus the admin TOTP step-up (security-policy.md §2).
 
@@ -204,13 +205,13 @@ test("admin sets up two-factor, builds a product on its page and it appears in t
   const price = page.getByRole("textbox", { name: "Price (Rs)", exact: true });
   await price.fill("1650");
   await price.press("Enter");
-  await expect(page.getByText(/Customers pay Rs 1,650/)).toBeVisible();
+  await expect(page.getByText(/Customers pay रु 1,650/)).toBeVisible();
   await page.getByLabel("Stock, Mountain print, S", { exact: true }).fill("3");
   await page.getByLabel("Stock, Mountain print, S", { exact: true }).press("Tab");
   await expectSaved(page);
   // Back to Black: its own price and stock.
   await page.getByRole("radio", { name: "Black", exact: true }).click();
-  await expect(page.getByText(/Customers pay Rs 1,350/)).toBeVisible();
+  await expect(page.getByText(/Customers pay रु 1,350/)).toBeVisible();
   await expect(page.getByLabel("Stock, Black, M", { exact: true })).toHaveValue("7");
 
   // The product details popup's lists, in the box right under "View product details" (one per line).
@@ -353,7 +354,7 @@ test("admin sets up two-factor, builds a product on its page and it appears in t
   await page.getByRole("link", { name: /E2E Monochrome Beanie/ }).click();
   await expect(page).toHaveURL(/\/product\/e2e-monochrome-beanie/);
   await expect(page.getByRole("heading", { level: 1, name: "E2E Monochrome Beanie" })).toBeVisible();
-  await expect(page.getByText("Rs 1,350").first()).toBeVisible();
+  await expect(page.getByText("रु 1,350").first()).toBeVisible();
   await expect(page.getByText("Colour shown: Black/White")).toBeVisible();
   await expect(page.getByText(/^Style: VZ\d{4,}-101$/)).toBeVisible();
   await expect(page.getByText("Country/Region of origin: China")).toBeVisible();
@@ -383,7 +384,7 @@ test("admin sets up two-factor, builds a product on its page and it appears in t
   await expect(page.getByText("Colour shown: Mountain print")).toBeVisible();
   await expect(page.getByText(/^Style: VZ\d{4,}-102$/)).toBeVisible();
   await expect(page.locator('main img[src*="product-02"]').first()).toBeVisible();
-  await expect(page.getByText("Rs 1,650").first()).toBeVisible();
+  await expect(page.getByText("रु 1,650").first()).toBeVisible();
   // Mountain print M has no stock: struck through but pickable, for "Notify me" (specs/notify-me.md).
   await expect(page.getByRole("radio", { name: "M, sold out", exact: true })).toHaveAttribute(
     "data-unavailable",
@@ -394,6 +395,22 @@ test("admin sets up two-factor, builds a product on its page and it appears in t
   await page.getByRole("link", { name: /^Drafts \(\d+\)$/ }).click();
   await expect(page.getByRole("link", { name: /E2E Monochrome Beanie/ })).toBeHidden();
   await page.getByRole("link", { name: /^All \(\d+\)$/ }).click();
+
+  // Early access (specs/member-perks.md): set the time the public may see a product, the list says so, then clear it.
+  await page.getByRole("button", { name: "Early access for E2E Monochrome Beanie" }).click();
+  const earlyDialog = page.getByRole("dialog", { name: "Early access" });
+  const dayAhead = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  const localValue = new Date(dayAhead.getTime() - dayAhead.getTimezoneOffset() * 60_000)
+    .toISOString()
+    .slice(0, 16);
+  await earlyDialog.getByLabel("Public from").fill(localValue);
+  await earlyDialog.getByRole("button", { name: "Save" }).click();
+  const beanieRow = page.getByRole("row").filter({ hasText: "E2E Monochrome Beanie" });
+  await expect(beanieRow.first()).toContainText("Public ");
+  await page.getByRole("button", { name: "Early access for E2E Monochrome Beanie" }).click();
+  await earlyDialog.getByRole("button", { name: "Clear" }).click();
+  await expect(beanieRow.first()).not.toContainText("Public ");
+
   await page.getByRole("button", { name: "Duplicate E2E Monochrome Beanie" }).click();
   await expect(page.getByText("Copy saved as a draft")).toBeVisible();
   await expect(page.getByRole("heading", { level: 1, name: "E2E Monochrome Beanie (copy)" })).toBeVisible();
@@ -423,7 +440,7 @@ test("admin sets up two-factor, builds a product on its page and it appears in t
   await expect(page.getByText("Discount code saved")).toBeVisible();
   const codeRow = page.getByRole("listitem").filter({ hasText: "E2E-ADMIN15" });
   await expect(codeRow).toContainText("15% off");
-  await expect(codeRow).toContainText("Min Rs 1,000");
+  await expect(codeRow).toContainText("Min रु 1,000");
   await expect(codeRow).toContainText("0 used");
   await expect(codeRow.getByText("Active", { exact: true })).toBeVisible();
   await addCode.getByLabel(/^Code/).fill("E2E-Admin15");
@@ -437,6 +454,113 @@ test("admin sets up two-factor, builds a product on its page and it appears in t
   await editCode.getByRole("button", { name: "Save" }).click();
   await expect(codeRow.getByText("Off", { exact: true })).toBeVisible();
   await expect(codeRow.getByRole("button", { name: "Edit E2E-ADMIN15" })).toBeFocused();
+
+  // Customers (specs/membership-portal.md): find one, give them the Monochrome Pass, then end it.
+  const passCustomer = uniqueEmail("passcust");
+  await createMember(passCustomer);
+  await page.getByRole("navigation", { name: "Admin" }).getByRole("link", { name: "Customers" }).click();
+  await page.getByLabel("Search customers by email or name").fill(passCustomer);
+  await page.getByRole("button", { name: "Search" }).click();
+  const customerRow = page.getByRole("row").filter({ hasText: passCustomer });
+  await expect(customerRow).toContainText("MONO Member");
+  const manage = customerRow.getByRole("button", { name: /Manage the Pass for/ });
+  await manage.click();
+  const passDialog = page.getByRole("dialog", { name: "Monochrome Pass" });
+  await passDialog.getByRole("button", { name: "Give 6 months" }).click();
+  await expect(customerRow).toContainText("Pass until");
+  await manage.click();
+  await expect(passDialog.getByRole("button", { name: "Add 1 year" })).toBeVisible();
+  await passDialog.getByRole("button", { name: "End Pass" }).click();
+  await expect(customerRow).toContainText("MONO Member");
+
+  // Wallet: add credit with a reason; it shows in the list.
+  await customerRow.getByRole("button", { name: /Add credit or points for/ }).click();
+  const walletDialog = page.getByRole("dialog", { name: "Add credit or points" });
+  await walletDialog.getByLabel(/^Amount \(Rs\)/).fill("250");
+  await walletDialog.getByLabel(/^Reason/).fill("Goodwill");
+  await walletDialog.getByRole("button", { name: "Add", exact: true }).click();
+  await expect(customerRow).toContainText("रु 250");
+
+  // Referrals (specs/member-perks.md): the page lists friends who joined with a member's code.
+  await page.getByRole("navigation", { name: "Admin" }).getByRole("link", { name: "Referrals" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Referrals" })).toBeVisible();
+  await expect(
+    page.getByRole("table", { name: "Referrals" }).or(page.getByText("No referrals yet.")),
+  ).toBeVisible();
+
+  // Dispatch promise (specs/member-perks.md): an Express order still to leave and a Pass order past its promise. The
+  // dashboard counts them, their lists show "Due in" and "Late by", and the late Pass order earns Rs 100 credit.
+  const promiseDb = createDbClient(E2E_DATABASE_URL);
+  try {
+    const owner = await promiseDb.user.findUniqueOrThrow({
+      where: { email: passCustomer },
+      select: { id: true },
+    });
+    const base = {
+      userId: owner.id,
+      customerEmail: passCustomer,
+      paymentMethod: "COD" as const,
+      paymentStatus: "COD_DUE" as const,
+      status: "CONFIRMED" as const,
+      subtotalPaisa: 100_000,
+      shippingPaisa: 0,
+      totalPaisa: 100_000,
+      shippingZone: "KATHMANDU_VALLEY" as const,
+      addressSnapshot: {},
+    };
+    await promiseDb.order.create({
+      data: {
+        ...base,
+        orderNumber: "VZ-261113-7001",
+        express: true,
+        dispatchPromisedAt: new Date(Date.now() + 2 * 60 * 60 * 1000),
+      },
+    });
+    await promiseDb.order.create({
+      data: {
+        ...base,
+        orderNumber: "VZ-261113-7002",
+        tier: "PASS",
+        dispatchPromisedAt: new Date(Date.now() - 3 * 60 * 60 * 1000),
+      },
+    });
+  } finally {
+    await promiseDb.$disconnect();
+  }
+  await page.goto("/admin");
+  const expressTile = page
+    .locator("div")
+    .filter({ hasText: /^Express waiting/ })
+    .last();
+  await expect(expressTile).toContainText("1");
+  await page.goto("/admin/orders?view=express");
+  await expect(page.getByTestId("orders-view")).toContainText("Express orders still to leave");
+  const expressRow = page.getByRole("row").filter({ hasText: "VZ-261113-7001" });
+  await expect(expressRow).toContainText("Express");
+  await expect(expressRow).toContainText("Due in");
+  await page.goto("/admin/orders?view=late");
+  await expect(page.getByRole("row").filter({ hasText: "VZ-261113-7002" })).toContainText("Late by");
+  // Opening the orders gave the late Pass order's credit: रु 250 + रु 100.
+  await page.getByRole("navigation", { name: "Admin" }).getByRole("link", { name: "Customers" }).click();
+  await page.getByLabel("Search customers by email or name").fill(passCustomer);
+  await page.getByRole("button", { name: "Search" }).click();
+  await expect(page.getByRole("row").filter({ hasText: passCustomer })).toContainText("रु 350");
+
+  // Collections: a festival sale can open to members first (specs/member-perks.md): the list shows its public time.
+  await page.getByRole("navigation", { name: "Admin" }).getByRole("link", { name: "Collections" }).click();
+  const festival = page.getByRole("form", { name: "Add a collection" });
+  await festival.getByLabel(/^Name/).fill("E2E Festival");
+  const weekAhead = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  await festival
+    .getByLabel("Public from")
+    .fill(new Date(weekAhead.getTime() - weekAhead.getTimezoneOffset() * 60_000).toISOString().slice(0, 16));
+  await festival.getByRole("button", { name: "Add collection" }).click();
+  await expect(page.getByRole("listitem").filter({ hasText: "E2E Festival" })).toContainText("Public from");
+  const guestView = await page.context().browser()!.newContext();
+  const guestPage = await guestView.newPage();
+  await guestPage.goto("/collections/e2e-festival");
+  await expect(guestPage.getByRole("heading", { name: "E2E Festival" })).toHaveCount(0);
+  await guestView.close();
 
   // A mistyped admin address stays inside the admin frame, with a way back.
   await page.goto("/admin/no-such-page");

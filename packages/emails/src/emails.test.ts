@@ -10,9 +10,9 @@ import {
 
 describe("formatPaisa", () => {
   it("formats paisa as rupees with Indian grouping", () => {
-    expect(formatPaisa(125_000)).toBe("Rs 1,250");
-    expect(formatPaisa(12_500_000)).toBe("Rs 1,25,000");
-    expect(formatPaisa(125_050)).toBe("Rs 1,250.50");
+    expect(formatPaisa(125_000)).toBe("रु 1,250");
+    expect(formatPaisa(12_500_000)).toBe("रु 1,25,000");
+    expect(formatPaisa(125_050)).toBe("रु 1,250.50");
   });
 });
 
@@ -112,7 +112,7 @@ describe("renderOrderConfirmationEmail", () => {
     });
     expect(email.subject).toBe("Order VZ-260928-0042 confirmed");
     expect(email.text).toContain("Linen Overshirt");
-    expect(email.text).toContain("Rs 4,600");
+    expect(email.text).toContain("रु 4,600");
     expect(email.html).toContain("28 Sep 2026");
     // Order emails carry a Reply-To (sales@), so they invite replies; same frame as every email.
     expect(email.text).toContain("Questions? Reply to this email");
@@ -122,7 +122,7 @@ describe("renderOrderConfirmationEmail", () => {
     expect(email.text).not.toContain("Discount");
   });
 
-  it("shows a discount code's line between shipping and the total", async () => {
+  it("shows a discount code's line between delivery and the total", async () => {
     const email = await renderOrderConfirmationEmail({
       siteUrl: "https://virzeen.com",
       orderNumber: "VZ-260928-0043",
@@ -154,7 +154,7 @@ describe("renderOrderConfirmationEmail", () => {
       },
     });
     expect(email.text).toMatch(
-      /Shipping[\s\S]*Discount \(WELCOME10\)[\s\S]*−Rs 450[\s\S]*Total[\s\S]*Rs 4,050/,
+      /Delivery[\s\S]*Discount \(WELCOME10\)[\s\S]*−रु 450[\s\S]*Total[\s\S]*रु 4,050/,
     );
   });
 });
@@ -184,7 +184,7 @@ describe("renderPaymentReminderEmail", () => {
       payBy: new Date("2026-11-10T09:30:00Z"), // 3:15 PM in Nepal
     });
     expect(email.subject).toBe("Your order VZ-261110-0042 is waiting for payment");
-    expect(email.text).toContain("pay by 3:15 PM to keep order VZ-261110-0042 (Rs 4,500)");
+    expect(email.text).toContain("pay by 3:15 PM to keep order VZ-261110-0042 (रु 4,500)");
     expect(email.html).toContain('href="https://virzeen.com/account/orders/VZ-261110-0042"');
   });
 });

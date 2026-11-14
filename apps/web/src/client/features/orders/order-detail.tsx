@@ -14,6 +14,12 @@ export type OrderDetailView = {
   /** Discount code money off (0 without one) and the code as applied (specs/discount-codes.md). */
   discountPaisa: number;
   discountCode: string | null;
+  /** Gift wrapping asked for and its price (0 for the Pass), and Express Delivery (specs/member-perks.md). */
+  giftWrap?: boolean;
+  giftWrapPaisa?: number;
+  express?: boolean;
+  /** When the order should leave us; shown until it is shipped. */
+  dispatchPromisedAt?: Date | null;
   totalPaisa: number;
   courierName: string | null;
   trackingNumber: string | null;
@@ -58,6 +64,11 @@ export function OrderDetail({ order, reviewLinks = false }: OrderDetailProps) {
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant={status.variant}>{status.label}</Badge>
           <Badge variant={payment.variant}>{payment.label}</Badge>
+          {order.express && <Badge>Express</Badge>}
+          {order.dispatchPromisedAt && ["CONFIRMED", "PROCESSING"].includes(order.status) && (
+            <Badge data-testid="dispatch-promise">Ships by {formatDateTime(order.dispatchPromisedAt)}</Badge>
+          )}
+          {order.giftWrap && <Badge>Gift wrap</Badge>}
           <span className="text-small text-ink-muted">Placed {formatDateTime(order.createdAt)}</span>
         </div>
 
@@ -128,7 +139,7 @@ export function OrderDetail({ order, reviewLinks = false }: OrderDetailProps) {
             <Price paisa={order.subtotalPaisa} />
           </div>
           <div className="flex justify-between text-body">
-            <span>Shipping</span>
+            <span>Delivery</span>
             <ShippingPrice paisa={order.shippingPaisa} />
           </div>
           {order.discountPaisa > 0 && (
@@ -139,6 +150,12 @@ export function OrderDetail({ order, reviewLinks = false }: OrderDetailProps) {
               <span className="whitespace-nowrap">
                 −<Price paisa={order.discountPaisa} />
               </span>
+            </div>
+          )}
+          {order.giftWrap && (
+            <div className="flex justify-between text-body" data-testid="order-gift-wrap">
+              <span>Gift wrapping</span>
+              {order.giftWrapPaisa ? <Price paisa={order.giftWrapPaisa} /> : <span>Free</span>}
             </div>
           )}
           <Separator />

@@ -6,10 +6,10 @@ const fractionalRupees = new Intl.NumberFormat("en-IN", {
   maximumFractionDigits: 2,
 });
 
-/** 125000 paisa → "Rs 1,250"; 125050 → "Rs 1,250.50" (docs/ui/content-style.md "Formatting"). */
+/** 125000 paisa → "रु 1,250"; 125050 → "रु 1,250.50" (docs/ui/content-style.md "Formatting"). */
 export function formatPaisa(paisa: number): string {
   const format = paisa % 100 === 0 ? wholeRupees : fractionalRupees;
-  return `Rs ${format.format(paisa / 100)}`;
+  return `रु ${format.format(paisa / 100)}`;
 }
 
 // Fixed month names: ICU versions disagree on "Sep" vs "Sept".

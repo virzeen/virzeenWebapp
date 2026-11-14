@@ -59,6 +59,19 @@ export {
   type PlaceOrderResult,
 } from "./orders/checkout.service";
 export { ORDER_TRANSITIONS, PAYMENT_TRANSITIONS } from "./orders/order-state";
+export { walletService, type WalletBalances, type WalletSummary } from "./wallet/wallet.service";
+export {
+  interestService,
+  RECOMMENDATIONS_SHOWN,
+  type InterestChoice,
+  type MemberInterests,
+  type PickOption,
+  type PickOptions,
+} from "./members/interest.service";
+export { memberService, type SignupProfile } from "./members/member.service";
+export { perksService, type ExpressStatus } from "./members/perks.service";
+export { settingsService, type MemberSettings } from "./members/settings.service";
+export { referralService, type ReferralSummary } from "./members/referral.service";
 export { orderService, type AddressSnapshot, type OrderDetail } from "./orders/orders.service";
 export { paymentService, type VerifyOutcome, type VerifyResult } from "./payments/payment.service";
 export type { CheckoutNext } from "./payments/provider";
@@ -66,4 +79,11 @@ export { reconcilePayments, type ReconcileSummary } from "./payments/reconcile";
 export { portfolioService } from "./portfolio/portfolio.service";
 export { COD_MAX_TOTAL_PAISA, isCodAvailable } from "./pricing/cod-rules";
 export { calculateTotals, vatIncluded } from "./pricing/calculate-totals";
-export { DELIVERY_ESTIMATES, SHIPPING_RATES_PAISA, shippingZoneFor } from "./pricing/shipping-rates";
+export {
+  arrivalWindow,
+  DELIVERY_FEES,
+  deliveryFeeFor,
+  memberDeliverySaving,
+  remainingForFreeDelivery,
+  shippingZoneFor,
+} from "./pricing/shipping-rates";
