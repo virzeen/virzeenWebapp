@@ -33,7 +33,7 @@ export function visibleProductWhere(earlyHours = 0, now: Date = new Date()): Pri
  * A collection a shopper may see: early access works like a product's (specs/member-perks.md). A collection with a
  * public time in the future is hidden unless `earlyHours` brings it in range.
  */
-function collectionVisible(earlyHours: number, now: Date = new Date()): Prisma.CollectionWhereInput {
+export function collectionVisible(earlyHours: number, now: Date = new Date()): Prisma.CollectionWhereInput {
   return {
     OR: [{ publicAt: null }, { publicAt: { lte: new Date(now.getTime() + earlyHours * 3_600_000) } }],
   };

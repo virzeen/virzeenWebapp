@@ -8,6 +8,9 @@ export const MAX_QTY_PER_LINE = 10;
 /** Most favourites one account (or one browser) keeps. */
 export const MAX_FAVOURITES = 100;
 
+/** Interests a member can keep (categories and collections each; specs/member-area-nike-layout.md). */
+export const MAX_INTERESTS = 12;
+
 /** Most "Notify me when it's back" requests one account keeps waiting (specs/notify-me.md). */
 export const MAX_STOCK_ALERTS = 20;
 

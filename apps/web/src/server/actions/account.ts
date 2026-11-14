@@ -1,14 +1,24 @@
 "use server";
 
 import "server-only";
-import { addressService, memberService, referralService } from "@virzeen/core";
+import {
+  addressService,
+  interestService,
+  memberService,
+  referralService,
+  settingsService,
+} from "@virzeen/core";
 import {
   addressIdSchema,
   addressSchema,
   birthdaySchema,
+  communicationSchema,
   idSchema,
+  interestsSchema,
   profileSchema,
   referralCodeSchema,
+  reviewNameSchema,
+  shopPreferencesSchema,
 } from "@virzeen/validators";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
@@ -77,6 +87,50 @@ export async function setBirthdayAction(input: unknown) {
     const { birthday } = birthdaySchema.parse(input);
     await memberService.setBirthday(user.id, birthday);
     revalidatePath("/account/membership");
+    return { saved: true };
+  });
+}
+
+/** Profile, Interests: the member's categories and collections, replaced by this set (specs/member-area-nike-layout.md). */
+export async function saveInterestsAction(input: unknown) {
+  return runAction("saveInterests", async () => {
+    const user = await requireUser();
+    await rateLimit("account", `user:${user.id}`);
+    await interestService.save(user.id, interestsSchema.parse(input));
+    revalidatePath("/account");
+    return { saved: true };
+  });
+}
+
+/** Settings, Shop preferences. */
+export async function saveShopPreferencesAction(input: unknown) {
+  return runAction("saveShopPreferences", async () => {
+    const user = await requireUser();
+    await rateLimit("account", `user:${user.id}`);
+    await settingsService.saveShopPreferences(user.id, shopPreferencesSchema.parse(input));
+    revalidatePath("/account/settings/shop-preferences");
+    return { saved: true };
+  });
+}
+
+/** Settings, Communication preferences: the marketing email tick. */
+export async function saveCommunicationAction(input: unknown) {
+  return runAction("saveCommunication", async () => {
+    const user = await requireUser();
+    await rateLimit("account", `user:${user.id}`);
+    await settingsService.saveCommunication(user.id, communicationSchema.parse(input));
+    revalidatePath("/account/settings/communication-preferences");
+    return { saved: true };
+  });
+}
+
+/** Settings, Profile visibility: the name a product review shows. */
+export async function saveReviewNameAction(input: unknown) {
+  return runAction("saveReviewName", async () => {
+    const user = await requireUser();
+    await rateLimit("account", `user:${user.id}`);
+    await settingsService.saveReviewName(user.id, reviewNameSchema.parse(input));
+    revalidatePath("/account/settings/profile-visibility");
     return { saved: true };
   });
 }

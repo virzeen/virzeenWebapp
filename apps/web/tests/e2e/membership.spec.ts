@@ -23,7 +23,7 @@ test("a free MONO Member sees their card, and the Pass offer in the portal", asy
 
   // The profile holds the membership (owner 2026-11-13): the points card, then the benefits as a row of cards.
   await expect(page.getByTestId("wallet-panel")).toBeVisible();
-  const benefits = page.getByRole("region", { name: "Membership benefits" });
+  const benefits = page.getByRole("region", { name: "Member Benefits" });
   await expect(benefits.getByTestId("benefit-card")).toHaveCount(6);
   await expect(page.getByTestId("perk-express")).toHaveCount(0);
   await expect(page.getByTestId("member-highlights")).toHaveCount(0);
@@ -53,9 +53,9 @@ test("a Monochrome Pass member sees the black card and no offer", async ({ page 
   await grantPass(email, new Date("2027-05-10T00:00:00.000Z"));
   await page.goto("/account");
 
-  await expect(
-    page.getByRole("region", { name: "Membership benefits" }).getByTestId("benefit-card"),
-  ).toHaveCount(6);
+  await expect(page.getByRole("region", { name: "Member Benefits" }).getByTestId("benefit-card")).toHaveCount(
+    6,
+  );
   await expect(page.getByTestId("wallet-panel")).toBeVisible();
 
   // A benefit's page shows the member's own card for it: a Pass member has 3 Express Deliveries a month.

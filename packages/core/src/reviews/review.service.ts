@@ -17,7 +17,7 @@ export type ReviewView = {
   title: string;
   body: string;
   variantLabel: string;
-  /** The reviewer's first name only (privacy), "Customer" without one. */
+  /** The name the reviewer chose to show (first name by default, Settings > Profile visibility). */
   authorName: string;
   createdAt: Date;
 };
@@ -27,6 +27,13 @@ export type ReviewSummary = { count: number; average: number | null };
 
 export const firstName = (name: string | null) => name?.trim().split(/\s+/)[0] || "Customer";
 
+/** The name a review shows, by the member's Profile visibility choice (Settings): first name unless they chose otherwise. */
+export function authorLabel(name: string | null, style: "FIRST_NAME" | "FULL_NAME" | "ANONYMOUS"): string {
+  if (style === "ANONYMOUS") return "Anonymous";
+  if (style === "FULL_NAME") return name?.trim().replace(/\s+/g, " ") || "Customer";
+  return firstName(name);
+}
+
 const reviewSelect = {
   id: true,
   rating: true,
@@ -34,7 +41,7 @@ const reviewSelect = {
   body: true,
   variantLabel: true,
   createdAt: true,
-  user: { select: { name: true } },
+  user: { select: { name: true, reviewNameStyle: true } },
 } as const;
 
 /** The customer's latest delivered order line for the product, or null: what makes them able to review it. */
@@ -66,7 +73,10 @@ export const reviewService = {
       orderBy: [{ createdAt: "desc" }, { id: "asc" }],
       take: limit,
     });
-    return rows.map(({ user, ...row }) => ({ ...row, authorName: firstName(user.name) }));
+    return rows.map(({ user, ...row }) => ({
+      ...row,
+      authorName: authorLabel(user.name, user.reviewNameStyle),
+    }));
   },
 
   /** The review page: the product (published), whether this customer may review it, and their review if any. */

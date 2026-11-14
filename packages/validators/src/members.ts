@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { idSchema } from "./common";
+import { MAX_INTERESTS } from "./limits";
 
 /** Admin: give a customer the Monochrome Pass for 6 or 12 months (a running Pass is extended). */
 export const grantPassSchema = z.strictObject({
@@ -54,3 +55,32 @@ export const setPublicAtSchema = z.strictObject({
   publicAt: z.iso.datetime({ error: "Enter a valid date and time" }).nullable(),
 });
 export type SetPublicAtInput = z.infer<typeof setPublicAtSchema>;
+
+/** Interests (specs/member-area-nike-layout.md): the categories and collections a member likes. A save replaces the set. */
+export const interestsSchema = z.strictObject({
+  categoryIds: z.array(idSchema).max(MAX_INTERESTS, { error: `Choose up to ${MAX_INTERESTS}` }),
+  collectionIds: z.array(idSchema).max(MAX_INTERESTS, { error: `Choose up to ${MAX_INTERESTS}` }),
+});
+export type InterestsInput = z.infer<typeof interestsSchema>;
+
+/** The clothing sizes a member can keep as their own (Settings, Shop preferences). */
+export const CLOTHING_SIZES = ["XS", "S", "M", "L", "XL", "XXL"] as const;
+
+/** Settings, Shop preferences: what they shop for, the size to pre-select ("" = none) and the unit of measure. */
+export const shopPreferencesSchema = z.strictObject({
+  preference: z.enum(["HOME", "CLOTHING", "BOTH"], { error: "Choose what you shop for" }),
+  size: z.union([z.enum(CLOTHING_SIZES), z.literal("")]),
+  unit: z.enum(["METRIC", "IMPERIAL"], { error: "Choose a unit" }),
+});
+export type ShopPreferencesInput = z.infer<typeof shopPreferencesSchema>;
+
+/** Settings, Communication preferences: the marketing email tick. */
+export const communicationSchema = z.strictObject({ marketingOptIn: z.boolean() });
+export type CommunicationInput = z.infer<typeof communicationSchema>;
+
+/** Settings, Profile visibility: the name a product review shows. */
+export const REVIEW_NAME_STYLES = ["FIRST_NAME", "FULL_NAME", "ANONYMOUS"] as const;
+export const reviewNameSchema = z.strictObject({
+  style: z.enum(REVIEW_NAME_STYLES, { error: "Choose how your name shows" }),
+});
+export type ReviewNameInput = z.infer<typeof reviewNameSchema>;

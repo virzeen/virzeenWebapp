@@ -5,11 +5,13 @@ import {
   catalogReads,
   walletService,
   favouriteService,
+  interestService,
   memberService,
   orderService,
   perksService,
   referralService,
   reviewService,
+  settingsService,
   stockAlertService,
   variantPath,
   type FavouriteItem,
@@ -88,3 +90,16 @@ export async function getMyOrder(userId: string, orderNumber: string) {
 }
 
 export type MyOrder = NonNullable<Awaited<ReturnType<typeof getMyOrder>>>;
+
+/** Interests (the profile's "Interests" block): the member's saved categories and collections. */
+export const getMyInterests = (userId: string) => interestService.list(userId);
+/** What the member can choose from in the Interests dialog (collections in early access included for them). */
+export const getInterestOptions = async (userId: string) =>
+  interestService.options(EARLY_ACCESS_HOURS[await tierFor(userId)]);
+/** "Find your next favourite": by the member's interests, never a product they may not see. */
+export const getMyRecommendations = async (userId: string) =>
+  interestService.recommendations(userId, EARLY_ACCESS_HOURS[await tierFor(userId)]);
+/** Settings: shop preferences, the email tick and the name shown on reviews. */
+export const getMySettings = (userId: string) => settingsService.get(userId);
+/** Settings, Linked accounts: provider names only ("google"). */
+export const getMyLinkedProviders = (userId: string) => settingsService.linkedProviders(userId);

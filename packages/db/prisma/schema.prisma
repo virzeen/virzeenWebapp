@@ -101,6 +101,18 @@ enum ShoppingPreference {
   BOTH
 }
 
+/// Settings (specs/member-area-nike-layout.md): the unit shown in size guides and the name shown on product reviews.
+enum MeasureUnit {
+  METRIC
+  IMPERIAL
+}
+
+enum ReviewNameStyle {
+  FIRST_NAME
+  FULL_NAME
+  ANONYMOUS
+}
+
 model User {
   id                 String              @id
   name               String
@@ -113,6 +125,11 @@ model User {
   shoppingPreference ShoppingPreference?
   birthday           DateTime?           @db.Date
   marketingOptIn     Boolean             @default(false)
+  /// Shop preferences (Settings): the clothing size to pre-select and the unit for measurements.
+  preferredSize      String?
+  measureUnit        MeasureUnit         @default(METRIC)
+  /// Profile visibility (Settings): what a product review shows as its author. First name is how reviews always read.
+  reviewNameStyle    ReviewNameStyle     @default(FIRST_NAME)
   termsAcceptedAt    DateTime?
   /// Monochrome Pass: active while `passEndsAt` is in the future (specs/membership-portal.md). Granted by `pnpm admin pass`
   /// until the Pass can be bought online.
@@ -132,6 +149,7 @@ model User {
   referralsMade      Referral[]          @relation("Referrer")
   referredBy         Referral?           @relation("Referred")
   reviews            Review[]
+  interests          MemberInterest[]
   stockAlerts        StockAlert[]
   cart               Cart?
   orders             Order[]
@@ -278,6 +296,23 @@ model Favourite {
   @@index([productId])
 }
 
+/// A category or collection a member likes (profile "Interests", specs/member-area-nike-layout.md): exactly one of the
+/// two ids is set (the service checks it). Chooses the products in "Find your next favourite".
+model MemberInterest {
+  id           String      @id @default(cuid(2))
+  userId       String
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId   String?
+  category     Category?   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  collectionId String?
+  collection   Collection? @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  createdAt    DateTime    @default(now())
+
+  @@unique([userId, categoryId])
+  @@unique([userId, collectionId])
+  @@index([userId, createdAt])
+}
+
 /// A customer's review of a product they received (specs/reviews.md). One per customer and product; editable.
 model Review {
   id           String    @id @default(cuid(2))
@@ -311,6 +346,7 @@ model Category {
   sortOrder  Int       @default(0)
   archivedAt DateTime?
   products   Product[]
+  interests  MemberInterest[]
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
@@ -328,6 +364,7 @@ model Collection {
   publicAt    DateTime?
   archivedAt  DateTime?
   products    Product[]
+  interests   MemberInterest[]
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 

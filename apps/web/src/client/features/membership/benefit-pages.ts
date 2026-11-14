@@ -33,8 +33,6 @@ export type PerkId = "express" | "birthday" | "early" | "gift-wrap" | "referral"
 export type BenefitPage = {
   slug: string;
   title: string;
-  /** One short line under the title on the profile's cards. */
-  caption: string;
   /** Two or three sentences under the h1. */
   intro: string;
   feature: {
@@ -57,7 +55,6 @@ export const BENEFIT_PAGES: readonly BenefitPage[] = [
   {
     slug: "express-delivery",
     title: "Express Delivery",
-    caption: `${EXPRESS_PER_MONTH.MEMBER} a month, ${EXPRESS_PER_MONTH.PASS} with the Pass`,
     intro: `Order between 9 AM and 6 PM Nepal time and we pack and hand it over to the courier within 3 hours in Kathmandu Valley and Pokhara. Order later and it leaves by 11 AM the next day. MONO Members get ${EXPRESS_PER_MONTH.MEMBER} Express Delivery a month, the Monochrome Pass ${EXPRESS_PER_MONTH.PASS}. There is no fee.`,
     feature: {
       title: "Pick it at checkout",
@@ -84,7 +81,6 @@ export const BENEFIT_PAGES: readonly BenefitPage[] = [
   {
     slug: "birthday-reward",
     title: "Birthday reward",
-    caption: `${BIRTHDAY_DISCOUNT_PERCENT.MEMBER}% off, ${BIRTHDAY_DISCOUNT_PERCENT.PASS}% with the Pass`,
     intro: `In your birthday month your order is ${BIRTHDAY_DISCOUNT_PERCENT.MEMBER}% off, or ${BIRTHDAY_DISCOUNT_PERCENT.PASS}% off with the Monochrome Pass. It is applied for you at checkout; there is no code to type.`,
     feature: {
       title: "Tell us your birthday",
@@ -99,7 +95,6 @@ export const BENEFIT_PAGES: readonly BenefitPage[] = [
   {
     slug: "early-access",
     title: "Early access",
-    caption: `${EARLY_ACCESS_HOURS.MEMBER} hours before everyone, ${EARLY_ACCESS_HOURS.PASS} with the Pass`,
     intro: `New drops and festival collections open to members first: ${EARLY_ACCESS_HOURS.MEMBER} hours before the public as a MONO Member, ${EARLY_ACCESS_HOURS.PASS} hours with the Monochrome Pass.`,
     feature: {
       title: "First in line",
@@ -122,7 +117,6 @@ export const BENEFIT_PAGES: readonly BenefitPage[] = [
   {
     slug: "gift-wrapping",
     title: "Gift wrapping",
-    caption: `${rs(GIFT_WRAP_PAISA.MEMBER)}, free with the Pass`,
     intro: `Send an order as a gift. Gift wrapping is ${rs(GIFT_WRAP_PAISA.MEMBER)} for a MONO Member and free with the Monochrome Pass.`,
     feature: {
       title: "Add it at checkout",
@@ -137,7 +131,6 @@ export const BENEFIT_PAGES: readonly BenefitPage[] = [
   {
     slug: "refer-a-friend",
     title: "Refer a friend",
-    caption: `${rs(REFERRAL_REWARD_PAISA.MEMBER)} credit, ${rs(REFERRAL_REWARD_PAISA.PASS)} with the Pass`,
     intro: `Share your code. When your friend's first order is delivered you get ${rs(REFERRAL_REWARD_PAISA.MEMBER)} credit, or ${rs(REFERRAL_REWARD_PAISA.PASS)} with the Monochrome Pass, and a Pass member's friend gets ${REFERRAL_FRIEND_PASS_MONTHS} month of the Pass.`,
     feature: {
       title: "Your code is yours",
@@ -164,7 +157,6 @@ export const BENEFIT_PAGES: readonly BenefitPage[] = [
   {
     slug: "points",
     title: "Points",
-    caption: "Earn on every order",
     intro: `MONO Members earn 1 point for every ${rs(POINT_EARN_UNIT_PAISA)} they spend, the Monochrome Pass 2. A point is worth Rs 1 at checkout, up to ${POINTS_MAX_SHARE_PERCENT}% of the products. Points arrive when an order is delivered. A MONO Member's last ${Math.round(POINTS_EXPIRY_DAYS / 30)} months; a Pass member's never expire.`,
     feature: {
       title: "Your points are on your profile",
