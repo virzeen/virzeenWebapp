@@ -1,7 +1,6 @@
 import { Separator } from "@virzeen/ui";
 import { SignOutButton } from "@/client/components/shared/sign-out-button";
-import { AccountDetailsExtras } from "@/client/features/account/account-details-extras";
-import { ProfileForm } from "@/client/features/account/profile-form";
+import { AccountDetails } from "@/client/features/account/account-details";
 import { SettingsShell } from "@/client/features/account/settings-shell";
 import { requireUserPage } from "@/server/auth/session";
 import { getMySettings } from "@/server/queries/account";
@@ -14,8 +13,13 @@ export default async function SettingsPage() {
   const settings = await getMySettings(user.id);
   return (
     <SettingsShell title="Account details" mode="menu" menuFooter={<SignOutButton className="self-start" />}>
-      <ProfileForm name={user.name} email={user.email} />
-      <AccountDetailsExtras birthday={settings.birthday} showPassword={user.role !== "ADMIN"} />
+      <AccountDetails
+        name={user.name}
+        email={user.email}
+        birthday={settings.birthday}
+        showPassword={user.role !== "ADMIN"}
+        canDelete={user.role !== "ADMIN"}
+      />
       <Separator />
       <SignOutButton className="self-start" />
     </SettingsShell>

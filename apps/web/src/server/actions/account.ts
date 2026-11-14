@@ -13,6 +13,7 @@ import {
   addressSchema,
   birthdaySchema,
   communicationSchema,
+  deleteAccountSchema,
   idSchema,
   interestsSchema,
   profileSchema,
@@ -132,5 +133,20 @@ export async function saveReviewNameAction(input: unknown) {
     await settingsService.saveReviewName(user.id, reviewNameSchema.parse(input));
     revalidatePath("/account/settings/profile-visibility");
     return { saved: true };
+  });
+}
+
+/**
+ * Settings, Delete account: anonymises the signed-in member's account and signs them out (their sessions are deleted;
+ * orders and the points ledger stay as the shop's records). Refused while an order is open.
+ */
+export async function deleteAccountAction(input: unknown) {
+  return runAction("deleteAccount", async () => {
+    const user = await requireUser();
+    await rateLimit("account", `delete:${user.id}`);
+    deleteAccountSchema.parse(input);
+    await settingsService.deleteAccount(user.id);
+    revalidatePath("/", "layout");
+    return { deleted: true };
   });
 }

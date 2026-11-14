@@ -30,7 +30,7 @@ test("a free MONO Member sees their card, and the Pass offer in the portal", asy
   await expect(page.getByRole("region", { name: "The Monochrome Pass" })).toHaveCount(0);
 
   // The portal: the Pass offer with both plans, and no way to buy it yet.
-  await page.getByRole("link", { name: "Your membership" }).click();
+  await page.getByRole("navigation", { name: "Account" }).getByRole("link", { name: "Membership" }).click();
   await expect(page).toHaveURL(/\/account\/membership$/);
   const offer = page.getByRole("region", { name: "The Monochrome Pass" });
   await expect(offer).toContainText("रु 499");

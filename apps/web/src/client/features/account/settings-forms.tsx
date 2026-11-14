@@ -1,9 +1,9 @@
 "use client";
 
-import { Alert, Button, Checkbox, FormField, RadioGroup, RadioGroupItem, Select, toast } from "@virzeen/ui";
+import { Alert, Button, Checkbox, RadioGroup, RadioGroupItem, Select, toast } from "@virzeen/ui";
 import { CLOTHING_SIZES, REVIEW_NAME_STYLES } from "@virzeen/validators";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useId, useState, useTransition } from "react";
 import { messageFor } from "@/client/lib/error-messages";
 import {
   saveCommunicationAction,
@@ -11,8 +11,8 @@ import {
   saveShopPreferencesAction,
 } from "@/server/actions/account";
 
-// The editable Settings sections (docs/specs/member-area-nike-layout.md). Like Nike's, each Save stays off until
-// something changes, then turns black; saving makes the new values the ones to compare with.
+// The editable Settings sections, laid out like Nike's (docs/specs/member-area-nike-layout.md): plain group titles,
+// tight radio and checkbox rows, a Save on the right that stays off until something changes, then turns black.
 
 type SaveResult = { ok: true } | { ok: false; message: string };
 
@@ -40,16 +40,35 @@ function useSaver<T>(saved: T, same: (a: T, b: T) => boolean, run: (value: T) =>
 function SaveRow({ dirty, pending, onSave }: { dirty: boolean; pending: boolean; onSave: () => void }) {
   return (
     <div className="flex justify-end">
-      <Button shape="pill" loading={pending} disabled={!dirty} onClick={onSave}>
+      <Button
+        shape="pill"
+        loading={pending}
+        disabled={!dirty}
+        onClick={onSave}
+        className="disabled:bg-line disabled:text-ink-muted disabled:opacity-100"
+      >
         Save
       </Button>
     </div>
   );
 }
 
+/** A group title (16px, medium) over its choices, like Nike's "Shopping Preferences". */
+function Group({ title, children }: { title: string; children: React.ReactNode }) {
+  const id = useId();
+  return (
+    <div role="group" aria-labelledby={id} className="flex flex-col gap-3">
+      <h3 id={id} className="text-body font-medium">
+        {title}
+      </h3>
+      {children}
+    </div>
+  );
+}
+
 type Shop = { preference: "HOME" | "CLOTHING" | "BOTH"; size: string; unit: "METRIC" | "IMPERIAL" };
 
-/** Settings, Shop preferences: what they shop for, the size to have pre-selected and the unit of measure. */
+/** Settings, Shop preferences: the size to have pre-selected, what they shop for and the unit of measure. */
 export function ShopPreferencesForm({ initial }: { initial: Shop }) {
   const form = useSaver<Shop>(
     initial,
@@ -63,16 +82,34 @@ export function ShopPreferencesForm({ initial }: { initial: Shop }) {
   return (
     <div className="flex flex-col gap-8">
       {form.error && <Alert variant="danger">{form.error}</Alert>}
-      <FormField label="Clothing size" helper="Provide your size to have it pre-selected when you shop.">
-        <Select
-          value={value.size}
-          onValueChange={(size) => setValue({ ...value, size: size === "none" ? "" : size })}
-          placeholder="Choose a size"
-          options={[{ value: "none", label: "No size" }, ...CLOTHING_SIZES]}
-        />
-      </FormField>
-      <FormField label="Shopping preferences">
+      {/* Nike's size box: the label sits on the top border of a 56px outlined select. */}
+      <div className="flex flex-col gap-2">
+        <div className="relative">
+          <Select
+            aria-label="Clothing size"
+            className="h-14 px-4"
+            value={value.size}
+            onValueChange={(size) => setValue({ ...value, size: size === "none" ? "" : size })}
+            placeholder="Clothing size"
+            options={[{ value: "none", label: "No size" }, ...CLOTHING_SIZES]}
+          />
+          {value.size && (
+            <span
+              aria-hidden
+              className="pointer-events-none absolute top-0 left-3 -translate-y-1/2 bg-canvas px-1 text-small text-ink-muted"
+            >
+              Clothing size
+            </span>
+          )}
+        </div>
+        <p className="px-4 text-small text-ink-muted">
+          Provide your size to have it pre-selected when you shop.
+        </p>
+      </div>
+      <Group title="Shopping preferences">
         <RadioGroup
+          aria-label="Shopping preferences"
+          className="gap-0"
           value={value.preference}
           onValueChange={(preference) => setValue({ ...value, preference: preference as Shop["preference"] })}
         >
@@ -80,16 +117,18 @@ export function ShopPreferencesForm({ initial }: { initial: Shop }) {
           <RadioGroupItem value="HOME" label="Home" />
           <RadioGroupItem value="BOTH" label="Both" />
         </RadioGroup>
-      </FormField>
-      <FormField label="Unit of measure">
+      </Group>
+      <Group title="Unit of measure">
         <RadioGroup
+          aria-label="Unit of measure"
+          className="gap-0"
           value={value.unit}
           onValueChange={(unit) => setValue({ ...value, unit: unit as Shop["unit"] })}
         >
           <RadioGroupItem value="METRIC" label="Metric" />
           <RadioGroupItem value="IMPERIAL" label="Imperial" />
         </RadioGroup>
-      </FormField>
+      </Group>
       <SaveRow dirty={form.dirty} pending={form.isPending} onSave={form.save} />
     </div>
   );
@@ -108,9 +147,9 @@ export function CommunicationForm({ initial }: { initial: boolean }) {
   return (
     <div className="flex flex-col gap-6">
       {form.error && <Alert variant="danger">{form.error}</Alert>}
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-3">
         <h3 className="text-body font-medium">General communication</h3>
-        <p className="text-body text-ink-muted">Get updates on new drops, offers and your member benefits.</p>
+        <p className="text-body">Get updates on new drops, offers and your member benefits.</p>
       </div>
       <Checkbox
         label="Yes, send me emails."
@@ -122,13 +161,10 @@ export function CommunicationForm({ initial }: { initial: boolean }) {
   );
 }
 
-const REVIEW_NAME_LABELS: Record<
-  (typeof REVIEW_NAME_STYLES)[number],
-  { label: string; description: string }
-> = {
-  FIRST_NAME: { label: "First name", description: "Reviews show only your first name." },
-  FULL_NAME: { label: "Full name", description: "Reviews show your whole name." },
-  ANONYMOUS: { label: "Anonymous", description: "Reviews show no name." },
+const REVIEW_NAME_LABELS: Record<(typeof REVIEW_NAME_STYLES)[number], string> = {
+  FIRST_NAME: "First name: only your first name shows",
+  FULL_NAME: "Full name: your whole name shows",
+  ANONYMOUS: "Anonymous: no name shows",
 };
 
 /** Settings, Profile visibility: the name a product review shows. */
@@ -142,23 +178,18 @@ export function ReviewNameForm({ initial }: { initial: (typeof REVIEW_NAME_STYLE
     },
   );
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-6">
       {form.error && <Alert variant="danger">{form.error}</Alert>}
-      <FormField label="Product review visibility">
-        <RadioGroup
-          value={form.value}
-          onValueChange={(style) => form.setValue(style as (typeof REVIEW_NAME_STYLES)[number])}
-        >
-          {REVIEW_NAME_STYLES.map((style) => (
-            <RadioGroupItem
-              key={style}
-              value={style}
-              label={REVIEW_NAME_LABELS[style].label}
-              description={REVIEW_NAME_LABELS[style].description}
-            />
-          ))}
-        </RadioGroup>
-      </FormField>
+      <RadioGroup
+        aria-label="Product review visibility"
+        className="gap-0"
+        value={form.value}
+        onValueChange={(style) => form.setValue(style as (typeof REVIEW_NAME_STYLES)[number])}
+      >
+        {REVIEW_NAME_STYLES.map((style) => (
+          <RadioGroupItem key={style} value={style} label={REVIEW_NAME_LABELS[style]} />
+        ))}
+      </RadioGroup>
       <SaveRow dirty={form.dirty} pending={form.isPending} onSave={form.save} />
     </div>
   );

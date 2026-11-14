@@ -31,10 +31,19 @@ test("a member works through the eight Settings sections", async ({ page }) => {
   );
   await expect(page.getByRole("button", { name: "Sign out" }).first()).toBeVisible();
 
+  // Account details, like Nike's: floating-label boxes, a locked birthday, Save off until the name changes.
+  await expect(page.getByRole("textbox", { name: /^Email/ })).toHaveValue(email);
+  await expect(page.getByRole("textbox", { name: /^Date of birth/ })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Save" })).toBeDisabled();
+  await page.getByRole("textbox", { name: /^Name/ }).fill("Asha Rai");
+  await page.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Save" })).toBeDisabled();
+
   // Payment methods: nothing is saved, it says how to pay.
   await nav.getByRole("link", { name: "Payment methods" }).click();
   await expect(page.getByRole("heading", { level: 2, name: "Saved payment methods" })).toBeVisible();
-  await expect(page.getByText("Cash on delivery")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Payment options" })).toHaveAttribute("href", "/shipping");
 
   // Shop preferences: Save is off until a choice changes, then it saves and goes off again.
   await nav.getByRole("link", { name: "Shop preferences" }).click();
@@ -97,4 +106,30 @@ test("a member works through the eight Settings sections", async ({ page }) => {
 test("the data download needs a signed-in member", async ({ request }) => {
   const response = await request.get("/api/account/export");
   expect(response.status()).toBe(401);
+});
+
+test("a member deletes their account and is signed out, and the email can start again", async ({ page }) => {
+  await page.setExtraHTTPHeaders({ "X-Forwarded-For": "198.51.100.53" });
+  const email = uniqueEmail("delete");
+  await page.goto("/login?next=%2Faccount%2Fsettings");
+  await completeEmailSignIn(page, email);
+  await expect(page).toHaveURL(/\/account\/settings$/);
+
+  await page.getByRole("button", { name: "Delete", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Delete your account?" });
+  const confirm = dialog.getByRole("button", { name: "Delete account" });
+  await expect(confirm).toBeDisabled();
+  await dialog.getByRole("textbox", { name: "Type DELETE to confirm" }).fill("DELETE");
+  await expect(confirm).toBeEnabled();
+  await confirm.click();
+
+  // Back on the home page, signed out: the account pages ask to sign in again.
+  await expect(page).toHaveURL((url) => url.pathname === "/");
+  await page.goto("/account");
+  await expect(page).toHaveURL(/\/login\?next=%2Faccount/);
+
+  // The same email starts a fresh account.
+  await completeEmailSignIn(page, email);
+  await expect(page).toHaveURL(/\/account$/);
+  await expect(page.getByTestId("interests")).toBeVisible();
 });

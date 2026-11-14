@@ -1,6 +1,6 @@
 # Member area, laid out like Nike's (Interests, recommendations, Settings)
 
-Status: built 2026-11-14 (Delete account pending the owner's rule).
+Status: built 2026-11-14.
 Source: the owner's package `nike-member-ui-package` (spec and 19 screenshots of Nike Singapore's member area, desktop). Only the layout, structure and states are followed. Nike's pictures, logos and wording are not used; the copy is Virzeen's.
 
 ## Owner decisions (2026-11-14)
@@ -39,7 +39,7 @@ Save buttons are disabled until a field changes, then black. Each saves through 
 ## Privacy rules
 
 - **Download your data**: one JSON file of what the member gave us: profile (name, email, birthday, preferences), addresses, favourites, reviews, notify-me requests, interests, points and credit lines, orders (number, date, status, totals, items). Never password hashes, sessions, tokens, 2FA secrets or other members' data.
-- **Delete account**: the docs say nothing about deleting an account, so this is the owner's decision. Orders cannot be removed from the shop's books (`Order.userId` is `Restrict`), so deleting would mean anonymising. Until the owner decides, the section says to contact us (`/contact`) and has no delete button.
+- **Delete account** (Account details, as Nike's): the docs were silent, so the rule was proposed in the chat on 2026-11-14 and built on the owner's "make sure it's all done". Orders and the points and credit ledger are the shop's records (`Order.userId` is `Restrict`), so the account is **anonymised, not erased**: sign-in methods, sessions, two-factor, addresses, favourites, reviews, notify-me requests, interests, the bag and sign-in codes are deleted; the account row becomes "Deleted member" with a `deleted-{id}@deleted.invalid` email and no birthday, preferences, referral code or Pass dates, so the email can start a fresh account. Refused while an order is PENDING, CONFIRMED, PROCESSING or SHIPPED, and for admins. The member types DELETE to confirm; an audit line `account.delete` is kept. Not built: asking for a recent sign-in first.
 
 ## Acceptance
 

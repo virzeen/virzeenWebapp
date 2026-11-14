@@ -5,9 +5,9 @@ import { requireUserPage } from "@/server/auth/session";
 export const metadata = { title: "Privacy" };
 
 /**
- * Settings, Privacy (specs/member-area-nike-layout.md). Virzeen does not use data for advertising (its privacy policy says so), so there are no
- * toggles: the page says so, links the policy and offers "Download your data". Deleting the account is pending the
- * owner's rule (the spec's "Privacy rules"), so for now it points to Contact us.
+ * Settings, Privacy, like Nike's (specs/member-area-nike-layout.md): a paragraph, the policy link on its own line, a
+ * hairline and "Download your data". Virzeen does not use data for advertising (its privacy policy says so), so there
+ * are no advertising toggles. Deleting the account is on Account details, next to Nike's.
  */
 export default async function PrivacyPage() {
   await requireUserPage("/account/settings/privacy");
@@ -15,12 +15,12 @@ export default async function PrivacyPage() {
     <SettingsShell title="Privacy" mode="section">
       <p className="text-body">
         We use your details only to take, deliver and support your orders, and to keep the shop secure. We
-        don&apos;t sell your data and we don&apos;t use it for advertising. Read more in our{" "}
-        <Link href="/privacy" variant="default">
-          Privacy Policy
-        </Link>
-        .
+        don&apos;t sell your data and we don&apos;t use it for advertising.
       </p>
+      <p className="text-body">For more information, see our Privacy Policy.</p>
+      <Link href="/privacy" variant="default" className="self-start">
+        Virzeen Privacy Policy
+      </Link>
 
       <section aria-labelledby="download-data" className="flex flex-col gap-4 border-t border-line pt-8">
         <h3 id="download-data" className="font-display text-h3">
@@ -39,19 +39,6 @@ export default async function PrivacyPage() {
           className="self-start"
         >
           Download my data
-        </ButtonLink>
-      </section>
-
-      <section aria-labelledby="delete-account" className="flex flex-col gap-4 border-t border-line pt-8">
-        <h3 id="delete-account" className="font-display text-h3">
-          Delete account
-        </h3>
-        <p className="text-body text-ink-muted">
-          To delete your account, contact us and we will take care of it. Orders we have already shipped are
-          kept for our records.
-        </p>
-        <ButtonLink href="/contact" shape="pill" variant="secondary" className="self-start">
-          Contact us
         </ButtonLink>
       </section>
     </SettingsShell>

@@ -327,15 +327,16 @@
   }
 }
 
-/* One card's width in a sideways row of member perks (the profile's benefits row, cards `gap-4` apart): 1 card and a
-   peek of the next on phones, 2 from 768px, 3 from 960px. */
+/* One card's width in the profile's sideways row of member benefits (cards `gap-3` apart), like Nike's: 70% on phones,
+   then whole cards with 0.4 of the next showing, so the row reads as scrolling: 3 and a bit from 768px, 4 and a bit
+   from 960px. */
 @utility w-perk-slide {
-  width: 85%;
+  width: 70%;
   @media (width >= 48rem) {
-    width: calc((100% - 1rem) / 2);
+    width: calc((100% - 3 * 0.75rem) / 3.4);
   }
   @media (width >= 60rem) {
-    width: calc((100% - 2rem) / 3);
+    width: calc((100% - 4 * 0.75rem) / 4.4);
   }
 }
 

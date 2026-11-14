@@ -87,11 +87,6 @@ export default async function ProfilePage() {
       <BenefitsCarousel
         title="Member Benefits"
         items={BENEFIT_PAGES.map((page) => ({ id: page.slug, node: <BenefitImageCard page={page} /> }))}
-        action={
-          <Link href="/account/membership" variant="header">
-            Your membership
-          </Link>
-        }
       />
 
       {products.length > 0 ? (

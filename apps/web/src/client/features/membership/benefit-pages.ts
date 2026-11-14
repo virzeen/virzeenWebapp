@@ -24,7 +24,7 @@ const rs = formatPaisa;
 export type BenefitPicture = {
   src: string;
   alt: string;
-  position: "object-left" | "object-center" | "object-right";
+  position: "object-left" | "object-center" | "object-right" | "object-top";
 };
 
 /** The perk card on the Membership portal that a benefit page shows to members (see `perkCards`). */
@@ -49,8 +49,6 @@ export type BenefitPage = {
   perk?: PerkId;
 };
 
-const HERO = "/brand/hero-1600.webp";
-
 export const BENEFIT_PAGES: readonly BenefitPage[] = [
   {
     slug: "express-delivery",
@@ -62,18 +60,18 @@ export const BENEFIT_PAGES: readonly BenefitPage[] = [
       cta: { label: "Shop", href: "/shop" },
     },
     card: {
-      src: "/brand/benefits/express-delivery.jpg",
-      alt: "A cardboard parcel with a blank label",
+      src: "/brand/benefits/express-ride.jpg",
+      alt: "A cyclist riding through a blurred city street",
       position: "object-center",
     },
     hero: {
-      src: "/brand/benefits/express-delivery.jpg",
-      alt: "A cardboard parcel with a blank label",
+      src: "/brand/benefits/express-ride.jpg",
+      alt: "A cyclist riding through a blurred city street",
       position: "object-center",
     },
     featurePicture: {
-      src: "/brand/benefits/city-walk.jpg",
-      alt: "Two people walking down a city street",
+      src: "/brand/benefits/ride-monochrome.jpg",
+      alt: "A cyclist with a basket riding past in black and white",
       position: "object-center",
     },
     perk: "express",
@@ -87,9 +85,21 @@ export const BENEFIT_PAGES: readonly BenefitPage[] = [
       text: "Add your birthday once and the reward turns on in that month every year. Only the day and month are used.",
       cta: { label: "Shop", href: "/shop" },
     },
-    card: { src: HERO, alt: "White and black flowers in a vase", position: "object-left" },
-    hero: { src: HERO, alt: "White and black flowers in a vase", position: "object-left" },
-    featurePicture: { src: HERO, alt: "White and black flowers in a vase", position: "object-left" },
+    card: {
+      src: "/brand/benefits/birthday-candle.jpg",
+      alt: "A lit candle on a cupcake",
+      position: "object-top",
+    },
+    hero: {
+      src: "/brand/benefits/birthday-candle.jpg",
+      alt: "A lit candle on a cupcake",
+      position: "object-top",
+    },
+    featurePicture: {
+      src: "/brand/benefits/gift-box.jpg",
+      alt: "A small gift box tied with string on silver foil",
+      position: "object-center",
+    },
     perk: "birthday",
   },
   {
@@ -102,16 +112,20 @@ export const BENEFIT_PAGES: readonly BenefitPage[] = [
       cta: { label: "Shop", href: "/shop" },
     },
     card: {
-      src: "/brand/benefits/early-access.jpg",
-      alt: "White hangers on a clothes rail",
+      src: "/brand/benefits/early-open-sign.jpg",
+      alt: "A neon OPEN sign in a shop window at night",
       position: "object-center",
     },
     hero: {
-      src: "/brand/benefits/early-access.jpg",
-      alt: "White hangers on a clothes rail",
+      src: "/brand/benefits/early-open-sign.jpg",
+      alt: "A neon OPEN sign in a shop window at night",
+      position: "object-top",
+    },
+    featurePicture: {
+      src: "/brand/benefits/friends-street.jpg",
+      alt: "Three friends laughing together on a city street",
       position: "object-center",
     },
-    featurePicture: { src: HERO, alt: "A man reading in a quiet room", position: "object-center" },
     perk: "early",
   },
   {
@@ -123,9 +137,21 @@ export const BENEFIT_PAGES: readonly BenefitPage[] = [
       text: "Tick gift wrapping when you place the order. We pack it in our own box and leave the price off the parcel.",
       cta: { label: "Shop", href: "/shop" },
     },
-    card: { src: HERO, alt: "Books and bowls on a dark shelf", position: "object-center" },
-    hero: { src: HERO, alt: "Books and bowls on a dark shelf", position: "object-center" },
-    featurePicture: { src: HERO, alt: "A white shirt on a clothes rail", position: "object-right" },
+    card: {
+      src: "/brand/benefits/gift-box.jpg",
+      alt: "A small gift box tied with string on silver foil",
+      position: "object-center",
+    },
+    hero: {
+      src: "/brand/benefits/gift-box.jpg",
+      alt: "A small gift box tied with string on silver foil",
+      position: "object-center",
+    },
+    featurePicture: {
+      src: "/brand/benefits/birthday-candle.jpg",
+      alt: "A lit candle on a cupcake",
+      position: "object-center",
+    },
     perk: "gift-wrap",
   },
   {
@@ -138,18 +164,18 @@ export const BENEFIT_PAGES: readonly BenefitPage[] = [
       cta: { label: "Shop", href: "/shop" },
     },
     card: {
-      src: "/brand/benefits/refer-a-friend.jpg",
-      alt: "Two friends walking arm in arm down a street",
+      src: "/brand/benefits/friends-laughing.jpg",
+      alt: "Two friends laughing together",
       position: "object-center",
     },
     hero: {
-      src: "/brand/benefits/refer-a-friend.jpg",
-      alt: "Two friends walking arm in arm down a street",
+      src: "/brand/benefits/friends-laughing.jpg",
+      alt: "Two friends laughing together",
       position: "object-center",
     },
     featurePicture: {
-      src: "/brand/benefits/refer-a-friend-walk.jpg",
-      alt: "Two people walking down a sunny street",
+      src: "/brand/benefits/friends-smiling.jpg",
+      alt: "Two friends smiling at each other",
       position: "object-center",
     },
     perk: "referral",
@@ -163,9 +189,21 @@ export const BENEFIT_PAGES: readonly BenefitPage[] = [
       text: "See what you have, what they are worth and when the soonest ones expire.",
       cta: { label: "See your points", href: "/account" },
     },
-    card: { src: HERO, alt: "A man reading in a quiet room", position: "object-center" },
-    hero: { src: HERO, alt: "A man reading in a quiet room", position: "object-center" },
-    featurePicture: { src: HERO, alt: "Books and bowls on a dark shelf", position: "object-center" },
+    card: {
+      src: "/brand/benefits/points-gold.jpg",
+      alt: "Gold coins and bars on a black table",
+      position: "object-center",
+    },
+    hero: {
+      src: "/brand/benefits/points-gold.jpg",
+      alt: "Gold coins and bars on a black table",
+      position: "object-center",
+    },
+    featurePicture: {
+      src: "/brand/benefits/gift-box.jpg",
+      alt: "A small gift box tied with string on silver foil",
+      position: "object-center",
+    },
   },
 ] as const;
 

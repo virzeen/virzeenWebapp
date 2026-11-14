@@ -18,7 +18,7 @@ type PerkCardProps = {
 export function PerkCard({ icon, title, value, className, children, testId }: PerkCardProps) {
   return (
     <article
-      className={cn("flex flex-col gap-4 rounded-2xl border border-line bg-surface p-6", className)}
+      className={cn("flex flex-col gap-4 rounded-md border border-line bg-surface p-6", className)}
       data-testid={testId}
     >
       <div className="flex items-center gap-3">

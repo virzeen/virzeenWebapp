@@ -84,3 +84,9 @@ export const reviewNameSchema = z.strictObject({
   style: z.enum(REVIEW_NAME_STYLES, { error: "Choose how your name shows" }),
 });
 export type ReviewNameInput = z.infer<typeof reviewNameSchema>;
+
+/** Settings, Delete account: the member types DELETE to confirm. */
+export const deleteAccountSchema = z.strictObject({
+  confirm: z.literal("DELETE", { error: "Type DELETE to confirm" }),
+});
+export type DeleteAccountInput = z.infer<typeof deleteAccountSchema>;

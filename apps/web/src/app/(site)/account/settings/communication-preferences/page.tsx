@@ -12,7 +12,6 @@ export default async function CommunicationPreferencesPage() {
   return (
     <SettingsShell title="Communication preferences" mode="section">
       <CommunicationForm initial={settings.marketingOptIn} />
-      <p className="text-small text-ink-muted">Emails about your orders and your account are always sent.</p>
     </SettingsShell>
   );
 }
