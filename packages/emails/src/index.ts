@@ -11,6 +11,7 @@ import {
   type OrderShippedEmailData,
 } from "./templates/order";
 import { OtpEmail } from "./templates/otp";
+import { PaymentReminderEmail, type PaymentReminderEmailData } from "./templates/payment";
 import { BackInStockEmail, type BackInStockEmailData } from "./templates/stock";
 
 export type {
@@ -19,6 +20,7 @@ export type {
   OrderCancelledEmailData,
   OrderEmailData,
   OrderShippedEmailData,
+  PaymentReminderEmailData,
 };
 export { formatPaisa } from "./money";
 export { EMAIL_WORDMARK_DARK_PATH, EMAIL_WORDMARK_PATH } from "./templates/layout";
@@ -62,4 +64,11 @@ export function renderAdminAlertEmail(alert: AdminAlertEmailData) {
 
 export function renderBackInStockEmail(alert: BackInStockEmailData) {
   return renderBoth(`${alert.productName} is back in stock`, createElement(BackInStockEmail, { alert }));
+}
+
+export function renderPaymentReminderEmail(order: PaymentReminderEmailData) {
+  return renderBoth(
+    `Your order ${order.orderNumber} is waiting for payment`,
+    createElement(PaymentReminderEmail, { order }),
+  );
 }

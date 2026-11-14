@@ -109,45 +109,45 @@ enum ReviewNameStyle {
 }
 
 model User {
-  id                 String              @id
-  name               String
-  email              String              @unique
-  emailVerified      Boolean             @default(false)
-  image              String?
-  role               Role                @default(CUSTOMER)
+  id                     String              @id
+  name                   String
+  email                  String              @unique
+  emailVerified          Boolean             @default(false)
+  image                  String?
+  role                   Role                @default(CUSTOMER)
   /// Create-account step (specs/sign-in-v2.md): what the member shops for, an optional birthday for the birthday
   /// reward, the marketing tick (never required) and when they agreed to the terms.
-  shoppingPreference ShoppingPreference?
-  birthday           DateTime?           @db.Date
-  marketingOptIn     Boolean             @default(false)
+  shoppingPreference     ShoppingPreference?
+  birthday               DateTime?           @db.Date
+  marketingOptIn         Boolean             @default(false)
   /// Payment methods (Settings): the method the member ticked as theirs. Saved on a tick, no Save button.
   preferredPaymentMethod PaymentMethod?
   /// Profile visibility (Settings): what a product review shows as its author. First name is how reviews always read.
-  reviewNameStyle    ReviewNameStyle     @default(FIRST_NAME)
-  termsAcceptedAt    DateTime?
+  reviewNameStyle        ReviewNameStyle     @default(FIRST_NAME)
+  termsAcceptedAt        DateTime?
   /// Monochrome Pass: active while `passEndsAt` is in the future (specs/membership-portal.md). Granted by `pnpm admin pass`
   /// until the Pass can be bought online.
-  passStartsAt       DateTime?
-  passEndsAt         DateTime?
+  passStartsAt           DateTime?
+  passEndsAt             DateTime?
   /// The member's one referral code (made when first needed, specs/member-perks.md).
-  referralCode       String?             @unique
-  twoFactorEnabled   Boolean             @default(false)
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
-  sessions           Session[]
-  accounts           Account[]
-  twoFactors         TwoFactor[]
-  addresses          Address[]
-  favourites         Favourite[]
-  walletEntries      WalletEntry[]
-  referralsMade      Referral[]          @relation("Referrer")
-  referredBy         Referral?           @relation("Referred")
-  reviews            Review[]
-  interests          MemberInterest[]
-  stockAlerts        StockAlert[]
-  cart               Cart?
-  orders             Order[]
-  auditLogs          AuditLog[]
+  referralCode           String?             @unique
+  twoFactorEnabled       Boolean             @default(false)
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
+  sessions               Session[]
+  accounts               Account[]
+  twoFactors             TwoFactor[]
+  addresses              Address[]
+  favourites             Favourite[]
+  walletEntries          WalletEntry[]
+  referralsMade          Referral[]          @relation("Referrer")
+  referredBy             Referral?           @relation("Referred")
+  reviews                Review[]
+  interests              MemberInterest[]
+  stockAlerts            StockAlert[]
+  cart                   Cart?
+  orders                 Order[]
+  auditLogs              AuditLog[]
 }
 
 model Session {
@@ -334,33 +334,33 @@ model Review {
 // ───────────────────────────── Catalog ─────────────────────────────
 
 model Category {
-  id         String    @id @default(cuid(2))
-  slug       String    @unique
+  id         String           @id @default(cuid(2))
+  slug       String           @unique
   name       String
-  sortOrder  Int       @default(0)
+  sortOrder  Int              @default(0)
   archivedAt DateTime?
   products   Product[]
   interests  MemberInterest[]
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
 
   @@index([sortOrder])
 }
 
 model Collection {
-  id          String    @id @default(cuid(2))
-  slug        String    @unique
+  id          String           @id @default(cuid(2))
+  slug        String           @unique
   name        String
   description String?
-  isFeatured  Boolean   @default(false)
+  isFeatured  Boolean          @default(false)
   /// Early access for a festival sale or a drop (specs/member-perks.md): the public sees the collection from this time;
   /// MONO Members 12 hours and Pass members 48 hours earlier. Null = no wait.
   publicAt    DateTime?
   archivedAt  DateTime?
   products    Product[]
   interests   MemberInterest[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 
   @@index([isFeatured])
 }
@@ -564,61 +564,67 @@ enum CustomerTier {
 }
 
 model Order {
-  id                 String        @id @default(cuid(2))
+  id                    String        @id @default(cuid(2))
   /// Human-facing number: VZ-YYMMDD-XXXX
-  orderNumber        String        @unique
+  orderNumber           String        @unique
   /// Null for a guest order (specs/checkout-v2-week1.md); the guest's email is in customerEmail.
-  userId             String?
-  user               User?         @relation(fields: [userId], references: [id], onDelete: Restrict)
+  userId                String?
+  user                  User?         @relation(fields: [userId], references: [id], onDelete: Restrict)
   /// Which delivery rate applied: guest or MONO Member (decides the fee and the dispatch promise).
-  tier               CustomerTier  @default(MEMBER)
+  tier                  CustomerTier  @default(MEMBER)
   /// Optional note for the rider, e.g. "Call at the gate".
-  deliveryNotes      String?
-  status             OrderStatus   @default(PENDING)
-  paymentStatus      PaymentStatus @default(UNPAID)
-  paymentMethod      PaymentMethod
-  subtotalPaisa      Int
-  shippingPaisa      Int
+  deliveryNotes         String?
+  status                OrderStatus   @default(PENDING)
+  paymentStatus         PaymentStatus @default(UNPAID)
+  paymentMethod         PaymentMethod
+  subtotalPaisa         Int
+  shippingPaisa         Int
   /// Taken off the subtotal by the discount code (specs/discount-codes.md); totalPaisa already has it off.
-  discountPaisa      Int           @default(0)
-  totalPaisa         Int
+  discountPaisa         Int           @default(0)
+  totalPaisa            Int
   /// Points spent on this order (1 point = Rs 1) and credit spent, in paisa; totalPaisa already has both off
   /// (specs/wallet.md).
-  pointsUsed         Int           @default(0)
-  creditUsedPaisa    Int           @default(0)
+  pointsUsed            Int           @default(0)
+  creditUsedPaisa       Int           @default(0)
   /// Gift wrapping asked for, and its price (by tier: Rs 150 guest, Rs 100 MONO Member, free for the Pass); the total
   /// has it in (specs/member-perks.md).
-  giftWrap           Boolean       @default(false)
-  giftWrapPaisa      Int           @default(0)
+  giftWrap              Boolean       @default(false)
+  giftWrapPaisa         Int           @default(0)
   /// Express Delivery (3 hours in Kathmandu and Pokhara) chosen with a member's monthly quota (specs/member-perks.md).
-  express            Boolean       @default(false)
+  express               Boolean       @default(false)
   /// When the order should leave us (specs/member-perks.md): 48 hours for a guest, 24 for a member, 3 for Express. A Pass
   /// order shipped after it earns Rs 100 credit. Null for orders made before this existed.
-  dispatchPromisedAt DateTime?
+  dispatchPromisedAt    DateTime?
   /// The discount code used, if any. Codes are never deleted, so the link stays.
-  discountCodeId     String?
-  discount           DiscountCode? @relation(fields: [discountCodeId], references: [id], onDelete: Restrict)
+  discountCodeId        String?
+  discount              DiscountCode? @relation(fields: [discountCodeId], references: [id], onDelete: Restrict)
   /// Snapshot of the code's text as applied, e.g. "WELCOME10".
-  discountCode       String?
-  shippingZone       ShippingZone
+  discountCode          String?
+  shippingZone          ShippingZone
   /// Snapshot of the delivery address at purchase time.
-  addressSnapshot    Json
+  addressSnapshot       Json
   /// Snapshot of the customer's email for order emails.
-  customerEmail      String
+  customerEmail         String
   /// Online payments hold stock until this time (payment-policy.md §4).
-  reservedUntil      DateTime?
-  courierName        String?
-  trackingNumber     String?
-  cancelReason       String?
-  confirmedAt        DateTime?
-  shippedAt          DateTime?
-  deliveredAt        DateTime?
-  cancelledAt        DateTime?
-  items              OrderItem[]
-  payments           Payment[]
-  events             OrderEvent[]
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime      @updatedAt
+  reservedUntil         DateTime?
+  /// The one "waiting for payment" reminder email was claimed for sending (specs/payment-window.md).
+  paymentReminderSentAt DateTime?
+  /// The payment attempt that paid the order, set in the same transaction as payment status PAID. Any other paid
+  /// attempt is a late or second payment the owner refunds (specs/payment-window.md).
+  paidPaymentId         String?       @unique
+  paidPayment           Payment?      @relation("OrderPaidPayment", fields: [paidPaymentId], references: [id], onDelete: Restrict)
+  courierName           String?
+  trackingNumber        String?
+  cancelReason          String?
+  confirmedAt           DateTime?
+  shippedAt             DateTime?
+  deliveredAt           DateTime?
+  cancelledAt           DateTime?
+  items                 OrderItem[]
+  payments              Payment[]     @relation("OrderPayments")
+  events                OrderEvent[]
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
 
   @@index([userId, createdAt])
   @@index([status, createdAt])
@@ -679,7 +685,9 @@ model OrderItem {
 model Payment {
   id            String        @id @default(cuid(2))
   orderId       String
-  order         Order         @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  order         Order         @relation("OrderPayments", fields: [orderId], references: [id], onDelete: Restrict)
+  /// The order this attempt paid, if it did (`Order.paidPaymentId`).
+  paidOrder     Order?        @relation("OrderPaidPayment")
   provider      PaymentMethod
   /// eSewa transaction_uuid, Khalti pidx, or COD-<orderNumber>.
   providerRef   String        @unique
@@ -698,6 +706,8 @@ model Payment {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
+  /// One row per attempt number: two Pay now presses at once can't both start attempt N (specs/payment-window.md).
+  @@unique([orderId, attempt])
   @@index([orderId])
   @@index([status, createdAt])
 }

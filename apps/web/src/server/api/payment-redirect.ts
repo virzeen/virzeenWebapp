@@ -10,12 +10,22 @@ import { sendDueStockAlerts } from "@/server/services/stock-alerts";
 
 // Provider return URLs are untrusted hints (payment-policy.md §1.2): routes only parse, call core, redirect.
 
+/**
+ * Where the customer lands (specs/payment-window.md): the order closed unpaid → the failed page (the bag is back);
+ * this attempt didn't go through but the order still waits → its page with Pay now; a payment that came after the
+ * order closed → its page, which says it's being refunded; otherwise the success page (paid, or still confirming).
+ */
 export function redirectFor(result: VerifyResult | null) {
   if (!result) return NextResponse.redirect(`${siteUrl}/checkout/failed`, 303);
+  const order = result.orderNumber;
   const target =
     result.outcome === "FAILED" || result.outcome === "EXPIRED"
-      ? `/checkout/failed?order=${result.orderNumber}`
-      : `/checkout/success?order=${result.orderNumber}`;
+      ? `/checkout/failed?order=${order}`
+      : result.outcome === "RETRY"
+        ? `/account/orders/${order}?payment=failed`
+        : result.outcome === "LATE"
+          ? `/account/orders/${order}`
+          : `/checkout/success?order=${order}`;
   return NextResponse.redirect(`${siteUrl}${target}`, 303);
 }
 

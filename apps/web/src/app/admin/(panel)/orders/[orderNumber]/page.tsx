@@ -3,7 +3,7 @@ import { orderNumberSchema } from "@virzeen/validators";
 import { notFound } from "next/navigation";
 import { Price } from "@/client/components/shared/price";
 import { AdminPageHeader } from "@/client/features/admin/admin-page-header";
-import { OrderActions } from "@/client/features/admin/order-actions";
+import { AttemptActions, OrderActions } from "@/client/features/admin/order-actions";
 import { OrderDetail } from "@/client/features/orders/order-detail";
 import { formatDateTime } from "@/client/lib/format";
 import { PAYMENT_METHOD_LABELS, paymentStatus, timelineLabel } from "@/client/lib/order-labels";
@@ -38,6 +38,7 @@ export default async function AdminOrderPage({ params }: Props) {
   if (!orderNumberSchema.safeParse(orderNumber).success) notFound();
   const order = await getAdminOrder(orderNumber);
   if (!order) notFound();
+  const waitingForPayment = order.status === "PENDING" && order.paymentStatus === "PENDING";
 
   return (
     <Stack gap={8}>
@@ -108,6 +109,26 @@ export default async function AdminOrderPage({ params }: Props) {
               hideOnMobile: true,
               cell: (row) =>
                 row.lastCheckedAt ? `${formatDateTime(row.lastCheckedAt)} · ${row.lastIssue ?? "OK"}` : "—",
+            },
+            {
+              key: "actions",
+              header: "Actions",
+              align: "right",
+              cell: (row) => {
+                const isOnline = row.provider !== "COD";
+                return (
+                  <AttemptActions
+                    orderNumber={order.orderNumber}
+                    paymentId={row.id}
+                    label={`Attempt ${row.attempt} · ${PAYMENT_METHOD_LABELS[row.provider] ?? row.provider} ${row.providerRef}`}
+                    canMarkPaid={
+                      isOnline && waitingForPayment && ["PENDING", "FAILED", "EXPIRED"].includes(row.status)
+                    }
+                    // The attempt that paid the order is refunded with the order's own "Record refund".
+                    canRefund={isOnline && row.status === "PAID" && row.id !== order.payingPaymentId}
+                  />
+                );
+              },
             },
           ]}
         />

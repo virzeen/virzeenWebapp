@@ -261,7 +261,7 @@ Checkout → `placeOrderAction` → `checkoutService.placeOrder` (transaction: r
 
 ### eSewa payment
 
-1. Server creates order (`PENDING`) + payment attempt with unique `transaction_uuid`, reserves stock for 60 min.
+1. Server creates order (`PENDING`) + payment attempt with unique `transaction_uuid`, reserves stock for 15 min (owner 2026-11-09, was 60; `specs/payment-window.md`).
 2. Server signs the payment fields (HMAC-SHA256) and returns a form; browser posts it to eSewa.
 3. Customer pays on eSewa → redirected to `/api/payments/esewa/success` with encoded data.
 4. Server checks the signature, then calls **eSewa's status check API**. Only a completed status with the exact amount marks the order PAID → `CONFIRMED`.
@@ -272,7 +272,7 @@ Checkout → `placeOrderAction` → `checkoutService.placeOrder` (transaction: r
 1. Server creates order + calls **Khalti initiate** (amount in paisa) → gets `pidx` and a payment URL.
 2. Customer pays on Khalti → redirected to `/api/payments/khalti/callback`.
 3. Server calls **Khalti lookup** with `pidx`. Only `Completed` with the exact amount marks PAID.
-4. Khalti has no checkout webhook, so a **reconciliation cron** re-checks pending payments every 10 minutes and releases stock for expired ones.
+4. Khalti has no checkout webhook, so a **reconciliation cron** re-checks pending payments every 5 minutes, sends one payment reminder and releases stock for expired ones.
 
 ### Mobile app
 
@@ -287,7 +287,7 @@ The Capacitor app loads the same site; for native screens later it calls `/api/v
 - **Services:**
   - `web` — Next.js app. Pre-deploy command runs `prisma migrate deploy`. Health check `/api/health`.
   - `postgres` — Railway PostgreSQL.
-  - `cron` — small scheduled service calling `/api/cron/reconcile-payments` every 10 minutes with a secret.
+  - `cron` — small scheduled service calling `/api/cron/reconcile-payments` every 5 minutes with a secret.
 - **Deploys:** automatic from the `main` branch after CI passes.
 - **Environments:** `production` (live keys), optional `staging` (sandbox keys, separate DB).
 
