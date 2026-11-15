@@ -8,26 +8,26 @@ import {
   EmptyState,
   FormField,
   Input,
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetTrigger,
   Stack,
   Switch,
   Textarea,
   toast,
 } from "@virzeen/ui";
 import { AUDIENCE_LABELS, collectionSchema, type Audience, type CollectionInput } from "@virzeen/validators";
+import { SlidersHorizontal } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { messageFor } from "@/client/lib/error-messages";
 import { formatDateTime } from "@/client/lib/format";
 import { saveCollectionAction } from "@/server/actions/admin/catalog";
 import { ArchiveButton } from "./archive-button";
 import { AudienceField } from "./audience-field";
-
-const slugify = (text: string) =>
-  text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
+import { useSlugFollowsName } from "./use-slug-follows-name";
 
 const productCount = (count: number) => `${count} ${count === 1 ? "product" : "products"}`;
 
@@ -103,6 +103,12 @@ function CollectionForm({ initial, onDone }: { initial?: Collection; onDone: () 
   });
   const { errors, isSubmitting } = form.formState;
   const { setFocus } = form;
+  const audience = useWatch({ control: form.control, name: "audience" });
+  const slugFollow = useSlugFollowsName(
+    initial?.name ?? "",
+    () => form.getValues("slug"),
+    (slug) => form.setValue("slug", slug, { shouldDirty: true, shouldValidate: form.formState.isSubmitted }),
+  );
 
   // The form sits above the list: bring it into view when a row's Edit is chosen (it remounts per row).
   useEffect(() => {
@@ -124,6 +130,7 @@ function CollectionForm({ initial, onDone }: { initial?: Collection; onDone: () 
     }
     toast.success("Collection saved");
     form.reset(EMPTY);
+    slugFollow.restart();
     setPublicLocal("");
     onDone();
     router.refresh();
@@ -146,24 +153,16 @@ function CollectionForm({ initial, onDone }: { initial?: Collection; onDone: () 
         </Alert>
       )}
       <FormField label="Name" error={errors.name?.message} required className="sm:col-span-2">
-        <Input
-          {...form.register("name", {
-            onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-              if (!initial) form.setValue("slug", slugify(e.target.value));
-            },
-          })}
-        />
+        <Input {...form.register("name", { onChange: slugFollow.onChange })} />
       </FormField>
-      <FormField label="URL slug" error={errors.slug?.message} required>
+      <FormField
+        label="URL slug"
+        helper="Follows the name as you type; you can change it."
+        error={errors.slug?.message}
+        required
+        className="sm:col-span-2"
+      >
         <Input {...form.register("slug")} />
-      </FormField>
-      <FormField label="Order" helper="Lowest first" error={errors.sortOrder?.message}>
-        <Input
-          type="number"
-          inputMode="numeric"
-          min={0}
-          {...form.register("sortOrder", { valueAsNumber: true })}
-        />
       </FormField>
       <FormField
         label="Description"
@@ -173,30 +172,70 @@ function CollectionForm({ initial, onDone }: { initial?: Collection; onDone: () 
       >
         <Textarea rows={2} {...form.register("description")} />
       </FormField>
-      <FormField label="Visibility" error={errors.audience?.message} className="sm:col-span-4">
-        <Controller
-          control={form.control}
-          name="audience"
-          render={({ field }) => (
-            <AudienceField value={field.value} onChange={field.onChange} fieldRef={field.ref} />
-          )}
-        />
-      </FormField>
-      <FormField
-        label="Public from"
-        helper="Early access: MONO Members see it 12 hours before, Pass members 48 hours before. Empty = everyone now."
-        className="sm:col-span-4"
-      >
-        <Input type="datetime-local" value={publicLocal} onChange={(e) => setPublicLocal(e.target.value)} />
-      </FormField>
-      <Controller
-        control={form.control}
-        name="isFeatured"
-        render={({ field }) => (
-          <Switch label="Featured on the home page" checked={field.value} onCheckedChange={field.onChange} />
-        )}
-      />
-      <div className="flex gap-2 sm:col-span-4">
+      <div className="sm:col-span-4">
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button variant="ghost" className="w-full cursor-pointer justify-between rounded-md bg-surface">
+              <span className="flex items-center gap-2">
+                <SlidersHorizontal className="size-4" strokeWidth={1.5} aria-hidden />
+                Visibility and more
+              </span>
+              <span className="text-ink-muted">{AUDIENCE_LABELS[audience]}</span>
+            </Button>
+          </SheetTrigger>
+          <SheetContent
+            title="Visibility and more"
+            description="Who sees the collection, when, and where it sits in the menu."
+            footer={
+              <SheetClose asChild>
+                <Button shape="pill">Done</Button>
+              </SheetClose>
+            }
+          >
+            <div className="flex flex-col gap-6">
+              <FormField label="Visibility" error={errors.audience?.message}>
+                <Controller
+                  control={form.control}
+                  name="audience"
+                  render={({ field }) => (
+                    <AudienceField value={field.value} onChange={field.onChange} fieldRef={field.ref} />
+                  )}
+                />
+              </FormField>
+              <FormField
+                label="Public from"
+                helper="Early access: MONO Members see it 12 hours before, Pass members 48 hours before. Empty = everyone now."
+              >
+                <Input
+                  type="datetime-local"
+                  value={publicLocal}
+                  onChange={(e) => setPublicLocal(e.target.value)}
+                />
+              </FormField>
+              <FormField label="Order" helper="Lowest first" error={errors.sortOrder?.message}>
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  {...form.register("sortOrder", { valueAsNumber: true })}
+                />
+              </FormField>
+              <Controller
+                control={form.control}
+                name="isFeatured"
+                render={({ field }) => (
+                  <Switch
+                    label="Featured on the home page"
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                )}
+              />
+            </div>
+          </SheetContent>
+        </Sheet>
+      </div>
+      <div className="flex flex-wrap items-center gap-2 sm:col-span-4">
         <Button type="submit" shape="pill" loading={isSubmitting}>
           {initial ? "Save" : "Add collection"}
         </Button>
@@ -227,7 +266,15 @@ export function CollectionManager({ collections }: { collections: Collection[] }
       ) : (
         <ul ref={listRef} className="divide-y divide-line border-y border-line">
           {collections.map((collection) => (
-            <li key={collection.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+            <li
+              key={collection.id}
+              // The whole row opens the form; its own buttons keep their jobs.
+              onClick={(event) => {
+                if ((event.target as HTMLElement).closest("button, a")) return;
+                startEditing(collection);
+              }}
+              className="flex cursor-pointer flex-wrap items-center justify-between gap-3 px-2 py-3 transition-colors duration-150 ease-standard hover:bg-surface"
+            >
               <span className="flex flex-col gap-1">
                 <span className="flex flex-wrap items-center gap-2 text-body">
                   {collection.name}
@@ -251,7 +298,7 @@ export function CollectionManager({ collections }: { collections: Collection[] }
                 >
                   Edit
                 </Button>
-                <ArchiveButton kind="collection" id={collection.id} name={collection.name} />
+                <ArchiveButton kind="collection" id={collection.id} name={collection.name} label="Delete" />
               </span>
             </li>
           ))}

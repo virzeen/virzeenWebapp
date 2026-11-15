@@ -26,6 +26,7 @@ export default async function AdminSizeGuidesPage() {
         actions={guides.length > 0 ? newGuide : undefined}
       />
       <DataTable
+        rowLink
         caption="Size guides"
         rows={guides}
         getRowId={(row) => row.id}
@@ -54,7 +55,7 @@ export default async function AdminSizeGuidesPage() {
                 <ButtonLink href={`/admin/size-guides/${row.id}`} variant="ghost" size="sm" shape="pill">
                   Edit<span className="sr-only"> {row.name}</span>
                 </ButtonLink>
-                <ArchiveButton kind="sizeGuide" id={row.id} name={row.name} />
+                <ArchiveButton kind="sizeGuide" id={row.id} name={row.name} label="Delete" />
               </div>
             ),
           },

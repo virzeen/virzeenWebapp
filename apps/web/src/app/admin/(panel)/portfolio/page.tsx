@@ -1,3 +1,4 @@
+import { ArchiveButton } from "@/client/features/admin/archive-button";
 import { Badge, ButtonLink, DataTable, EmptyState, Link } from "@virzeen/ui";
 import { PORTFOLIO_KIND_LABELS } from "@virzeen/validators";
 import { AdminPageHeader } from "@/client/features/admin/admin-page-header";
@@ -22,6 +23,7 @@ export default async function AdminPortfolioPage() {
         }
       />
       <DataTable
+        rowLink
         caption="Portfolio projects"
         rows={projects}
         getRowId={(row) => row.id}
@@ -46,6 +48,19 @@ export default async function AdminPortfolioPage() {
               <Badge variant={row.isPublished ? "success" : "neutral"}>
                 {row.isPublished ? "Published" : "Draft"}
               </Badge>
+            ),
+          },
+          {
+            key: "actions",
+            header: <span className="sr-only">Actions</span>,
+            align: "right",
+            cell: (row) => (
+              <span className="flex justify-end gap-2">
+                <ButtonLink href={`/admin/portfolio/${row.id}`} variant="ghost" size="sm" shape="pill">
+                  Edit
+                </ButtonLink>
+                <ArchiveButton kind="portfolio" id={row.id} name={row.title} label="Delete" />
+              </span>
             ),
           },
         ]}

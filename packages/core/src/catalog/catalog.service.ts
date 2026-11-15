@@ -556,6 +556,40 @@ export const catalogService = {
     });
   },
 
+  /**
+   * The products list's side panel: who may see a product (Public / MONO Members / Pass) and its public time, without
+   * opening the editor. Audited with the old level.
+   */
+  async setVisibility(
+    actorId: string,
+    id: string,
+    input: { audience: "PUBLIC" | "MEMBER" | "PASS"; publicAt: Date | null },
+  ) {
+    return db.$transaction(async (tx) => {
+      const before = await tx.product.findFirst({
+        where: { id, archivedAt: null },
+        select: { audience: true },
+      });
+      if (!before) throw new AppError("NOT_FOUND", "Product not found.");
+      await tx.product.updateMany({
+        where: { id, archivedAt: null },
+        data: { audience: input.audience, publicAt: input.publicAt },
+      });
+      await recordAudit(tx, {
+        actorId,
+        action: "product.visibility",
+        entity: "Product",
+        entityId: id,
+        diff: {
+          audience: input.audience,
+          audienceBefore: before.audience,
+          publicAt: input.publicAt?.toISOString() ?? null,
+        },
+      });
+      return { id };
+    });
+  },
+
   /** Hides a product for good (soft delete). Orders keep their snapshots. */
   async archiveProduct(actorId: string, id: string) {
     return db.$transaction(async (tx) => {

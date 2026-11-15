@@ -3,9 +3,11 @@ import { adminProductFiltersSchema, AUDIENCE_LABELS, type AdminProductStatus } f
 import { CloudImage } from "@/client/components/shared/cloud-image";
 import { Price } from "@/client/components/shared/price";
 import { AdminPageHeader } from "@/client/features/admin/admin-page-header";
+import { ArchiveButton } from "@/client/features/admin/archive-button";
 import { DuplicateProductButton } from "@/client/features/admin/duplicate-product-button";
 import { EarlyAccessButton } from "@/client/features/admin/early-access-button";
 import { NewProductDialog } from "@/client/features/admin/editor/new-product-dialog";
+import { ProductQuickSettings } from "@/client/features/admin/product-quick-settings";
 import { ProductSearch } from "@/client/features/admin/product-search";
 import { requireAdminPage } from "@/server/auth/session";
 import { getProductStatusCounts, listAdminCollections, listAdminProducts } from "@/server/queries/admin";
@@ -92,6 +94,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
       </nav>
       <ProductSearch q={q} status={status} />
       <DataTable
+        rowLink
         caption="Products"
         rows={products}
         getRowId={(row) => row.id}
@@ -181,12 +184,21 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
             hideOnMobile: true,
             cell: (row) => (
               <span className="flex justify-end">
+                <ProductQuickSettings
+                  id={row.id}
+                  name={row.name}
+                  slug={row.slug}
+                  isPublished={row.isPublished}
+                  audience={row.audience}
+                  publicAt={row.publicAt?.toISOString() ?? null}
+                />
                 <EarlyAccessButton
                   id={row.id}
                   productName={row.name}
                   publicAt={row.publicAt?.toISOString() ?? null}
                 />
                 <DuplicateProductButton id={row.id} productName={row.name} />
+                <ArchiveButton kind="product" id={row.id} name={row.name} label="Delete" icon />
               </span>
             ),
           },

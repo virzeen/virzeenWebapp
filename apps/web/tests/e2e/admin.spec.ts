@@ -428,9 +428,9 @@ test("admin sets up two-factor, builds a product on its page and it appears in t
   await page.goto("/admin/size-guides");
   const tops = page.getByRole("row", { name: /E2E Tops/ });
   await expect(tops.getByText("2 products")).toBeVisible();
-  await tops.getByRole("button", { name: "Archive" }).click();
-  await page.getByRole("dialog").getByRole("button", { name: "Archive" }).click();
-  await expect(page.getByRole("dialog", { name: "E2E Tops can't be archived yet" })).toBeVisible();
+  await tops.getByRole("button", { name: "Delete" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Delete" }).click();
+  await expect(page.getByRole("dialog", { name: "E2E Tops can't be deleted yet" })).toBeVisible();
   await expect(
     page.getByText("2 products use this size guide. Pick another guide on them first."),
   ).toBeVisible();
@@ -556,20 +556,69 @@ test("admin sets up two-factor, builds a product on its page and it appears in t
   // Collections: a festival sale can open to members first (specs/member-perks.md): the list shows its public time.
   await page.getByRole("navigation", { name: "Admin" }).getByRole("link", { name: "Collections" }).click();
   const festival = page.getByRole("form", { name: "Add a collection" });
+  const more = page.getByRole("dialog", { name: "Visibility and more" });
   await festival.getByLabel(/^Name/).fill("E2E Festival");
+  // The URL slug is typed from the name, and can still be edited.
+  await expect(festival.getByLabel(/^URL slug/)).toHaveValue("e2e-festival");
+  await festival.getByLabel(/^URL slug/).fill("e2e-festival-sale");
+  await festival.getByLabel(/^Name/).fill("E2E Festival 2");
+  await expect(festival.getByLabel(/^URL slug/)).toHaveValue("e2e-festival-sale");
+  await festival.getByLabel(/^Name/).fill("E2E Festival");
+  await festival.getByLabel(/^URL slug/).fill("e2e-festival");
+  // Visibility, public time, order and Featured sit in a panel from the right.
+  await festival.getByRole("button", { name: "Visibility and more" }).click();
   const weekAhead = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-  await festival
+  await more
     .getByLabel("Public from")
     .fill(new Date(weekAhead.getTime() - weekAhead.getTimezoneOffset() * 60_000).toISOString().slice(0, 16));
+  await more.getByRole("button", { name: "Done" }).click();
   await festival.getByRole("button", { name: "Add collection" }).click();
   await expect(page.getByRole("listitem").filter({ hasText: "E2E Festival" })).toContainText("Public from");
   // The same form sets who may see a collection (categories and collections are one thing).
   await festival.getByLabel(/^Name/).fill("E2E Pass Club Two");
-  await festival.getByRole("radio", { name: /^Monochrome Pass members/ }).click();
+  await festival.getByRole("button", { name: "Visibility and more" }).click();
+  await more.getByRole("radio", { name: /^Monochrome Pass members/ }).click();
+  await more.getByRole("button", { name: "Done" }).click();
   await festival.getByRole("button", { name: "Add collection" }).click();
   await expect(page.getByRole("listitem").filter({ hasText: "E2E Pass Club Two" })).toContainText(
     "Monochrome Pass members",
   );
+  // A collection's whole row opens its form, not only its name.
+  await page
+    .getByRole("listitem")
+    .filter({ hasText: "E2E Festival" })
+    .getByText(/\/collections\//)
+    .click();
+  await expect(page.getByRole("form", { name: "Edit E2E Festival" })).toBeVisible();
+
+  // Lists: the whole row opens the item; filters apply without a button; a product's settings open from the right.
+  await page.goto("/admin/products");
+  const beanieListRow = page.getByRole("row").filter({ hasText: "E2E Monochrome Beanie" });
+  await beanieListRow.getByRole("cell").nth(1).click();
+  await expect(page).toHaveURL(/\/admin\/products\/[a-z0-9]+$/);
+  await page.goto("/admin/products");
+  await page.getByRole("searchbox", { name: "Search products" }).fill("zzz-no-such-product");
+  await expect(page).toHaveURL(/q=zzz-no-such-product/);
+  await page.goto("/admin/orders");
+  await page.getByRole("searchbox", { name: "Search" }).fill("nobody@example.com");
+  await expect(page).toHaveURL(/q=nobody%40example\.com/);
+  await page.goto("/admin/products");
+  await page.getByRole("button", { name: "Settings for E2E Monochrome Beanie", exact: true }).click();
+  const quick = page.getByRole("dialog", { name: "Settings" });
+  await expect(quick.getByRole("button", { name: "Delete" })).toBeVisible();
+  await quick.getByRole("radio", { name: /^Monochrome Pass members/ }).click();
+  await quick.getByRole("button", { name: "Save" }).click();
+  await expect(quick).toBeHidden();
+  await expect(
+    page
+      .getByRole("row")
+      .filter({ has: page.getByRole("link", { name: "E2E Monochrome Beanie", exact: true }) }),
+  ).toContainText("Monochrome Pass members");
+  await page.getByRole("button", { name: "Settings for E2E Monochrome Beanie", exact: true }).click();
+  await quick.getByRole("radio", { name: /^Public/ }).click();
+  await quick.getByRole("button", { name: "Save" }).click();
+  await expect(quick).toBeHidden();
+
   const guestView = await page.context().browser()!.newContext();
   const guestPage = await guestView.newPage();
   await guestPage.goto("/collections/e2e-festival");

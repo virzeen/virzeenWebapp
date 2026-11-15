@@ -49,7 +49,13 @@ export function EditorSettings() {
                 </ButtonLink>
               )}
               <DuplicateProductButton id={product.id} unsaved={save.status !== "saved"} />
-              <ArchiveButton kind="product" id={product.id} name={name} redirectTo="/admin/products" />
+              <ArchiveButton
+                kind="product"
+                id={product.id}
+                name={name}
+                redirectTo="/admin/products"
+                label="Delete"
+              />
             </div>
           </section>
         </div>

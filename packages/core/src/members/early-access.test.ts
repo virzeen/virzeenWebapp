@@ -125,6 +125,26 @@ describe("early access in the bag", () => {
   });
 });
 
+describe("setting a product's visibility from the list", () => {
+  beforeEach(resetDatabase);
+
+  it("saves the level and the public time together, audits the old level and hides it from visitors", async () => {
+    const admin = await createUser({ role: "ADMIN" });
+    const { id, slug } = await productPublicIn(-1);
+    const when = new Date(Date.now() + 5 * HOUR);
+    await catalogService.setVisibility(admin.id, id, { audience: "PASS", publicAt: when });
+    const saved = await db.product.findUniqueOrThrow({ where: { id } });
+    expect(saved.audience).toBe("PASS");
+    expect(saved.publicAt?.getTime()).toBe(when.getTime());
+    expect(await catalogReads.getProductBySlug(slug)).toBeNull();
+    const log = await db.auditLog.findFirstOrThrow({ where: { action: "product.visibility", entityId: id } });
+    expect(log.diff).toMatchObject({ audience: "PASS", audienceBefore: "PUBLIC" });
+    await expect(
+      catalogService.setVisibility(admin.id, "missing", { audience: "PUBLIC", publicAt: null }),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+});
+
 describe("setting the public time", () => {
   beforeEach(resetDatabase);
 

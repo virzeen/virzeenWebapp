@@ -71,6 +71,7 @@ Inputs say "Enter", choices (Select, radios) say "Choose".
 | Header icon buttons (screen readers)    | Favourites · Open bag · Open menu (phones) · from `md`: My profile (signed in) / Sign in (guests)        |
 | The menu (screen readers)               | Menu (the dialog's name; no visible title) · Close menu (the X)                                          |
 | Greeting row                            | Hi, {first name} (the first word of the account name) · Hi there (signed in, no name) · Sign in (guests) |
+| Top bar profile, menu title             | Hi, {first name} · Hi there (signed in, no name; owner 2026-11-16, as on phones)                         |
 | Main list                               | New and Featured · Sale (while it's live) · {collection name} — the header's links (owner 2026-11-10)    |
 | Icon list                               | Favourites · Bag · Orders · Settings (signed in only) · Help                                             |
 | Account area (h1 and the tab's default) | My profile                                                                                               |

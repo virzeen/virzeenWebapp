@@ -9,7 +9,9 @@ import {
   DialogFooter,
   DialogTrigger,
   toast,
+  Tooltip,
 } from "@virzeen/ui";
+import { Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { messageFor } from "@/client/lib/error-messages";
@@ -38,10 +40,22 @@ type ArchiveButtonProps = {
   name: string;
   /** Where to go after archiving (defaults to staying and refreshing). */
   redirectTo?: string;
+  /** The button's word: "Archive" (default) or "Delete" for products. Either way it is a soft delete. */
+  label?: "Archive" | "Delete";
+  /** A trash icon button named after the item, with a tooltip, for rows that are short on room (the products list). */
+  icon?: boolean;
 };
 
 /** Archive (soft delete) with a confirmation Dialog — catalog data is never hard-deleted (data-rules.md §1). */
-export function ArchiveButton({ kind, id, name, redirectTo }: ArchiveButtonProps) {
+export function ArchiveButton({
+  kind,
+  id,
+  name,
+  redirectTo,
+  label = "Archive",
+  icon = false,
+}: ArchiveButtonProps) {
+  const done = label === "Delete" ? "deleted" : "archived";
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<Pick<ActionError, "code" | "message"> | null>(null);
@@ -70,7 +84,7 @@ export function ArchiveButton({ kind, id, name, redirectTo }: ArchiveButtonProps
         return;
       }
       setOpen(false);
-      toast.success(`${name} archived`);
+      toast.success(`${name} ${done}`);
       if (redirectTo) router.push(redirectTo);
       router.refresh();
     });
@@ -78,13 +92,23 @@ export function ArchiveButton({ kind, id, name, redirectTo }: ArchiveButtonProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" shape="pill">
-          Archive
-        </Button>
-      </DialogTrigger>
+      {icon ? (
+        <Tooltip content={label}>
+          <DialogTrigger asChild>
+            <Button variant="ghost" size="icon" aria-label={`${label} ${name}`}>
+              <Trash2 className="size-4" strokeWidth={1.5} aria-hidden />
+            </Button>
+          </DialogTrigger>
+        </Tooltip>
+      ) : (
+        <DialogTrigger asChild>
+          <Button variant="ghost" size="sm" shape="pill">
+            {label}
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent
-        title={blocked ? `${name} can't be archived yet` : `Archive ${name}?`}
+        title={blocked ? `${name} can't be ${done} yet` : `${label} ${name}?`}
         description={blocked ? undefined : "It disappears from the shop. Past orders keep their details."}
       >
         {error && <Alert variant="danger">{messageFor(error)}</Alert>}
@@ -99,7 +123,7 @@ export function ArchiveButton({ kind, id, name, redirectTo }: ArchiveButtonProps
                 <Button variant="secondary">Keep</Button>
               </DialogClose>
               <Button variant="destructive" loading={isPending} onClick={archive}>
-                Archive
+                {label}
               </Button>
             </>
           )}

@@ -11,6 +11,7 @@ import {
   saveProductSchema,
   saveSizeGuideSchema,
   setPublicAtSchema,
+  setVisibilitySchema,
   uploadSignatureSchema,
 } from "@virzeen/validators";
 import { revalidatePath } from "next/cache";
@@ -81,6 +82,20 @@ export async function setPublicAtAction(input: unknown) {
     refreshCatalog();
     revalidatePath("/admin/products");
     return { id: result.id, publicAt: result.publicAt?.toISOString() ?? null };
+  });
+}
+
+/** Who may see a product and from when, from the products list's side panel. Audited in core. */
+export async function setProductVisibilityAction(input: unknown) {
+  return runAdminAction("setProductVisibility", async (admin) => {
+    const { id, audience, publicAt } = setVisibilitySchema.parse(input);
+    const result = await catalogService.setVisibility(admin.id, id, {
+      audience,
+      publicAt: publicAt ? new Date(publicAt) : null,
+    });
+    refreshCatalog();
+    revalidatePath("/admin/products");
+    return result;
   });
 }
 

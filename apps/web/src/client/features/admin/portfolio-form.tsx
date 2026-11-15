@@ -30,6 +30,7 @@ import { messageFor } from "@/client/lib/error-messages";
 import { savePortfolioProjectAction } from "@/server/actions/admin/portfolio";
 import { itemButton, keepFocusOnPress, refocusAfterListChange, useRevealFirstError } from "./form-focus";
 import { ImageUploader } from "./image-uploader";
+import { useSlugFollowsName } from "./use-slug-follows-name";
 
 type PortfolioFormProps = {
   projectId?: string;
@@ -51,12 +52,6 @@ const EMPTY: PortfolioProjectInput = {
   sortOrder: 0,
 };
 
-const slugify = (text: string) =>
-  text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-
 /** Portfolio case study editor: cover, text/image blocks, shoppable products (patterns.md §9). */
 export function PortfolioForm({
   projectId,
@@ -74,6 +69,11 @@ export function PortfolioForm({
     shouldFocusError: false,
   });
   const { errors, isSubmitting, submitCount } = form.formState;
+  const slugFollow = useSlugFollowsName(
+    (defaultValues ?? EMPTY).title,
+    () => form.getValues("slug"),
+    (slug) => form.setValue("slug", slug, { shouldDirty: true }),
+  );
   const formRef = useRevealFirstError(submitCount);
   // Story blocks are a union (text | image), so read their errors by path.
   const blockError = (path: `body.${number}.${"heading" | "text" | "url" | "alt" | "caption"}`) =>
@@ -139,13 +139,7 @@ export function PortfolioForm({
           Story
         </h2>
         <FormField label="Title" error={errors.title?.message} required>
-          <Input
-            {...form.register("title", {
-              onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                if (!projectId) form.setValue("slug", slugify(e.target.value));
-              },
-            })}
-          />
+          <Input {...form.register("title", { onChange: slugFollow.onChange })} />
         </FormField>
         <FormField label="URL slug" helper="/portfolio/your-slug" error={errors.slug?.message} required>
           <Input {...form.register("slug")} />

@@ -1,11 +1,13 @@
 "use client";
 
-import { Button, ButtonLink, FormField, Input } from "@virzeen/ui";
+import { ButtonLink, FormField, Input } from "@virzeen/ui";
 import Form from "next/form";
-import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
 /**
- * The admin products search: a GET form, so the search lives in the URL like the orders filters.
+ * The admin products search: a GET form, so the search lives in the URL like the orders filters. It runs by itself
+ * when typing pauses (or on Enter); there is no Search button.
  * The box follows the URL: "Clear search" or "Show all products" empties it (the page isn't remounted on the
  * same route, so an uncontrolled box would keep the old words).
  */
@@ -13,12 +15,24 @@ export function ProductSearch({ q, status }: { q: string | undefined; status: st
   const [value, setValue] = useState(q ?? "");
   const [shownQuery, setShownQuery] = useState(q);
   const inputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
 
   // Adopt the URL's query after a navigation (React "adjust state when a prop changes" pattern).
   if (q !== shownQuery) {
     setShownQuery(q);
     setValue(q ?? "");
   }
+
+  useEffect(() => {
+    if (value.trim() === (q ?? "").trim()) return;
+    const timer = setTimeout(() => {
+      const params = new URLSearchParams();
+      if (value.trim()) params.set("q", value.trim());
+      if (status) params.set("status", status);
+      router.replace(params.size ? `/admin/products?${params.toString()}` : "/admin/products");
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [value, q, status, router]);
 
   return (
     <Form action="/admin/products" role="search" className="flex flex-col gap-3 sm:flex-row sm:items-end">
@@ -36,9 +50,6 @@ export function ProductSearch({ q, status }: { q: string | undefined; status: st
         />
       </FormField>
       <div className="flex gap-2">
-        <Button type="submit" shape="pill">
-          Search
-        </Button>
         {q && (
           // The link goes away with the search, so focus moves to the box, ready for the next one.
           <ButtonLink
