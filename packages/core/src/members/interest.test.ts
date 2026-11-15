@@ -1,61 +1,68 @@
 import { db } from "@virzeen/db";
 import { MAX_INTERESTS } from "@virzeen/validators";
 import { beforeEach, describe, expect, it } from "vitest";
-import { createCategory, createUser, createVariant, resetDatabase } from "../../test/factories";
+import { createCollection, createUser, createVariant, resetDatabase } from "../../test/factories";
 import { interestService } from "./interest.service";
 
-// Interests and "Find your next favourite" (docs/specs/member-area-nike-layout.md).
+// Picks and "Find your next favourite" (docs/specs/member-area-nike-layout.md).
 
-async function productIn(categoryId: string, options: { publicAt?: Date; name?: string } = {}) {
+async function productIn(collectionId: string, options: { publicAt?: Date; name?: string } = {}) {
   const variant = await createVariant();
   await db.product.update({
     where: { id: variant.productId },
-    data: { categoryId, name: options.name ?? "Item", publicAt: options.publicAt ?? null },
+    data: {
+      mainCollectionId: collectionId,
+      collections: { set: [{ id: collectionId }] },
+      name: options.name ?? "Item",
+      publicAt: options.publicAt ?? null,
+    },
   });
   return variant.productId;
 }
 
-describe("saving interests", () => {
+describe("saving picks", () => {
   beforeEach(resetDatabase);
 
   it("replaces the member's set and leaves other members alone", async () => {
     const [me, other] = [await createUser(), await createUser()];
-    const [shirts, trousers] = [await createCategory(), await createCategory()];
+    const [shirts, trousers] = [await createCollection(), await createCollection()];
     const festival = await db.collection.create({ data: { slug: "festival", name: "Festival" } });
-    await interestService.save(other.id, { categoryIds: [shirts.id], collectionIds: [] });
-    await interestService.save(me.id, { categoryIds: [shirts.id], collectionIds: [festival.id] });
-    expect((await interestService.list(me.id)).collections.map((row) => row.slug)).toEqual(["festival"]);
+    await interestService.save(other.id, { collectionIds: [shirts.id] });
+    await interestService.save(me.id, { collectionIds: [shirts.id, festival.id] });
+    expect((await interestService.list(me.id)).collections.map((row) => row.id)).toEqual([
+      shirts.id,
+      festival.id,
+    ]);
 
-    await interestService.save(me.id, { categoryIds: [trousers.id], collectionIds: [] });
+    await interestService.save(me.id, { collectionIds: [trousers.id] });
     const mine = await interestService.list(me.id);
-    expect(mine.categories.map((row) => row.id)).toEqual([trousers.id]);
-    expect(mine.collections).toEqual([]);
-    expect((await interestService.list(other.id)).categories.map((row) => row.id)).toEqual([shirts.id]);
+    expect(mine.collections.map((row) => row.id)).toEqual([trousers.id]);
+    expect((await interestService.list(other.id)).collections.map((row) => row.id)).toEqual([shirts.id]);
   });
 
-  it("refuses an unknown or archived category, and too many interests", async () => {
+  it("refuses an unknown or archived collection, and too many picks", async () => {
     const me = await createUser();
-    const archived = await db.category.create({
+    const archived = await db.collection.create({
       data: { slug: "old", name: "Old", archivedAt: new Date() },
     });
+    await expect(interestService.save(me.id, { collectionIds: ["nope"] })).rejects.toMatchObject({
+      code: "VALIDATION_FAILED",
+    });
+    await expect(interestService.save(me.id, { collectionIds: [archived.id] })).rejects.toMatchObject({
+      code: "VALIDATION_FAILED",
+    });
+    const many = await Promise.all(Array.from({ length: MAX_INTERESTS + 1 }, () => createCollection()));
     await expect(
-      interestService.save(me.id, { categoryIds: ["nope"], collectionIds: [] }),
+      interestService.save(me.id, { collectionIds: many.map((row) => row.id) }),
     ).rejects.toMatchObject({ code: "VALIDATION_FAILED" });
-    await expect(
-      interestService.save(me.id, { categoryIds: [archived.id], collectionIds: [] }),
-    ).rejects.toMatchObject({ code: "VALIDATION_FAILED" });
-    const many = await Promise.all(Array.from({ length: MAX_INTERESTS + 1 }, () => createCategory()));
-    await expect(
-      interestService.save(me.id, { categoryIds: many.map((row) => row.id), collectionIds: [] }),
-    ).rejects.toMatchObject({ code: "VALIDATION_FAILED" });
-    expect((await interestService.list(me.id)).categories).toEqual([]);
+    expect((await interestService.list(me.id)).collections).toEqual([]);
   });
 
   it("clears them when an empty set is saved", async () => {
     const me = await createUser();
-    const shirts = await createCategory();
-    await interestService.save(me.id, { categoryIds: [shirts.id], collectionIds: [] });
-    await interestService.save(me.id, { categoryIds: [], collectionIds: [] });
+    const shirts = await createCollection();
+    await interestService.save(me.id, { collectionIds: [shirts.id] });
+    await interestService.save(me.id, { collectionIds: [] });
     expect(await db.memberInterest.count({ where: { userId: me.id } })).toBe(0);
   });
 });
@@ -65,25 +72,25 @@ describe("find your next favourite", () => {
 
   it("shows products in the member's interests and none already favourited", async () => {
     const me = await createUser();
-    const [shirts, trousers] = [await createCategory(), await createCategory()];
+    const [shirts, trousers] = [await createCollection(), await createCollection()];
     const shirtId = await productIn(shirts.id, { name: "Shirt" });
     const savedShirtId = await productIn(shirts.id, { name: "Saved shirt" });
     await productIn(trousers.id, { name: "Trousers" });
     await db.favourite.create({ data: { userId: me.id, productId: savedShirtId, color: "" } });
-    await interestService.save(me.id, { categoryIds: [shirts.id], collectionIds: [] });
+    await interestService.save(me.id, { collectionIds: [shirts.id] });
     const found = await interestService.recommendations(me.id);
     expect(found.map((product) => product.id)).toEqual([shirtId]);
   });
 
   it("includes products in a chosen collection", async () => {
     const me = await createUser();
-    const category = await createCategory();
+    const category = await createCollection();
     const inCollection = await productIn(category.id, { name: "Festival kurta" });
     await productIn(category.id, { name: "Other" });
     const festival = await db.collection.create({
       data: { slug: "festival", name: "Festival", products: { connect: { id: inCollection } } },
     });
-    await interestService.save(me.id, { categoryIds: [], collectionIds: [festival.id] });
+    await interestService.save(me.id, { collectionIds: [festival.id] });
     expect((await interestService.recommendations(me.id)).map((product) => product.id)).toEqual([
       inCollection,
     ]);
@@ -91,14 +98,14 @@ describe("find your next favourite", () => {
 
   it("falls back to the newest live products with no interests", async () => {
     const me = await createUser();
-    const category = await createCategory();
+    const category = await createCollection();
     const first = await productIn(category.id);
     expect((await interestService.recommendations(me.id)).map((product) => product.id)).toEqual([first]);
   });
 
   it("never shows a hidden draft or an early-access drop before the viewer's time", async () => {
     const me = await createUser();
-    const category = await createCategory();
+    const category = await createCollection();
     const live = await productIn(category.id, { name: "Live" });
     const drop = await productIn(category.id, {
       name: "Drop",
@@ -106,7 +113,7 @@ describe("find your next favourite", () => {
     });
     const draft = await productIn(category.id, { name: "Draft" });
     await db.product.update({ where: { id: draft }, data: { isPublished: false } });
-    await interestService.save(me.id, { categoryIds: [category.id], collectionIds: [] });
+    await interestService.save(me.id, { collectionIds: [category.id] });
 
     const publicView = (await interestService.recommendations(me.id, 0)).map((product) => product.id);
     expect(publicView).toEqual([live]);
@@ -119,9 +126,9 @@ describe("find your next favourite", () => {
 describe("the list of picks to choose from", () => {
   beforeEach(resetDatabase);
 
-  it("shows a category's photo from a live product, never a draft or an early drop", async () => {
-    const category = await createCategory();
-    const empty = await createCategory();
+  it("shows a collection's photo from a live product, never a draft or an early drop", async () => {
+    const category = await createCollection();
+    const empty = await createCollection();
     const live = await productIn(category.id, { name: "Live" });
     const draft = await productIn(category.id, { name: "Draft" });
     await db.product.update({ where: { id: draft }, data: { isPublished: false, publishedAt: new Date() } });
@@ -132,7 +139,7 @@ describe("the list of picks to choose from", () => {
     await db.productImage.create({ data: { productId: drop, url: "drop.jpg", alt: "Drop" } });
 
     const photoOf = async (hours: number, id: string) =>
-      (await interestService.options(hours)).categories.find((row) => row.id === id)?.imageUrl;
+      (await interestService.options(hours)).collections.find((row) => row.id === id)?.imageUrl;
     expect(await photoOf(0, category.id)).toBe("live.jpg");
     expect(await photoOf(0, empty.id)).toBeNull();
     // The drop is the newest product, so a MONO Member's list may use its photo; the draft is never used.

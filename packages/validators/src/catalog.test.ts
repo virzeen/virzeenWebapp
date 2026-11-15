@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   adminProductFiltersSchema,
-  categorySchema,
+  AUDIENCES,
+  audienceSchema,
+  collectionSchema,
   createDraftProductSchema,
   FEATURE_LAYOUT_LABELS,
   FEATURE_LAYOUTS,
@@ -13,7 +15,7 @@ import {
   parseFeatureRows,
   parseSizeChart,
   productSchema,
-  relatedByCategorySchema,
+  relatedByCollectionSchema,
   saveSizeGuideSchema,
   sizeChartSchema,
   SIZE_GUIDE_KIND_LABELS,
@@ -39,9 +41,10 @@ const product = {
   benefits: [],
   details: [],
   countryOfOrigin: "",
-  categoryId: VALID_ID,
+  mainCollectionId: VALID_ID,
   sizeGuideId: "",
   collectionIds: [],
+  audience: "PUBLIC" as const,
   isPublished: true,
   images: [{ url: "virzeen/products/abc/front", alt: "Front view" }],
   features: [],
@@ -67,7 +70,7 @@ describe("productSchema messages", () => {
       name: "",
       slug: "",
       description: "",
-      categoryId: "",
+      mainCollectionId: "",
       isPublished: false,
       images: [],
       shippingPaisa: Number.NaN,
@@ -76,7 +79,7 @@ describe("productSchema messages", () => {
     expect(errors).toEqual({
       name: "Enter the product name",
       slug: "Enter a URL slug",
-      categoryId: "Choose a category",
+      mainCollectionId: "Choose a main collection",
       shippingPaisa: "Enter a shipping price (0 for none)",
       "variants.0.pricePaisa": "Enter a price in rupees, e.g. 1250",
       "variants.0.stock": "Enter the stock as a whole number (0 or more)",
@@ -417,24 +420,24 @@ describe("productSchema: styles (specs/product-editor-on-page.md)", () => {
 });
 
 describe("createDraftProductSchema (New product popup)", () => {
-  it("takes a name, a category and a price", () => {
+  it("takes a name, a collection and a price", () => {
     expect(
-      createDraftProductSchema.parse({ name: " Beanie ", categoryId: VALID_ID, pricePaisa: 135_000 }),
-    ).toEqual({ name: "Beanie", categoryId: VALID_ID, pricePaisa: 135_000 });
+      createDraftProductSchema.parse({ name: " Beanie ", collectionId: VALID_ID, pricePaisa: 135_000 }),
+    ).toEqual({ name: "Beanie", collectionId: VALID_ID, pricePaisa: 135_000 });
   });
 
   it("says what is missing in the product form's words, and takes nothing else", () => {
-    const result = createDraftProductSchema.safeParse({ name: "", categoryId: "", pricePaisa: Number.NaN });
+    const result = createDraftProductSchema.safeParse({ name: "", collectionId: "", pricePaisa: Number.NaN });
     const errors = Object.fromEntries(result.error?.issues.map((i) => [i.path.join("."), i.message]) ?? []);
     expect(errors).toEqual({
       name: "Enter the product name",
-      categoryId: "Choose a category",
+      collectionId: "Choose a collection",
       pricePaisa: "Enter a price in rupees, e.g. 1250",
     });
     expect(
       createDraftProductSchema.safeParse({
         name: "Beanie",
-        categoryId: VALID_ID,
+        collectionId: VALID_ID,
         pricePaisa: 135_000,
         isPublished: true,
       }).success,
@@ -442,13 +445,13 @@ describe("createDraftProductSchema (New product popup)", () => {
   });
 });
 
-describe("relatedByCategorySchema", () => {
-  it("takes a category and, optionally, the product to leave out", () => {
-    expect(relatedByCategorySchema.safeParse({ categoryId: VALID_ID }).success).toBe(true);
-    expect(relatedByCategorySchema.safeParse({ categoryId: VALID_ID, excludeId: VALID_ID }).success).toBe(
+describe("relatedByCollectionSchema", () => {
+  it("takes a collection and, optionally, the product to leave out", () => {
+    expect(relatedByCollectionSchema.safeParse({ collectionId: VALID_ID }).success).toBe(true);
+    expect(relatedByCollectionSchema.safeParse({ collectionId: VALID_ID, excludeId: VALID_ID }).success).toBe(
       true,
     );
-    expect(relatedByCategorySchema.safeParse({ categoryId: "" }).success).toBe(false);
+    expect(relatedByCollectionSchema.safeParse({ collectionId: "" }).success).toBe(false);
   });
 });
 
@@ -652,12 +655,30 @@ describe("sizeGuideSchema", () => {
   });
 });
 
-describe("categorySchema", () => {
+describe("collectionSchema", () => {
+  const collection = { name: "Tops", slug: "tops", sortOrder: 0, isFeatured: false, audience: "PUBLIC" };
+
   it("asks for a whole number order from 0 to 1,000", () => {
     for (const sortOrder of [Number.NaN, -1, 2.5, 1001]) {
-      const result = categorySchema.safeParse({ name: "Tops", slug: "tops", sortOrder });
+      const result = collectionSchema.safeParse({ ...collection, sortOrder });
       expect(result.error?.issues[0]?.message).toBe("Enter a whole number from 0 to 1,000");
     }
+  });
+
+  it("takes each of the three visibility levels and nothing else", () => {
+    for (const audience of AUDIENCES) {
+      expect(collectionSchema.safeParse({ ...collection, audience }).success).toBe(true);
+    }
+    expect(collectionSchema.safeParse({ ...collection, audience: "STAFF" }).success).toBe(false);
+    expect(collectionSchema.safeParse({ ...collection, audience: undefined }).success).toBe(false);
+  });
+});
+
+describe("audienceSchema", () => {
+  it("lists the levels from everyone to the Pass", () => {
+    expect(AUDIENCES).toEqual(["PUBLIC", "MEMBER", "PASS"]);
+    expect(audienceSchema.safeParse("MEMBER").success).toBe(true);
+    expect(audienceSchema.safeParse("member").success).toBe(false);
   });
 });
 

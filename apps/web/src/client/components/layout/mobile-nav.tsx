@@ -5,11 +5,11 @@ import { Menu, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useRef, useState } from "react";
 import { InstallAppButton } from "@/client/components/shared/install-app";
-import { type MenuCategory, MenuMain, menuHrefs } from "./mobile-nav-views";
+import { type MenuCollection, MenuMain, menuHrefs } from "./mobile-nav-views";
 import { currentHref } from "./nav-current";
 
 type MobileNavProps = {
-  categories: MenuCategory[];
+  collections: MenuCollection[];
   /** A live "sale" collection: the Sale row shows only then (as in the header). */
   hasSale: boolean;
   isSignedIn: boolean;
@@ -19,10 +19,10 @@ type MobileNavProps = {
 /**
  * The phone menu (until xl, specs/mobile-menu.md): Nike's content in apple.com's motion. A top Sheet drops down over
  * the whole screen and its rows fade in one after another: the greeting, the header's links as large rows (New and
- * Featured, Sale while it's live, every category), then the small icon links. Every link closes it, and so does any
+ * Featured, Sale while it's live, every collection), then the small icon links. Every link closes it, and so does any
  * navigation (browser Back); focus goes back to the menu button.
  */
-export function MobileNav({ categories, hasSale, isSignedIn, firstName }: MobileNavProps) {
+export function MobileNav({ collections, hasSale, isSignedIn, firstName }: MobileNavProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [shownPath, setShownPath] = useState(pathname);
@@ -34,7 +34,7 @@ export function MobileNav({ categories, hasSale, isSignedIn, firstName }: Mobile
     setOpen(false);
   }
 
-  const current = currentHref(pathname, menuHrefs(isSignedIn, categories, hasSale));
+  const current = currentHref(pathname, menuHrefs(isSignedIn, collections, hasSale));
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -68,7 +68,7 @@ export function MobileNav({ categories, hasSale, isSignedIn, firstName }: Mobile
           <MenuMain
             isSignedIn={isSignedIn}
             firstName={firstName}
-            categories={categories}
+            collections={collections}
             hasSale={hasSale}
             firstLinkRef={firstLinkRef}
             // Phones only (it renders nothing on computers, in the installed app and once installed). The menu

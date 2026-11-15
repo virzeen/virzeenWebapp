@@ -1,7 +1,7 @@
 import "server-only";
 import type { Prisma } from "@virzeen/db";
 
-// Shop search (specs/search.md): every word must match the name, category, a collection, a style name, a colour
+// Shop search (specs/search.md): every word must match the name, a collection (its main one too), a style name, a colour
 // shown or a style number. ILIKE '%word%' through Prisma's `contains`; the catalogue is small enough that no
 // search index is needed yet (database/data-rules.md §1).
 
@@ -28,7 +28,6 @@ const contains = (form: string) => ({ contains: form, mode: "insensitive" as con
 function wordMatches(form: string): Prisma.ProductWhereInput[] {
   return [
     { name: contains(form) },
-    { category: { name: contains(form) } },
     { collections: { some: { archivedAt: null, name: contains(form) } } },
     { variants: { some: { isActive: true, color: contains(form) } } },
     { styles: { some: { OR: [{ colourShown: contains(form) }, { code: contains(form) }] } } },

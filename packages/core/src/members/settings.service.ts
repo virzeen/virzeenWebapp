@@ -100,7 +100,7 @@ export const settingsService = {
           },
         },
         interests: {
-          select: { category: { select: { name: true } }, collection: { select: { name: true } } },
+          select: { collection: { select: { name: true } } },
         },
         walletEntries: {
           select: { kind: true, type: true, amount: true, reason: true, expiresAt: true, createdAt: true },

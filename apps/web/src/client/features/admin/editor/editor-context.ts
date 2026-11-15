@@ -7,11 +7,11 @@ import type { SizeGuideView } from "@/client/features/products/product-details-d
 import type { ImagesArray, useVariantOptions } from "../use-variant-options";
 import type { SaveState } from "./autosave-queue";
 
-export type CategoryOption = { value: string; label: string; slug?: string };
+/** A collection the product can be in (categories and collections are one thing: specs/catalog-groups-visibility.md). */
+export type CollectionOption = { id: string; name: string; slug: string };
 
 export type EditorOptions = {
-  categories: CategoryOption[];
-  collections: { id: string; name: string }[];
+  collections: CollectionOption[];
   /** Active size guides, whole, so Preview's Size guide popup can show the picked one. */
   sizeGuides: (SizeGuideView & { id: string })[];
   uploadsEnabled: boolean;
@@ -54,8 +54,8 @@ export type ProductEditor = {
   style: string;
   selectStyle: (style: string) => void;
   options: EditorOptions;
-  /** Adds a category made in the editor to `options.categories` (the page's list catches up after a refresh). */
-  addCategory: (category: CategoryOption) => void;
+  /** Adds a collection made in the editor to `options.collections` (the page's list catches up after a refresh). */
+  addCollection: (collection: CollectionOption) => void;
   product: EditorProduct;
   /** While on, a name change also changes the slug (a draft never published, slug not typed by hand). */
   slugFollowsName: boolean;

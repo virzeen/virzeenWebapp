@@ -4,7 +4,7 @@ import type { SaveState } from "./autosave-queue";
 import { createAutosave, type SaveOutcome, type SavedProduct } from "./autosave-run";
 import { withChanges } from "./field-issues";
 
-const CATEGORY = "tz4a98xxat96iws9zmbrgj3a";
+const COLLECTION = "tz4a98xxat96iws9zmbrgj3a";
 const PRODUCT = "c0000000000000000000000p";
 const ROW_ID = "c0000000000000000000000v";
 
@@ -17,7 +17,8 @@ const product = (extra: Partial<ProductInput> = {}): ProductInput => ({
   details: [],
   countryOfOrigin: "China",
   seoDescription: "",
-  categoryId: CATEGORY,
+  mainCollectionId: COLLECTION,
+  audience: "PUBLIC" as const,
   sizeGuideId: "",
   collectionIds: [],
   isPublished: false,

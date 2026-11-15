@@ -42,7 +42,8 @@ export type ProductDetailsData = {
   benefits: string[];
   details: string[];
   countryOfOrigin: string | null;
-  category: { name: string; slug: string };
+  /** The main collection (the old category): the grey line under the name and the breadcrumb link. */
+  mainCollection: { name: string; slug: string };
   /** `color`: the style a photo shows; null = every style (specs/product-styles.md). */
   images: { id: string; url: string; alt: string; color: string | null }[];
   features: ProductFeatureView[];

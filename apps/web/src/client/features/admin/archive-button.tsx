@@ -15,7 +15,6 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { messageFor } from "@/client/lib/error-messages";
 import type { ActionError } from "@/server/actions/result";
 import {
-  archiveCategoryAction,
   archiveCollectionAction,
   archiveProductAction,
   archiveSizeGuideAction,
@@ -24,13 +23,12 @@ import { archivePortfolioProjectAction } from "@/server/actions/admin/portfolio"
 
 const ACTIONS = {
   product: archiveProductAction,
-  category: archiveCategoryAction,
   collection: archiveCollectionAction,
   portfolio: archivePortfolioProjectAction,
   sizeGuide: archiveSizeGuideAction,
 } as const;
 
-// Trying again can't help with these: something must change first (a category or size guide still has products)
+// Trying again can't help with these: something must change first (a collection or size guide still has products)
 // or the item is already gone.
 const BLOCKED = new Set<ActionError["code"]>(["CONFLICT", "NOT_FOUND"]);
 

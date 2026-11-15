@@ -11,7 +11,7 @@ const search = async (q: string) =>
 /** A product with a fixed category name, so the factory's random slug can't match a search word. */
 async function bareProduct(name: string, options: { published?: boolean } = {}) {
   const created = await createProduct({ name, ...options });
-  await db.category.update({ where: { id: created.categoryId }, data: { name: "Clothing" } });
+  await db.collection.update({ where: { id: created.mainCollectionId }, data: { name: "Clothing" } });
   return created;
 }
 
@@ -44,7 +44,7 @@ describe("catalogReads.listProducts with a search query", () => {
 
   it("matches the category, a collection, a colour shown and a style number", async () => {
     const tee = await product("Oversized Tee");
-    await db.category.update({ where: { id: tee.categoryId }, data: { name: "Tops" } });
+    await db.collection.update({ where: { id: tee.mainCollectionId }, data: { name: "Tops" } });
     await db.collection.create({
       data: { slug: "monsoon", name: "Monsoon", products: { connect: { id: tee.id } } },
     });

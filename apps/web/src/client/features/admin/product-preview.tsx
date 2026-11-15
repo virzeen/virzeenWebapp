@@ -46,15 +46,21 @@ function useDraft(key: string) {
 
 /**
  * The carousels under the preview, like the shop page: "You may also like" (published products of the draft's
- * category) and "More from Virzeen" (the other categories), read on the server. Nothing while loading, when there
+ * main collection) and "More from Virzeen" (the other collections), read on the server. Nothing while loading, when there
  * are none, or when the read fails.
  */
-function PreviewRelated({ categoryId, excludeId }: { categoryId: string; excludeId?: string | undefined }) {
-  const key = `${categoryId}:${excludeId ?? ""}`;
+function PreviewRelated({
+  collectionId,
+  excludeId,
+}: {
+  collectionId: string;
+  excludeId?: string | undefined;
+}) {
+  const key = `${collectionId}:${excludeId ?? ""}`;
   const [loaded, setLoaded] = useState<{ key: string; recommendations: RecommendationsView } | null>(null);
   useEffect(() => {
     let current = true;
-    void listRecommendationsAction(excludeId ? { categoryId, excludeId } : { categoryId })
+    void listRecommendationsAction(excludeId ? { collectionId, excludeId } : { collectionId })
       .then((result) => {
         if (current) setLoaded({ key, recommendations: result.ok ? result.data : NO_RECOMMENDATIONS });
       })
@@ -64,7 +70,7 @@ function PreviewRelated({ categoryId, excludeId }: { categoryId: string; exclude
     return () => {
       current = false;
     };
-  }, [categoryId, excludeId, key]);
+  }, [collectionId, excludeId, key]);
   return (
     <RelatedProducts recommendations={loaded?.key === key ? loaded.recommendations : NO_RECOMMENDATIONS} />
   );
@@ -145,7 +151,7 @@ export function ProductPreview({ previewKey }: { previewKey: string }) {
         <>
           <ProductDetails product={product} preview />
           {draft?.related && (
-            <PreviewRelated categoryId={draft.related.categoryId} excludeId={draft.related.excludeId} />
+            <PreviewRelated collectionId={draft.related.collectionId} excludeId={draft.related.excludeId} />
           )}
         </>
       )}

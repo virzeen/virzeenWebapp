@@ -13,7 +13,7 @@ import type { Ref } from "react";
 import { MenuSignOut } from "./menu-sign-out";
 import { shopNavItems } from "./nav-current";
 
-export type MenuCategory = { slug: string; name: string };
+export type MenuCollection = { slug: string; name: string };
 
 type Shortcut = { href: string; label: string; icon: LucideIcon; signedInOnly?: boolean };
 
@@ -27,10 +27,10 @@ const SHORTCUTS: Shortcut[] = [
 ];
 
 /** Every link the menu shows, for marking the current page. */
-export function menuHrefs(isSignedIn: boolean, categories: MenuCategory[], hasSale: boolean) {
+export function menuHrefs(isSignedIn: boolean, collections: MenuCollection[], hasSale: boolean) {
   return [
     isSignedIn ? "/account" : "/login",
-    ...shopNavItems(categories, hasSale).map((item) => item.href),
+    ...shopNavItems(collections, hasSale).map((item) => item.href),
     ...SHORTCUTS.filter((item) => isSignedIn || !item.signedInOnly).map((item) => item.href),
   ];
 }
@@ -38,7 +38,7 @@ export function menuHrefs(isSignedIn: boolean, categories: MenuCategory[], hasSa
 type MenuMainProps = {
   isSignedIn: boolean;
   firstName: string | null;
-  categories: MenuCategory[];
+  collections: MenuCollection[];
   /** A live "sale" collection: the Sale row shows only then (as in the header). */
   hasSale: boolean;
   firstLinkRef: Ref<HTMLAnchorElement>;
@@ -52,12 +52,12 @@ type MenuMainProps = {
 
 /**
  * The menu: the greeting, then the header's links as large rows (New and Featured, Sale while it's live, every
- * category; owner 2026-11-10: "like the header, not Portfolio and About"), then the small icon links.
+ * collection; owner 2026-11-10: "like the header, not Portfolio and About"), then the small icon links.
  */
 export function MenuMain({
   isSignedIn,
   firstName,
-  categories,
+  collections,
   hasSale,
   firstLinkRef,
   install,
@@ -66,7 +66,7 @@ export function MenuMain({
 }: MenuMainProps) {
   const greetingHref = isSignedIn ? "/account" : "/login";
   const greeting = isSignedIn ? (firstName ? `Hi, ${firstName}` : "Hi there") : "Sign in";
-  const items = shopNavItems(categories, hasSale);
+  const items = shopNavItems(collections, hasSale);
   const shortcuts = SHORTCUTS.filter((item) => isSignedIn || !item.signedInOnly);
   return (
     <div className="stagger-rows flex flex-col">

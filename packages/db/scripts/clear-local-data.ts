@@ -32,7 +32,6 @@ await db.$transaction([
   db.sizeGuide.deleteMany(),
   db.portfolioProject.deleteMany(),
   db.collection.deleteMany(),
-  db.category.deleteMany(),
   db.twoFactor.deleteMany(),
   db.session.deleteMany(),
   db.account.deleteMany(),

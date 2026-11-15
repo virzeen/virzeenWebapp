@@ -38,8 +38,8 @@ export type FavouriteItem = {
   savedAt: Date | null;
   /** The card: the saved style's photos, price (the lowest of its sizes) and stock. */
   product: ProductSummary;
-  /** The product's category name, shown with the style ("Tops · Black"). */
-  category: string;
+  /** The product's main collection's name, shown with the style ("Tops · Black"). */
+  collection: string;
   /**
    * The saved style's variants for sale, sizes in shop order (sortSizes, like the product page); a product without
    * styles: all of them. [] when the style isn't sold any more.
@@ -52,10 +52,10 @@ export type FavouriteItem = {
   photos: FavouritePhoto[];
 };
 
-/** The card fields plus the category, every photo with its style, and every variant for sale with its price. */
+/** The card fields plus the main collection, every photo with its style, and every variant for sale with its price. */
 const favouriteProductSelect = {
   ...summarySelect,
-  category: { select: { name: true } },
+  mainCollection: { select: { name: true } },
   images: { select: { id: true, url: true, alt: true, color: true }, orderBy: { sortOrder: "asc" } },
   variants: {
     where: { isActive: true },
@@ -101,15 +101,15 @@ function variantsForStyle(row: FavouriteProductRow, color: string): FavouriteVar
 
 /**
  * The card for a favourite, like the product page opened in the saved style: that style's first photo (its second on
- * hover), the lowest price of its sizes, and in stock when any size is, plus the category and the style's variants.
+ * hover), the lowest price of its sizes, and in stock when any size is, plus the main collection and the style's variants.
  * A product without styles, or a style not sold any more, shows the product's usual card.
  */
 function summaryForStyle(
   row: FavouriteProductRow,
   color: string,
-): Pick<FavouriteItem, "style" | "product" | "category" | "variants" | "photos"> {
+): Pick<FavouriteItem, "style" | "product" | "collection" | "variants" | "photos"> {
   const summary = toSummary(row);
-  const card = { category: row.category.name, variants: variantsForStyle(row, color) };
+  const card = { collection: row.mainCollection.name, variants: variantsForStyle(row, color) };
   const variants = color ? row.variants.filter((variant) => variant.color === color) : [];
   if (variants.length === 0) return { style: "", product: summary, ...card, photos: row.images.map(toPhoto) };
   const styles = [...new Set(row.variants.flatMap((variant) => (variant.color ? [variant.color] : [])))];

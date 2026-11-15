@@ -19,7 +19,10 @@ export const getViewerEarlyHours = cache(async (): Promise<number> => {
   return EARLY_ACCESS_HOURS[await tierFor(user.id)];
 });
 
-export const listCategories = cache(() => catalogReads.listCategories());
+/** Every collection the viewer may see, in menu order (the header, the shop filter, the home tiles). */
+export const listShopCollections = cache(async () =>
+  catalogReads.listShopCollections(await getViewerEarlyHours()),
+);
 export const hasLiveCollection = cache(async (slug: string) =>
   catalogReads.hasLiveCollection(slug, await getViewerEarlyHours()),
 );
@@ -29,25 +32,24 @@ export const getProductBySlug = cache(async (slug: string) =>
   catalogReads.getProductBySlug(slug, await getViewerEarlyHours()),
 );
 /**
- * The carousels under a product (specs/product-page-v2.md): "You may also like" (its category, without it) and "More
- * from Virzeen" (other categories), up to 8 each.
+ * The carousels under a product (specs/product-page-v2.md): "You may also like" (its main collection, without it) and
+ * "More from Virzeen" (other collections), up to 8 each.
  */
-export const listRecommendations = async (product: { id: string; categoryId: string }) =>
+export const listRecommendations = async (product: { id: string; mainCollectionId: string }) =>
   catalogReads.listRecommendations({
-    categoryId: product.categoryId,
+    collectionId: product.mainCollectionId,
     excludeId: product.id,
     earlyHours: await getViewerEarlyHours(),
   });
 export const listNewArrivals = async (limit?: number) =>
   catalogReads.listNewArrivals(limit, await getViewerEarlyHours());
-export const getCategoryBySlug = cache((slug: string) => catalogReads.getCategoryBySlug(slug));
 export const getCollectionBySlug = cache(async (slug: string) =>
   catalogReads.getCollectionBySlug(slug, await getViewerEarlyHours()),
 );
 export const listCollections = async (featuredOnly = false) =>
   catalogReads.listCollections({ featuredOnly, earlyHours: await getViewerEarlyHours() });
 export const listHomeTiles = async () => catalogReads.listHomeTiles(await getViewerEarlyHours());
-export const getFilterOptions = (scope: { category?: string | undefined; collection?: string | undefined }) =>
+export const getFilterOptions = (scope: { collection?: string | undefined }) =>
   catalogReads.getFilterOptions(scope);
 
 /** A product's visible reviews: count and average (specs/reviews.md). */
@@ -60,13 +62,13 @@ export const listSitemapEntries = () => catalogReads.listSitemapEntries();
 
 /** Everything a shop listing page needs, in one round trip. */
 export async function loadShopListing(filters: ShopFilters) {
-  const [page, total, categories, options] = await Promise.all([
+  const [page, total, collections, options] = await Promise.all([
     listProducts(filters),
     getViewerEarlyHours().then((hours) => catalogReads.countProducts(filters, hours)),
-    listCategories(),
-    getFilterOptions({ category: filters.category, collection: filters.collection }),
+    listShopCollections(),
+    getFilterOptions({ collection: filters.collection }),
   ]);
-  return { page, total, categories, options };
+  return { page, total, collections, options };
 }
 
 export type ShopListingData = Awaited<ReturnType<typeof loadShopListing>>;

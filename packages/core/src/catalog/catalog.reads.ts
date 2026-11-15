@@ -16,7 +16,8 @@ import { searchWhere } from "./search";
 export const PAGE_SIZE = 12;
 
 /**
- * What a shopper may see (specs/member-perks.md, early access): published, not archived, and public: a product with a
+ * What a shopper may see (specs/member-perks.md, early access): published, not archived, in a live main collection, and
+ * public: a product with a
  * `publicAt` still in the future is hidden unless `earlyHours` (12 for a MONO Member, 48 for the Pass) brings it in range.
  * Uses the top-level `OR` (the shop's search uses `AND`).
  */
@@ -24,7 +25,7 @@ export function visibleProductWhere(earlyHours = 0, now: Date = new Date()): Pri
   return {
     isPublished: true,
     archivedAt: null,
-    category: { archivedAt: null },
+    mainCollection: { archivedAt: null },
     OR: [{ publicAt: null }, { publicAt: { lte: new Date(now.getTime() + earlyHours * 3_600_000) } }],
   };
 }
@@ -43,10 +44,9 @@ export function collectionVisible(earlyHours: number, now: Date = new Date()): P
 /** The most tiles the home page's "Virzeen Archive's" section shows (two rows of eight, like Nike's Spotlight). */
 export const HOME_TILES_SHOWN = 16;
 
-/** One tile of that section: a category or a collection, drawn with an icon. */
+/** One tile of that section: a collection, drawn with an icon. */
 export type HomeTile = {
   key: string;
-  kind: "category" | "collection";
   slug: string;
   name: string;
   href: string;
@@ -55,7 +55,7 @@ export type HomeTile = {
 export const publishedProductWhere = {
   isPublished: true,
   archivedAt: null,
-  category: { archivedAt: null },
+  mainCollection: { archivedAt: null },
   get OR(): Prisma.ProductWhereInput[] {
     return [{ publicAt: null }, { publicAt: { lte: new Date() } }];
   },
@@ -67,7 +67,7 @@ export const summarySelect = {
   name: true,
   fromPricePaisa: true,
   publishedAt: true,
-  category: { select: { name: true } },
+  mainCollection: { select: { name: true } },
   images: { select: { url: true, alt: true }, orderBy: { sortOrder: "asc" }, take: 2 },
   variants: {
     where: { isActive: true },
@@ -94,8 +94,8 @@ export type ProductSummary = {
   hasStylePhotos: boolean;
   /** The style names for sale in style order, as the product page lists them; [] without styles. */
   styles: string[];
-  /** The card's grey line when the product has fewer than two styles (Nike's subtitle). */
-  categoryName: string;
+  /** The card's grey line when the product has fewer than two styles (Nike's subtitle): its main collection. */
+  collectionName: string;
 };
 
 export function toSummary(row: SummaryRow): ProductSummary {
@@ -113,17 +113,17 @@ export function toSummary(row: SummaryRow): ProductSummary {
     colorCount: styles.length,
     hasStylePhotos: row._count.images > 0,
     styles,
-    categoryName: row.category.name,
+    collectionName: row.mainCollection.name,
   };
 }
 
 export type ProductPage = { items: ProductSummary[]; nextCursor: string | null };
 
 /**
- * The two carousels under a product (specs/product-page-v2.md): "You may also like" (same category, without the
- * product) and "More from Virzeen" (other categories). Each is newest first; an empty one is hidden.
+ * The two carousels under a product (specs/product-page-v2.md): "You may also like" (same main collection, without the
+ * product) and "More from Virzeen" (other collections). Each is newest first; an empty one is hidden.
  */
-export type ProductRecommendations = { sameCategory: ProductSummary[]; otherCategories: ProductSummary[] };
+export type ProductRecommendations = { sameCollection: ProductSummary[]; otherCollections: ProductSummary[] };
 
 /**
  * The size guide a product page shows in its "Size guide" popup (specs/size-guides.md, specs/product-page-v2.md).
@@ -200,7 +200,6 @@ function listingWhere(filters: ShopFilters, earlyHours = 0): Prisma.ProductWhere
   return {
     ...visibleProductWhere(earlyHours),
     ...search,
-    ...(filters.category ? { category: { slug: filters.category, archivedAt: null } } : {}),
     ...(filters.collection ? { collections: { some: { slug: filters.collection, archivedAt: null } } } : {}),
     variants: { some: hasVariantFilter ? variantFilter : { isActive: true } },
   };
@@ -245,7 +244,7 @@ export const catalogReads = {
       where: {
         isPublished: true,
         archivedAt: null,
-        category: { archivedAt: null },
+        mainCollection: { archivedAt: null },
         variants: { some: { isActive: true } },
         publicAt: { gt: now, lte: new Date(now.getTime() + earlyHours * 3_600_000) },
       },
@@ -279,8 +278,8 @@ export const catalogReads = {
         countryOfOrigin: true,
         seoDescription: true,
         fromPricePaisa: true,
-        categoryId: true,
-        category: { select: { slug: true, name: true } },
+        mainCollectionId: true,
+        mainCollection: { select: { slug: true, name: true } },
         images: { select: { id: true, url: true, alt: true, color: true }, orderBy: { sortOrder: "asc" } },
         features: {
           select: { id: true, title: true, body: true, imageUrl: true, imageAlt: true },
@@ -315,14 +314,14 @@ export const catalogReads = {
     };
   },
 
-  /** "You may also like": published products of a category (newest first), without `excludeId`. */
-  async listRelatedByCategory({
-    categoryId,
+  /** "You may also like": published products with the same main collection (newest first), without `excludeId`. */
+  async listRelatedByCollection({
+    collectionId,
     excludeId,
     limit = 4,
     earlyHours = 0,
   }: {
-    categoryId: string;
+    collectionId: string;
     excludeId?: string | undefined;
     limit?: number;
     earlyHours?: number;
@@ -330,7 +329,7 @@ export const catalogReads = {
     const rows = await db.product.findMany({
       where: {
         ...visibleProductWhere(earlyHours),
-        categoryId,
+        mainCollectionId: collectionId,
         ...(excludeId ? { id: { not: excludeId } } : {}),
         variants: { some: { isActive: true } },
       },
@@ -342,27 +341,27 @@ export const catalogReads = {
   },
 
   /**
-   * The carousels under a product (specs/product-page-v2.md): up to `limit` published products of the category
-   * without `excludeId` ("You may also like"), and up to `limit` of the other categories ("More from Virzeen"), both
-   * newest first and only with a variant for sale.
+   * The carousels under a product (specs/product-page-v2.md): up to `limit` published products with the same main
+   * collection, without `excludeId` ("You may also like"), and up to `limit` of the other collections ("More from
+   * Virzeen"), both newest first and only with a variant for sale.
    */
   async listRecommendations({
-    categoryId,
+    collectionId,
     excludeId,
     limit = 8,
     earlyHours = 0,
   }: {
-    categoryId: string;
+    collectionId: string;
     excludeId?: string | undefined;
     limit?: number;
     earlyHours?: number;
   }): Promise<ProductRecommendations> {
-    const [sameCategory, otherRows] = await Promise.all([
-      catalogReads.listRelatedByCategory({ categoryId, excludeId, limit, earlyHours }),
+    const [sameCollection, otherRows] = await Promise.all([
+      catalogReads.listRelatedByCollection({ collectionId, excludeId, limit, earlyHours }),
       db.product.findMany({
         where: {
           ...visibleProductWhere(earlyHours),
-          categoryId: { not: categoryId },
+          mainCollectionId: { not: collectionId },
           ...(excludeId ? { id: { not: excludeId } } : {}),
           variants: { some: { isActive: true } },
         },
@@ -371,29 +370,30 @@ export const catalogReads = {
         take: limit,
       }),
     ]);
-    return { sameCategory, otherCategories: otherRows.map(toSummary) };
+    return { sameCollection, otherCollections: otherRows.map(toSummary) };
   },
 
-  async listRelated(product: { id: string; categoryId: string }, limit = 4): Promise<ProductSummary[]> {
-    return catalogReads.listRelatedByCategory({
-      categoryId: product.categoryId,
+  async listRelated(product: { id: string; mainCollectionId: string }, limit = 4): Promise<ProductSummary[]> {
+    return catalogReads.listRelatedByCollection({
+      collectionId: product.mainCollectionId,
       excludeId: product.id,
       limit,
     });
   },
 
-  async listCategories() {
-    return db.category.findMany({
-      where: { archivedAt: null, products: { some: publishedProductWhere } },
+  /**
+   * Every collection a shopper may see, in the shop's menu and filter (specs/catalog-groups-visibility.md): live, with
+   * at least one product they can see, ordered by Order then name.
+   */
+  async listShopCollections(earlyHours = 0) {
+    return db.collection.findMany({
+      where: {
+        archivedAt: null,
+        ...collectionVisible(earlyHours),
+        products: { some: visibleProductWhere(earlyHours) },
+      },
       select: { id: true, slug: true, name: true },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-    });
-  },
-
-  async getCategoryBySlug(slug: string) {
-    return db.category.findFirst({
-      where: { slug, archivedAt: null },
-      select: { id: true, slug: true, name: true },
     });
   },
 
@@ -435,42 +435,17 @@ export const catalogReads = {
   },
 
   /**
-   * The tiles of the home page's "Virzeen Archive's" section (specs/home-archive.md): every shop category, then every
-   * live collection (early access works as in the shop). A category or collection with nothing visible is left out.
+   * The tiles of the home page's "Virzeen Archive's" section (specs/home-archive.md): every live collection the viewer
+   * may see (early access works as in the shop), ordered by Order then name. One with nothing visible is left out.
    */
   async listHomeTiles(earlyHours = 0, limit = HOME_TILES_SHOWN): Promise<HomeTile[]> {
-    const [categories, collections] = await Promise.all([
-      db.category.findMany({
-        where: { archivedAt: null, products: { some: visibleProductWhere(earlyHours) } },
-        select: { id: true, slug: true, name: true },
-        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-      }),
-      db.collection.findMany({
-        where: {
-          archivedAt: null,
-          ...collectionVisible(earlyHours),
-          products: { some: visibleProductWhere(earlyHours) },
-        },
-        select: { id: true, slug: true, name: true },
-        orderBy: { createdAt: "desc" },
-      }),
-    ]);
-    return [
-      ...categories.map((row): HomeTile => ({
-        key: `category-${row.id}`,
-        kind: "category",
-        slug: row.slug,
-        name: row.name,
-        href: `/shop/${row.slug}`,
-      })),
-      ...collections.map((row): HomeTile => ({
-        key: `collection-${row.id}`,
-        kind: "collection",
-        slug: row.slug,
-        name: row.name,
-        href: `/collections/${row.slug}`,
-      })),
-    ].slice(0, limit);
+    const collections = await catalogReads.listShopCollections(earlyHours);
+    return collections.slice(0, limit).map((row): HomeTile => ({
+      key: `collection-${row.id}`,
+      slug: row.slug,
+      name: row.name,
+      href: `/collections/${row.slug}`,
+    }));
   },
 
   async getCollectionBySlug(slug: string, earlyHours = 0) {
@@ -481,13 +456,12 @@ export const catalogReads = {
   },
 
   /** Sizes and colours present in the (optionally filtered) catalogue, for the filter controls. */
-  async getFilterOptions(scope: { category?: string | undefined; collection?: string | undefined }) {
+  async getFilterOptions(scope: { collection?: string | undefined }) {
     const variants = await db.productVariant.findMany({
       where: {
         isActive: true,
         product: {
           ...publishedProductWhere,
-          ...(scope.category ? { category: { slug: scope.category } } : {}),
           ...(scope.collection ? { collections: { some: { slug: scope.collection } } } : {}),
         },
       },
@@ -502,16 +476,15 @@ export const catalogReads = {
 
   /** Everything the sitemap needs. */
   async listSitemapEntries() {
-    const [products, categories, collections, projects] = await Promise.all([
+    const [products, collections, projects] = await Promise.all([
       db.product.findMany({ where: publishedProductWhere, select: { slug: true, updatedAt: true } }),
-      db.category.findMany({ where: { archivedAt: null }, select: { slug: true, updatedAt: true } }),
       db.collection.findMany({ where: { archivedAt: null }, select: { slug: true, updatedAt: true } }),
       db.portfolioProject.findMany({
         where: { isPublished: true, archivedAt: null },
         select: { slug: true, updatedAt: true },
       }),
     ]);
-    return { products, categories, collections, projects };
+    return { products, collections, projects };
   },
 };
 

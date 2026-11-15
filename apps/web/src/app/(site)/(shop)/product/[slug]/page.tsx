@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const product = await getProductBySlug((await params).slug);
   if (!product) notFound();
   const prices = product.variants.map((v) => v.pricePaisa);
-  const title = productTitle(product.name, product.category.name);
+  const title = productTitle(product.name, product.mainCollection.name);
   const description = productDescription({
     seoDescription: product.seoDescription,
     description: product.description,
@@ -53,7 +53,7 @@ async function waitingFor(variantIds: string[]) {
 }
 
 /** The carousels under the product (specs/product-page-v2.md), streamed in after it so they never hold it up. */
-async function Recommendations({ product }: { product: { id: string; categoryId: string } }) {
+async function Recommendations({ product }: { product: { id: string; mainCollectionId: string } }) {
   return <RelatedProducts recommendations={await listRecommendations(product)} />;
 }
 
@@ -99,7 +99,7 @@ export default async function ProductPage({ params, searchParams }: Props) {
       <JsonLd
         data={breadcrumbJsonLd(siteUrl, [
           { name: "Shop", path: "/shop" },
-          { name: product.category.name, path: `/shop/${product.category.slug}` },
+          { name: product.mainCollection.name, path: `/collections/${product.mainCollection.slug}` },
           { name: product.name, path: `/product/${product.slug}` },
         ])}
       />
@@ -113,7 +113,7 @@ export default async function ProductPage({ params, searchParams }: Props) {
           ...(image ? { image } : {}),
           sku: product.variants[0]?.sku,
           brand: { "@type": "Brand", name: "Virzeen" },
-          category: product.category.name,
+          category: product.mainCollection.name,
           ...(rating.count > 0 && rating.average !== null
             ? {
                 aggregateRating: {

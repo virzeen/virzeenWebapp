@@ -63,11 +63,11 @@ export function ProductDetails({
           <li aria-hidden>/</li>
           <li>
             <Link
-              href={`/shop/${product.category.slug}`}
+              href={`/collections/${product.mainCollection.slug}`}
               variant="subtle"
               className="inline-flex min-h-11 items-center"
             >
-              {product.category.name}
+              {product.mainCollection.name}
             </Link>
           </li>
         </ol>
@@ -83,9 +83,9 @@ export function ProductDetails({
         {/* Row 1 on the right holds the name; the gallery spans both rows; row 2 takes the rest of the height. */}
         <div className="grid gap-6 lg:grid-cols-[3fr_2fr] lg:grid-rows-[auto_1fr] lg:gap-x-16">
           <div className="flex flex-col gap-1 lg:col-start-2 lg:row-start-1 lg:max-w-md">
-            {/* Nike's product page: the name 20px medium, the category 16px grey, the price 16px medium. */}
+            {/* Nike's product page: the name 20px medium, the collection 16px grey, the price 16px medium. */}
             <h1 className="font-display text-h3">{product.name}</h1>
-            <p className="text-body text-ink-muted">{product.category.name}</p>
+            <p className="text-body text-ink-muted">{product.mainCollection.name}</p>
             <SelectedPrice className="pt-3 text-body font-medium" />
           </div>
           <div className="lg:sticky lg:top-24 lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:self-start">

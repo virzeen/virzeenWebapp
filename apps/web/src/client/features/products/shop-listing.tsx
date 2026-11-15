@@ -10,7 +10,7 @@ type ShopListingData = {
   page: { items: ProductCardData[]; nextCursor: string | null };
   /** Every product the listing holds, whatever "Load more" has shown. */
   total: number;
-  categories: { slug: string; name: string }[];
+  collections: { slug: string; name: string }[];
   options: { sizes: string[]; colors: string[] };
 };
 
@@ -21,42 +21,42 @@ type ShopListingProps = {
   filters: ShopFilters;
   /** Current URL params, passed back to "Load more". */
   params: Record<string, string>;
-  activeCategory?: string;
+  activeCollection?: string;
 };
 
 const CHIP =
   "inline-flex min-h-11 shrink-0 items-center rounded-full border border-line px-4 text-small aria-[current=page]:border-ink aria-[current=page]:bg-ink aria-[current=page]:text-canvas";
 
 /**
- * Shared layout for /shop, /shop/[category] and /collections/[slug] (patterns.md §5), like Nike's listing from lg
+ * Shared layout for /shop and /collections/[slug] (patterns.md §5), like Nike's listing from lg
  * (owner 2026-11-08): "{title} ({total})" in a bar that sticks while scrolling, Show Filters and Sort By, 3 products
  * a row.
  */
-export function ShopListing({ data, title, intro, filters, params, activeCategory }: ShopListingProps) {
-  const { page, total, categories, options } = data;
+export function ShopListing({ data, title, intro, filters, params, activeCollection }: ShopListingProps) {
+  const { page, total, collections, options } = data;
   const hasFilters = Boolean(filters.size || filters.color || filters.inStock);
-  const acrossCategories = Boolean(filters.collection || filters.q);
+  const acrossCollections = Boolean(filters.q);
 
-  const chips = categories.length > 0 && (
+  const chips = collections.length > 0 && (
     // Chips wrap instead of scrolling sideways, so the current one is never off-screen on a phone.
-    <nav aria-label="Categories" className="flex flex-wrap gap-2">
+    <nav aria-label="Collections" className="flex flex-wrap gap-2">
       <Link
         href="/shop"
         variant="subtle"
-        aria-current={!activeCategory && !acrossCategories ? "page" : undefined}
+        aria-current={!activeCollection && !acrossCollections ? "page" : undefined}
         className={CHIP}
       >
         All
       </Link>
-      {categories.map((category) => (
+      {collections.map((collection) => (
         <Link
-          key={category.slug}
-          href={`/shop/${category.slug}`}
+          key={collection.slug}
+          href={`/collections/${collection.slug}`}
           variant="subtle"
-          aria-current={activeCategory === category.slug ? "page" : undefined}
+          aria-current={activeCollection === collection.slug ? "page" : undefined}
           className={CHIP}
         >
-          {category.name}
+          {collection.name}
         </Link>
       ))}
     </nav>
@@ -107,9 +107,9 @@ export function ShopListing({ data, title, intro, filters, params, activeCategor
           }
           sidebar={
             <ShopSidebar
-              categories={categories}
-              activeCategory={activeCategory}
-              acrossCategories={acrossCategories}
+              collections={collections}
+              activeCollection={activeCollection}
+              acrossCollections={acrossCollections}
               sizes={options.sizes}
               colors={options.colors}
             />

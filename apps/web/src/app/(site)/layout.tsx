@@ -8,7 +8,7 @@ import { FavouritesProvider } from "@/client/features/favourites/favourites-prov
 import { getUser } from "@/server/auth/session";
 import { listMyFavouriteKeys, tierFor } from "@/server/queries/account";
 import { getCartView } from "@/server/queries/cart";
-import { hasLiveCollection, listCategories } from "@/server/queries/catalog";
+import { hasLiveCollection, listShopCollections } from "@/server/queries/catalog";
 import { listNotices } from "@/server/queries/notices";
 
 /** A signed-in customer's favourites, for every Favourite button; guests keep theirs in the browser. */
@@ -25,10 +25,10 @@ async function topNotices() {
 
 /** Customer-facing shell: header, bag drawer, footer. The admin area has its own layout. */
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
-  const [user, cart, categories, favourites, hasSale, notices] = await Promise.all([
+  const [user, cart, collections, favourites, hasSale, notices] = await Promise.all([
     getUser(),
     getCartView(),
-    listCategories(),
+    listShopCollections(),
     favouriteKeys(),
     hasLiveCollection(SALE_COLLECTION),
     topNotices(),
@@ -49,7 +49,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
           <SiteHeader
             isSignedIn={Boolean(user)}
             firstName={firstName(user?.name)}
-            categories={categories}
+            collections={collections}
             hasSale={hasSale}
           />
           <main id="main" className="flex-1">

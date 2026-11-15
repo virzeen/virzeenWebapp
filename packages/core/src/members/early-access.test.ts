@@ -74,8 +74,10 @@ describe("early access for a collection", () => {
     expect(await catalogReads.getCollectionBySlug(collection.slug, 12)).not.toBeNull();
     expect(await catalogReads.hasLiveCollection(collection.slug)).toBe(false);
     expect(await catalogReads.hasLiveCollection(collection.slug, 12)).toBe(true);
-    expect(await catalogReads.listCollections()).toHaveLength(0);
-    expect(await catalogReads.listCollections({ earlyHours: 12 })).toHaveLength(1);
+    const slugs = async (earlyHours: number) =>
+      (await catalogReads.listCollections({ earlyHours })).map((row) => row.slug);
+    expect(await slugs(0)).not.toContain("festival");
+    expect(await slugs(12)).toContain("festival");
     // Past its time it is for everyone.
     await db.collection.update({
       where: { id: collection.id },

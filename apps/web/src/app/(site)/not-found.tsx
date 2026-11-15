@@ -5,7 +5,7 @@ import type { Metadata } from "next";
 // keeps the site's default title instead.
 export const metadata: Metadata = { title: "Page not found" };
 
-/** 404 inside the storefront shell: missing products, categories and stories, and unmatched URLs ([...missing]). */
+/** 404 inside the storefront shell: missing products, collections and stories, and unmatched URLs ([...missing]). */
 export default function NotFound() {
   return (
     <Container className="py-24">

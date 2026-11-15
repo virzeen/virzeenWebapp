@@ -290,19 +290,17 @@ model Favourite {
   @@index([productId])
 }
 
-/// A category or collection a member likes (profile "Interests", specs/member-area-nike-layout.md): exactly one of the
-/// two ids is set (the service checks it). Chooses the products in "Find your next favourite".
+/// A collection a member likes (profile "Your picks", specs/member-area-nike-layout.md). Chooses the products in
+/// "Find your next favourite". Before the merge of categories into collections (specs/catalog-groups-visibility.md) a
+/// pick was a category or a collection.
 model MemberInterest {
-  id           String      @id @default(cuid(2))
+  id           String     @id @default(cuid(2))
   userId       String
-  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  categoryId   String?
-  category     Category?   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  collectionId String?
-  collection   Collection? @relation(fields: [collectionId], references: [id], onDelete: Cascade)
-  createdAt    DateTime    @default(now())
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  collectionId String
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
 
-  @@unique([userId, categoryId])
   @@unique([userId, collectionId])
   @@index([userId, createdAt])
 }
@@ -333,36 +331,39 @@ model Review {
 
 // ───────────────────────────── Catalog ─────────────────────────────
 
-model Category {
-  id         String           @id @default(cuid(2))
-  slug       String           @unique
-  name       String
-  sortOrder  Int              @default(0)
-  archivedAt DateTime?
-  products   Product[]
-  interests  MemberInterest[]
-  createdAt  DateTime         @default(now())
-  updatedAt  DateTime         @updatedAt
-
-  @@index([sortOrder])
+/// Who may see a collection or a product (specs/catalog-groups-visibility.md): everyone, signed-in MONO Members and the
+/// Monochrome Pass, or the Pass only. A higher level also sees the lower ones.
+enum Audience {
+  PUBLIC
+  MEMBER
+  PASS
 }
 
+/// One group of products. Categories and collections used to be two tables; they are the same thing now (owner,
+/// 2026-11-15): a product sits in any number of collections and has one main collection.
 model Collection {
-  id          String           @id @default(cuid(2))
-  slug        String           @unique
-  name        String
-  description String?
-  isFeatured  Boolean          @default(false)
+  id           String           @id @default(cuid(2))
+  slug         String           @unique
+  name         String
+  description  String?
+  /// Position in menus and lists (lowest first).
+  sortOrder    Int              @default(0)
+  isFeatured   Boolean          @default(false)
+  /// Who may see it (hidden completely from everyone else).
+  audience     Audience         @default(PUBLIC)
   /// Early access for a festival sale or a drop (specs/member-perks.md): the public sees the collection from this time;
   /// MONO Members 12 hours and Pass members 48 hours earlier. Null = no wait.
-  publicAt    DateTime?
-  archivedAt  DateTime?
-  products    Product[]
-  interests   MemberInterest[]
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  publicAt     DateTime?
+  archivedAt   DateTime?
+  products     Product[]
+  /// The products whose main collection this is (the old "category").
+  mainProducts Product[]        @relation("ProductMainCollection")
+  interests    MemberInterest[]
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
 
   @@index([isFeatured])
+  @@index([sortOrder])
 }
 
 model Product {
@@ -375,8 +376,12 @@ model Product {
   description       String
   care              String?
   seoDescription    String?
-  categoryId        String
-  category          Category           @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  /// The main collection (the old category): the card's grey line, the breadcrumb and "You may also like". The product
+  /// is also one of `collections`.
+  mainCollectionId  String
+  mainCollection    Collection         @relation("ProductMainCollection", fields: [mainCollectionId], references: [id], onDelete: Restrict)
+  /// Who may see the product (together with its collections: specs/catalog-groups-visibility.md).
+  audience          Audience           @default(PUBLIC)
   /// Lowest active variant price, kept in sync by catalogService.saveProduct (used for sorting and cards).
   fromPricePaisa    Int                @default(0)
   /// Delivery charge for this product, already included in every variant's pricePaisa (owner decision
@@ -414,7 +419,7 @@ model Product {
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
 
-  @@index([categoryId])
+  @@index([mainCollectionId])
   @@index([isPublished, archivedAt, publishedAt])
   @@index([fromPricePaisa])
   @@index([sizeGuideId])

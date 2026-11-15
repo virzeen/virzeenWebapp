@@ -13,21 +13,25 @@ import { useProductEditor } from "./editor-context";
 export function useEditorPreview() {
   const { form, options, product } = useProductEditor();
   const previewing = useRef(false);
-  const { categories, sizeGuides } = options;
+  const { collections, sizeGuides } = options;
 
   const handOver = useCallback(() => {
     const values = form.getValues();
-    const category = categories.find((option) => option.value === values.categoryId);
+    const mainCollection = collections.find((option) => option.id === values.mainCollectionId);
     const sizeGuide = sizeGuides.find((guide) => guide.id === values.sizeGuideId);
     writePreviewDraft(product.id, {
       values,
-      category: category
-        ? { id: category.value, name: category.label, slug: category.slug ?? slugify(category.label) }
+      mainCollection: mainCollection
+        ? {
+            id: mainCollection.id,
+            name: mainCollection.name,
+            slug: mainCollection.slug || slugify(mainCollection.name),
+          }
         : null,
       sizeGuide: sizeGuide ?? null,
       productId: product.id,
     });
-  }, [form, categories, sizeGuides, product.id]);
+  }, [form, collections, sizeGuides, product.id]);
 
   // One subscription for the editor's life: every save re-renders the editor and makes a new handOver, and
   // re-subscribing then would cancel the pending hand-over, so the preview tab never heard of the change.

@@ -8,7 +8,7 @@ import type { SearchResultsState } from "./use-product-search";
 
 type SearchResultsProps = {
   state: SearchResultsState;
-  categories: { slug: string; name: string }[];
+  collections: { slug: string; name: string }[];
   /** Closes the panel as a link inside it starts navigating. */
   onNavigate: () => void;
   onRetry: () => void;
@@ -25,7 +25,7 @@ export const searchHref = (query: string) => `/shop?q=${encodeURIComponent(query
  * typing, then up to 6 product cards (the shop's grid: 2 a row, 3 from lg) with "See all results", the no-results message, or an error with "Try again".
  * A hidden status line reads the count.
  */
-export function SearchResults({ state, categories, onNavigate, onRetry }: SearchResultsProps) {
+export function SearchResults({ state, collections, onNavigate, onRetry }: SearchResultsProps) {
   const items: ProductCardData[] | null =
     state.status === "done" || state.status === "loading" ? state.items : null;
   const query = state.status === "idle" ? "" : state.query;
@@ -36,7 +36,7 @@ export function SearchResults({ state, categories, onNavigate, onRetry }: Search
         {state.status === "done" ? resultLabel(state.items.length, state.hasMore) : ""}
       </p>
 
-      {state.status === "idle" && <PopularTerms categories={categories} onNavigate={onNavigate} />}
+      {state.status === "idle" && <PopularTerms collections={collections} onNavigate={onNavigate} />}
 
       {state.status === "error" && (
         <Alert
@@ -102,27 +102,27 @@ export function SearchResults({ state, categories, onNavigate, onRetry }: Search
 }
 
 /**
- * "Popular search terms" as grey pills (Nike's). Until searches are counted, the terms are the shop's categories;
+ * "Popular search terms" as grey pills (Nike's). Until searches are counted, the terms are the shop's collections;
  * each one searches for its name.
  */
-function PopularTerms({ categories, onNavigate }: Pick<SearchResultsProps, "categories" | "onNavigate">) {
+function PopularTerms({ collections, onNavigate }: Pick<SearchResultsProps, "collections" | "onNavigate">) {
   const headingId = useId();
-  if (categories.length === 0) return null;
+  if (collections.length === 0) return null;
   return (
     <nav aria-labelledby={headingId} className="flex flex-col gap-4">
       <h2 id={headingId} className="text-body text-ink-muted">
         Popular search terms
       </h2>
       <ul className="flex flex-wrap gap-3">
-        {categories.map((category) => (
-          <li key={category.slug}>
+        {collections.map((collection) => (
+          <li key={collection.slug}>
             <Link
-              href={searchHref(category.name.toLowerCase())}
+              href={searchHref(collection.name.toLowerCase())}
               variant="subtle"
               className={CHIP}
               onNavigate={onNavigate}
             >
-              {category.name.toLowerCase()}
+              {collection.name.toLowerCase()}
             </Link>
           </li>
         ))}

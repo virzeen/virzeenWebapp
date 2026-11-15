@@ -29,7 +29,7 @@ export function ProductCardHeart({ product }: { product: ProductCardData }) {
       showAdded(
         {
           name: product.name,
-          details: favouriteDetails({ category: product.categoryName, style }),
+          details: favouriteDetails({ collection: product.collectionName, style }),
           imageUrl: product.imageUrl,
           imageAlt: product.imageAlt,
           pricePaisa: product.fromPricePaisa,

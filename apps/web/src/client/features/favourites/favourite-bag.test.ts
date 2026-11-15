@@ -52,9 +52,9 @@ describe("favouriteHref", () => {
 });
 
 describe("favouriteDetails", () => {
-  it("gives the category and the style, or just the category", () => {
-    expect(favouriteDetails({ category: "Tops", style: "Black" })).toBe("Tops · Black");
-    expect(favouriteDetails({ category: "Accessories", style: "" })).toBe("Accessories");
+  it("gives the collection and the style, or just the collection", () => {
+    expect(favouriteDetails({ collection: "Tops", style: "Black" })).toBe("Tops · Black");
+    expect(favouriteDetails({ collection: "Accessories", style: "" })).toBe("Accessories");
   });
 });
 

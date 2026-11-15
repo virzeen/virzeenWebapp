@@ -14,7 +14,7 @@ export type ProductCardData = {
   /** The style names in style order; the grey line lists them when there are two or more. */
   styles: string[];
   /** The grey line otherwise. */
-  categoryName: string;
+  collectionName: string;
 };
 
 type ProductCardProps = {
@@ -26,7 +26,7 @@ type ProductCardProps = {
 
 /**
  * Product grid card: the whole card is one link (patterns.md §5). Under the square photo, like Nike's (owner
- * 2026-11-08): the name, a grey line with the colours ("Black, White") or else the category, then the price.
+ * 2026-11-08): the name, a grey line with the colours ("Black, White") or else the main collection, then the price.
  */
 export function ProductCard({ product, priority = false, onNavigate }: ProductCardProps) {
   return (
@@ -59,7 +59,7 @@ export function ProductCard({ product, priority = false, onNavigate }: ProductCa
       <div className="flex flex-col px-card-inset">
         <span className="text-small font-medium md:text-body">{product.name}</span>
         <span className="text-small text-ink-muted md:text-body">
-          {product.styles.length > 1 ? product.styles.join(", ") : product.categoryName}
+          {product.styles.length > 1 ? product.styles.join(", ") : product.collectionName}
         </span>
         <Price paisa={product.fromPricePaisa} symbol="रु" className="mt-1 text-body font-medium" />
       </div>

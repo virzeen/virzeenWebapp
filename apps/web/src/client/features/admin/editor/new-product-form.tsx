@@ -11,16 +11,16 @@ import { createDraftProductAction } from "@/server/actions/admin/catalog";
 import { RupeesInput } from "../rupees-input";
 
 type NewProductFormProps = {
-  categories: { value: string; label: string }[];
+  collections: { value: string; label: string }[];
   /** A Cancel button or link, shown before "Create draft". */
   cancel: React.ReactNode;
 };
 
 /**
- * New product (specs/product-editor-on-page.md "User flow"): a name, a category and a price make a draft, and its
+ * New product (specs/product-editor-on-page.md "User flow"): a name, a collection and a price make a draft, and its
  * editor opens. Used in the Products page's popup and on /admin/products/new.
  */
-export function NewProductForm({ categories, cancel }: NewProductFormProps) {
+export function NewProductForm({ collections, cancel }: NewProductFormProps) {
   const router = useRouter();
   const [formError, setFormError] = useState<string | null>(null);
   // Stays busy until the editor opens, so a second press can't make a second draft.
@@ -28,7 +28,7 @@ export function NewProductForm({ categories, cancel }: NewProductFormProps) {
   const form = useForm<CreateDraftProductInput>({
     resolver: zodResolver(createDraftProductSchema),
     mode: "onBlur",
-    defaultValues: { name: "", categoryId: "", pricePaisa: Number.NaN },
+    defaultValues: { name: "", collectionId: "", pricePaisa: Number.NaN },
   });
   const { errors, isSubmitting } = form.formState;
 
@@ -41,18 +41,18 @@ export function NewProductForm({ categories, cancel }: NewProductFormProps) {
     }
     let onFields = false;
     for (const [field, message] of Object.entries(result.error.fields ?? {})) {
-      if (field !== "name" && field !== "categoryId" && field !== "pricePaisa") continue;
+      if (field !== "name" && field !== "collectionId" && field !== "pricePaisa") continue;
       form.setError(field, { message }, { shouldFocus: !onFields });
       onFields = true;
     }
     if (!onFields) setFormError(messageFor(result.error));
   }
 
-  if (categories.length === 0) {
+  if (collections.length === 0) {
     return (
       <Alert variant="info">
-        Add a category first: every product belongs to one.{" "}
-        <Link href="/admin/categories">Go to categories</Link>
+        Add a collection first: every product belongs to one.{" "}
+        <Link href="/admin/collections">Go to collections</Link>
       </Alert>
     );
   }
@@ -63,18 +63,18 @@ export function NewProductForm({ categories, cancel }: NewProductFormProps) {
       <FormField label="Product name" error={errors.name?.message} required>
         <Input autoComplete="off" {...form.register("name")} />
       </FormField>
-      <FormField label="Category" error={errors.categoryId?.message} required>
+      <FormField label="Main collection" error={errors.collectionId?.message} required>
         <Controller
           control={form.control}
-          name="categoryId"
+          name="collectionId"
           render={({ field }) => (
             <Select
               ref={field.ref}
               value={field.value}
               onValueChange={field.onChange}
               onBlur={field.onBlur}
-              options={categories}
-              placeholder="Choose a category"
+              options={collections}
+              placeholder="Choose a collection"
             />
           )}
         />

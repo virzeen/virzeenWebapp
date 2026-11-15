@@ -20,15 +20,11 @@ export const searchHeading = (query: string) => `Results for "${query}"`;
 /** `Results for "black tee" | Virzeen`: the tab of a search, which search engines don't index. */
 export const searchTitle = (query: string) => `${searchHeading(query)} | Virzeen`;
 
-/** "Vases by Virzeen" */
-export const categoryTitle = (category: string) => `${category} by Virzeen`;
-
 /** "Linen Overshirt | Tops by Virzeen" */
-export const productTitle = (product: string, category: string) => `${product} | ${category} by Virzeen`;
+export const productTitle = (product: string, collection: string) => `${product} | ${collection} by Virzeen`;
 
-/** "Monsoon collection by Virzeen" (no doubled word when the name already ends in "collection"). */
-export const collectionTitle = (collection: string) =>
-  /\bcollection$/i.test(collection) ? `${collection} by Virzeen` : `${collection} collection by Virzeen`;
+/** "Vases by Virzeen": categories and collections are one thing (specs/catalog-groups-visibility.md). */
+export const collectionTitle = (collection: string) => `${collection} by Virzeen`;
 
 /** Text on one line, cut at a word to fit `max` characters (with "…" when cut). */
 export function fit(text: string, max: number) {
@@ -39,9 +35,9 @@ export function fit(text: string, max: number) {
   return `${(lastSpace > max / 2 ? cut.slice(0, lastSpace) : cut).replace(/[\s,.;:–—-]+$/, "")}…`;
 }
 
-export function categoryDescription(category: string) {
+export function collectionDescription(collection: string) {
   return fit(
-    `Shop ${category.toLowerCase()} by Virzeen: monochrome, black and white pieces from Nepal. ${PROMISE}`,
+    `Shop ${collection.toLowerCase()} by Virzeen: monochrome, black and white pieces from Nepal. ${PROMISE}`,
     DESCRIPTION_LENGTH,
   );
 }

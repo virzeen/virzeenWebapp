@@ -13,11 +13,11 @@ describe("product cards", () => {
 
   it("carry the category name for the grey line", async () => {
     const product = await createProduct({ name: "Linen Overshirt" });
-    await db.category.update({ where: { id: product.categoryId }, data: { name: "VWear" } });
+    await db.collection.update({ where: { id: product.mainCollectionId }, data: { name: "VWear" } });
     await createVariant({ productId: product.id });
 
     const [card] = (await catalogReads.listProducts({ sort: "newest", inStock: false })).items;
-    expect(card).toMatchObject({ name: "Linen Overshirt", categoryName: "VWear", styles: ["Black"] });
+    expect(card).toMatchObject({ name: "Linen Overshirt", collectionName: "VWear", styles: ["Black"] });
   });
 });
 

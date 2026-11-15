@@ -1,7 +1,7 @@
 "use client";
 
 import { Checkbox, FormField, Input, Textarea } from "@virzeen/ui";
-import { Controller, useFormState } from "react-hook-form";
+import { Controller, useFormState, useWatch } from "react-hook-form";
 import { useProductEditor } from "./editor-context";
 
 /** Settings → Search engines: URL slug and search description, saved when left. */
@@ -41,10 +41,14 @@ export function SettingsSearch() {
   );
 }
 
-/** Settings → Collections: ticking one saves straight away. Nothing when the shop has no collections. */
+/**
+ * Settings → Collections: ticking one saves straight away. The main collection (picked under the name) is always
+ * ticked. Nothing when the shop has no collections.
+ */
 export function SettingsCollections() {
   const { form, options, commit } = useProductEditor();
   const { errors } = useFormState({ control: form.control, name: "collectionIds" });
+  const mainCollectionId = useWatch({ control: form.control, name: "mainCollectionId" });
   if (options.collections.length === 0) return null;
 
   return (
@@ -59,7 +63,9 @@ export function SettingsCollections() {
               <Checkbox
                 key={collection.id}
                 label={collection.name}
-                checked={field.value.includes(collection.id)}
+                description={collection.id === mainCollectionId ? "Main collection" : undefined}
+                checked={collection.id === mainCollectionId || field.value.includes(collection.id)}
+                disabled={collection.id === mainCollectionId}
                 onCheckedChange={(checked) => {
                   field.onChange(
                     checked === true

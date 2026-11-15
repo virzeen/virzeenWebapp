@@ -2,7 +2,6 @@ import "server-only";
 import { db, Prisma } from "@virzeen/db";
 import {
   parseFeatureRows,
-  type CategoryInput,
   type CollectionInput,
   type CreateDraftProductInput,
   type ProductData,
@@ -175,14 +174,16 @@ export const catalogService = {
 
     try {
       return await db.$transaction(async (tx) => {
-        const category = await tx.category.findFirst({
-          where: { id: product.categoryId, archivedAt: null },
+        // The main collection must be live; it is always one of the product's collections.
+        const mainCollection = await tx.collection.findFirst({
+          where: { id: product.mainCollectionId, archivedAt: null },
           select: { id: true },
         });
-        if (!category)
-          throw new AppError("VALIDATION_FAILED", "Choose a category.", {
-            fields: { categoryId: "Choose a category" },
+        if (!mainCollection)
+          throw new AppError("VALIDATION_FAILED", "Choose a main collection.", {
+            fields: { mainCollectionId: "Choose a main collection" },
           });
+        const collectionIds = [...new Set([product.mainCollectionId, ...product.collectionIds])];
         const sizeGuideId = emptyToNull(product.sizeGuideId);
         if (sizeGuideId) {
           const guide = await tx.sizeGuide.findFirst({
@@ -198,7 +199,7 @@ export const catalogService = {
         const existing = input.id
           ? await tx.product.findUnique({
               where: { id: input.id },
-              select: { id: true, publishedAt: true, archivedAt: true },
+              select: { id: true, publishedAt: true, archivedAt: true, audience: true },
             })
           : null;
         if (input.id && (!existing || existing.archivedAt))
@@ -247,7 +248,8 @@ export const catalogService = {
           details: product.details,
           countryOfOrigin: emptyToNull(product.countryOfOrigin),
           seoDescription: emptyToNull(product.seoDescription),
-          category: { connect: { id: product.categoryId } },
+          mainCollection: { connect: { id: product.mainCollectionId } },
+          audience: product.audience,
           isPublished: product.isPublished,
           fromPricePaisa,
           shippingPaisa: product.shippingPaisa,
@@ -257,10 +259,10 @@ export const catalogService = {
           publishedAt: product.isPublished
             ? (existing?.publishedAt ?? new Date())
             : (existing?.publishedAt ?? null),
-          collections: { set: product.collectionIds.map((id) => ({ id })) },
+          collections: { set: collectionIds.map((id) => ({ id })) },
         } satisfies Prisma.ProductUpdateInput;
 
-        // The size guide is set through the relation, like the category (a create can't disconnect).
+        // The size guide is set through the relation, like the main collection (a create can't disconnect).
         const sizeGuide = sizeGuideId ? { connect: { id: sizeGuideId } } : undefined;
         const saved = existing
           ? await tx.product.update({
@@ -272,7 +274,7 @@ export const catalogService = {
               data: {
                 ...data,
                 ...(sizeGuide ? { sizeGuide } : {}),
-                collections: { connect: product.collectionIds.map((id) => ({ id })) },
+                collections: { connect: collectionIds.map((id) => ({ id })) },
               },
               select: { id: true, number: true },
             });
@@ -371,6 +373,10 @@ export const catalogService = {
             features: product.features.length,
             sizeGuideId,
             shippingPaisa: product.shippingPaisa,
+            audience: product.audience,
+            ...(existing && existing.audience !== product.audience
+              ? { audienceBefore: existing.audience }
+              : {}),
             ...(input.duplicatedFrom ? { duplicatedFrom: input.duplicatedFrom } : {}),
           },
         });
@@ -393,7 +399,7 @@ export const catalogService = {
 
   /**
    * Copies a product as a draft to start a similar one: "{name} (copy)", slug "{slug}-copy" (then -copy-2…), same
-   * photos, text, details, features and their layout (Custom rows too), size guide, category, collections, shipping,
+   * photos, text, details, features and their layout (Custom rows too), size guide, main collection, collections, visibility, shipping,
    * prices and colour shown; stock 0, new SKUs (made like blank ones), and a new product number with new style
    * numbers.
    */
@@ -409,7 +415,8 @@ export const catalogService = {
         details: true,
         countryOfOrigin: true,
         seoDescription: true,
-        categoryId: true,
+        mainCollectionId: true,
+        audience: true,
         sizeGuide: { select: { id: true, archivedAt: true } },
         shippingPaisa: true,
         collections: { where: { archivedAt: null }, select: { id: true } },
@@ -449,7 +456,8 @@ export const catalogService = {
         details: source.details,
         countryOfOrigin: source.countryOfOrigin?.trim() || DEFAULT_COUNTRY_OF_ORIGIN,
         seoDescription: source.seoDescription ?? "",
-        categoryId: source.categoryId,
+        mainCollectionId: source.mainCollectionId,
+        audience: source.audience,
         sizeGuideId: source.sizeGuide && !source.sizeGuide.archivedAt ? source.sizeGuide.id : "",
         collectionIds: source.collections.map((collection) => collection.id),
         isPublished: false,
@@ -483,33 +491,46 @@ export const catalogService = {
   },
 
   /**
-   * Starts a product from the New product popup (specs/product-editor-on-page.md): a draft with the name, category
+   * Starts a product from the New product popup (specs/product-editor-on-page.md): a draft with the name, main collection
    * and price, a slug made from the name (-2, -3… when taken), no description or photos, no shipping, origin China,
    * the default features layout, and one variant (no size or colour, stock 0, made SKU) with its style number. The
    * editor opens on it.
    */
   async createDraft(actorId: string, input: CreateDraftProductInput): Promise<{ id: string }> {
-    const saved = await catalogService.saveProduct(actorId, {
-      product: {
-        name: input.name,
-        slug: await freeSlug(slugFrom(input.name)),
-        description: "",
-        care: "",
-        benefits: [],
-        details: [],
-        countryOfOrigin: DEFAULT_COUNTRY_OF_ORIGIN,
-        seoDescription: "",
-        categoryId: input.categoryId,
-        sizeGuideId: "",
-        collectionIds: [],
-        isPublished: false,
-        images: [],
-        features: [],
-        styles: [],
-        shippingPaisa: 0,
-        variants: [{ sku: "", size: "", color: "", pricePaisa: input.pricePaisa, stock: 0, isActive: true }],
-      },
-    });
+    const saved = await catalogService
+      .saveProduct(actorId, {
+        product: {
+          name: input.name,
+          slug: await freeSlug(slugFrom(input.name)),
+          description: "",
+          care: "",
+          benefits: [],
+          details: [],
+          countryOfOrigin: DEFAULT_COUNTRY_OF_ORIGIN,
+          seoDescription: "",
+          mainCollectionId: input.collectionId,
+          audience: "PUBLIC",
+          sizeGuideId: "",
+          collectionIds: [input.collectionId],
+          isPublished: false,
+          images: [],
+          features: [],
+          styles: [],
+          shippingPaisa: 0,
+          variants: [
+            { sku: "", size: "", color: "", pricePaisa: input.pricePaisa, stock: 0, isActive: true },
+          ],
+        },
+      })
+      .catch((error: unknown) => {
+        // The popup's field is called "collectionId": say it in the popup's words.
+        if (error instanceof AppError && error.fields?.mainCollectionId) {
+          throw new AppError("VALIDATION_FAILED", "Choose a collection.", {
+            fields: { collectionId: "Choose a collection" },
+          });
+        }
+        throw error;
+      });
     return { id: saved.id };
   },
 
@@ -544,46 +565,6 @@ export const catalogService = {
       });
       if (updated.count === 0) throw new AppError("NOT_FOUND", "Product not found.");
       await recordAudit(tx, { actorId, action: "product.archive", entity: "Product", entityId: id });
-      return { id };
-    });
-  },
-
-  async saveCategory(actorId: string, input: CategoryInput) {
-    try {
-      return await db.$transaction(async (tx) => {
-        const data = { name: input.name, slug: input.slug, sortOrder: input.sortOrder };
-        const saved = input.id
-          ? await tx.category.update({ where: { id: input.id }, data, select: { id: true } })
-          : await tx.category.create({ data, select: { id: true } });
-        await recordAudit(tx, {
-          actorId,
-          action: input.id ? "category.update" : "category.create",
-          entity: "Category",
-          entityId: saved.id,
-          diff: data,
-        });
-        return saved;
-      });
-    } catch (error) {
-      return conflictFrom(error, "slug");
-    }
-  },
-
-  async archiveCategory(actorId: string, id: string) {
-    return db.$transaction(async (tx) => {
-      const inUse = await tx.product.count({ where: { categoryId: id, archivedAt: null } });
-      if (inUse > 0) {
-        throw new AppError(
-          "CONFLICT",
-          `Move or archive the ${plural(inUse, "product", "products")} in this category first.`,
-        );
-      }
-      const updated = await tx.category.updateMany({
-        where: { id, archivedAt: null },
-        data: { archivedAt: new Date() },
-      });
-      if (updated.count === 0) throw new AppError("NOT_FOUND", "Category not found.");
-      await recordAudit(tx, { actorId, action: "category.archive", entity: "Category", entityId: id });
       return { id };
     });
   },
@@ -674,9 +655,14 @@ export const catalogService = {
           name: input.name,
           slug: input.slug,
           description: emptyToNull(input.description),
+          sortOrder: input.sortOrder,
           isFeatured: input.isFeatured,
+          audience: input.audience,
           publicAt: input.publicAt ? new Date(input.publicAt) : null,
         };
+        const before = input.id
+          ? await tx.collection.findUnique({ where: { id: input.id }, select: { audience: true } })
+          : null;
         const saved = input.id
           ? await tx.collection.update({ where: { id: input.id }, data, select: { id: true } })
           : await tx.collection.create({ data, select: { id: true } });
@@ -685,7 +671,10 @@ export const catalogService = {
           action: input.id ? "collection.update" : "collection.create",
           entity: "Collection",
           entityId: saved.id,
-          diff: data,
+          diff: {
+            ...data,
+            ...(before && before.audience !== data.audience ? { audienceBefore: before.audience } : {}),
+          },
         });
         return saved;
       });
@@ -694,8 +683,16 @@ export const catalogService = {
     }
   },
 
+  /** Archives a collection; refused while products that aren't archived have it as their main collection. */
   async archiveCollection(actorId: string, id: string) {
     return db.$transaction(async (tx) => {
+      const inUse = await tx.product.count({ where: { mainCollectionId: id, archivedAt: null } });
+      if (inUse > 0) {
+        throw new AppError(
+          "CONFLICT",
+          `Move or archive the ${plural(inUse, "product", "products")} that have this as their main collection first.`,
+        );
+      }
       const updated = await tx.collection.updateMany({
         where: { id, archivedAt: null },
         data: { archivedAt: new Date(), isFeatured: false },

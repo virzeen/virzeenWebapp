@@ -17,7 +17,7 @@ import {
 } from "./editor-context";
 import { nextSlug, slugFollowsName } from "./editor-slug";
 import { firstIssueUnder, withChanges } from "./field-issues";
-import { useAddedCategories } from "./use-added-categories";
+import { useAddedCollections } from "./use-added-collections";
 import { useAutosave, type SavedProduct } from "./use-autosave";
 
 type ProductEditorProviderProps = {
@@ -35,7 +35,7 @@ type ProductEditorProviderProps = {
  */
 export function ProductEditorProvider({ product, values, options, children }: ProductEditorProviderProps) {
   // Each save refreshes the page, which sends the product again: the editor keeps what it started with (the form
-  // already holds the saved values) and only takes new options, such as a category added meanwhile.
+  // already holds the saved values) and only takes new options, such as a collection added meanwhile.
   const [start] = useState({ product, values });
   const form = useForm<ProductInput>({
     resolver: zodResolver(productSchema),
@@ -124,7 +124,7 @@ function EditorState({ product: initial, values, options, children }: ProductEdi
   const save = openProblem ? { status: "invalid" as const, message: openProblem } : autosave.state;
   useUnsavedChanges(save.status !== "saved");
 
-  const { categories, addCategory } = useAddedCategories(options.categories);
+  const { collections, addCollection } = useAddedCollections(options.collections);
   const styles = variantOptions.options.colors;
   const style = picked !== null && styles.includes(picked) ? picked : (styles[0] ?? "");
   const editor: ProductEditor = {
@@ -135,8 +135,8 @@ function EditorState({ product: initial, values, options, children }: ProductEdi
     styles,
     style,
     selectStyle: setPicked,
-    options: { ...options, categories },
-    addCategory,
+    options: { ...options, collections },
+    addCollection,
     product,
     slugFollowsName: slugFollows,
     stopSlugFollowingName: () => setSlugFollows(false),

@@ -23,8 +23,8 @@ import { galleryFor } from "./style-photos";
 import { StylePicker } from "./style-picker";
 
 type ProductPurchaseProps = {
-  /** The product: its id, plus the name, category and photos that "Added to favourites" shows. */
-  product: Pick<ProductDetailsData, "productId" | "name" | "category" | "images">;
+  /** The product: its id, plus the name, collection and photos that "Added to favourites" shows. */
+  product: Pick<ProductDetailsData, "productId" | "name" | "mainCollection" | "images">;
   sizeGuide: SizeGuideView | null;
   /** Styles with their own photos: each style's tile picture (specs/product-styles.md). */
   tiles?: Record<string, string | null>;
@@ -174,7 +174,7 @@ export function ProductPurchase({
           color={favouriteStyle}
           summary={{
             name: product.name,
-            details: favouriteDetails({ category: product.category.name, style: favouriteStyle }),
+            details: favouriteDetails({ collection: product.mainCollection.name, style: favouriteStyle }),
             imageUrl: photo?.url ?? null,
             imageAlt: photo?.alt ?? product.name,
             pricePaisa: price.paisa,

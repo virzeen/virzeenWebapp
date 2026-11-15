@@ -4,10 +4,10 @@ import { Button, Dialog, DialogClose, DialogContent, DialogTrigger } from "@virz
 import { NewProductForm } from "./new-product-form";
 
 /**
- * Products → "New product" (specs/product-editor-on-page.md "User flow"): a small popup with Name, Category and
+ * Products → "New product" (specs/product-editor-on-page.md "User flow"): a small popup with Name, Collection and
  * Price; "Create draft" opens the new draft's editor.
  */
-export function NewProductDialog({ categories }: { categories: { value: string; label: string }[] }) {
+export function NewProductDialog({ collections }: { collections: { value: string; label: string }[] }) {
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -15,10 +15,10 @@ export function NewProductDialog({ categories }: { categories: { value: string; 
       </DialogTrigger>
       <DialogContent
         title="New product"
-        description="Start with the name, category and price. You add the rest on the product page."
+        description="Start with the name, collection and price. You add the rest on the product page."
       >
         <NewProductForm
-          categories={categories}
+          collections={collections}
           cancel={
             <DialogClose asChild>
               <Button variant="secondary" shape="pill">

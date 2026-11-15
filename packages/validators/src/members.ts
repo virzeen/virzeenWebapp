@@ -56,9 +56,8 @@ export const setPublicAtSchema = z.strictObject({
 });
 export type SetPublicAtInput = z.infer<typeof setPublicAtSchema>;
 
-/** Interests (specs/member-area-nike-layout.md): the categories and collections a member likes. A save replaces the set. */
+/** Picks (specs/member-area-nike-layout.md): the collections a member likes. A save replaces the set. */
 export const interestsSchema = z.strictObject({
-  categoryIds: z.array(idSchema).max(MAX_INTERESTS, { error: `Choose up to ${MAX_INTERESTS}` }),
   collectionIds: z.array(idSchema).max(MAX_INTERESTS, { error: `Choose up to ${MAX_INTERESTS}` }),
 });
 export type InterestsInput = z.infer<typeof interestsSchema>;

@@ -145,7 +145,7 @@ test("admin sets up two-factor, builds a product on its page and it appears in t
   await page.getByRole("button", { name: "New product" }).click();
   const newProduct = page.getByRole("dialog", { name: "New product" });
   await newProduct.getByLabel(/^Product name/).fill("E2E Beanie");
-  await newProduct.getByRole("combobox", { name: /Category/ }).click();
+  await newProduct.getByRole("combobox", { name: /Main collection/ }).click();
   await page.getByRole("option", { name: "Accessories" }).click();
   await newProduct.getByLabel(/^Price \(Rs\)/).fill("1350");
   await newProduct.getByRole("button", { name: "Create draft" }).click();
@@ -321,7 +321,7 @@ test("admin sets up two-factor, builds a product on its page and it appears in t
   await expect(features.getByText("2 of 9")).toBeVisible();
   // The dragged order was saved.
   await expect(featureCards.first().locator('img[src*="product-05"]')).toBeVisible();
-  // "You may also like": published products of the same category, as under the shop page.
+  // "You may also like": published products of the same main collection, as under the shop page.
   await expect(page.getByRole("heading", { level: 2, name: "You may also like" })).toBeVisible();
 
   // Preview: the product page in a new tab, following the editor as it changes.
@@ -350,7 +350,7 @@ test("admin sets up two-factor, builds a product on its page and it appears in t
   await expectSaved(page);
 
   // The shop.
-  await page.goto("/shop/accessories");
+  await page.goto("/collections/accessories");
   await page.getByRole("link", { name: /E2E Monochrome Beanie/ }).click();
   await expect(page).toHaveURL(/\/product\/e2e-monochrome-beanie/);
   await expect(page.getByRole("heading", { level: 1, name: "E2E Monochrome Beanie" })).toBeVisible();
