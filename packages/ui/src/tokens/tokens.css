@@ -353,7 +353,10 @@
    home indicator, so the first and last bars add the device's safe-area insets (0 on computers and Android).
    `pt-safe`: the top bar (site header, the phone menu). `pb-safe-bar`: a bar fixed at the bottom that has 0.75rem
    padding (py-3). `pull-under-header`: the home hero reaches up under the see-through header, whose height is 4rem
-   plus the top inset. */
+   plus the top inset. `h-screen-cover`: as tall as the screen, status bar included (the home hero): on an iPhone home-screen
+   app `100svh` stops short of the status bar, which left a white strip under the hero, so the inset is added. A bar
+   above the header (in the page flow, so it pushes the hero down) sets `--top-bar-height` to its height, and the hero
+   still ends at the bottom edge of the screen. */
 /* An SVG part that scales or turns around its own box (the hourglass sand). */
 @utility fill-box {
   transform-box: fill-box;
@@ -369,6 +372,9 @@
 }
 @utility pull-under-header {
   margin-top: calc(-4rem - env(safe-area-inset-top, 0px));
+}
+@utility h-screen-cover {
+  height: calc(100svh + env(safe-area-inset-top, 0px) - var(--top-bar-height, 0px));
 }
 
 /*
