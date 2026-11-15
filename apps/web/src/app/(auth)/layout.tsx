@@ -3,12 +3,13 @@ import { Wordmark } from "@/client/components/layout/wordmark";
 
 /**
  * Sign-in pages: no shop header, bag or footer. Just the Virzeen wordmark (a link home) over one narrow column
- * (owner request 2026-11-11). Not inside `(site)`, so none of its providers load here.
+ * (owner request 2026-11-11). Not inside `(site)`, so none of its providers load here. The page is drawn under the
+ * iPhone status bar (viewport-fit=cover), so the column starts below it (`pt-safe`), or iOS blurs the wordmark.
  */
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-dvh flex-col px-6 py-8 sm:px-10">
-      <header className="mx-auto w-full max-w-md">
+    <div className="flex min-h-dvh flex-col px-6 pt-safe pb-8 sm:px-10">
+      <header className="mx-auto w-full max-w-md pt-8">
         <Link href="/" variant="subtle" className="inline-block text-ink">
           <Wordmark className="h-4 w-auto sm:h-5" title="Virzeen" />
         </Link>

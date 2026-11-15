@@ -1,6 +1,7 @@
 import { ButtonLink, Container, Grid, Link } from "@virzeen/ui";
 import { PORTFOLIO_KIND_LABELS } from "@virzeen/validators";
-import type { Metadata } from "next";
+import { colors } from "@virzeen/ui/tokens";
+import type { Metadata, Viewport } from "next";
 import { CloudImage } from "@/client/components/shared/cloud-image";
 import { JsonLd } from "@/client/components/shared/json-ld";
 import { ProductCarousel } from "@/client/features/products/product-carousel";
@@ -13,6 +14,10 @@ export const metadata: Metadata = {
   description: HOME_DESCRIPTION,
   alternates: { canonical: "/" },
 };
+
+// The top of this page is the dark hero, so the browser bar colour is black from the first byte of HTML, not only after
+// ThemeColorSync runs: iOS tints its fade behind the status bar from this colour when the app starts.
+export const viewport: Viewport = { themeColor: colors.ink };
 
 export default async function HomePage() {
   const [arrivals, collections, projects] = await Promise.all([
@@ -39,7 +44,7 @@ export default async function HomePage() {
           // drawn about 3.5× the screen width.
           sizes="(min-width: 768px) 100vw, 350vw"
           priority
-          className="h-svh md:h-auto"
+          className="h-screen-cover md:h-auto"
           imageClassName="object-cover object-hero md:object-center"
         />
         {/* Scrims keep white text at AA contrast: the header on the bright window (top), the words on the floor. */}
