@@ -665,13 +665,22 @@ describe("Pay now (paymentService.startAttempt)", () => {
   it("Pay now with Khalti pressed twice at once also starts only one attempt", async () => {
     const fixture = await placeOnline("ESEWA");
     let pidx = 0;
-    mockProvider((url) => {
+    // Both presses are held at Khalti's "start a payment" call until each has read the order, so they truly overlap
+    // instead of depending on timing.
+    let release: () => void = () => {};
+    const bothStarted = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    mockProvider(async (url) => {
       if (!url.pathname.includes("/epayment/initiate/")) {
         return json({ status: "NOT_FOUND", total_amount: TOTAL_RUPEES });
       }
       // Each press gets its own Khalti link, so only our own attempt numbers can tell them apart.
       pidx += 1;
-      return json({ pidx: `PIDXK${pidx}`, payment_url: `https://test-pay.khalti.com/?pidx=PIDXK${pidx}` });
+      const mine = pidx;
+      if (mine === 2) release();
+      await bothStarted;
+      return json({ pidx: `PIDXK${mine}`, payment_url: `https://test-pay.khalti.com/?pidx=PIDXK${mine}` });
     });
     const start = () =>
       paymentService.startAttempt({
