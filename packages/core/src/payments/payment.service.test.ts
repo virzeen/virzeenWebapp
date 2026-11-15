@@ -566,13 +566,26 @@ describe("Pay now (paymentService.startAttempt)", () => {
   });
 
   it("Pay now pressed twice at once starts one attempt and tells the other press to wait", async () => {
-    const fixture = await placeOnline("ESEWA");
-    esewaStatus("NOT_FOUND");
+    const fixture = await placeOnline("KHALTI");
+    // Hold both presses at the provider until each has read the order, so they truly overlap (the real race) instead
+    // of depending on timing.
+    let arrived = 0;
+    let release: () => void = () => {};
+    const bothArrived = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    mockProvider(async () => {
+      arrived += 1;
+      const pidx = `PIDXRACE${arrived}`;
+      if (arrived === 2) release();
+      await bothArrived;
+      return json({ pidx, payment_url: `https://test-pay.khalti.com/?pidx=${pidx}` });
+    });
     const start = () =>
       paymentService.startAttempt({
         userId: fixture.user.id,
         orderNumber: fixture.orderNumber,
-        method: "ESEWA",
+        method: "KHALTI",
         now: minutesLater(6),
       });
 
