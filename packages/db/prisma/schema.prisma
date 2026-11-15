@@ -331,11 +331,10 @@ model Review {
 
 // ───────────────────────────── Catalog ─────────────────────────────
 
-/// Who may see a collection or a product (specs/catalog-groups-visibility.md): everyone, signed-in MONO Members and the
-/// Monochrome Pass, or the Pass only. A higher level also sees the lower ones.
+/// Who may BUY from a collection or a product (specs/catalog-groups-visibility.md): everyone (a MONO Member is a public
+/// shopper), or the Monochrome Pass only. Everyone can still see a Pass item, locked, in a "For Members only" row.
 enum Audience {
   PUBLIC
-  MEMBER
   PASS
 }
 

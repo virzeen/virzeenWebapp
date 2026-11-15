@@ -18,6 +18,8 @@ type ProductDetailsProps = {
   /** The variants the signed-in customer waits for ("Notify me when it's back", specs/notify-me.md). */
   waitingVariantIds?: readonly string[];
   preview?: boolean;
+  /** A members-only product for a shopper who may not buy it: where its locked button goes, and the line under it. */
+  lock?: { href: string; note: string } | undefined;
 };
 
 /**
@@ -34,6 +36,7 @@ export function ProductDetails({
   sizeParam,
   waitingVariantIds,
   preview = false,
+  lock,
 }: ProductDetailsProps) {
   const firstStyle = styleFromParam(styleParam, product.variants, product.colors);
   // Styles with their own photos get picture tiles: each style's first photo, else the main photo.
@@ -98,6 +101,7 @@ export function ProductDetails({
               tiles={tiles}
               preview={preview}
               waitingVariantIds={waitingVariantIds}
+              lock={lock}
             />
             <p className="text-small text-ink-muted">
               Prices include 13% VAT. Free delivery on larger orders and 7-day returns, 15 with the Monochrome

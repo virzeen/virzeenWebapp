@@ -423,17 +423,33 @@ describe("late and second payments (specs/payment-window.md)", () => {
     const fixture = await placeOnline("ESEWA");
     // eSewa takes a moment to answer the callback's check; meanwhile the customer presses Cancel order, whose own
     // check (the second call) doesn't see the payment yet. Every later check sees it, as eSewa would.
+    // The order of events is forced (not left to timers): Cancel starts once the callback's check is under way, and the
+    // callback's check is answered only after Cancel's check has been answered.
     let calls = 0;
+    let firstCheckStarted: () => void = () => {};
+    const callbackCheckStarted = new Promise<void>((resolve) => {
+      firstCheckStarted = resolve;
+    });
+    let cancelCheckAnswered: () => void = () => {};
+    const cancelCheckDone = new Promise<void>((resolve) => {
+      cancelCheckAnswered = resolve;
+    });
     mockProvider(async () => {
       calls += 1;
-      if (calls === 2) return json({ status: "NOT_FOUND", total_amount: TOTAL_RUPEES });
-      if (calls === 1) await new Promise((resolve) => setTimeout(resolve, 100));
+      if (calls === 2) {
+        cancelCheckAnswered();
+        return json({ status: "NOT_FOUND", total_amount: TOTAL_RUPEES });
+      }
+      if (calls === 1) {
+        firstCheckStarted();
+        await cancelCheckDone;
+      }
       return json({ status: "COMPLETE", total_amount: TOTAL_RUPEES, ref_id: "REF-1" });
     });
 
     const [paid, cancelled] = await Promise.allSettled([
       paymentService.handleEsewaSuccess(esewaSuccessData(fixture.payment.providerRef)),
-      new Promise((resolve) => setTimeout(resolve, 30)).then(() =>
+      callbackCheckStarted.then(() =>
         orderService.cancelUnpaidForCustomer(fixture.user.id, fixture.orderNumber, minutesLater(6)),
       ),
     ]);
@@ -567,12 +583,28 @@ describe("Pay now (paymentService.startAttempt)", () => {
 
   it("Pay now pressed twice at once starts one attempt and tells the other press to wait", async () => {
     const fixture = await placeOnline("ESEWA");
-    esewaStatus("NOT_FOUND");
+    // Hold both presses at Khalti's "start a payment" call until each has read the order, so they truly overlap (the
+    // real race) instead of depending on timing. Each press gets its own link, so only our attempt numbers tell them apart.
+    let started = 0;
+    let release: () => void = () => {};
+    const bothStarted = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    mockProvider(async (url) => {
+      if (!url.pathname.includes("/epayment/initiate/")) {
+        return json({ status: "NOT_FOUND", total_amount: TOTAL_RUPEES });
+      }
+      started += 1;
+      const pidx = `PIDXRACE${started}`;
+      if (started === 2) release();
+      await bothStarted;
+      return json({ pidx, payment_url: `https://test-pay.khalti.com/?pidx=${pidx}` });
+    });
     const start = () =>
       paymentService.startAttempt({
         userId: fixture.user.id,
         orderNumber: fixture.orderNumber,
-        method: "ESEWA",
+        method: "KHALTI",
         now: minutesLater(6),
       });
 
@@ -633,13 +665,22 @@ describe("Pay now (paymentService.startAttempt)", () => {
   it("Pay now with Khalti pressed twice at once also starts only one attempt", async () => {
     const fixture = await placeOnline("ESEWA");
     let pidx = 0;
-    mockProvider((url) => {
+    // Both presses are held at Khalti's "start a payment" call until each has read the order, so they truly overlap
+    // instead of depending on timing.
+    let release: () => void = () => {};
+    const bothStarted = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    mockProvider(async (url) => {
       if (!url.pathname.includes("/epayment/initiate/")) {
         return json({ status: "NOT_FOUND", total_amount: TOTAL_RUPEES });
       }
       // Each press gets its own Khalti link, so only our own attempt numbers can tell them apart.
       pidx += 1;
-      return json({ pidx: `PIDXK${pidx}`, payment_url: `https://test-pay.khalti.com/?pidx=PIDXK${pidx}` });
+      const mine = pidx;
+      if (mine === 2) release();
+      await bothStarted;
+      return json({ pidx: `PIDXK${mine}`, payment_url: `https://test-pay.khalti.com/?pidx=PIDXK${mine}` });
     });
     const start = () =>
       paymentService.startAttempt({

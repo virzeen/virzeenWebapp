@@ -676,8 +676,8 @@ describe("collectionSchema", () => {
 
 describe("audienceSchema", () => {
   it("lists the levels from everyone to the Pass", () => {
-    expect(AUDIENCES).toEqual(["PUBLIC", "MEMBER", "PASS"]);
-    expect(audienceSchema.safeParse("MEMBER").success).toBe(true);
+    expect(AUDIENCES).toEqual(["PUBLIC", "PASS"]);
+    expect(audienceSchema.safeParse("MEMBER").success).toBe(false);
     expect(audienceSchema.safeParse("member").success).toBe(false);
   });
 });

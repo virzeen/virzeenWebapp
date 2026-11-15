@@ -62,6 +62,7 @@ type ProductSummary = {
   hasStylePhotos: boolean; // the colours are styles with their own photos, specs/product-styles.md
   styles: string[]; // the style names for sale in style order (the product card lists them); [] without styles
   collectionName: string; // the card's grey line when there are fewer than two styles
+  membersOnly: boolean; // seen by everyone, but only Monochrome Pass members may buy it (specs/catalog-groups-visibility.md)
 };
 type ProductDetail = {
   id: string;
@@ -82,6 +83,7 @@ type ProductDetail = {
   sizeGuide: SizeGuide | null; // null when the product has none, or it can't be shown (specs/size-guides.md)
   styles: Style[]; // in style order: one per colour for sale, or one with color "" when nothing for sale has a colour
   variants: Variant[];
+  membersOnly: boolean; // see ProductSummary
 };
 type Style = {
   color: string; // the style (a variant color); "" = a product without styles

@@ -563,7 +563,7 @@ export const catalogService = {
   async setVisibility(
     actorId: string,
     id: string,
-    input: { audience: "PUBLIC" | "MEMBER" | "PASS"; publicAt: Date | null },
+    input: { audience: "PUBLIC" | "PASS"; publicAt: Date | null },
   ) {
     return db.$transaction(async (tx) => {
       const before = await tx.product.findFirst({

@@ -59,7 +59,7 @@ export type SetPublicAtInput = z.infer<typeof setPublicAtSchema>;
 /** The products list's side panel (specs/catalog-groups-visibility.md): who may see a product, and from when. */
 export const setVisibilitySchema = z.strictObject({
   id: idSchema,
-  audience: z.enum(["PUBLIC", "MEMBER", "PASS"], { error: "Choose who can see it" }),
+  audience: z.enum(["PUBLIC", "PASS"], { error: "Choose who can buy it" }),
   publicAt: z.iso.datetime({ error: "Enter a valid date and time" }).nullable(),
 });
 export type SetVisibilityInput = z.infer<typeof setVisibilitySchema>;

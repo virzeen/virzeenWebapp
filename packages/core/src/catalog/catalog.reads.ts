@@ -4,7 +4,6 @@ import {
   parseFeatureRows,
   parseSizeChart,
   sortSizes,
-  type Audience,
   type ShopFilters,
   type SizeChart,
   type SizeGuideKind,
@@ -19,14 +18,28 @@ import { searchWhere } from "./search";
 export const PAGE_SIZE = 12;
 
 /**
- * The levels a viewer may see (specs/catalog-groups-visibility.md), read from their early-access hours, which already
- * say who they are: 0 a visitor, 12 a MONO Member, 48 the Pass (`EARLY_ACCESS_HOURS`, which a test keeps strictly
- * increasing). A higher level also sees the lower ones.
+ * Whether a viewer is a Monochrome Pass member, read from their early-access hours, which already say who they are:
+ * 0 a visitor, 12 a MONO Member, 48 the Pass (`EARLY_ACCESS_HOURS`, which a test keeps strictly increasing). Only the
+ * Pass may buy members-only products (specs/catalog-groups-visibility.md); a MONO Member is a public shopper.
  */
-export function audiencesFor(earlyHours: number): Audience[] {
-  if (earlyHours >= EARLY_ACCESS_HOURS.PASS) return ["PUBLIC", "MEMBER", "PASS"];
-  if (earlyHours >= EARLY_ACCESS_HOURS.MEMBER) return ["PUBLIC", "MEMBER"];
-  return ["PUBLIC"];
+export function isPassViewer(earlyHours: number): boolean {
+  return earlyHours >= EARLY_ACCESS_HOURS.PASS;
+}
+
+/**
+ * A members-only product: set to the Monochrome Pass itself, or in no public collection (every live collection it is in
+ * is Pass-only). Everyone sees it, in the "For Members only" row; only the Pass may buy it.
+ */
+export const membersOnlyWhere: Prisma.ProductWhereInput = {
+  OR: [{ audience: "PASS" }, { collections: { none: { audience: "PUBLIC", archivedAt: null } } }],
+};
+
+/** The same rule for a product row read with `audience` and its collections' `audience` and `archivedAt`. */
+export function isMembersOnly(row: {
+  audience: "PUBLIC" | "PASS";
+  collections: { audience: "PUBLIC" | "PASS"; archivedAt: Date | null }[];
+}): boolean {
+  return row.audience === "PASS" || !row.collections.some((c) => c.audience === "PUBLIC" && !c.archivedAt);
 }
 
 /**
@@ -39,33 +52,45 @@ export async function earlyHoursFor(userId: string): Promise<number> {
 }
 
 /**
- * A collection a shopper may see: not archived, its visibility allows them, and early access works as for a product
- * (specs/member-perks.md): one with a public time in the future is hidden unless `earlyHours` brings it in range.
+ * A collection a shopper may see: not archived, and early access works as for a product (specs/member-perks.md): one
+ * with a public time in the future is hidden unless `earlyHours` brings it in range. Its Public / Pass level does not
+ * hide it: it decides who may buy what is in it.
  */
 export function collectionVisible(earlyHours: number, now: Date = new Date()): Prisma.CollectionWhereInput {
   return {
     archivedAt: null,
-    audience: { in: audiencesFor(earlyHours) },
     OR: [{ publicAt: null }, { publicAt: { lte: new Date(now.getTime() + earlyHours * 3_600_000) } }],
   };
 }
 
 /**
- * What a shopper may see: published, not archived, in a live main collection, allowed by the product's own
- * visibility, and in at least one collection they may see (specs/catalog-groups-visibility.md; "shown if ANY of its
- * collections allows the viewer"). A product with a `publicAt` still in the future is hidden unless `earlyHours` (12
- * for a MONO Member, 48 for the Pass) brings it in range. This is the one rule every shopper-facing read uses; the
- * keys are `audience`, `NOT` and the top-level `OR`, so spreading it next to a filter on `collections` or `AND` (the
- * shop's search) keeps them all. Never used for orders, payments, emails, reviews or admin.
+ * What a shopper may see: published, not archived, in a live main collection, and in at least one collection they may
+ * see (specs/catalog-groups-visibility.md). A product with a `publicAt` still in the future is hidden unless
+ * `earlyHours` (12 for a MONO Member, 48 for the Pass) brings it in range. Members-only products are seen by everyone
+ * (locked); `buyableProductWhere` adds who may buy. This is the one rule every shopper-facing read uses; the keys are
+ * `NOT` and the top-level `OR`, so spreading it next to a filter on `collections` or `AND` (the shop's search) keeps
+ * them all. Never used for orders, payments, emails, reviews or admin.
  */
 export function visibleProductWhere(earlyHours = 0, now: Date = new Date()): Prisma.ProductWhereInput {
   return {
     isPublished: true,
     archivedAt: null,
     mainCollection: { archivedAt: null },
-    audience: { in: audiencesFor(earlyHours) },
     NOT: { collections: { none: collectionVisible(earlyHours, now) } },
     OR: [{ publicAt: null }, { publicAt: { lte: new Date(now.getTime() + earlyHours * 3_600_000) } }],
+  };
+}
+
+/**
+ * What a shopper may put in the bag and buy: what they may see, except members-only products unless they are on the
+ * Pass. Uses `AND`, so spread it on its own (the bag, checkout).
+ */
+export function buyableProductWhere(earlyHours = 0, now: Date = new Date()): Prisma.ProductWhereInput {
+  return {
+    AND: [
+      visibleProductWhere(earlyHours, now),
+      ...(isPassViewer(earlyHours) ? [] : [{ NOT: membersOnlyWhere }]),
+    ],
   };
 }
 
@@ -100,6 +125,8 @@ export const summarySelect = {
   fromPricePaisa: true,
   publishedAt: true,
   mainCollection: { select: { name: true } },
+  audience: true,
+  collections: { select: { audience: true, archivedAt: true } },
   images: { select: { url: true, alt: true }, orderBy: { sortOrder: "asc" }, take: 2 },
   variants: {
     where: { isActive: true },
@@ -128,6 +155,8 @@ export type ProductSummary = {
   styles: string[];
   /** The card's grey line when the product has fewer than two styles (Nike's subtitle): its main collection. */
   collectionName: string;
+  /** In the "For Members only" row: everyone sees it, only Monochrome Pass members may buy it. */
+  membersOnly: boolean;
 };
 
 export function toSummary(row: SummaryRow): ProductSummary {
@@ -146,6 +175,7 @@ export function toSummary(row: SummaryRow): ProductSummary {
     hasStylePhotos: row._count.images > 0,
     styles,
     collectionName: row.mainCollection.name,
+    membersOnly: isMembersOnly(row),
   };
 }
 
@@ -220,7 +250,11 @@ function orderFor(sort: ShopFilters["sort"]): Prisma.ProductOrderByWithRelationI
 }
 
 /** The shop listing's `where`: published, for sale, and matching the filters and search (cursor and sort aside). */
-function listingWhere(filters: ShopFilters, earlyHours = 0): Prisma.ProductWhereInput {
+function listingWhere(
+  filters: ShopFilters,
+  earlyHours = 0,
+  members?: "only" | "exclude",
+): Prisma.ProductWhereInput {
   const variantFilter: Prisma.ProductVariantWhereInput = {
     isActive: true,
     ...(filters.size ? { size: filters.size } : {}),
@@ -229,24 +263,32 @@ function listingWhere(filters: ShopFilters, earlyHours = 0): Prisma.ProductWhere
   };
   const hasVariantFilter = Boolean(filters.size || filters.color || filters.inStock);
   const search = filters.q ? searchWhere(filters.q, collectionVisible(earlyHours)) : null;
-  return {
+  const where: Prisma.ProductWhereInput = {
     ...visibleProductWhere(earlyHours),
     ...search,
     ...(filters.collection ? { collections: { some: { slug: filters.collection, archivedAt: null } } } : {}),
     variants: { some: hasVariantFilter ? variantFilter : { isActive: true } },
   };
+  if (!members) return where;
+  // The "For Members only" row holds the members-only products; the grid above it holds the rest.
+  return { AND: [where, members === "only" ? membersOnlyWhere : { NOT: membersOnlyWhere }] };
 }
 
 export const catalogReads = {
   /** How many products the listing holds in all (the "Shop (12)" title), whatever "Load more" has shown. */
-  countProducts(filters: ShopFilters, earlyHours = 0): Promise<number> {
-    return db.product.count({ where: listingWhere(filters, earlyHours) });
+  countProducts(filters: ShopFilters, earlyHours = 0, members?: "only" | "exclude"): Promise<number> {
+    return db.product.count({ where: listingWhere(filters, earlyHours, members) });
   },
 
   /** Shop listing with filters, the search query (specs/search.md) and cursor pagination ("Load more"). */
-  async listProducts(filters: ShopFilters, limit = PAGE_SIZE, earlyHours = 0): Promise<ProductPage> {
+  async listProducts(
+    filters: ShopFilters,
+    limit = PAGE_SIZE,
+    earlyHours = 0,
+    members?: "only" | "exclude",
+  ): Promise<ProductPage> {
     const rows = await db.product.findMany({
-      where: listingWhere(filters, earlyHours),
+      where: listingWhere(filters, earlyHours, members),
       select: summarySelect,
       orderBy: orderFor(filters.sort),
       take: limit + 1,
@@ -311,6 +353,8 @@ export const catalogReads = {
         fromPricePaisa: true,
         mainCollectionId: true,
         mainCollection: { select: { slug: true, name: true } },
+        audience: true,
+        collections: { select: { audience: true, archivedAt: true } },
         images: { select: { id: true, url: true, alt: true, color: true }, orderBy: { sortOrder: "asc" } },
         features: {
           select: { id: true, title: true, body: true, imageUrl: true, imageAlt: true },
@@ -328,9 +372,12 @@ export const catalogReads = {
       },
     });
     if (!row || row.variants.length === 0) return null;
+    const { audience, collections, ...product } = row;
     const colors = [...new Set(row.variants.flatMap((v) => (v.color ? [v.color] : [])))];
     return {
-      ...row,
+      ...product,
+      /** Everyone sees it; only Monochrome Pass members may buy it (specs/catalog-groups-visibility.md). */
+      membersOnly: isMembersOnly({ audience, collections }),
       /** The Custom layout's rows (specs/product-page-v2.md); [] when there are none or they can't be read. */
       featureRows: parseFeatureRows(row.featureRows),
       sizeGuide: toProductSizeGuide(row.sizeGuide),

@@ -304,9 +304,9 @@ test("admin sets up two-factor, builds a product on its page and it appears in t
   await expect(settings.getByLabel("SKU, Black, M")).toHaveValue("VZ-E2EMONOCHROM-BLACK-M");
   // Visibility (specs/catalog-groups-visibility.md): public to start with; a choice saves at once and can be undone.
   await expect(settings.getByRole("radio", { name: /^Public/ })).toBeChecked();
-  await settings.getByRole("radio", { name: /^MONO Members/ }).click();
+  await settings.getByRole("radio", { name: /^Monochrome Pass/ }).click();
   await expectSaved(page);
-  await expect(settings.getByRole("radio", { name: /^MONO Members/ })).toBeChecked();
+  await expect(settings.getByRole("radio", { name: /^Monochrome Pass/ })).toBeChecked();
   await settings.getByRole("radio", { name: /^Public/ }).click();
   await expectSaved(page);
   await page.keyboard.press("Escape");
@@ -577,11 +577,11 @@ test("admin sets up two-factor, builds a product on its page and it appears in t
   // The same form sets who may see a collection (categories and collections are one thing).
   await festival.getByLabel(/^Name/).fill("E2E Pass Club Two");
   await festival.getByRole("button", { name: "Visibility and more" }).click();
-  await more.getByRole("radio", { name: /^Monochrome Pass members/ }).click();
+  await more.getByRole("radio", { name: /^Monochrome Pass/ }).click();
   await more.getByRole("button", { name: "Done" }).click();
   await festival.getByRole("button", { name: "Add collection" }).click();
   await expect(page.getByRole("listitem").filter({ hasText: "E2E Pass Club Two" })).toContainText(
-    "Monochrome Pass members",
+    "Monochrome Pass",
   );
   // A collection's whole row opens its form, not only its name.
   await page
@@ -606,14 +606,14 @@ test("admin sets up two-factor, builds a product on its page and it appears in t
   await page.getByRole("button", { name: "Settings for E2E Monochrome Beanie", exact: true }).click();
   const quick = page.getByRole("dialog", { name: "Settings" });
   await expect(quick.getByRole("button", { name: "Delete" })).toBeVisible();
-  await quick.getByRole("radio", { name: /^Monochrome Pass members/ }).click();
+  await quick.getByRole("radio", { name: /^Monochrome Pass/ }).click();
   await quick.getByRole("button", { name: "Save" }).click();
   await expect(quick).toBeHidden();
   await expect(
     page
       .getByRole("row")
       .filter({ has: page.getByRole("link", { name: "E2E Monochrome Beanie", exact: true }) }),
-  ).toContainText("Monochrome Pass members");
+  ).toContainText("Monochrome Pass");
   await page.getByRole("button", { name: "Settings for E2E Monochrome Beanie", exact: true }).click();
   await quick.getByRole("radio", { name: /^Public/ }).click();
   await quick.getByRole("button", { name: "Save" }).click();
@@ -623,8 +623,9 @@ test("admin sets up two-factor, builds a product on its page and it appears in t
   const guestPage = await guestView.newPage();
   await guestPage.goto("/collections/e2e-festival");
   await expect(guestPage.getByRole("heading", { name: "E2E Festival" })).toHaveCount(0);
+  // A Pass collection is seen by everyone, its products locked.
   await guestPage.goto("/collections/e2e-pass-club-two");
-  await expect(guestPage.getByText("We couldn't find that page.")).toBeVisible();
+  await expect(guestPage.getByRole("heading", { level: 1, name: /E2E Pass Club Two/ })).toBeVisible();
   await guestView.close();
 
   // A mistyped admin address stays inside the admin frame, with a way back.

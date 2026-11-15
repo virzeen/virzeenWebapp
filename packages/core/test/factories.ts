@@ -54,7 +54,7 @@ export async function createUser(overrides: { role?: "CUSTOMER" | "ADMIN"; email
   });
 }
 
-export async function createCollection(overrides: { audience?: "PUBLIC" | "MEMBER" | "PASS" } = {}) {
+export async function createCollection(overrides: { audience?: "PUBLIC" | "PASS" } = {}) {
   const slug = `collection-${next()}`;
   return db.collection.create({
     data: { slug, name: `Collection ${slug}`, audience: overrides.audience ?? "PUBLIC" },

@@ -15,6 +15,8 @@ export type ProductCardData = {
   styles: string[];
   /** The grey line otherwise. */
   collectionName: string;
+  /** In the "For Members only" row: everyone sees it, only Monochrome Pass members may buy it. */
+  membersOnly?: boolean;
 };
 
 type ProductCardProps = {
@@ -46,10 +48,11 @@ export function ProductCard({ product, priority = false, onNavigate }: ProductCa
           priority={priority}
           imageClassName="transition-transform duration-400 ease-standard motion-safe:group-hover:scale-102"
         />
-        {!product.inStock && (
-          <Badge variant="neutral" className="absolute top-3 left-3">
-            Out of stock
-          </Badge>
+        {(product.membersOnly || !product.inStock) && (
+          <span className="absolute top-3 left-3 flex flex-col items-start gap-1">
+            {product.membersOnly && <Badge variant="accent">Members only</Badge>}
+            {!product.inStock && <Badge variant="neutral">Out of stock</Badge>}
+          </span>
         )}
       </div>
       {/*

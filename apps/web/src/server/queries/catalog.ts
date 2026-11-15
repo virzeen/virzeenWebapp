@@ -19,6 +19,14 @@ export const getViewerEarlyHours = cache(async (): Promise<number> => {
   return EARLY_ACCESS_HOURS[await tierFor(user.id)];
 });
 
+/**
+ * Whether this shopper is on the Monochrome Pass: only the Pass may buy members-only products, which everyone else sees
+ * locked (specs/catalog-groups-visibility.md). Memoised per request.
+ */
+export const getViewerIsPass = cache(
+  async (): Promise<boolean> => (await getViewerEarlyHours()) >= EARLY_ACCESS_HOURS.PASS,
+);
+
 /** Every collection the viewer may see, in menu order (the header, the shop filter, the home tiles). */
 export const listShopCollections = cache(async () =>
   catalogReads.listShopCollections(await getViewerEarlyHours()),
@@ -26,8 +34,21 @@ export const listShopCollections = cache(async () =>
 export const hasLiveCollection = cache(async (slug: string) =>
   catalogReads.hasLiveCollection(slug, await getViewerEarlyHours()),
 );
+/** The shop grid: products anyone may buy; the members-only ones go in their own row (`listMembersOnly`). */
 export const listProducts = async (filters: ShopFilters) =>
-  catalogReads.listProducts(filters, undefined, await getViewerEarlyHours());
+  catalogReads.listProducts(filters, undefined, await getViewerEarlyHours(), "exclude");
+
+/** How many members-only products the "For Members only" row shows at most. */
+const MEMBERS_ROW_SHOWN = 12;
+
+/** The "For Members only" row of a shop page: the members-only products for the same filters, newest first. */
+export const listMembersOnly = async (filters: ShopFilters) =>
+  catalogReads.listProducts(
+    { ...filters, cursor: undefined },
+    MEMBERS_ROW_SHOWN,
+    await getViewerEarlyHours(),
+    "only",
+  );
 export const getProductBySlug = cache(async (slug: string) =>
   catalogReads.getProductBySlug(slug, await getViewerEarlyHours()),
 );
@@ -62,13 +83,14 @@ export const listSitemapEntries = () => catalogReads.listSitemapEntries();
 
 /** Everything a shop listing page needs, in one round trip. */
 export async function loadShopListing(filters: ShopFilters) {
-  const [page, total, collections, options] = await Promise.all([
+  const [page, total, membersOnly, collections, options] = await Promise.all([
     listProducts(filters),
-    getViewerEarlyHours().then((hours) => catalogReads.countProducts(filters, hours)),
+    getViewerEarlyHours().then((hours) => catalogReads.countProducts(filters, hours, "exclude")),
+    listMembersOnly(filters),
     listShopCollections(),
     getFilterOptions({ collection: filters.collection }),
   ]);
-  return { page, total, collections, options };
+  return { page, total, membersOnly: membersOnly.items, collections, options };
 }
 
 export type ShopListingData = Awaited<ReturnType<typeof loadShopListing>>;

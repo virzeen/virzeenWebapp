@@ -1,6 +1,6 @@
 import { ButtonLink, Container, EmptyState, Grid, Link, Skeleton } from "@virzeen/ui";
 import type { ShopFilters } from "@virzeen/validators";
-import type { ProductCardData } from "./product-card";
+import { ProductCard, type ProductCardData } from "./product-card";
 import { ProductGrid, ProductResults } from "./product-grid";
 import { ShopBrowse } from "./shop-browse";
 import { ShopSidebar } from "./shop-sidebar";
@@ -10,6 +10,8 @@ type ShopListingData = {
   page: { items: ProductCardData[]; nextCursor: string | null };
   /** Every product the listing holds, whatever "Load more" has shown. */
   total: number;
+  /** The members-only products for the same filters: shown to everyone, in their own row under the grid. */
+  membersOnly: ProductCardData[];
   collections: { slug: string; name: string }[];
   options: { sizes: string[]; colors: string[] };
 };
@@ -33,7 +35,7 @@ const CHIP =
  * a row.
  */
 export function ShopListing({ data, title, intro, filters, params, activeCollection }: ShopListingProps) {
-  const { page, total, collections, options } = data;
+  const { page, total, membersOnly, collections, options } = data;
   const hasFilters = Boolean(filters.size || filters.color || filters.inStock);
   const acrossCollections = Boolean(filters.q);
 
@@ -115,7 +117,31 @@ export function ShopListing({ data, title, intro, filters, params, activeCollect
             />
           }
         >
-          {page.items.length === 0 ? empty : <ProductGrid />}
+          {page.items.length === 0 && membersOnly.length === 0 ? (
+            empty
+          ) : (
+            <div className="flex flex-col gap-12">
+              {page.items.length > 0 && <ProductGrid />}
+              {membersOnly.length > 0 && (
+                // Everyone sees these; only Monochrome Pass members can buy them (specs/catalog-groups-visibility.md).
+                <section aria-labelledby="members-only-heading" className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-1">
+                    <h2 id="members-only-heading" className="font-display text-h3">
+                      For Members only
+                    </h2>
+                    <p className="text-body text-ink-muted">
+                      Everyone can look. Only Monochrome Pass members can buy.
+                    </p>
+                  </div>
+                  <Grid columns="products" gap={4}>
+                    {membersOnly.map((product) => (
+                      <ProductCard key={product.id} product={product} />
+                    ))}
+                  </Grid>
+                </section>
+              )}
+            </div>
+          )}
         </ShopBrowse>
       </ProductResults>
     </Container>

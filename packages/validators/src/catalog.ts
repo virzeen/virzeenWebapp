@@ -3,23 +3,21 @@ import { idSchema, slugSchema } from "./common";
 import { SEARCH_QUERY_MAX, SEARCH_QUERY_MIN } from "./limits";
 
 /**
- * Who may see a collection or a product (specs/catalog-groups-visibility.md). A higher level also sees the lower
- * ones: MEMBER = signed-in MONO Members and the Pass, PASS = Monochrome Pass members only.
+ * Who may buy from a collection or a product (specs/catalog-groups-visibility.md): PUBLIC = everyone (a MONO Member is a
+ * public shopper), PASS = Monochrome Pass members only. Everyone still sees a Pass item, locked ("For Members only").
  */
-export const AUDIENCES = ["PUBLIC", "MEMBER", "PASS"] as const;
+export const AUDIENCES = ["PUBLIC", "PASS"] as const;
 export type Audience = (typeof AUDIENCES)[number];
 export const audienceSchema = z.enum(AUDIENCES, { error: "Choose who can see it" });
 
 /** What the admin sees for each level (the choice on collections and products), and the line under it. */
 export const AUDIENCE_LABELS: Record<Audience, string> = {
   PUBLIC: "Public",
-  MEMBER: "MONO Members",
-  PASS: "Monochrome Pass members",
+  PASS: "Monochrome Pass",
 };
 export const AUDIENCE_HELP: Record<Audience, string> = {
-  PUBLIC: "Everyone, signed in or not.",
-  MEMBER: "Signed-in MONO Members and Pass members. Everyone else sees it as not found.",
-  PASS: "Monochrome Pass members only. Everyone else sees it as not found.",
+  PUBLIC: "Everyone can see it and buy it, signed in or not. MONO Members count as public.",
+  PASS: "Everyone sees it in the For Members only row, but only Monochrome Pass members can buy it.",
 };
 
 export const SHOP_SORTS = ["newest", "price-asc", "price-desc"] as const;

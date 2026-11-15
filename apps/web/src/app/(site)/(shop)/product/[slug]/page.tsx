@@ -8,6 +8,7 @@ import { ProductReviews } from "@/client/features/reviews/product-reviews";
 import {
   getProductBySlug,
   getReviewSummary,
+  getViewerIsPass,
   listProductReviews,
   listRecommendations,
 } from "@/server/queries/catalog";
@@ -74,10 +75,22 @@ export default async function ProductPage({ params, searchParams }: Props) {
   const { style, size } = flattenSearchParams(await searchParams);
   const lowestPrice = Math.min(...product.variants.map((v) => v.pricePaisa));
   const image = product.images[0] ? absoluteImageUrl(product.images[0].url, siteUrl) : null;
-  const [rating, waitingVariantIds] = await Promise.all([
+  const [rating, waitingVariantIds, isPass, user] = await Promise.all([
     getReviewSummary(product.id),
     waitingFor(product.variants.map((variant) => variant.id)),
+    getViewerIsPass(),
+    getUser(),
   ]);
+  // Everyone sees a members-only product; only the Pass may buy it (specs/catalog-groups-visibility.md).
+  const lock =
+    product.membersOnly && !isPass
+      ? user
+        ? { href: "/membership", note: "Join the Monochrome Pass to buy this." }
+        : {
+            href: `/login?next=${encodeURIComponent(`/product/${product.slug}`)}`,
+            note: "Sign in, then join the Monochrome Pass to buy this.",
+          }
+      : undefined;
 
   return (
     <>
@@ -86,6 +99,7 @@ export default async function ProductPage({ params, searchParams }: Props) {
         styleParam={style}
         sizeParam={size}
         waitingVariantIds={waitingVariantIds}
+        lock={lock}
       />
 
       <Suspense fallback={null}>

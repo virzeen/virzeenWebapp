@@ -4,7 +4,7 @@ import { db, type Prisma } from "@virzeen/db";
 import { MAX_QTY_PER_LINE } from "@virzeen/validators";
 import { EARLY_ACCESS_HOURS } from "@virzeen/validators/limits";
 import { levelOf } from "@virzeen/validators/membership";
-import { visibleProductWhere } from "../catalog/catalog.reads";
+import { buyableProductWhere } from "../catalog/catalog.reads";
 import { AppError } from "../errors";
 import {
   cartLineSelect,
@@ -102,9 +102,8 @@ export const cartService = {
     addedAt?: Date | undefined;
   }): Promise<CartSummary> {
     return db.$transaction(async (tx) => {
-      // Who is buying decides what they may see (early access and members-only collections or products,
-      // specs/catalog-groups-visibility.md): the same rule as the shop's lists, so a product they can't see
-      // can't be added by a direct call either.
+      // Who is buying decides what they may buy (early access, and members-only products only for the Pass,
+      // specs/catalog-groups-visibility.md): so a product they can't buy can't be added by a direct call either.
       const owner = await tx.cart.findUnique({
         where: { id: input.cartId },
         select: { user: { select: { passEndsAt: true } } },
@@ -113,7 +112,7 @@ export const cartService = {
         ? EARLY_ACCESS_HOURS[levelOf(owner.user.passEndsAt) === "PASS" ? "PASS" : "MEMBER"]
         : 0;
       const variant = await tx.productVariant.findFirst({
-        where: { id: input.variantId, isActive: true, product: visibleProductWhere(hours) },
+        where: { id: input.variantId, isActive: true, product: buyableProductWhere(hours) },
         select: { id: true, stock: true, pricePaisa: true },
       });
       if (!variant) throw new AppError("NOT_FOUND", "This item is no longer available.");

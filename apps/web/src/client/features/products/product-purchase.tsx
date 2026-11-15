@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Stack, toast } from "@virzeen/ui";
+import { Button, ButtonLink, Stack, toast } from "@virzeen/ui";
 import { MAX_QTY_PER_LINE } from "@virzeen/validators/limits";
 import { useRef, useState, useTransition } from "react";
 import { StockLabel } from "@/client/components/shared/stock-label";
@@ -32,6 +32,11 @@ type ProductPurchaseProps = {
   preview?: boolean;
   /** The product's variants the signed-in customer already waits for ("Notify me when it's back"). */
   waitingVariantIds?: readonly string[];
+  /**
+   * A members-only product the shopper may not buy (specs/catalog-groups-visibility.md): "Only for Monochrome members"
+   * takes Add to bag's place and goes to `href` (sign-in for a visitor, the Pass page for a MONO Member).
+   */
+  lock?: { href: string; note: string } | undefined;
 };
 
 /** The main button, floating on phones: Add to bag or Notify me (the same size, so they can't drift apart). */
@@ -49,6 +54,7 @@ export function ProductPurchase({
   tiles,
   preview = false,
   waitingVariantIds = [],
+  lock,
 }: ProductPurchaseProps) {
   const { cart, setCart, open } = useCart();
   // The site layout knows who is signed in; Favourites shares it with every client leaf.
@@ -134,7 +140,17 @@ export function ProductPurchase({
           data-sticky-cta
           className="pointer-events-none fixed inset-x-0 bottom-0 z-10 px-4 pb-safe-float md:pointer-events-auto md:static md:p-0"
         >
-          {notify ? (
+          {lock ? (
+            <ButtonLink
+              href={lock.href}
+              size="lg"
+              shape="pill"
+              className={STICKY_BUTTON}
+              data-testid="members-only"
+            >
+              Only for Monochrome members
+            </ButtonLink>
+          ) : notify ? (
             <NotifyMeButton
               ref={buttonRef}
               waiting={waitingForSelected}
@@ -157,6 +173,11 @@ export function ProductPurchase({
             </Button>
           )}
           <div role="status">
+            {lock && (
+              <p className="pointer-events-auto mx-auto mt-2 hidden w-4/5 text-small text-ink-muted md:mt-0 md:block md:w-auto md:pt-2">
+                {lock.note}
+              </p>
+            )}
             {allInBag && (
               // With nothing behind the bar on phones, the note gets its own backing to stay readable.
               <p className="pointer-events-auto mx-auto mt-2 w-4/5 rounded-sm bg-canvas px-2 py-1 text-small text-ink-muted md:mt-0 md:w-auto md:p-0 md:pt-2">
@@ -165,7 +186,7 @@ export function ProductPurchase({
             )}
           </div>
         </div>
-        {waitingForSelected && (
+        {!lock && waitingForSelected && (
           <StopNotifyButton disabled={notifyMe.isPending} onPress={() => notifyMe.stop(selected.id)} />
         )}
         {/* Saves the style picked now ("" for a product without styles; the first style when all are sold out). */}

@@ -1,9 +1,20 @@
-# Spec: Categories and collections become one thing, and who may see it
+# Spec: Categories and collections become one thing, and who may buy from them
 
 **Status:** Built (2026-11-15) on branch `feat/collections-merge`, approved by the owner in chat. Stacked on `feat/payment-window`: merging it also ships PR #38 and the top notice bar, because the home "Virzeen Archive's" section only exists there. Payment change (checkout line check): the owner reviews the PR before it merges.
 **Related docs:** `specs/member-perks.md` (early access), `specs/membership-portal.md` (levels), `database/data-rules.md`, `security/security-policy.md`
 
-## Owner decisions (2026-11-15)
+## Owner decisions (2026-11-16): locked previews, two levels (they replace 2, 3 and 4 below)
+
+- **Everyone sees a Monochrome Pass item, locked.** A product or collection set to the Monochrome Pass is no longer hidden. Visitors, MONO Members and Pass members all see its card, page, search hit, menu link and sitemap line. Only a Pass member can **buy** it.
+- **"For Members only" row.** On `/shop` and on every collection page, the products anyone can buy sit in the grid as before; the **members-only** products sit in their own row under it, headed "For Members only" ("Everyone can look. Only Monochrome Pass members can buy."), as locked cards with a "Members only" badge. The row is the same for everyone (a Pass member's cards are simply buyable).
+- **Members-only product** = set to the Monochrome Pass itself, or in no public collection (every live collection it is in is Pass-only). A public product in a public collection stays in the grid; a public collection with a Pass product shows that product in the row.
+- **Locked button.** On a members-only product page a shopper who is not on the Pass sees the button "Only for Monochrome members" where Add to bag was. A visitor who presses it goes to sign-in (and back to the product); a signed-in MONO Member goes to `/membership`. Pass members get Add to bag as usual.
+- **Two levels only: Public and Monochrome Pass**, on collections and products. "MONO Members" is no level: a MONO Member is a public shopper. Items that were set to MONO Members became Public (migration `20261116100000_audience_two_levels`).
+- Early access (12 h MONO Members, 48 h Pass) is unchanged and still hides items by time.
+- Bag and checkout: a line the buyer may not buy (members-only, not on the Pass) counts as unavailable; the server refuses a direct add. Orders already placed are never filtered.
+- Visibility form: Public / Monochrome Pass in the admin Collections form, the product editor's Settings and the products list's Settings panel.
+
+## Owner decisions (2026-11-15; 2, 3 and 4 are replaced by the section above)
 
 1. **One table, no difference at all.** Categories and collections are the same thing. The name is **Collection** (admin menu "Collections", shop address `/collections/<slug>`).
 2. **Hidden completely.** A shopper who may not see an item gets no card, search hit, menu link, tile, pick, sitemap line or page (the address shows "not found").
@@ -26,9 +37,9 @@ An admin manages every group of products on **one page** with one form, puts a p
 
 ## Visibility rule (one builder, used everywhere)
 
-Viewer levels: visitor < MONO Member < Pass.
+Viewer levels, as early-access hours: visitor 0 < MONO Member 12 < Pass 48. They only decide early access and who may buy.
 
-A product is visible to a viewer when: it is published and not archived; its own visibility allows the viewer; **at least one** of its live collections is visible to the viewer; its early-access time (`publicAt`) allows the viewer (unchanged). A collection is visible to a viewer when it is not archived, its visibility allows the viewer, and its own `publicAt` allows the viewer. The same builder serves lists, search, product and collection pages, metadata and JSON-LD, sitemap, `/api/v1`, related carousels, home tiles, picks, favourites rows, the bag and checkout line validation. It is **never** applied to orders, payments, reconciliation, emails, reviews or admin (a paid order for a product that later became Pass-only still completes).
+A product is visible to a viewer when: it is published and not archived; **at least one** of its live collections is visible to the viewer; its early-access time (`publicAt`) allows the viewer. A collection is visible when it is not archived and its own `publicAt` allows the viewer. Public / Pass does not hide anything: it decides who may **buy** (`buyableProductWhere`: visible, and members-only only for the Pass; `membersOnlyWhere` is the one definition of members-only). The same builder serves lists, search, product and collection pages, metadata and JSON-LD, sitemap, `/api/v1`, related carousels, home tiles, picks, favourites rows, the bag and checkout line validation. It is **never** applied to orders, payments, reconciliation, emails, reviews or admin (a paid order for a product that later became Pass-only still completes).
 
 ## Acceptance criteria
 
@@ -41,10 +52,10 @@ Phase 1 (the merge, everything Public, nothing changes for shoppers):
 
 Phase 2 (visibility):
 
-- [ ] Given a Pass-only collection holding only Public products, a visitor and a MONO Member cannot see the collection or its products anywhere (lists, search, direct address, metadata, sitemap, `/api/v1`); a Pass member can.
-- [ ] A MONO-only product is hidden from visitors everywhere and cannot be added to the bag; MONO and Pass members see it.
-- [ ] A Public product in a Pass-only and a Public collection is visible to everyone.
-- [ ] A bag line the buyer may no longer see is shown unavailable and cannot check out; a paid or paying order is never affected.
+- [ ] Given a Pass-only collection holding Public products, everyone sees the collection and its products (locked) everywhere; its products are in the "For Members only" row; only a Pass member can add them to the bag.
+- [ ] A Pass-only product shows "Only for Monochrome members" instead of Add to bag to a visitor (sign-in link) and a MONO Member (`/membership` link); a Pass member can buy it.
+- [ ] A Public product in a Pass-only and a Public collection is in the normal grid and buyable by everyone.
+- [ ] A bag line the buyer may not buy is shown unavailable and cannot check out; a paid or paying order is never affected.
 - [ ] Changing a visibility is audited (old and new level).
 - [ ] Existing items are Public after migration.
 
