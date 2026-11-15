@@ -273,9 +273,11 @@ test.describe("Storefront pages", () => {
       expect(box.y).toBeLessThanOrEqual(header.y + 0.5);
       expect(Math.abs(box.y + box.height - height)).toBeLessThanOrEqual(1);
       expect(Math.abs(box.width - pageWidth)).toBeLessThanOrEqual(1);
+      // The photo covers the hero exactly, so it too reaches the bottom edge (with or without a bar above the header).
       const photo = (await hero.locator("img").boundingBox())!;
       expect(Math.abs(photo.width - pageWidth)).toBeLessThanOrEqual(1);
-      expect(Math.abs(photo.height - height)).toBeLessThanOrEqual(1);
+      expect(Math.abs(photo.y - box.y)).toBeLessThanOrEqual(1);
+      expect(Math.abs(photo.y + photo.height - height)).toBeLessThanOrEqual(1);
     }
   });
 
