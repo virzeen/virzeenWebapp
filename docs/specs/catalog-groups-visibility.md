@@ -1,6 +1,6 @@
 # Spec: Categories and collections become one thing, and who may see it
 
-**Status:** Approved by the owner in chat (2026-11-15), in progress on branch `feat/collections-merge` (stacked on `feat/payment-window`: it carries PR #38 and the top notice bar, because the home "Virzeen Archive's" section only exists there)
+**Status:** Built (2026-11-15) on branch `feat/collections-merge`, approved by the owner in chat. Stacked on `feat/payment-window`: merging it also ships PR #38 and the top notice bar, because the home "Virzeen Archive's" section only exists there. Payment change (checkout line check): the owner reviews the PR before it merges.
 **Related docs:** `specs/member-perks.md` (early access), `specs/membership-portal.md` (levels), `database/data-rules.md`, `security/security-policy.md`
 
 ## Owner decisions (2026-11-15)
@@ -18,9 +18,10 @@ An admin manages every group of products on **one page** with one form, puts a p
 ## What changes
 
 - **One group table.** Today's categories become collections (same id, name, slug, order); each product keeps its category as one of its collections. A collection now has: name, URL slug, description, order, Featured, Public from (early access), Visibility, archived.
+- **Main collection per product (known limit):** the card's grey line and the breadcrumb show the main collection's name. A product that is public through another collection but whose main collection is hidden would show that hidden name, so keep the main collection a public one. This is a display limit, not a way to see the product.
 - **Main collection per product.** A product has one **main collection** (what the category was). It gives the card's grey line, the breadcrumb and "You may also like". It is the first one ticked and can be changed in the product editor. A product needs a live main collection to be published.
 - **Shop.** One address `/collections/<slug>`; `/shop/<category>` and the old collection links redirect to it. `/shop` stays "everything" (New and Featured etc. unchanged). The filter sidebar, the header menu, the phone menu and the home "Virzeen Archive's" tiles list every live collection the viewer may see, ordered by Order. "Your picks" loses its Categories/Collections tabs. Tile icons are picked by words in the name, with one default icon.
-- **Archived** collections hide the collection only. A product stays visible while any live collection allows the viewer and its main collection is live (today an archived category hides its products).
+- **Archived** collections: a product needs a live **main** collection (as an archived category hid its products) and at least one live collection that allows the viewer. Archiving a collection is refused while products have it as their main collection.
 - **Admin.** `/admin/collections` is the one page (list + form); `/admin/categories` redirects to it. The product editor's Category field becomes a Collections picker with a "main" marker.
 
 ## Visibility rule (one builder, used everywhere)
@@ -66,6 +67,10 @@ Phase 2 (visibility):
 - `/api/v1`: keep the wire names (`category` in product JSON stays the main collection's name/slug) unless `api-contract.md` says otherwise.
 
 ## Edge cases
+
+- Favourites, "Notify me", the bag and checkout use the customer's own view (a Pass member can favourite a Pass-only product); a visitor's browser favourites use a visitor's view. Orders, payments, reconciliation, emails, reviews and admin never filter by viewer: a paid order for a product that later became Pass-only still completes and shows.
+- `/api/v1` shows a visitor's view (members-only items are not offered to the mobile app until it sends a signed-in viewer).
+- Search matches only the names of collections the viewer may see.
 
 - Slug clash between a category and a collection: the migrated one gets a `-2` suffix.
 - A product in no collection: gets its (former) category; products can't be published without a live main collection.

@@ -49,8 +49,8 @@ export const getCollectionBySlug = cache(async (slug: string) =>
 export const listCollections = async (featuredOnly = false) =>
   catalogReads.listCollections({ featuredOnly, earlyHours: await getViewerEarlyHours() });
 export const listHomeTiles = async () => catalogReads.listHomeTiles(await getViewerEarlyHours());
-export const getFilterOptions = (scope: { collection?: string | undefined }) =>
-  catalogReads.getFilterOptions(scope);
+export const getFilterOptions = async (scope: { collection?: string | undefined }) =>
+  catalogReads.getFilterOptions(scope, await getViewerEarlyHours());
 
 /** A product's visible reviews: count and average (specs/reviews.md). */
 export const getReviewSummary = cache((productId: string) => reviewService.summary(productId));

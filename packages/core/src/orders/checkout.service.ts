@@ -3,7 +3,7 @@ import { db, type CustomerTier, type PaymentMethod, type Prisma } from "@virzeen
 import { cartService } from "../cart/cart.service";
 import { getCartSummary } from "../cart/cart-summary";
 import { imageForColor } from "../catalog/style-images";
-import { cartLineSelect, isLineAvailable, variantLabelOf } from "../cart/cart-summary";
+import { cartLineSelect, isLineAvailable, variantLabelOf, visibleProductIds } from "../cart/cart-summary";
 import { getCoreConfig } from "../config";
 import { checkDiscount, claimDiscount } from "../discounts/discount.service";
 import { AppError } from "../errors";
@@ -241,8 +241,10 @@ export const checkoutService = {
     const created = await db.$transaction(async (tx) => {
       const rows = await tx.cartItem.findMany({ where: { cartId: input.cartId }, select: cartLineSelect });
       if (rows.length === 0) throw new AppError("CART_EMPTY", "Your bag is empty.");
+      // A line the buyer may no longer see (members-only) is unavailable, like a sold-out one: nothing is ordered.
+      const visible = await visibleProductIds(tx, input.cartId, rows);
       for (const row of rows) {
-        if (!isLineAvailable(row))
+        if (!isLineAvailable(row, visible))
           throw new AppError("OUT_OF_STOCK", "Some items just sold out. We've updated your bag.");
         if (row.unitPricePaisa !== row.variant.pricePaisa) {
           throw new AppError(

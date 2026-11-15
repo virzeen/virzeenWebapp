@@ -4,8 +4,16 @@ import { db, type Prisma } from "@virzeen/db";
 import { MAX_QTY_PER_LINE } from "@virzeen/validators";
 import { EARLY_ACCESS_HOURS } from "@virzeen/validators/limits";
 import { levelOf } from "@virzeen/validators/membership";
+import { visibleProductWhere } from "../catalog/catalog.reads";
 import { AppError } from "../errors";
-import { cartLineSelect, emptyCart, getCartSummary, isLineAvailable, type CartSummary } from "./cart-summary";
+import {
+  cartLineSelect,
+  emptyCart,
+  getCartSummary,
+  isLineAvailable,
+  visibleProductIds,
+  type CartSummary,
+} from "./cart-summary";
 
 export { MAX_QTY_PER_LINE };
 
@@ -94,24 +102,21 @@ export const cartService = {
     addedAt?: Date | undefined;
   }): Promise<CartSummary> {
     return db.$transaction(async (tx) => {
+      // Who is buying decides what they may see (early access and members-only collections or products,
+      // specs/catalog-groups-visibility.md): the same rule as the shop's lists, so a product they can't see
+      // can't be added by a direct call either.
+      const owner = await tx.cart.findUnique({
+        where: { id: input.cartId },
+        select: { user: { select: { passEndsAt: true } } },
+      });
+      const hours = owner?.user
+        ? EARLY_ACCESS_HOURS[levelOf(owner.user.passEndsAt) === "PASS" ? "PASS" : "MEMBER"]
+        : 0;
       const variant = await tx.productVariant.findFirst({
-        where: { id: input.variantId, isActive: true, product: { isPublished: true, archivedAt: null } },
-        select: { id: true, stock: true, pricePaisa: true, product: { select: { publicAt: true } } },
+        where: { id: input.variantId, isActive: true, product: visibleProductWhere(hours) },
+        select: { id: true, stock: true, pricePaisa: true },
       });
       if (!variant) throw new AppError("NOT_FOUND", "This item is no longer available.");
-      // Early access (specs/member-perks.md): before its public time only a member inside their window may buy it.
-      if (variant.product.publicAt && variant.product.publicAt > new Date()) {
-        const owner = await tx.cart.findUnique({
-          where: { id: input.cartId },
-          select: { user: { select: { passEndsAt: true } } },
-        });
-        const hours = owner?.user
-          ? EARLY_ACCESS_HOURS[levelOf(owner.user.passEndsAt) === "PASS" ? "PASS" : "MEMBER"]
-          : 0;
-        if (variant.product.publicAt.getTime() > Date.now() + hours * 3_600_000) {
-          throw new AppError("NOT_FOUND", "This item is no longer available.");
-        }
-      }
 
       const existing = await tx.cartItem.findUnique({
         where: { cartId_variantId: { cartId: input.cartId, variantId: input.variantId } },
@@ -150,7 +155,8 @@ export const cartService = {
         select: cartLineSelect,
       });
       if (!line) throw new AppError("NOT_FOUND", "This item is no longer in your bag.");
-      if (!isLineAvailable(line)) throw new AppError("NOT_FOUND", "This item is no longer available.");
+      if (!isLineAvailable(line, await visibleProductIds(tx, input.cartId, [line])))
+        throw new AppError("NOT_FOUND", "This item is no longer available.");
       const limit = Math.min(line.variant.stock, MAX_QTY_PER_LINE);
       if (input.quantity > limit) {
         throw new AppError("OUT_OF_STOCK", limit === 0 ? "Out of stock" : `Only ${limit} left`, {
@@ -212,10 +218,12 @@ export const cartService = {
   async refreshForCheckout(cartId: string): Promise<CheckoutRefresh> {
     return db.$transaction(async (tx) => {
       const rows = await tx.cartItem.findMany({ where: { cartId }, select: cartLineSelect });
+      // A line the owner may no longer see is dropped like one that sold out.
+      const visible = await visibleProductIds(tx, cartId, rows);
       let stockChanged = false;
       let priceChanged = false;
       for (const row of rows) {
-        const limit = isLineAvailable(row) ? Math.min(row.variant.stock, MAX_QTY_PER_LINE) : 0;
+        const limit = isLineAvailable(row, visible) ? Math.min(row.variant.stock, MAX_QTY_PER_LINE) : 0;
         if (limit === 0) {
           await tx.cartItem.delete({ where: { id: row.id } });
           stockChanged = true;

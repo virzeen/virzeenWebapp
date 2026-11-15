@@ -1,6 +1,7 @@
 "use client";
 
 import { Checkbox, FormField, Input, Textarea } from "@virzeen/ui";
+import { AudienceField } from "../audience-field";
 import { Controller, useFormState, useWatch } from "react-hook-form";
 import { useProductEditor } from "./editor-context";
 
@@ -38,6 +39,23 @@ export function SettingsSearch() {
         <Textarea rows={3} maxLength={155} {...form.register("seoDescription", { onBlur: save })} />
       </FormField>
     </section>
+  );
+}
+
+/**
+ * Settings → Visibility: who may see the product (specs/catalog-groups-visibility.md). It is shown only when this and
+ * at least one of its collections allow the viewer; saved straight away.
+ */
+export function SettingsVisibility() {
+  const { form, commitField } = useProductEditor();
+  const audience = useWatch({ control: form.control, name: "audience" });
+  return (
+    <FormField
+      label="Visibility"
+      helper="Shown to someone only when this, and at least one of its collections, allow them."
+    >
+      <AudienceField value={audience} onChange={(next) => commitField("audience", next)} />
+    </FormField>
   );
 }
 

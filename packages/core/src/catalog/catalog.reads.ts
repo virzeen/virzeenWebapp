@@ -4,10 +4,13 @@ import {
   parseFeatureRows,
   parseSizeChart,
   sortSizes,
+  type Audience,
   type ShopFilters,
   type SizeChart,
   type SizeGuideKind,
 } from "@virzeen/validators";
+import { EARLY_ACCESS_HOURS } from "@virzeen/validators/limits";
+import { levelOf } from "@virzeen/validators/membership";
 import { stylesForShop } from "./product-styles";
 import { searchWhere } from "./search";
 
@@ -16,31 +19,56 @@ import { searchWhere } from "./search";
 export const PAGE_SIZE = 12;
 
 /**
- * What a shopper may see (specs/member-perks.md, early access): published, not archived, in a live main collection, and
- * public: a product with a
- * `publicAt` still in the future is hidden unless `earlyHours` (12 for a MONO Member, 48 for the Pass) brings it in range.
- * Uses the top-level `OR` (the shop's search uses `AND`).
+ * The levels a viewer may see (specs/catalog-groups-visibility.md), read from their early-access hours, which already
+ * say who they are: 0 a visitor, 12 a MONO Member, 48 the Pass (`EARLY_ACCESS_HOURS`, which a test keeps strictly
+ * increasing). A higher level also sees the lower ones.
+ */
+export function audiencesFor(earlyHours: number): Audience[] {
+  if (earlyHours >= EARLY_ACCESS_HOURS.PASS) return ["PUBLIC", "MEMBER", "PASS"];
+  if (earlyHours >= EARLY_ACCESS_HOURS.MEMBER) return ["PUBLIC", "MEMBER"];
+  return ["PUBLIC"];
+}
+
+/**
+ * The early-access hours of a signed-in customer (a MONO Member 12, a running Pass 48; an expired Pass is a member
+ * again), for the services that know a userId and need the same view of the shop as their pages.
+ */
+export async function earlyHoursFor(userId: string): Promise<number> {
+  const user = await db.user.findUnique({ where: { id: userId }, select: { passEndsAt: true } });
+  return EARLY_ACCESS_HOURS[levelOf(user?.passEndsAt) === "PASS" ? "PASS" : "MEMBER"];
+}
+
+/**
+ * A collection a shopper may see: not archived, its visibility allows them, and early access works as for a product
+ * (specs/member-perks.md): one with a public time in the future is hidden unless `earlyHours` brings it in range.
+ */
+export function collectionVisible(earlyHours: number, now: Date = new Date()): Prisma.CollectionWhereInput {
+  return {
+    archivedAt: null,
+    audience: { in: audiencesFor(earlyHours) },
+    OR: [{ publicAt: null }, { publicAt: { lte: new Date(now.getTime() + earlyHours * 3_600_000) } }],
+  };
+}
+
+/**
+ * What a shopper may see: published, not archived, in a live main collection, allowed by the product's own
+ * visibility, and in at least one collection they may see (specs/catalog-groups-visibility.md; "shown if ANY of its
+ * collections allows the viewer"). A product with a `publicAt` still in the future is hidden unless `earlyHours` (12
+ * for a MONO Member, 48 for the Pass) brings it in range. This is the one rule every shopper-facing read uses; the
+ * keys are `audience`, `NOT` and the top-level `OR`, so spreading it next to a filter on `collections` or `AND` (the
+ * shop's search) keeps them all. Never used for orders, payments, emails, reviews or admin.
  */
 export function visibleProductWhere(earlyHours = 0, now: Date = new Date()): Prisma.ProductWhereInput {
   return {
     isPublished: true,
     archivedAt: null,
     mainCollection: { archivedAt: null },
+    audience: { in: audiencesFor(earlyHours) },
+    NOT: { collections: { none: collectionVisible(earlyHours, now) } },
     OR: [{ publicAt: null }, { publicAt: { lte: new Date(now.getTime() + earlyHours * 3_600_000) } }],
   };
 }
 
-/**
- * A collection a shopper may see: early access works like a product's (specs/member-perks.md). A collection with a
- * public time in the future is hidden unless `earlyHours` brings it in range.
- */
-export function collectionVisible(earlyHours: number, now: Date = new Date()): Prisma.CollectionWhereInput {
-  return {
-    OR: [{ publicAt: null }, { publicAt: { lte: new Date(now.getTime() + earlyHours * 3_600_000) } }],
-  };
-}
-
-/** The public rule, with the time read each time it is spread into a query (a getter, so it is never stale). */
 /** The most tiles the home page's "Virzeen Archive's" section shows (two rows of eight, like Nike's Spotlight). */
 export const HOME_TILES_SHOWN = 16;
 
@@ -52,6 +80,10 @@ export type HomeTile = {
   href: string;
 };
 
+/**
+ * A product that is live (published, not archived, its main collection live, public time passed) whoever it is
+ * for. For jobs and other places that add the viewer's own check; what a shopper may see is `visibleProductWhere`.
+ */
 export const publishedProductWhere = {
   isPublished: true,
   archivedAt: null,
@@ -196,7 +228,7 @@ function listingWhere(filters: ShopFilters, earlyHours = 0): Prisma.ProductWhere
     ...(filters.inStock ? { stock: { gt: 0 } } : {}),
   };
   const hasVariantFilter = Boolean(filters.size || filters.color || filters.inStock);
-  const search = filters.q ? searchWhere(filters.q) : null;
+  const search = filters.q ? searchWhere(filters.q, collectionVisible(earlyHours)) : null;
   return {
     ...visibleProductWhere(earlyHours),
     ...search,
@@ -242,11 +274,10 @@ export const catalogReads = {
     if (earlyHours <= 0) return [];
     return db.product.findMany({
       where: {
-        isPublished: true,
-        archivedAt: null,
-        mainCollection: { archivedAt: null },
+        ...visibleProductWhere(earlyHours, now),
         variants: { some: { isActive: true } },
-        publicAt: { gt: now, lte: new Date(now.getTime() + earlyHours * 3_600_000) },
+        // Still in the future for the public (the member's window brings it in through visibleProductWhere).
+        publicAt: { gt: now },
       },
       select: { slug: true, name: true, publicAt: true },
       orderBy: { publicAt: "asc" },
@@ -388,7 +419,6 @@ export const catalogReads = {
   async listShopCollections(earlyHours = 0) {
     return db.collection.findMany({
       where: {
-        archivedAt: null,
         ...collectionVisible(earlyHours),
         products: { some: visibleProductWhere(earlyHours) },
       },
@@ -402,9 +432,8 @@ export const catalogReads = {
     const count = await db.collection.count({
       where: {
         slug,
-        archivedAt: null,
         ...collectionVisible(earlyHours),
-        products: { some: publishedProductWhere },
+        products: { some: visibleProductWhere(earlyHours) },
       },
     });
     return count > 0;
@@ -413,10 +442,9 @@ export const catalogReads = {
   async listCollections(options: { featuredOnly?: boolean; earlyHours?: number } = {}) {
     return db.collection.findMany({
       where: {
-        archivedAt: null,
         ...collectionVisible(options.earlyHours ?? 0),
         ...(options.featuredOnly ? { isFeatured: true } : {}),
-        products: { some: publishedProductWhere },
+        products: { some: visibleProductWhere(options.earlyHours ?? 0) },
       },
       select: {
         id: true,
@@ -424,7 +452,7 @@ export const catalogReads = {
         name: true,
         description: true,
         products: {
-          where: publishedProductWhere,
+          where: visibleProductWhere(options.earlyHours ?? 0),
           select: { images: { select: { url: true, alt: true }, orderBy: { sortOrder: "asc" }, take: 1 } },
           orderBy: { publishedAt: "desc" },
           take: 1,
@@ -450,18 +478,18 @@ export const catalogReads = {
 
   async getCollectionBySlug(slug: string, earlyHours = 0) {
     return db.collection.findFirst({
-      where: { slug, archivedAt: null, ...collectionVisible(earlyHours) },
+      where: { slug, ...collectionVisible(earlyHours) },
       select: { id: true, slug: true, name: true, description: true },
     });
   },
 
   /** Sizes and colours present in the (optionally filtered) catalogue, for the filter controls. */
-  async getFilterOptions(scope: { collection?: string | undefined }) {
+  async getFilterOptions(scope: { collection?: string | undefined }, earlyHours = 0) {
     const variants = await db.productVariant.findMany({
       where: {
         isActive: true,
         product: {
-          ...publishedProductWhere,
+          ...visibleProductWhere(earlyHours),
           ...(scope.collection ? { collections: { some: { slug: scope.collection } } } : {}),
         },
       },
@@ -477,8 +505,9 @@ export const catalogReads = {
   /** Everything the sitemap needs. */
   async listSitemapEntries() {
     const [products, collections, projects] = await Promise.all([
-      db.product.findMany({ where: publishedProductWhere, select: { slug: true, updatedAt: true } }),
-      db.collection.findMany({ where: { archivedAt: null }, select: { slug: true, updatedAt: true } }),
+      // What a visitor may see: search engines never learn of a members-only product or collection.
+      db.product.findMany({ where: visibleProductWhere(0), select: { slug: true, updatedAt: true } }),
+      db.collection.findMany({ where: collectionVisible(0), select: { slug: true, updatedAt: true } }),
       db.portfolioProject.findMany({
         where: { isPublished: true, archivedAt: null },
         select: { slug: true, updatedAt: true },

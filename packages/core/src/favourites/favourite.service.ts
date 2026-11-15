@@ -2,9 +2,10 @@ import "server-only";
 import { db, type Prisma } from "@virzeen/db";
 import { MAX_FAVOURITES, sortSizes, type FavouriteKey, type SetFavouriteInput } from "@virzeen/validators";
 import {
-  publishedProductWhere,
+  earlyHoursFor,
   summarySelect,
   toSummary,
+  visibleProductWhere,
   type ProductSummary,
 } from "../catalog/catalog.reads";
 import { AppError, isUniqueViolation } from "../errors";
@@ -150,8 +151,10 @@ const newestFirst = [
  * customer with a full list couldn't remove them by hand: only called when the list is full.
  */
 async function dropHidden(tx: Prisma.TransactionClient, userId: string) {
+  // What this customer may see: a Pass-only favourite isn't "hidden" from a Pass member.
+  const hours = await earlyHoursFor(userId);
   const { count } = await tx.favourite.deleteMany({
-    where: { userId, NOT: { product: publishedProductWhere } },
+    where: { userId, NOT: { product: visibleProductWhere(hours) } },
   });
   return count;
 }
@@ -170,7 +173,7 @@ export const favouriteService = {
       return { productId: input.productId, color: input.color, saved: false };
     }
     const product = await db.product.findFirst({
-      where: { ...publishedProductWhere, id: input.productId },
+      where: { ...visibleProductWhere(await earlyHoursFor(userId)), id: input.productId },
       select: { id: true },
     });
     if (!product) throw new AppError("NOT_FOUND", "This product isn't available.");
@@ -216,7 +219,7 @@ export const favouriteService = {
   /** The account's favourites for the Favourites page, newest first; products no longer on sale are left out. */
   async list(userId: string): Promise<FavouriteItem[]> {
     const rows = await db.favourite.findMany({
-      where: { userId, product: publishedProductWhere },
+      where: { userId, product: visibleProductWhere(await earlyHoursFor(userId)) },
       select: {
         productId: true,
         color: true,
@@ -250,7 +253,10 @@ export const favouriteService = {
           select: { productId: true, color: true },
         });
         const onSale = await tx.product.findMany({
-          where: { ...publishedProductWhere, id: { in: [...new Set(wanted.map((key) => key.productId))] } },
+          where: {
+            ...visibleProductWhere(await earlyHoursFor(userId)),
+            id: { in: [...new Set(wanted.map((key) => key.productId))] },
+          },
           select: { id: true },
         });
         const onSaleIds = new Set(onSale.map((product) => product.id));
@@ -285,8 +291,9 @@ export const favouriteService = {
   async summariesFor(keys: readonly FavouriteKey[]): Promise<FavouriteItem[]> {
     const wanted = uniqueKeys(keys).slice(0, MAX_FAVOURITES);
     if (wanted.length === 0) return [];
+    // A browser's favourites: a visitor's view of the shop.
     const rows = await db.product.findMany({
-      where: { ...publishedProductWhere, id: { in: [...new Set(wanted.map((key) => key.productId))] } },
+      where: { ...visibleProductWhere(0), id: { in: [...new Set(wanted.map((key) => key.productId))] } },
       select: favouriteProductSelect,
     });
     const byId = new Map(rows.map((row) => [row.id, row]));

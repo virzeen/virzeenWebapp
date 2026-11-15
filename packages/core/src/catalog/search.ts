@@ -25,18 +25,22 @@ export function searchWords(query: string): string[][] {
 
 const contains = (form: string) => ({ contains: form, mode: "insensitive" as const });
 
-function wordMatches(form: string): Prisma.ProductWhereInput[] {
+/** `collection`: which collections count, so a hidden one's name never finds a product (the viewer rule). */
+function wordMatches(form: string, collection: Prisma.CollectionWhereInput): Prisma.ProductWhereInput[] {
   return [
     { name: contains(form) },
-    { collections: { some: { archivedAt: null, name: contains(form) } } },
+    { collections: { some: { ...collection, name: contains(form) } } },
     { variants: { some: { isActive: true, color: contains(form) } } },
     { styles: { some: { OR: [{ colourShown: contains(form) }, { code: contains(form) }] } } },
   ];
 }
 
 /** The `where` for a search query, or null when it has no words (then everything is listed). */
-export function searchWhere(query: string): Prisma.ProductWhereInput | null {
+export function searchWhere(
+  query: string,
+  collection: Prisma.CollectionWhereInput = { archivedAt: null },
+): Prisma.ProductWhereInput | null {
   const words = searchWords(query);
   if (words.length === 0) return null;
-  return { AND: words.map((forms) => ({ OR: forms.flatMap(wordMatches) })) };
+  return { AND: words.map((forms) => ({ OR: forms.flatMap((form) => wordMatches(form, collection)) })) };
 }

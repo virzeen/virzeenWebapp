@@ -1,5 +1,5 @@
 import { Badge, ButtonLink, DataTable, EmptyState, Link } from "@virzeen/ui";
-import { adminProductFiltersSchema, type AdminProductStatus } from "@virzeen/validators";
+import { adminProductFiltersSchema, AUDIENCE_LABELS, type AdminProductStatus } from "@virzeen/validators";
 import { CloudImage } from "@/client/components/shared/cloud-image";
 import { Price } from "@/client/components/shared/price";
 import { AdminPageHeader } from "@/client/features/admin/admin-page-header";
@@ -38,6 +38,7 @@ function RowBadges({ row }: { row: ProductRow }) {
       <StatusBadge published={row.isPublished} />
       {row.images.length === 0 && <Badge variant="warning">No photos</Badge>}
       {stock === 0 && <Badge variant="warning">Out of stock</Badge>}
+      {row.audience !== "PUBLIC" && <Badge>{AUDIENCE_LABELS[row.audience]}</Badge>}
       {row.publicAt && row.publicAt > new Date() && <Badge>Public {formatDateTime(row.publicAt)}</Badge>}
     </span>
   );

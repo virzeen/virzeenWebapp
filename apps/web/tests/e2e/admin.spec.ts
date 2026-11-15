@@ -302,6 +302,13 @@ test("admin sets up two-factor, builds a product on its page and it appears in t
   await expect(settings.getByLabel(/URL slug/)).toHaveValue("e2e-monochrome-beanie");
   await settings.getByRole("checkbox", { name: /Edit SKU codes/ }).click();
   await expect(settings.getByLabel("SKU, Black, M")).toHaveValue("VZ-E2EMONOCHROM-BLACK-M");
+  // Visibility (specs/catalog-groups-visibility.md): public to start with; a choice saves at once and can be undone.
+  await expect(settings.getByRole("radio", { name: /^Public/ })).toBeChecked();
+  await settings.getByRole("radio", { name: /^MONO Members/ }).click();
+  await expectSaved(page);
+  await expect(settings.getByRole("radio", { name: /^MONO Members/ })).toBeChecked();
+  await settings.getByRole("radio", { name: /^Public/ }).click();
+  await expectSaved(page);
   await page.keyboard.press("Escape");
   await expect(settings).toBeHidden();
 
@@ -556,10 +563,19 @@ test("admin sets up two-factor, builds a product on its page and it appears in t
     .fill(new Date(weekAhead.getTime() - weekAhead.getTimezoneOffset() * 60_000).toISOString().slice(0, 16));
   await festival.getByRole("button", { name: "Add collection" }).click();
   await expect(page.getByRole("listitem").filter({ hasText: "E2E Festival" })).toContainText("Public from");
+  // The same form sets who may see a collection (categories and collections are one thing).
+  await festival.getByLabel(/^Name/).fill("E2E Pass Club Two");
+  await festival.getByRole("radio", { name: /^Monochrome Pass members/ }).click();
+  await festival.getByRole("button", { name: "Add collection" }).click();
+  await expect(page.getByRole("listitem").filter({ hasText: "E2E Pass Club Two" })).toContainText(
+    "Monochrome Pass members",
+  );
   const guestView = await page.context().browser()!.newContext();
   const guestPage = await guestView.newPage();
   await guestPage.goto("/collections/e2e-festival");
   await expect(guestPage.getByRole("heading", { name: "E2E Festival" })).toHaveCount(0);
+  await guestPage.goto("/collections/e2e-pass-club-two");
+  await expect(guestPage.getByText("We couldn't find that page.")).toBeVisible();
   await guestView.close();
 
   // A mistyped admin address stays inside the admin frame, with a way back.
