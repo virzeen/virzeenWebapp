@@ -82,9 +82,13 @@ describe("order labels", () => {
     expect(orderStatus("PENDING").label).toBe("Awaiting payment");
   });
 
-  it("shows a cancelled cash-on-delivery order as 'Not charged', not a red payment failure", () => {
+  it("shows a cancelled order that was never paid as 'Not charged', not a red payment failure", () => {
     expect(paymentStatus("FAILED", "COD")).toEqual({ label: "Not charged", variant: "neutral" });
-    expect(paymentStatus("FAILED", "ESEWA")).toEqual({ label: "Payment failed", variant: "danger" });
+    // An online order its customer cancelled before paying (specs/payment-window.md), and an unpaid one.
+    expect(paymentStatus("FAILED", "ESEWA")).toEqual({ label: "Not charged", variant: "neutral" });
+    expect(paymentStatus("PENDING", "KHALTI")).toEqual({ label: "Not paid yet", variant: "warning" });
+    // One failed attempt in the admin's list.
+    expect(paymentStatus("FAILED")).toEqual({ label: "Payment failed", variant: "danger" });
     expect(paymentStatus("COD_DUE", "COD").label).toBe("Pay on delivery");
   });
 });

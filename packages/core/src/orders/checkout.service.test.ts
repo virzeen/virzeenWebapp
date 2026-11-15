@@ -143,7 +143,7 @@ describe("checkoutService.placeOrder — bag changes", () => {
 describe("checkoutService.placeOrder — online payments", () => {
   beforeEach(resetDatabase);
 
-  it("eSewa: holds stock for 60 minutes and returns a signed form", async () => {
+  it("eSewa: holds stock for 15 minutes (specs/payment-window.md) and returns a signed form", async () => {
     const fixture = await checkoutFixture({ pricePaisa: 450_000 });
 
     const result = await place(fixture, "ESEWA");
@@ -162,7 +162,7 @@ describe("checkoutService.placeOrder — online payments", () => {
       include: { payments: true },
     });
     expect(order).toMatchObject({ status: "PENDING", paymentStatus: "PENDING" });
-    expect(order.reservedUntil?.toISOString()).toBe("2026-09-28T07:00:00.000Z");
+    expect(order.reservedUntil?.toISOString()).toBe("2026-09-28T06:15:00.000Z");
     expect(order.payments).toMatchObject([
       { provider: "ESEWA", providerRef: "VZ-260928-0001-1", status: "PENDING" },
     ]);

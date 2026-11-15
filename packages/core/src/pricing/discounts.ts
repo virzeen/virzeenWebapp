@@ -100,6 +100,13 @@ export function endOfNepalDay(date: string): Date {
   return end;
 }
 
+/** "2026-11-11" → the first millisecond of 11 November in Nepal (a notice's "Starts on"). */
+export function startOfNepalDay(date: string): Date {
+  const start = new Date(`${date}T00:00:00.000${NEPAL_OFFSET}`);
+  if (Number.isNaN(start.getTime())) throw new AppError("VALIDATION_FAILED", "Choose a date");
+  return start;
+}
+
 /** The Nepal calendar date of a moment, as "YYYY-MM-DD" (the admin form's "Ends on"). */
 export function nepalDateOf(moment: Date): string {
   return nepalDate.format(moment);

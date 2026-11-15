@@ -27,6 +27,7 @@ import {
   markPaidManuallyAction,
   markRefusedAtDoorAction,
   recordRefundAction,
+  refundAttemptAction,
   reverifyPaymentAction,
 } from "@/server/actions/admin/orders";
 import type { ActionResult } from "@/server/actions/result";
@@ -274,35 +275,18 @@ export function OrderActions({ orderNumber, status, paymentStatus, paymentMethod
           }
         />
       )}
+      {/* "Mark paid" is on each attempt in Payment attempts below: an order can have several open at once. */}
       {isOnline && paymentStatus === "PENDING" && (
-        <>
-          <Button
-            variant="secondary"
-            shape="pill"
-            loading={isPending}
-            onClick={() =>
-              run(() => reverifyPaymentAction({ orderNumber }), "Payment re-checked with the provider")
-            }
-          >
-            Re-verify payment
-          </Button>
-          <ReasonDialog
-            trigger={
-              <Button variant="ghost" shape="pill">
-                Mark paid (manual)
-              </Button>
-            }
-            title="Mark paid manually?"
-            warning="Only do this after confirming the exact amount arrived in the eSewa/Khalti merchant dashboard (runbook: payment-stuck-pending)."
-            fields={[
-              { name: "reason", label: "Provider reference and note", multiline: true, schema: reasonSchema },
-            ]}
-            confirmLabel="Mark paid"
-            onConfirm={(v) =>
-              run(() => markPaidManuallyAction({ orderNumber, reason: v.reason ?? "" }), "Marked as paid")
-            }
-          />
-        </>
+        <Button
+          variant="secondary"
+          shape="pill"
+          loading={isPending}
+          onClick={() =>
+            run(() => reverifyPaymentAction({ orderNumber }), "Payment re-checked with the provider")
+          }
+        >
+          Re-verify payment
+        </Button>
       )}
       {isOnline && paymentStatus === "PAID" && ["CANCELLED", "RETURNED", "DELIVERED"].includes(status) && (
         <ReasonDialog
@@ -368,6 +352,85 @@ export function OrderActions({ orderNumber, status, paymentStatus, paymentMethod
             run(
               () => advanceOrderAction({ orderNumber, to: "CANCELLED", reason: v.reason ?? "" }),
               "Order cancelled",
+            )
+          }
+        />
+      )}
+    </div>
+  );
+}
+
+type AttemptActionsProps = {
+  orderNumber: string;
+  paymentId: string;
+  /** "Attempt 2 · eSewa VZ-260928-0001-2", for the dialog. */
+  label: string;
+  /** Unpaid online attempt of an order still waiting for payment. */
+  canMarkPaid: boolean;
+  /** A paid attempt the order didn't need: a late or second payment (specs/payment-window.md). */
+  canRefund: boolean;
+};
+
+/**
+ * The payment steps for one attempt in the "Payment attempts" table. An order can have several attempts open at once
+ * (Pay now), so the owner marks paid exactly the one they checked in the merchant dashboard, and records the refund
+ * of exactly the late or second payment they refunded (runbooks/payment-stuck-pending.md).
+ */
+export function AttemptActions({
+  orderNumber,
+  paymentId,
+  label,
+  canMarkPaid,
+  canRefund,
+}: AttemptActionsProps) {
+  const [, run] = useRunner();
+  if (!canMarkPaid && !canRefund) return null;
+  return (
+    <div className="flex flex-wrap justify-end gap-2">
+      {canMarkPaid && (
+        <ReasonDialog
+          trigger={
+            <Button variant="secondary" shape="pill" size="sm">
+              Mark paid
+            </Button>
+          }
+          title="Mark this attempt paid?"
+          description={label}
+          warning="Only after the eSewa/Khalti merchant dashboard shows this attempt's exact amount received (runbook: payment-stuck-pending)."
+          fields={[
+            { name: "reason", label: "Provider reference and note", multiline: true, schema: reasonSchema },
+          ]}
+          confirmLabel="Mark paid"
+          onConfirm={(v) =>
+            run(
+              () => markPaidManuallyAction({ orderNumber, paymentId, reason: v.reason ?? "" }),
+              "Marked as paid",
+            )
+          }
+        />
+      )}
+      {canRefund && (
+        <ReasonDialog
+          trigger={
+            <Button variant="secondary" shape="pill" size="sm">
+              Record refund
+            </Button>
+          }
+          title="Record this attempt's refund?"
+          description={`${label}. Refund it first in the provider's merchant dashboard. The order itself doesn't change.`}
+          fields={[
+            {
+              name: "reason",
+              label: "Provider refund reference",
+              multiline: true,
+              schema: reasonSchema,
+            },
+          ]}
+          confirmLabel="Record refund"
+          onConfirm={(v) =>
+            run(
+              () => refundAttemptAction({ orderNumber, paymentId, reason: v.reason ?? "" }),
+              "Refund recorded",
             )
           }
         />

@@ -46,6 +46,7 @@ export const getCollectionBySlug = cache(async (slug: string) =>
 );
 export const listCollections = async (featuredOnly = false) =>
   catalogReads.listCollections({ featuredOnly, earlyHours: await getViewerEarlyHours() });
+export const listHomeTiles = async () => catalogReads.listHomeTiles(await getViewerEarlyHours());
 export const getFilterOptions = (scope: { category?: string | undefined; collection?: string | undefined }) =>
   catalogReads.getFilterOptions(scope);
 

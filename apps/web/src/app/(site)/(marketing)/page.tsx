@@ -1,11 +1,18 @@
 import { ButtonLink, Container, Grid, Link } from "@virzeen/ui";
 import { PORTFOLIO_KIND_LABELS } from "@virzeen/validators";
-import type { Metadata } from "next";
+import { colors } from "@virzeen/ui/tokens";
+import type { Metadata, Viewport } from "next";
 import { CloudImage } from "@/client/components/shared/cloud-image";
 import { JsonLd } from "@/client/components/shared/json-ld";
+import { InFocus } from "@/client/features/home/in-focus";
 import { ProductCarousel } from "@/client/features/products/product-carousel";
 import { siteUrl } from "@/server/env";
-import { listCollections, listNewArrivals, listPortfolioProjects } from "@/server/queries/catalog";
+import {
+  listCollections,
+  listHomeTiles,
+  listNewArrivals,
+  listPortfolioProjects,
+} from "@/server/queries/catalog";
 import { HOME_DESCRIPTION, HOME_TITLE, siteJsonLd } from "@/server/seo";
 
 export const metadata: Metadata = {
@@ -14,9 +21,14 @@ export const metadata: Metadata = {
   alternates: { canonical: "/" },
 };
 
+// The top of this page is the dark hero, so the browser bar colour is black from the first byte of HTML, not only after
+// ThemeColorSync runs: iOS tints its fade behind the status bar from this colour when the app starts.
+export const viewport: Viewport = { themeColor: colors.ink };
+
 export default async function HomePage() {
-  const [arrivals, collections, projects] = await Promise.all([
+  const [arrivals, tiles, collections, projects] = await Promise.all([
     listNewArrivals(12),
+    listHomeTiles(),
     listCollections(true),
     listPortfolioProjects(3),
   ]);
@@ -28,19 +40,20 @@ export default async function HomePage() {
       {/*
         Hero: brand moment, LCP image (the owner's photo, 2026-09-30: a man reading in a dark room, a rack of T-shirts
         on the right). It starts under the see-through header (`pull-under-header`: the header's height plus the iPhone top inset), and the words sit in the
-        bottom-right corner, with no buttons (owner). On phones it fills the screen, cropped around him.
+        bottom-right corner, with no buttons (owner). It fills the screen on every device (owner 2026-11-15: phones, tablets
+        and computers), the photo cropped around him.
       */}
       <section className="relative isolate pull-under-header overflow-hidden bg-ink text-canvas">
         <CloudImage
           src="/brand/hero.jpg"
           alt=""
-          ratio="hero"
-          // Phones fill the whole screen with it (owner): the 16:9 photo is cropped into that tall frame, so it's
-          // drawn about 3.5× the screen width.
-          sizes="(min-width: 768px) 100vw, 350vw"
+          ratio="none"
+          // It fills the screen (owner): on a screen wider than the 16:9 photo it is as wide as the screen, otherwise
+          // as tall, so 16/9 of the screen height wide.
+          sizes="(min-aspect-ratio: 16/9) 100vw, 178vh"
           priority
-          className="h-svh md:h-auto"
-          imageClassName="object-cover object-hero md:object-center"
+          className="h-screen-cover w-full"
+          imageClassName="object-cover object-hero"
         />
         {/* Scrims keep white text at AA contrast: the header on the bright window (top), the words on the floor. */}
         <span
@@ -167,6 +180,9 @@ export default async function HomePage() {
           </Grid>
         </Container>
       )}
+
+      {/* Virzeen Archive's, the last section before the footer: every category and collection as an icon tile, like Nike's Spotlight (owner 2026-11-15). */}
+      <InFocus tiles={tiles} />
     </>
   );
 }

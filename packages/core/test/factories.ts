@@ -11,10 +11,13 @@ const cuidLike = () => `t${randomBytes(12).toString("hex").slice(0, 23)}`;
 export async function resetDatabase() {
   await db.$transaction([
     db.orderEvent.deleteMany(),
+    // An order points at the attempt that paid it (`paidPaymentId`): unlink before deleting payments.
+    db.order.updateMany({ data: { paidPaymentId: null } }),
     db.payment.deleteMany(),
     db.orderItem.deleteMany(),
     db.order.deleteMany(),
     db.discountCode.deleteMany(),
+    db.siteNotice.deleteMany(),
     db.orderNumberCounter.deleteMany(),
     db.cartItem.deleteMany(),
     db.cart.deleteMany(),

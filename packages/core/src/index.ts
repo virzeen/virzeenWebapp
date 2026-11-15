@@ -33,6 +33,15 @@ export {
   type AdminDiscountRow,
   type DiscountStatus,
 } from "./discounts/discount.service";
+export {
+  ADMIN_NOTICES_SHOWN,
+  defaultNotices,
+  NOTICES_SHOWN,
+  noticeService,
+  type AdminNoticeRow,
+  type NoticeStatus,
+  type NoticeView,
+} from "./notices/notice.service";
 export { type CartLine, type CartSummary } from "./cart/cart-summary";
 export {
   catalogReads,
@@ -42,6 +51,8 @@ export {
   type ProductRecommendations,
   type ProductSizeGuide,
   type ProductSummary,
+  HOME_TILES_SHOWN,
+  type HomeTile,
 } from "./catalog/catalog.reads";
 export { catalogService, type SavedProduct } from "./catalog/catalog.service";
 export {

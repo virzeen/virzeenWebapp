@@ -36,7 +36,8 @@ import { transitionOrder, transitionPayment } from "./order-state";
 
 // Checkout (docs/specs/checkout.md, payment-policy.md). Totals are computed here from the database only.
 
-export const RESERVATION_MINUTES = 60;
+/** How long an online order waits for its payment, holding its stock (owner 2026-11-09, specs/payment-window.md). */
+export const RESERVATION_MINUTES = 15;
 
 /** The address a guest typed (nothing is saved for them; it is copied onto the order). */
 export type GuestAddress = {

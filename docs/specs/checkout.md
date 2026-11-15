@@ -27,9 +27,9 @@ A signed-in customer in Nepal can buy the items in their bag and pay with Cash o
 - [ ] COD is hidden when the total exceeds the COD limit.
 - [ ] eSewa: signed form built server-side; success only after signature check + status API `COMPLETE` + amount match.
 - [ ] Khalti: initiated server-side; success only after lookup `Completed` + amount match.
-- [ ] Failed/cancelled payment: order `CANCELLED`, stock restored, customer sees `/checkout/failed` with "Try again" (creates a new attempt).
+- [ ] Failed/cancelled payment: _since 2026-11-09 (`specs/payment-window.md`)_ the order keeps waiting for 15 minutes with Pay now and Cancel order on its page; once they're up it's `CANCELLED`, stock restored, and the customer sees `/checkout/failed` with "Try again".
 - [ ] Refreshing the success page or a duplicate callback never double-processes.
-- [ ] Pending payments are resolved by reconciliation within 10 minutes.
+- [ ] Pending payments are resolved by reconciliation within 5 minutes.
 - [ ] "Place order" is disabled while submitting; double-clicks create one order.
 - [ ] Given only one payment method is offered (cash on delivery at launch), when opening `/checkout`, then it is already chosen and "Place order" only needs an address.
 - [ ] Given the customer has a default address, when opening `/checkout`, then it is already chosen and shipping, total and "Arrives in {estimate}." show for it.

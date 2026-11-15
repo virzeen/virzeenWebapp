@@ -26,3 +26,15 @@ export function formatDate(date: Date): string {
   const parts = Object.fromEntries(nepalParts.formatToParts(date).map((p) => [p.type, p.value]));
   return `${parts.day} ${MONTHS[Number(parts.month) - 1]} ${parts.year}`;
 }
+
+const nepalTime = new Intl.DateTimeFormat("en-US", {
+  hour: "numeric",
+  minute: "2-digit",
+  hour12: true,
+  timeZone: "Asia/Kathmandu",
+});
+
+/** → "3:45 PM" in Nepal time. */
+export function formatTime(date: Date): string {
+  return nepalTime.format(date).replace(/\u202f/g, " ");
+}

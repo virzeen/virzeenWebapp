@@ -26,6 +26,23 @@ function khaltiRequest(path: string, body: unknown) {
   });
 }
 
+/** The last two labels of a host name: `test-pay.khalti.com` → `khalti.com`. */
+const siteOf = (host: string) => host.split(".").slice(-2).join(".");
+
+/**
+ * The customer is only ever sent to Khalti's own payment page: same scheme and site as the API we called
+ * (`dev.khalti.com` → `test-pay.khalti.com`, `khalti.com` → `pay.khalti.com`; the e2e mock is localhost for both).
+ */
+function isKhaltiPage(paymentUrl: string) {
+  try {
+    const page = new URL(paymentUrl);
+    const api = new URL(getCoreConfig().khalti.baseUrl);
+    return page.protocol === api.protocol && siteOf(page.hostname) === siteOf(api.hostname);
+  } catch {
+    return false;
+  }
+}
+
 export const khaltiProvider: PaymentProvider = {
   async initiate(order) {
     const { siteUrl } = getCoreConfig();
@@ -65,7 +82,12 @@ export const khaltiProvider: PaymentProvider = {
       if (error instanceof AppError) throw error;
       throw new AppError("PAYMENT_FAILED", "Couldn't reach Khalti.");
     }
-    if (!body.pidx || !body.payment_url || !/^[A-Za-z0-9]+$/.test(body.pidx)) {
+    if (
+      !body.pidx ||
+      !body.payment_url ||
+      !/^[A-Za-z0-9]+$/.test(body.pidx) ||
+      !isKhaltiPage(body.payment_url)
+    ) {
       throw new AppError("PAYMENT_FAILED", "Khalti returned an invalid response.");
     }
     return { providerRef: body.pidx, next: { type: "redirect", url: body.payment_url } };
@@ -95,7 +117,11 @@ export const khaltiProvider: PaymentProvider = {
           providerStatus: status,
           raw: body,
         };
+      // Khalti's lookup table: "Pending" → "Hold, do not provide service. And contact Khalti team." It may still
+      // settle either way, so it's never read as unpaid (payment-policy.md §1.5, §6).
       case "pending":
+        return { kind: "AMBIGUOUS", providerStatus: status, raw: body };
+      // The link exists but nothing was paid on it yet.
       case "initiated":
         return { kind: "PENDING", providerStatus: status, raw: body };
       case "user canceled":

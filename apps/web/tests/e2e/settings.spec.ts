@@ -122,12 +122,15 @@ test("a member deletes their account and is signed out, and the email can start 
   await expect(page.getByTestId("interests")).toBeVisible();
 });
 
-// Nike's hover menu on the profile icon (docs/specs/member-area-nike-layout.md). Signed out there is no menu.
+// Nike's hover menu on the profile icon (docs/specs/member-area-nike-layout.md), which sits in the top notice bar's
+// right corner (docs/specs/top-notice-bar.md). Signed out there is no menu, only "Join Now | Sign In".
 test("the profile icon opens an account menu on hover, and Sign out ends the session", async ({ page }) => {
   await page.setExtraHTTPHeaders({ "X-Forwarded-For": "198.51.100.54" });
   await page.goto("/");
   await expect(page.getByTestId("account-menu")).toHaveCount(0);
-  await expect(page.getByRole("banner").getByRole("link", { name: "Sign in" })).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "Notices" }).getByRole("link", { name: "Sign In" }),
+  ).toBeVisible();
 
   await page.goto("/login?next=%2Faccount");
   await completeEmailSignIn(page, uniqueEmail("accountmenu"));
@@ -136,7 +139,7 @@ test("the profile icon opens an account menu on hover, and Sign out ends the ses
 
   const menu = page.getByRole("navigation", { name: "Account" });
   await expect(menu).toBeHidden();
-  await page.getByRole("link", { name: "My profile" }).hover();
+  await page.getByRole("link", { name: /^My profile/ }).hover();
   await expect(menu).toBeVisible();
   await expect(menu.getByRole("link")).toHaveText(["Profile", "Orders", "Favourites", "Account settings"]);
   await expect(menu.getByRole("button", { name: "Sign out" })).toBeVisible();
@@ -145,8 +148,10 @@ test("the profile icon opens an account menu on hover, and Sign out ends the ses
   await menu.getByRole("link", { name: "Account settings" }).click();
   await expect(page).toHaveURL(/\/account\/settings$/);
 
-  await page.getByRole("link", { name: "My profile" }).hover();
+  await page.getByRole("link", { name: /^My profile/ }).hover();
   await menu.getByRole("button", { name: "Sign out" }).click();
   await expect(page).toHaveURL((url) => url.pathname === "/");
-  await expect(page.getByRole("banner").getByRole("link", { name: "Sign in" })).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "Notices" }).getByRole("link", { name: "Sign In" }),
+  ).toBeVisible();
 });

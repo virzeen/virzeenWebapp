@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import { OrderDetail } from "@/client/features/orders/order-detail";
+import { OrderPaymentState } from "@/client/features/orders/order-payment-state";
 import { getUser } from "@/server/auth/session";
 import { getMyOrder } from "@/server/queries/account";
 import { getGuestOrder } from "@/server/queries/checkout";
@@ -61,10 +62,18 @@ export default async function CheckoutSuccessPage({ searchParams }: Props) {
           </>
         )}
         {order.status === "CANCELLED" && (
-          <h1 className="font-display text-h1">
-            Order <span className="whitespace-nowrap">{order.orderNumber}</span> was cancelled.
-          </h1>
+          <>
+            <h1 className="font-display text-h1">
+              Order <span className="whitespace-nowrap">{order.orderNumber}</span> was cancelled.
+            </h1>
+            {/* A payment that came after the order was cancelled: being refunded, or refunded. */}
+            <OrderPaymentState order={order} methods={[]} failed={false} now={0} />
+          </>
         )}
+        {/*
+          The provider hasn't confirmed the payment the customer just came back from, so no Pay now here: it would
+          invite a second payment while this one settles (specs/payment-window.md). The order page has Pay now.
+        */}
         {order.status === "PENDING" && (
           <>
             <h1 className="font-display text-h1">We&apos;re confirming your payment.</h1>
