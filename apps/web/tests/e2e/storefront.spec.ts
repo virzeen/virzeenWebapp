@@ -256,6 +256,29 @@ test.describe("Storefront pages", () => {
     await expect(page.getByRole("heading", { name: "Shop the story" })).toBeVisible();
   });
 
+  test("the home hero fills the whole screen on a phone, a tablet and a computer", async ({ page }) => {
+    for (const [width, height] of [
+      [390, 844],
+      [768, 1024],
+      [1280, 800],
+      [2560, 1080],
+    ] as const) {
+      await page.setViewportSize({ width, height });
+      await page.goto("/");
+      const hero = page.locator("section", { has: page.getByRole("heading", { level: 1 }) });
+      // The photo starts under the see-through header and reaches the bottom edge, from one side to the other.
+      const box = (await hero.boundingBox())!;
+      const header = (await page.getByRole("banner").boundingBox())!;
+      const pageWidth = await page.evaluate(() => document.documentElement.clientWidth);
+      expect(box.y).toBeLessThanOrEqual(header.y + 0.5);
+      expect(Math.abs(box.y + box.height - height)).toBeLessThanOrEqual(1);
+      expect(Math.abs(box.width - pageWidth)).toBeLessThanOrEqual(1);
+      const photo = (await hero.locator("img").boundingBox())!;
+      expect(Math.abs(photo.width - pageWidth)).toBeLessThanOrEqual(1);
+      expect(Math.abs(photo.height - height)).toBeLessThanOrEqual(1);
+    }
+  });
+
   test("the wheel keeps scrolling the home page smoothly when a scroll carries on over New and Featured", async ({
     page,
   }) => {

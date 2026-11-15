@@ -152,11 +152,12 @@ html:has([data-sticky-header][data-slide-away]) {
 }
 
 /*
- * The home page hero on phones: the 16:9 photo is cropped to a tall frame around the man reading, who sits left of
- * the middle (from md the whole photo shows).
+ * The home page hero, as tall and wide as the screen on every device: the 16:9 photo is cropped around the man
+ * reading, who sits left of the middle (most on phones and upright tablets; a wide screen loses only a strip). 18.5%
+ * keeps the phone framing the owner approved (it showed the photo from 13.75% of its width).
  */
 @utility object-hero {
-  object-position: 25% center;
+  object-position: 18.5% center;
 }
 
 /*

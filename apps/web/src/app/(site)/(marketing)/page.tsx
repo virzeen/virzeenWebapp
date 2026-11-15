@@ -33,19 +33,20 @@ export default async function HomePage() {
       {/*
         Hero: brand moment, LCP image (the owner's photo, 2026-09-30: a man reading in a dark room, a rack of T-shirts
         on the right). It starts under the see-through header (`pull-under-header`: the header's height plus the iPhone top inset), and the words sit in the
-        bottom-right corner, with no buttons (owner). On phones it fills the screen, cropped around him.
+        bottom-right corner, with no buttons (owner). It fills the screen on every device (owner 2026-11-15: phones, tablets
+        and computers), the photo cropped around him.
       */}
       <section className="relative isolate pull-under-header overflow-hidden bg-ink text-canvas">
         <CloudImage
           src="/brand/hero.jpg"
           alt=""
-          ratio="hero"
-          // Phones fill the whole screen with it (owner): the 16:9 photo is cropped into that tall frame, so it's
-          // drawn about 3.5× the screen width.
-          sizes="(min-width: 768px) 100vw, 350vw"
+          ratio="none"
+          // It fills the screen (owner): on a screen wider than the 16:9 photo it is as wide as the screen, otherwise
+          // as tall, so 16/9 of the screen height wide.
+          sizes="(min-aspect-ratio: 16/9) 100vw, 178vh"
           priority
-          className="h-screen-cover md:h-auto"
-          imageClassName="object-cover object-hero md:object-center"
+          className="h-screen-cover w-full"
+          imageClassName="object-cover object-hero"
         />
         {/* Scrims keep white text at AA contrast: the header on the bright window (top), the words on the floor. */}
         <span
