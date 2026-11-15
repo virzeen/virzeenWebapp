@@ -40,6 +40,18 @@ export function collectionVisible(earlyHours: number, now: Date = new Date()): P
 }
 
 /** The public rule, with the time read each time it is spread into a query (a getter, so it is never stale). */
+/** The most tiles the home page's "Virzeen Archive's" section shows (two rows of eight, like Nike's Spotlight). */
+export const HOME_TILES_SHOWN = 16;
+
+/** One tile of that section: a category or a collection, drawn with an icon. */
+export type HomeTile = {
+  key: string;
+  kind: "category" | "collection";
+  slug: string;
+  name: string;
+  href: string;
+};
+
 export const publishedProductWhere = {
   isPublished: true,
   archivedAt: null,
@@ -420,6 +432,45 @@ export const catalogReads = {
       },
       orderBy: { createdAt: "desc" },
     });
+  },
+
+  /**
+   * The tiles of the home page's "Virzeen Archive's" section (specs/home-archive.md): every shop category, then every
+   * live collection (early access works as in the shop). A category or collection with nothing visible is left out.
+   */
+  async listHomeTiles(earlyHours = 0, limit = HOME_TILES_SHOWN): Promise<HomeTile[]> {
+    const [categories, collections] = await Promise.all([
+      db.category.findMany({
+        where: { archivedAt: null, products: { some: visibleProductWhere(earlyHours) } },
+        select: { id: true, slug: true, name: true },
+        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      }),
+      db.collection.findMany({
+        where: {
+          archivedAt: null,
+          ...collectionVisible(earlyHours),
+          products: { some: visibleProductWhere(earlyHours) },
+        },
+        select: { id: true, slug: true, name: true },
+        orderBy: { createdAt: "desc" },
+      }),
+    ]);
+    return [
+      ...categories.map((row): HomeTile => ({
+        key: `category-${row.id}`,
+        kind: "category",
+        slug: row.slug,
+        name: row.name,
+        href: `/shop/${row.slug}`,
+      })),
+      ...collections.map((row): HomeTile => ({
+        key: `collection-${row.id}`,
+        kind: "collection",
+        slug: row.slug,
+        name: row.name,
+        href: `/collections/${row.slug}`,
+      })),
+    ].slice(0, limit);
   },
 
   async getCollectionBySlug(slug: string, earlyHours = 0) {

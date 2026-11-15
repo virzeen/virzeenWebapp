@@ -636,6 +636,28 @@ model Order {
   @@index([status, dispatchPromisedAt])
 }
 
+/// A line in the bar above the shop header, written in /admin/notices (specs/top-notice-bar.md). With none active the
+/// site shows its built-in notices for the visitor's level.
+model SiteNotice {
+  id        String         @id @default(cuid(2))
+  text      String
+  /// The underlined words after the text, and where they go. Both or neither.
+  linkLabel String?
+  linkHref  String?
+  /// Who sees it: any of GUEST, MEMBER, PASS.
+  audiences CustomerTier[]
+  /// Shown from the start of this moment (a Nepal day) until endsAt; null = no limit.
+  startsAt  DateTime?
+  endsAt    DateTime?
+  isActive  Boolean        @default(true)
+  /// Lowest first.
+  sortOrder Int            @default(0)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@index([isActive, sortOrder])
+}
+
 /// A code the owners make in /admin/discounts (specs/discount-codes.md, payment-policy.md §2).
 model DiscountCode {
   id               String       @id @default(cuid(2))

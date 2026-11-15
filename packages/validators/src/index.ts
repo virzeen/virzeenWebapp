@@ -6,6 +6,7 @@ export * from "./cart";
 export * from "./catalog";
 export * from "./checkout";
 export * from "./discounts";
+export * from "./notices";
 export * from "./favourites";
 export * from "./limits";
 export * from "./members";

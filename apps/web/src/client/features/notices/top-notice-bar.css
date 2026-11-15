@@ -1,0 +1,8 @@
+/*
+ * The notice bar is in the page flow above the header, so it pushes the home hero down. `h-screen-cover` (tokens.css)
+ * subtracts --top-bar-height so the hero still ends at the bottom edge of the screen. The bar is 2.25rem (h-9) plus the
+ * iPhone top inset it pads itself with (pt-safe), 0 on computers and Android. Keep both in step with top-notice-bar.tsx.
+ */
+html:has([data-top-notice-bar]) {
+  --top-bar-height: calc(2.25rem + env(safe-area-inset-top, 0px));
+}
