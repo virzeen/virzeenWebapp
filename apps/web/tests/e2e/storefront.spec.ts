@@ -372,14 +372,29 @@ test.describe("Storefront pages", () => {
     const titleBar = page.locator("[data-listing-bar]");
     const bar = page.locator("[data-phone-listing-bar]");
     const top = async (locator: typeof bar) => Math.round((await locator.boundingBox())!.y);
-    await page.evaluate(() => window.scrollTo(0, 400));
+    // Scroll in small steps, as a finger does, until the header has moved away (a jump that comes with a page that is
+    // still loading its pictures is not counted as scrolling).
+    const scrollUntilHeaderY = async (by: number, done: (y: number) => boolean) =>
+      expect
+        .poll(
+          async () => {
+            await page.evaluate((step) => window.scrollBy(0, step), by);
+            return done((await header.boundingBox())!.y);
+          },
+          { timeout: 15_000 },
+        )
+        .toBe(true);
+    await scrollUntilHeaderY(80, (y) => y < 0);
+    await expect(header).not.toBeInViewport();
+    // Further down, the title and the bar have both reached the top (the header stays away while scrolling down).
+    await page.evaluate(() => window.scrollBy(0, 300));
     await expect(header).not.toBeInViewport();
     await expect.poll(() => top(titleBar)).toBe(0);
     await expect.poll(() => top(bar)).toBe(48);
     await expect(title).toBeInViewport();
     await expect(filters).toBeInViewport();
     await expect(sort).toBeInViewport();
-    await page.evaluate(() => window.scrollBy(0, -120));
+    await scrollUntilHeaderY(-40, (y) => y >= 0);
     await expect(header).toBeInViewport();
     await expect.poll(() => top(titleBar)).toBe(64);
     await expect.poll(() => top(bar)).toBe(112);
