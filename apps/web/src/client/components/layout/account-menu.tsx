@@ -3,6 +3,7 @@
 import { Link } from "@virzeen/ui";
 import { UserRound } from "lucide-react";
 import { useState } from "react";
+import { greetingFor } from "@/client/components/layout/nav-current";
 import { useSignOut } from "@/client/components/shared/sign-out-button";
 
 type AccountMenuProps = {
@@ -33,7 +34,7 @@ const PANEL_OPENS =
 export function AccountMenu({ firstName }: AccountMenuProps) {
   const { signOut, signingOut } = useSignOut();
   const [closed, setClosed] = useState(false);
-  const greeting = firstName ? `Hi, ${firstName}` : "Hi there";
+  const greeting = greetingFor(firstName);
   const close = () => {
     if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
     setClosed(true);

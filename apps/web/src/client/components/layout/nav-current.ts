@@ -34,3 +34,8 @@ export function currentHref(pathname: string, hrefs: readonly string[]): string 
 export function firstName(name: string | null | undefined): string | null {
   return name?.trim().split(/\s+/)[0] || null;
 }
+
+/** The signed-in greeting: "Hi, {first name}", or "Hi there" while the account has no name (owner 2026-11-16). */
+export function greetingFor(first: string | null): string {
+  return first ? `Hi, ${first}` : "Hi there";
+}

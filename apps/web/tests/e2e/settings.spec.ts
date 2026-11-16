@@ -137,13 +137,15 @@ test("the profile icon opens an account menu on hover, and Sign out ends the ses
   await expect(page).toHaveURL(/\/account$/);
   await page.goto("/");
 
-  const menu = page.getByRole("navigation", { name: "Account" });
+  // Scoped to the menu: the account pages have their own tab bar, also labelled "Account".
+  const menu = page.getByTestId("account-menu").getByRole("navigation", { name: "Account" });
   await expect(menu).toBeHidden();
-  // A fresh email sign-in has no name yet, so the corner and the menu title both greet "Hi there" (owner 2026-11-16).
-  await expect(page.getByRole("link", { name: /^My profile/ })).toContainText("Hi there");
+  // The sign-up form named the account "Test Customer": the corner and the menu title both greet "Hi, Test". (The
+  // nameless "Hi there" fallback is unit-tested as `greetingFor`; the sign-up form always asks for a name.)
+  await expect(page.getByRole("link", { name: /^My profile/ })).toContainText("Hi, Test");
   await page.getByRole("link", { name: /^My profile/ }).hover();
   await expect(menu).toBeVisible();
-  await expect(menu.getByText("Hi there")).toBeVisible();
+  await expect(menu.getByText("Hi, Test")).toBeVisible();
   await expect(menu.getByRole("link")).toHaveText(["Profile", "Orders", "Favourites", "Account settings"]);
   await expect(menu.getByRole("button", { name: "Sign out" })).toBeVisible();
 

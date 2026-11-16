@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { currentHref, firstName, isCurrent } from "./nav-current";
+import { currentHref, firstName, greetingFor, isCurrent } from "./nav-current";
 
 describe("isCurrent", () => {
   it("matches the link's page and the pages under it", () => {
@@ -40,5 +40,17 @@ describe("firstName", () => {
     expect(firstName("")).toBeNull();
     expect(firstName("   ")).toBeNull();
     expect(firstName(null)).toBeNull();
+  });
+});
+
+describe("greetingFor", () => {
+  it("greets by first name", () => {
+    expect(greetingFor("Asha")).toBe("Hi, Asha");
+  });
+
+  it("says Hi there while the account has no name", () => {
+    expect(greetingFor(firstName(""))).toBe("Hi there");
+    expect(greetingFor(firstName(null))).toBe("Hi there");
+    expect(greetingFor(null)).toBe("Hi there");
   });
 });
