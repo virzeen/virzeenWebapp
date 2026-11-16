@@ -41,6 +41,7 @@ export default async function AdminCustomersPage({ searchParams }: { searchParam
         </Button>
       </form>
       <DataTable
+        rowLink
         caption="Customers"
         rows={rows}
         getRowId={(row) => row.id}

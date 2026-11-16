@@ -2,6 +2,24 @@ import { z } from "zod";
 import { idSchema, slugSchema } from "./common";
 import { SEARCH_QUERY_MAX, SEARCH_QUERY_MIN } from "./limits";
 
+/**
+ * Who may buy from a collection or a product (specs/catalog-groups-visibility.md): PUBLIC = everyone (a MONO Member is a
+ * public shopper), PASS = Monochrome Pass members only. Everyone still sees a Pass item, locked ("For Members only").
+ */
+export const AUDIENCES = ["PUBLIC", "PASS"] as const;
+export type Audience = (typeof AUDIENCES)[number];
+export const audienceSchema = z.enum(AUDIENCES, { error: "Choose who can see it" });
+
+/** What the admin sees for each level (the choice on collections and products), and the line under it. */
+export const AUDIENCE_LABELS: Record<Audience, string> = {
+  PUBLIC: "Public",
+  PASS: "Monochrome Pass",
+};
+export const AUDIENCE_HELP: Record<Audience, string> = {
+  PUBLIC: "Everyone can see it and buy it, signed in or not. MONO Members count as public.",
+  PASS: "Everyone sees it in the For Members only row, but only Monochrome Pass members can buy it.",
+};
+
 export const SHOP_SORTS = ["newest", "price-asc", "price-desc"] as const;
 export type ShopSort = (typeof SHOP_SORTS)[number];
 
@@ -11,7 +29,7 @@ const optionalFilter = z.string().trim().min(1).max(40).optional().catch(undefin
 export const shopFiltersSchema = z.object({
   /** The search query (specs/search.md); not a filter, so "Clear all" keeps it. */
   q: z.string().trim().min(1).max(SEARCH_QUERY_MAX).optional().catch(undefined),
-  category: slugSchema.optional().catch(undefined),
+  /** A collection's slug (categories and collections are one thing: specs/catalog-groups-visibility.md). */
   collection: slugSchema.optional().catch(undefined),
   size: optionalFilter,
   color: optionalFilter,
@@ -289,10 +307,14 @@ export const productSchema = z
       .max(155, { error: "Keep the search description under 155 characters" })
       .optional()
       .or(z.literal("")),
-    categoryId: z.cuid2({ error: "Choose a category" }),
+    /** The main collection (the old category): the card's grey line, breadcrumb and "You may also like". */
+    mainCollectionId: z.cuid2({ error: "Choose a main collection" }),
     /** Blank = no size guide (specs/size-guides.md). */
     sizeGuideId: z.cuid2({ error: "Choose a size guide" }).optional().or(z.literal("")),
+    /** Every collection the product is in; the main one is always one of them (the server adds it). */
     collectionIds: z.array(idSchema).max(20, { error: "Choose up to 20 collections" }),
+    /** Who may see the product (specs/catalog-groups-visibility.md). */
+    audience: audienceSchema,
     isPublished: z.boolean(),
     images: z.array(productImageSchema).max(60, { error: "Add up to 60 photos" }),
     features: z
@@ -381,10 +403,11 @@ export type ProductData = z.output<typeof productSchema>;
 export const saveProductSchema = z.strictObject({ id: idSchema.optional(), product: productSchema });
 export type SaveProductInput = z.input<typeof saveProductSchema>;
 
-/** The New product popup (specs/product-editor-on-page.md): a draft starts from a name, a category and a price. */
+/** The New product popup (specs/product-editor-on-page.md): a draft starts from a name, a collection and a price. */
 export const createDraftProductSchema = z.strictObject({
   name: productNameSchema,
-  categoryId: z.cuid2({ error: "Choose a category" }),
+  /** Becomes the product's main collection. */
+  collectionId: z.cuid2({ error: "Choose a collection" }),
   /** The product price before shipping, like a variant's. */
   pricePaisa: productPriceSchema,
 });
@@ -392,25 +415,13 @@ export type CreateDraftProductInput = z.infer<typeof createDraftProductSchema>;
 
 /**
  * The recommendations the editor and Preview show under the product (specs/product-page-v2.md): "You may also like"
- * (the category, without `excludeId`) and "More from Virzeen" (other categories).
+ * (the main collection, without `excludeId`) and "More from Virzeen" (other collections).
  */
-export const relatedByCategorySchema = z.strictObject({
-  categoryId: idSchema,
+export const relatedByCollectionSchema = z.strictObject({
+  collectionId: idSchema,
   excludeId: idSchema.optional(),
 });
-export type RelatedByCategoryInput = z.infer<typeof relatedByCategorySchema>;
-
-export const categorySchema = z.strictObject({
-  id: idSchema.optional(),
-  name: z
-    .string()
-    .trim()
-    .min(1, { error: "Enter a name" })
-    .max(60, { error: "Keep the name under 60 characters" }),
-  slug: slugSchema,
-  sortOrder: sortOrderSchema,
-});
-export type CategoryInput = z.infer<typeof categorySchema>;
+export type RelatedByCollectionInput = z.infer<typeof relatedByCollectionSchema>;
 
 export const collectionSchema = z.strictObject({
   id: idSchema.optional(),
@@ -420,6 +431,8 @@ export const collectionSchema = z.strictObject({
     .min(1, { error: "Enter a name" })
     .max(80, { error: "Keep the name under 80 characters" }),
   slug: slugSchema,
+  /** Position in menus and lists (lowest first). */
+  sortOrder: sortOrderSchema,
   description: z
     .string()
     .trim()
@@ -427,6 +440,8 @@ export const collectionSchema = z.strictObject({
     .optional()
     .or(z.literal("")),
   isFeatured: z.boolean(),
+  /** Who may see the collection (specs/catalog-groups-visibility.md). */
+  audience: audienceSchema,
   /** Early access (specs/member-perks.md): the public sees the collection from this time; null or missing = no wait. */
   publicAt: z.iso.datetime({ error: "Enter a valid date and time" }).nullable().optional(),
 });

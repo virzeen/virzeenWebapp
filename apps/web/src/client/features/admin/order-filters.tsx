@@ -1,8 +1,8 @@
 "use client";
 
-import { Button, FormField, Input, Select } from "@virzeen/ui";
+import { FormField, Input, Select } from "@virzeen/ui";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type OrderFiltersProps = {
   q: string;
@@ -10,7 +10,13 @@ type OrderFiltersProps = {
   statusOptions: { value: string; label: string }[];
 };
 
-/** Search + status filter for the admin orders table (state lives in the URL). */
+/** How long typing pauses before the search runs. */
+const SEARCH_DELAY_MS = 400;
+
+/**
+ * Search + status filter for the admin orders table (state lives in the URL). Filters apply by themselves: choosing a
+ * status runs at once, and typing in the search runs when it pauses (or on Enter); there is no Filter button.
+ */
 export function OrderFilters({ q, status, statusOptions }: OrderFiltersProps) {
   const router = useRouter();
   const [query, setQuery] = useState(q);
@@ -26,12 +32,26 @@ export function OrderFilters({ q, status, statusOptions }: OrderFiltersProps) {
     setSelected(status || "ALL");
   }
 
+  function go(nextQuery: string, nextStatus: string, replace: boolean) {
+    const params = new URLSearchParams();
+    if (nextQuery.trim()) params.set("q", nextQuery.trim());
+    if (nextStatus !== "ALL") params.set("status", nextStatus);
+    const href = `/admin/orders${params.size ? `?${params.toString()}` : ""}`;
+    if (replace) router.replace(href);
+    else router.push(href);
+  }
+
+  // Typing runs the search once it pauses; the URL's own query (after a navigation) needs no new search.
+  useEffect(() => {
+    if (query.trim() === q.trim()) return;
+    const timer = setTimeout(() => go(query, selected, true), SEARCH_DELAY_MS);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `go` only reads these values and the stable router.
+  }, [query, q, selected]);
+
   function apply(event: React.FormEvent) {
     event.preventDefault();
-    const params = new URLSearchParams();
-    if (query.trim()) params.set("q", query.trim());
-    if (selected !== "ALL") params.set("status", selected);
-    router.push(`/admin/orders${params.size ? `?${params.toString()}` : ""}`);
+    go(query, selected, false);
   }
 
   return (
@@ -48,13 +68,13 @@ export function OrderFilters({ q, status, statusOptions }: OrderFiltersProps) {
       <FormField label="Status" className="sm:w-56">
         <Select
           value={selected}
-          onValueChange={setSelected}
+          onValueChange={(next) => {
+            setSelected(next);
+            go(query, next, false);
+          }}
           options={[{ value: "ALL", label: "All statuses" }, ...statusOptions]}
         />
       </FormField>
-      <Button type="submit" shape="pill">
-        Filter
-      </Button>
     </form>
   );
 }

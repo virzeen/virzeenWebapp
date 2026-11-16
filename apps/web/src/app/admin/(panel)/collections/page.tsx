@@ -1,5 +1,5 @@
 import { AdminPageHeader } from "@/client/features/admin/admin-page-header";
-import { CollectionManager } from "@/client/features/admin/taxonomy-managers";
+import { CollectionManager } from "@/client/features/admin/collection-manager";
 import { requireAdminPage } from "@/server/auth/session";
 import { listAdminCollections } from "@/server/queries/admin";
 
@@ -10,7 +10,10 @@ export default async function AdminCollectionsPage() {
   const collections = await listAdminCollections();
   return (
     <div className="flex flex-col gap-6">
-      <AdminPageHeader title="Collections" description="Curated groups for campaigns and seasons." />
+      <AdminPageHeader
+        title="Collections"
+        description="Every group of products: Tops, Bottoms, drops and seasons. Choose who may see each."
+      />
       <CollectionManager collections={collections} />
     </div>
   );

@@ -132,7 +132,7 @@ test.describe("Product page", () => {
     await expect(more).toBeVisible();
     await expect(more.getByRole("link").first()).toBeVisible();
 
-    // The seed has more products in other categories than the 4 that fit at lg, so the buttons show.
+    // The seed has more products in other collections than the 4 that fit at lg, so the buttons show.
     const previous = more.getByRole("button", { name: "Previous products" });
     const next = more.getByRole("button", { name: "Next products" });
     await expect(previous).toBeDisabled();
@@ -194,7 +194,9 @@ test.describe("Product page", () => {
 
 // specs/mobile-menu.md: the phone menu (below md), like Nike's.
 test.describe("Phone menu", () => {
-  test("a guest opens the menu and goes to a category from the header's links @mobile", async ({ page }) => {
+  test("a guest opens the menu and goes to a collection from the header's links @mobile", async ({
+    page,
+  }) => {
     // The desktop project runs @mobile tests too, and the menu button only shows below md.
     const viewport = page.viewportSize();
     if (!viewport || viewport.width >= 768) await page.setViewportSize({ width: 390, height: 844 });
@@ -219,11 +221,11 @@ test.describe("Phone menu", () => {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 
     await menu.getByRole("link", { name: "Accessories", exact: true }).click();
-    await expect(page).toHaveURL(/\/shop\/accessories$/);
+    await expect(page).toHaveURL(/\/collections\/accessories$/);
     await expect(menu).toBeHidden();
     await expect(page.getByRole("heading", { level: 1, name: "Accessories" })).toBeVisible();
 
-    // On a category's page, its row is the current one.
+    // On a collection's page, its row is the current one.
     await openMenu.click();
     await expect(menu.getByRole("link", { name: "Accessories", exact: true })).toHaveAttribute(
       "aria-current",
@@ -246,7 +248,9 @@ test.describe("Storefront pages", () => {
     await page.goto("/");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("timeless monochromium experience.");
 
-    await page.goto("/shop/accessories");
+    // An old category address goes to the collection with the same slug, keeping the filters.
+    await page.goto("/shop/accessories?sort=price-asc");
+    await expect(page).toHaveURL(/\/collections\/accessories\?sort=price-asc$/);
     await expect(page.getByRole("heading", { level: 1, name: "Accessories" })).toBeVisible();
     await expect(page.getByRole("link", { name: /Logo Cap/ })).toBeVisible();
     await expect(page.getByRole("link", { name: /Linen Overshirt/ })).toHaveCount(0);

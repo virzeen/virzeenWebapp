@@ -11,7 +11,8 @@ const values: ProductInput = {
   details: [],
   countryOfOrigin: "",
   seoDescription: "",
-  categoryId: "tz4a98xxat96iws9zmbrgj3a",
+  mainCollectionId: "tz4a98xxat96iws9zmbrgj3a",
+  audience: "PUBLIC" as const,
   sizeGuideId: "",
   collectionIds: [],
   isPublished: false,
@@ -35,7 +36,7 @@ describe("toPreviewProduct", () => {
   it("shows what the shop would: rows for sale, prices with shipping, sizes in shop order, made descriptions", () => {
     const product = toPreviewProduct({
       values,
-      category: { name: "Shirts", slug: "shirts" },
+      mainCollection: { name: "Shirts", slug: "shirts" },
       sizeGuide: null,
     });
 
@@ -47,7 +48,7 @@ describe("toPreviewProduct", () => {
     expect(product.colors).toEqual(["Black"]);
     expect(product.images.map((image) => image.alt)).toEqual(["Linen Shirt", "Back view"]);
     expect(product.care).toBeNull();
-    expect(product.category).toEqual({ name: "Shirts", slug: "shirts" });
+    expect(product.mainCollection).toEqual({ name: "Shirts", slug: "shirts" });
   });
 
   it("copes with a half-filled form after the trip through JSON (blank numbers arrive as null)", () => {
@@ -61,7 +62,7 @@ describe("toPreviewProduct", () => {
             { sku: "", size: "", color: "", pricePaisa: Number.NaN, stock: Number.NaN, isActive: true },
           ],
         },
-        category: null,
+        mainCollection: null,
         sizeGuide: null,
       }),
     );
@@ -69,7 +70,7 @@ describe("toPreviewProduct", () => {
     const product = toPreviewProduct(draft);
 
     expect(product.name).toBe("Product name");
-    expect(product.category.name).toBe("No category yet");
+    expect(product.mainCollection.name).toBe("No collection yet");
     expect(product.variants).toEqual([{ id: "preview-0", size: null, color: null, pricePaisa: 0, stock: 0 }]);
   });
 
@@ -95,7 +96,7 @@ describe("toPreviewProduct", () => {
           { title: "Soft", body: "Washed.", imageUrl: "virzeen/products/new/soft", alt: "Close-up" },
         ],
       },
-      category: null,
+      mainCollection: null,
       sizeGuide,
     });
 
@@ -123,7 +124,7 @@ describe("toPreviewProduct", () => {
       "styles",
     ])
       delete oldValues[key];
-    const draft = JSON.parse(JSON.stringify({ values: oldValues, category: null }));
+    const draft = JSON.parse(JSON.stringify({ values: oldValues, mainCollection: null }));
 
     const product = toPreviewProduct(draft);
 
@@ -136,7 +137,7 @@ describe("toPreviewProduct", () => {
     expect(product.sizeGuide).toBeNull();
     expect(product.variants).toHaveLength(2);
     expect(product.styles).toEqual([{ color: "Black", code: "", colourShown: "Black" }]);
-    expect(relatedQueryFor(draft)).toEqual({ categoryId: "tz4a98xxat96iws9zmbrgj3a" });
+    expect(relatedQueryFor(draft)).toEqual({ collectionId: "tz4a98xxat96iws9zmbrgj3a" });
   });
 
   it("lays the features out as the form says, and shows a picture-only feature named after the product", () => {
@@ -145,7 +146,7 @@ describe("toPreviewProduct", () => {
         ...values,
         features: [{ title: " ", body: "", imageUrl: "virzeen/products/new/cool", alt: "" }],
       },
-      category: null,
+      mainCollection: null,
       sizeGuide: null,
     });
 
@@ -159,7 +160,9 @@ describe("toPreviewProduct", () => {
         imageAlt: "Linen Shirt",
       },
     ]);
-    const odd = JSON.parse(JSON.stringify({ values: { ...values, featureLayout: "GRID" }, category: null }));
+    const odd = JSON.parse(
+      JSON.stringify({ values: { ...values, featureLayout: "GRID" }, mainCollection: null }),
+    );
     expect(toPreviewProduct(odd).featureLayout).toBe("THREE");
   });
 
@@ -171,13 +174,16 @@ describe("toPreviewProduct", () => {
     ];
     const product = toPreviewProduct({
       values: { ...values, featureLayout: "CUSTOM", featureRows },
-      category: null,
+      mainCollection: null,
       sizeGuide: null,
     });
     expect(product).toMatchObject({ featureLayout: "CUSTOM", featureRows });
 
     const odd = JSON.parse(
-      JSON.stringify({ values: { ...values, featureRows: [{ count: 6, shape: "ROUND" }] }, category: null }),
+      JSON.stringify({
+        values: { ...values, featureRows: [{ count: 6, shape: "ROUND" }] },
+        mainCollection: null,
+      }),
     );
     expect(toPreviewProduct(odd).featureRows).toEqual([]);
   });
@@ -193,7 +199,7 @@ describe("toPreviewProduct", () => {
       imageUrl: "virzeen/size-guides/new/belts",
       imageAlt: null,
     };
-    expect(toPreviewProduct({ values, category: null, sizeGuide }).sizeGuide).toEqual(sizeGuide);
+    expect(toPreviewProduct({ values, mainCollection: null, sizeGuide }).sizeGuide).toEqual(sizeGuide);
   });
 
   it("reads a size guide picked before guide types as a size table", () => {
@@ -207,7 +213,7 @@ describe("toPreviewProduct", () => {
       imageUrl: null,
       imageAlt: null,
     };
-    const draft = JSON.parse(JSON.stringify({ values, category: null, sizeGuide: old }));
+    const draft = JSON.parse(JSON.stringify({ values, mainCollection: null, sizeGuide: old }));
     expect(toPreviewProduct(draft).sizeGuide).toEqual({ ...old, kind: "CHART" });
   });
 
@@ -224,7 +230,7 @@ describe("toPreviewProduct", () => {
           { color: "Sky blue", colourShown: "", code: "" },
         ],
       },
-      category: null,
+      mainCollection: null,
       sizeGuide: null,
     });
 
@@ -241,7 +247,7 @@ describe("toPreviewProduct", () => {
         variants: [{ sku: "", size: "M", color: "", pricePaisa: 135_000, stock: 1, isActive: true }],
         styles: [{ color: "", colourShown: "", code: "VZ0007-101" }],
       },
-      category: null,
+      mainCollection: null,
       sizeGuide: null,
     });
 
@@ -250,20 +256,20 @@ describe("toPreviewProduct", () => {
 });
 
 describe("relatedQueryFor", () => {
-  const draft = { values, category: null, sizeGuide: null };
+  const draft = { values, mainCollection: null, sizeGuide: null };
 
-  it("asks for the picked category, leaving out the product itself", () => {
+  it("asks for the picked main collection, leaving out the product itself", () => {
     expect(
       relatedQueryFor({
         ...draft,
-        category: { id: "k0kvxwv7jyowq6xrdk4qojeu", name: "Shirts", slug: "shirts" },
+        mainCollection: { id: "k0kvxwv7jyowq6xrdk4qojeu", name: "Shirts", slug: "shirts" },
         productId: "u9f2l9k1v3yq0b8m7c6x5z4a",
       }),
-    ).toEqual({ categoryId: "k0kvxwv7jyowq6xrdk4qojeu", excludeId: "u9f2l9k1v3yq0b8m7c6x5z4a" });
+    ).toEqual({ collectionId: "k0kvxwv7jyowq6xrdk4qojeu", excludeId: "u9f2l9k1v3yq0b8m7c6x5z4a" });
   });
 
-  it("falls back to the form's category, and asks nothing without one", () => {
-    expect(relatedQueryFor(draft)).toEqual({ categoryId: "tz4a98xxat96iws9zmbrgj3a" });
-    expect(relatedQueryFor({ ...draft, values: { ...values, categoryId: "" } })).toBeNull();
+  it("falls back to the form's main collection, and asks nothing without one", () => {
+    expect(relatedQueryFor(draft)).toEqual({ collectionId: "tz4a98xxat96iws9zmbrgj3a" });
+    expect(relatedQueryFor({ ...draft, values: { ...values, mainCollectionId: "" } })).toBeNull();
   });
 });

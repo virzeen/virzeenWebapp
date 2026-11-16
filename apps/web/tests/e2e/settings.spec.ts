@@ -137,18 +137,28 @@ test("the profile icon opens an account menu on hover, and Sign out ends the ses
   await expect(page).toHaveURL(/\/account$/);
   await page.goto("/");
 
-  const menu = page.getByRole("navigation", { name: "Account" });
+  // Scoped to the menu: the account pages have their own tab bar, also labelled "Account".
+  const menu = page.getByTestId("account-menu").getByRole("navigation", { name: "Account" });
   await expect(menu).toBeHidden();
+  // The sign-up form named the account "Test Customer": the corner and the menu title both greet "Hi, Test". (The
+  // nameless "Hi there" fallback is unit-tested as `greetingFor`; the sign-up form always asks for a name.)
+  await expect(page.getByRole("link", { name: /^My profile/ })).toContainText("Hi, Test");
   await page.getByRole("link", { name: /^My profile/ }).hover();
   await expect(menu).toBeVisible();
+  await expect(menu.getByText("Hi, Test")).toBeVisible();
   await expect(menu.getByRole("link")).toHaveText(["Profile", "Orders", "Favourites", "Account settings"]);
   await expect(menu.getByRole("button", { name: "Sign out" })).toBeVisible();
 
   // Moving down into the panel keeps it open, and a link works.
   await menu.getByRole("link", { name: "Account settings" }).click();
   await expect(page).toHaveURL(/\/account\/settings$/);
+  // The header stays mounted across the page change, so the menu must close itself even though the pointer still
+  // rests where it was and the clicked link had focus (owner 2026-11-16).
+  await expect(menu).toBeHidden();
 
+  // Coming back to the icon opens it again.
   await page.getByRole("link", { name: /^My profile/ }).hover();
+  await expect(menu).toBeVisible();
   await menu.getByRole("button", { name: "Sign out" }).click();
   await expect(page).toHaveURL((url) => url.pathname === "/");
   await expect(

@@ -8,6 +8,7 @@ import { ProductReviews } from "@/client/features/reviews/product-reviews";
 import {
   getProductBySlug,
   getReviewSummary,
+  getViewerIsPass,
   listProductReviews,
   listRecommendations,
 } from "@/server/queries/catalog";
@@ -24,7 +25,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const product = await getProductBySlug((await params).slug);
   if (!product) notFound();
   const prices = product.variants.map((v) => v.pricePaisa);
-  const title = productTitle(product.name, product.category.name);
+  const title = productTitle(product.name, product.mainCollection.name);
   const description = productDescription({
     seoDescription: product.seoDescription,
     description: product.description,
@@ -53,7 +54,7 @@ async function waitingFor(variantIds: string[]) {
 }
 
 /** The carousels under the product (specs/product-page-v2.md), streamed in after it so they never hold it up. */
-async function Recommendations({ product }: { product: { id: string; categoryId: string } }) {
+async function Recommendations({ product }: { product: { id: string; mainCollectionId: string } }) {
   return <RelatedProducts recommendations={await listRecommendations(product)} />;
 }
 
@@ -74,10 +75,22 @@ export default async function ProductPage({ params, searchParams }: Props) {
   const { style, size } = flattenSearchParams(await searchParams);
   const lowestPrice = Math.min(...product.variants.map((v) => v.pricePaisa));
   const image = product.images[0] ? absoluteImageUrl(product.images[0].url, siteUrl) : null;
-  const [rating, waitingVariantIds] = await Promise.all([
+  const [rating, waitingVariantIds, isPass, user] = await Promise.all([
     getReviewSummary(product.id),
     waitingFor(product.variants.map((variant) => variant.id)),
+    getViewerIsPass(),
+    getUser(),
   ]);
+  // Everyone sees a members-only product; only the Pass may buy it (specs/catalog-groups-visibility.md).
+  const lock =
+    product.membersOnly && !isPass
+      ? user
+        ? { href: "/membership", note: "Join the Monochrome Pass to buy this." }
+        : {
+            href: `/login?next=${encodeURIComponent(`/product/${product.slug}`)}`,
+            note: "Sign in, then join the Monochrome Pass to buy this.",
+          }
+      : undefined;
 
   return (
     <>
@@ -86,6 +99,7 @@ export default async function ProductPage({ params, searchParams }: Props) {
         styleParam={style}
         sizeParam={size}
         waitingVariantIds={waitingVariantIds}
+        lock={lock}
       />
 
       <Suspense fallback={null}>
@@ -99,7 +113,7 @@ export default async function ProductPage({ params, searchParams }: Props) {
       <JsonLd
         data={breadcrumbJsonLd(siteUrl, [
           { name: "Shop", path: "/shop" },
-          { name: product.category.name, path: `/shop/${product.category.slug}` },
+          { name: product.mainCollection.name, path: `/collections/${product.mainCollection.slug}` },
           { name: product.name, path: `/product/${product.slug}` },
         ])}
       />
@@ -113,7 +127,7 @@ export default async function ProductPage({ params, searchParams }: Props) {
           ...(image ? { image } : {}),
           sku: product.variants[0]?.sku,
           brand: { "@type": "Brand", name: "Virzeen" },
-          category: product.category.name,
+          category: product.mainCollection.name,
           ...(rating.count > 0 && rating.average !== null
             ? {
                 aggregateRating: {

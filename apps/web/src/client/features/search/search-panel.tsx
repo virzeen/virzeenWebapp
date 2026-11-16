@@ -9,7 +9,7 @@ import { Wordmark } from "@/client/components/layout/wordmark";
 import { SearchResults, searchHref } from "./search-results";
 import { useProductSearch } from "./use-product-search";
 
-type SearchPanelProps = { categories: { slug: string; name: string }[] };
+type SearchPanelProps = { collections: { slug: string; name: string }[] };
 
 /**
  * The header's search (specs/search.md, laid out like Nike's; owner 2026-11-08): the magnifier opens a panel that
@@ -19,7 +19,7 @@ type SearchPanelProps = { categories: { slug: string; name: string }[] };
  * Enter opens every match on `/shop?q=`. A link inside closes it as it navigates, and so does any page change
  * (browser Back); focus goes back to the magnifier.
  */
-export function SearchPanel({ categories }: SearchPanelProps) {
+export function SearchPanel({ collections }: SearchPanelProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -35,7 +35,7 @@ export function SearchPanel({ categories }: SearchPanelProps) {
 
   function changeOpen(next: boolean) {
     if (next) {
-      setValue(""); // always opens empty, with the categories
+      setValue(""); // always opens empty, with the collections
       search.reset();
     }
     setOpen(next);
@@ -112,7 +112,7 @@ export function SearchPanel({ categories }: SearchPanelProps) {
           <Container className="flex flex-col gap-8 pt-4 pb-8 md:pt-8 md:pb-12">
             <SearchResults
               state={search.state}
-              categories={categories}
+              collections={collections}
               onNavigate={() => setOpen(false)}
               onRetry={search.retry}
             />

@@ -52,9 +52,9 @@ export const favouriteHref = ({
   style: string;
 }) => (style ? `/product/${product.slug}?style=${encodeURIComponent(style)}` : `/product/${product.slug}`);
 
-/** The grey line under the name: "Tops · Black", or just the category without a style. */
-export const favouriteDetails = ({ category, style }: Pick<FavouriteView, "category" | "style">) =>
-  style ? `${category} · ${style}` : category;
+/** The grey line under the name: "Tops · Black", or just the collection without a style. */
+export const favouriteDetails = ({ collection, style }: Pick<FavouriteView, "collection" | "style">) =>
+  style ? `${collection} · ${style}` : collection;
 
 /** "Added" on the pill: the bag holds one of the saved style's variants (any of its sizes). */
 export const styleInBag = (variants: readonly Pick<Variant, "id">[], bag: readonly { variantId: string }[]) =>

@@ -100,8 +100,8 @@ describe("safeRedirectSchema", () => {
 
 describe("shopFiltersSchema", () => {
   it("ignores malformed values instead of throwing", () => {
-    const filters = shopFiltersSchema.parse({ category: "Bad Slug!", sort: "cheapest", inStock: "yes" });
-    expect(filters).toMatchObject({ category: undefined, sort: "newest", inStock: false });
+    const filters = shopFiltersSchema.parse({ collection: "Bad Slug!", sort: "cheapest", inStock: "yes" });
+    expect(filters).toMatchObject({ collection: undefined, sort: "newest", inStock: false });
   });
 });
 
@@ -144,9 +144,10 @@ describe("productSchema", () => {
     benefits: [],
     details: [],
     countryOfOrigin: "",
-    categoryId: VALID_ID,
+    mainCollectionId: VALID_ID,
     sizeGuideId: "",
     collectionIds: [],
+    audience: "PUBLIC",
     isPublished: true,
     images: [{ url: "virzeen/products/abc/front", alt: "Front view" }],
     features: [],

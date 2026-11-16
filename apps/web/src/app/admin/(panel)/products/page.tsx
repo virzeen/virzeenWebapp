@@ -1,14 +1,16 @@
 import { Badge, ButtonLink, DataTable, EmptyState, Link } from "@virzeen/ui";
-import { adminProductFiltersSchema, type AdminProductStatus } from "@virzeen/validators";
+import { adminProductFiltersSchema, AUDIENCE_LABELS, type AdminProductStatus } from "@virzeen/validators";
 import { CloudImage } from "@/client/components/shared/cloud-image";
 import { Price } from "@/client/components/shared/price";
 import { AdminPageHeader } from "@/client/features/admin/admin-page-header";
+import { ArchiveButton } from "@/client/features/admin/archive-button";
 import { DuplicateProductButton } from "@/client/features/admin/duplicate-product-button";
 import { EarlyAccessButton } from "@/client/features/admin/early-access-button";
 import { NewProductDialog } from "@/client/features/admin/editor/new-product-dialog";
+import { ProductQuickSettings } from "@/client/features/admin/product-quick-settings";
 import { ProductSearch } from "@/client/features/admin/product-search";
 import { requireAdminPage } from "@/server/auth/session";
-import { getProductStatusCounts, listAdminCategories, listAdminProducts } from "@/server/queries/admin";
+import { getProductStatusCounts, listAdminCollections, listAdminProducts } from "@/server/queries/admin";
 import { formatDateTime } from "@/client/lib/format";
 import { flattenSearchParams, type SearchParams } from "@/server/queries/params";
 
@@ -38,6 +40,7 @@ function RowBadges({ row }: { row: ProductRow }) {
       <StatusBadge published={row.isPublished} />
       {row.images.length === 0 && <Badge variant="warning">No photos</Badge>}
       {stock === 0 && <Badge variant="warning">Out of stock</Badge>}
+      {row.audience !== "PUBLIC" && <Badge>{AUDIENCE_LABELS[row.audience]}</Badge>}
       {row.publicAt && row.publicAt > new Date() && <Badge>Public {formatDateTime(row.publicAt)}</Badge>}
     </span>
   );
@@ -60,10 +63,10 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
   await requireAdminPage();
   const filters = adminProductFiltersSchema.parse(flattenSearchParams(await searchParams));
   const { q, status } = filters;
-  const [products, counts, categories] = await Promise.all([
+  const [products, counts, collections] = await Promise.all([
     listAdminProducts(filters),
     getProductStatusCounts(),
-    listAdminCategories(),
+    listAdminCollections(),
   ]);
 
   return (
@@ -73,7 +76,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
         description={countLabel(products.length, q)}
         actions={
           <NewProductDialog
-            categories={categories.map((category) => ({ value: category.id, label: category.name }))}
+            collections={collections.map((collection) => ({ value: collection.id, label: collection.name }))}
           />
         }
       />
@@ -91,6 +94,7 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
       </nav>
       <ProductSearch q={q} status={status} />
       <DataTable
+        rowLink
         caption="Products"
         rows={products}
         getRowId={(row) => row.id}
@@ -148,7 +152,12 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
               </Link>
             ),
           },
-          { key: "category", header: "Category", hideOnMobile: true, cell: (row) => row.category.name },
+          {
+            key: "collection",
+            header: "Collection",
+            hideOnMobile: true,
+            cell: (row) => row.mainCollection.name,
+          },
           {
             key: "stock",
             header: "Stock",
@@ -175,12 +184,21 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
             hideOnMobile: true,
             cell: (row) => (
               <span className="flex justify-end">
+                <ProductQuickSettings
+                  id={row.id}
+                  name={row.name}
+                  slug={row.slug}
+                  isPublished={row.isPublished}
+                  audience={row.audience}
+                  publicAt={row.publicAt?.toISOString() ?? null}
+                />
                 <EarlyAccessButton
                   id={row.id}
                   productName={row.name}
                   publicAt={row.publicAt?.toISOString() ?? null}
                 />
                 <DuplicateProductButton id={row.id} productName={row.name} />
+                <ArchiveButton kind="product" id={row.id} name={row.name} label="Delete" icon />
               </span>
             ),
           },

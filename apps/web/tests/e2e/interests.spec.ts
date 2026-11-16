@@ -13,7 +13,6 @@ test("a member adds a pick and sees it on the profile, then clears it", async ({
   // Nike's order: picks, then the recommendations, then the benefits.
   const interests = page.getByTestId("interests");
   await expect(interests.getByRole("heading", { level: 2, name: "Your picks" })).toBeVisible();
-  await expect(interests.getByRole("tab", { name: "All" })).toHaveAttribute("aria-selected", "true");
   await expect(page.getByRole("region", { name: "Find your next favourite" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Member Benefits" })).toBeVisible();
   // The sideways rows never scroll up and down inside themselves (owner: the wheel over a card scrolled the row).
@@ -30,21 +29,17 @@ test("a member adds a pick and sees it on the profile, then clears it", async ({
   await interests.getByTestId("add-interests").click();
   const dialog = page.getByRole("dialog", { name: "Select your picks" });
   await expect(dialog.getByRole("button", { name: "Save" })).toBeDisabled();
-  await expect(dialog.getByRole("tab", { name: "All" })).toHaveAttribute("aria-selected", "true");
   const first = dialog.getByRole("checkbox").first();
-  // The row reads "{name}Category" or "{name}Collection": the name is what the tile shows.
-  const label = (await first.evaluate((node) => node.closest("label")?.textContent ?? ""))
-    .replace(/(Category|Collection)$/, "")
-    .trim();
+  // The row reads "{name}": the name is what the tile shows.
+  const label = (await first.evaluate((node) => node.closest("label")?.textContent ?? "")).trim();
   await first.click();
   await dialog.getByRole("button", { name: "Save" }).click();
   await expect(dialog).toBeHidden();
 
-  // It shows as a tile (a category or a collection), and the tabs filter it.
+  // It shows as a tile (categories and collections are one thing, so there are no tabs).
   await expect(interests.getByTestId("interest-tile")).toHaveCount(1);
   await expect(interests.getByTestId("interest-tile")).toContainText(label);
-  await interests.getByRole("tab", { name: "Collections" }).click();
-  await expect(interests.getByRole("tab", { name: "Collections" })).toHaveAttribute("aria-selected", "true");
+  await expect(interests.getByRole("tab")).toHaveCount(0);
 
   // Edit clears it again.
   await interests.getByRole("button", { name: "Edit" }).click();
@@ -55,7 +50,6 @@ test("a member adds a pick and sees it on the profile, then clears it", async ({
     .click();
   await page.getByRole("dialog", { name: "Select your picks" }).getByRole("button", { name: "Save" }).click();
   await expect(page.getByRole("dialog", { name: "Select your picks" })).toBeHidden();
-  await interests.getByRole("tab", { name: "All" }).click();
   await expect(interests.getByTestId("interest-tile")).toHaveCount(0);
 });
 

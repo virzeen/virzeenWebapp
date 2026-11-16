@@ -28,6 +28,7 @@ export async function loadMoreProductsAction(input: unknown) {
   return runAction("loadMoreProducts", async () => {
     await rateLimit("api", await clientIp());
     const filters = shopFiltersSchema.parse(input);
-    return catalogReads.listProducts(filters, undefined, await getViewerEarlyHours());
+    // The grid only: members-only products are in their own row.
+    return catalogReads.listProducts(filters, undefined, await getViewerEarlyHours(), "exclude");
   });
 }

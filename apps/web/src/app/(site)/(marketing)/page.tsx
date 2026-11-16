@@ -181,7 +181,7 @@ export default async function HomePage() {
         </Container>
       )}
 
-      {/* Virzeen Archive's, the last section before the footer: every category and collection as an icon tile, like Nike's Spotlight (owner 2026-11-15). */}
+      {/* Virzeen Archive's, the last section before the footer: every collection as an icon tile, like Nike's Spotlight (owner 2026-11-15). */}
       <InFocus tiles={tiles} />
     </>
   );

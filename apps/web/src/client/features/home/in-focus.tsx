@@ -3,13 +3,12 @@ import { ArchiveIcon, type ArchiveIconName } from "./archive-icons";
 
 export type InFocusTile = {
   key: string;
-  kind: "category" | "collection";
   slug: string;
   name: string;
   href: string;
 };
 
-/** First match wins: words in a category's or collection's name or slug pick its icon. */
+/** First match wins: words in a collection's name or slug pick its icon. */
 const ICONS: { words: RegExp; icon: ArchiveIconName }[] = [
   { words: /home|living|decor|kitchen|bed|furniture/i, icon: "home" },
   { words: /bottom|pant|trouser|jean|short|skirt/i, icon: "trousers" },
@@ -23,17 +22,16 @@ const ICONS: { words: RegExp; icon: ArchiveIconName }[] = [
   { words: /new|launch|drop|sale|offer/i, icon: "sparkle" },
 ];
 
-/** The icon for a tile: by its words, else a general one for its kind. */
-export function iconFor(tile: Pick<InFocusTile, "kind" | "name" | "slug">): ArchiveIconName {
+/** The icon for a tile: by its words, else the general one (a gem). */
+export function iconFor(tile: Pick<InFocusTile, "name" | "slug">): ArchiveIconName {
   const found = ICONS.find(({ words }) => words.test(`${tile.name} ${tile.slug}`));
-  if (found) return found.icon;
-  return tile.kind === "collection" ? "gem" : "tag";
+  return found ? found.icon : "gem";
 }
 
 /**
  * The last section of the home page, before the footer: "VIRZEEN ARCHIVE'S", like Nike's Spotlight (owner,
  * 2026-11-15; specs/home-archive.md). A big heading, one line under it, then a centred grid of small tiles (one of our
- * own outline icons, `archive-icons.tsx`, whose solid parts fill in on hover while the name fades a little, and a name each), up to eight to a row. A tile is a shop category or a live collection, so it needs no admin work.
+ * own outline icons, `archive-icons.tsx`, whose solid parts fill in on hover while the name fades a little, and a name each), up to eight to a row. A tile is a live collection, so it needs no admin work.
  * Server Component; nothing to show, nothing drawn.
  */
 export function InFocus({ tiles }: { tiles: InFocusTile[] }) {
@@ -44,7 +42,7 @@ export function InFocus({ tiles }: { tiles: InFocusTile[] }) {
         <h2 id="archive-heading" className="font-display text-display tracking-tight uppercase">
           Virzeen Archive&apos;s
         </h2>
-        <p className="max-w-prose text-body-lg text-ink">Every category and collection, one tap away.</p>
+        <p className="max-w-prose text-body-lg text-ink">Every collection, one tap away.</p>
       </div>
       <ul className="mx-auto mt-10 flex max-w-4xl flex-wrap justify-center gap-y-8 lg:mt-14">
         {tiles.map((tile) => (

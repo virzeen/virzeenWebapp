@@ -5,19 +5,19 @@ import { usePathname } from "next/navigation";
 import { currentHref, shopNavItems } from "./nav-current";
 
 type NavLinksProps = {
-  categories: { slug: string; name: string }[];
+  collections: { slug: string; name: string }[];
   /** A live "sale" collection: the Sale link shows only then. */
   hasSale: boolean;
 };
 
 /**
- * Desktop header navigation (the middle of the header, from xl: every category has a link, so it needs the room), like Nike's (owner 2026-11-08): New and Featured
- * (the shop, newest first), Sale (the "sale" collection, once it's live), then the categories (VHome, VWear…).
+ * Desktop header navigation (the middle of the header, from xl: every collection has a link, so it needs the room), like Nike's (owner 2026-11-08): New and Featured
+ * (the shop, newest first), Sale (the "sale" collection, once it's live), then the collections (VHome, VWear…).
  * The current page carries `aria-current` for screen readers but isn't marked on screen, as on Nike's.
  */
-export function NavLinks({ categories, hasSale }: NavLinksProps) {
+export function NavLinks({ collections, hasSale }: NavLinksProps) {
   const pathname = usePathname();
-  const items = shopNavItems(categories, hasSale);
+  const items = shopNavItems(collections, hasSale);
   const current = currentHref(
     pathname,
     items.map((item) => item.href),

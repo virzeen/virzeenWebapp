@@ -1,0 +1,309 @@
+"use client";
+
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  Alert,
+  Badge,
+  Button,
+  EmptyState,
+  FormField,
+  Input,
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetTrigger,
+  Stack,
+  Switch,
+  Textarea,
+  toast,
+} from "@virzeen/ui";
+import { AUDIENCE_LABELS, collectionSchema, type Audience, type CollectionInput } from "@virzeen/validators";
+import { SlidersHorizontal } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { Controller, useForm, useWatch } from "react-hook-form";
+import { messageFor } from "@/client/lib/error-messages";
+import { formatDateTime } from "@/client/lib/format";
+import { saveCollectionAction } from "@/server/actions/admin/catalog";
+import { ArchiveButton } from "./archive-button";
+import { AudienceField } from "./audience-field";
+import { useSlugFollowsName } from "./use-slug-follows-name";
+
+const productCount = (count: number) => `${count} ${count === 1 ? "product" : "products"}`;
+
+type Collection = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  sortOrder: number;
+  isFeatured: boolean;
+  audience: Audience;
+  publicAt: Date | null;
+  _count: { products: number };
+};
+
+/** The value a `datetime-local` field takes: the browser's local time as "YYYY-MM-DDTHH:mm". */
+function toLocalInput(date: Date | null): string {
+  if (!date) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+/**
+ * Which row is in the form. Editing moves focus to the form's Name field and scrolls the form into view;
+ * Save or Cancel returns focus to that row's Edit button.
+ */
+function useEditing<Row extends { id: string }>() {
+  const [editing, setEditing] = useState<Row | null>(null);
+  const listRef = useRef<HTMLUListElement>(null);
+  const returnTo = useRef<string | null>(null);
+  useEffect(() => {
+    if (editing || !returnTo.current) return;
+    listRef.current?.querySelector<HTMLElement>(`[data-edit-id="${returnTo.current}"]`)?.focus();
+    returnTo.current = null;
+  }, [editing]);
+  function stopEditing() {
+    returnTo.current = editing?.id ?? null;
+    setEditing(null);
+  }
+  return { editing, startEditing: setEditing, stopEditing, listRef };
+}
+
+const EMPTY: CollectionInput = {
+  name: "",
+  slug: "",
+  sortOrder: 0,
+  description: "",
+  isFeatured: false,
+  audience: "PUBLIC",
+};
+
+function CollectionForm({ initial, onDone }: { initial?: Collection; onDone: () => void }) {
+  const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  // Early access: when the public may see the collection (members 12 or 48 hours earlier); empty = no wait.
+  const [publicLocal, setPublicLocal] = useState(
+    toLocalInput(initial?.publicAt ? new Date(initial.publicAt) : null),
+  );
+  const form = useForm<CollectionInput>({
+    resolver: zodResolver(collectionSchema),
+    defaultValues: initial
+      ? {
+          id: initial.id,
+          name: initial.name,
+          slug: initial.slug,
+          sortOrder: initial.sortOrder,
+          description: initial.description ?? "",
+          isFeatured: initial.isFeatured,
+          audience: initial.audience,
+        }
+      : EMPTY,
+  });
+  const { errors, isSubmitting } = form.formState;
+  const { setFocus } = form;
+  const audience = useWatch({ control: form.control, name: "audience" });
+  const slugFollow = useSlugFollowsName(
+    initial?.name ?? "",
+    () => form.getValues("slug"),
+    (slug) => form.setValue("slug", slug, { shouldDirty: true, shouldValidate: form.formState.isSubmitted }),
+  );
+
+  // The form sits above the list: bring it into view when a row's Edit is chosen (it remounts per row).
+  useEffect(() => {
+    if (!initial) return;
+    formRef.current?.scrollIntoView({ block: "start" });
+    setFocus("name");
+  }, [initial, setFocus]);
+
+  async function onSubmit(values: CollectionInput) {
+    setFormError(null);
+    const result = await saveCollectionAction({
+      ...values,
+      publicAt: publicLocal ? new Date(publicLocal).toISOString() : null,
+    });
+    if (!result.ok) {
+      if (result.error.fields?.slug) form.setError("slug", { message: result.error.fields.slug });
+      else setFormError(messageFor(result.error));
+      return;
+    }
+    toast.success("Collection saved");
+    form.reset(EMPTY);
+    slugFollow.restart();
+    setPublicLocal("");
+    onDone();
+    router.refresh();
+  }
+
+  return (
+    <form
+      ref={formRef}
+      onSubmit={form.handleSubmit(onSubmit)}
+      noValidate
+      aria-labelledby="collection-form-heading"
+      className="grid scroll-mt-4 gap-4 rounded-md border border-line p-5 sm:grid-cols-4"
+    >
+      <h2 id="collection-form-heading" className="font-display text-h3 sm:col-span-4">
+        {initial ? `Edit ${initial.name}` : "Add a collection"}
+      </h2>
+      {formError && (
+        <Alert variant="danger" className="sm:col-span-4">
+          {formError}
+        </Alert>
+      )}
+      <FormField label="Name" error={errors.name?.message} required className="sm:col-span-2">
+        <Input {...form.register("name", { onChange: slugFollow.onChange })} />
+      </FormField>
+      <FormField
+        label="URL slug"
+        helper="Follows the name as you type; you can change it."
+        error={errors.slug?.message}
+        required
+        className="sm:col-span-2"
+      >
+        <Input {...form.register("slug")} />
+      </FormField>
+      <FormField
+        label="Description"
+        helper="Optional. Shown at the top of the collection's page."
+        error={errors.description?.message}
+        className="sm:col-span-4"
+      >
+        <Textarea rows={2} {...form.register("description")} />
+      </FormField>
+      <div className="sm:col-span-4">
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button variant="ghost" className="w-full cursor-pointer justify-between rounded-md bg-surface">
+              <span className="flex items-center gap-2">
+                <SlidersHorizontal className="size-4" strokeWidth={1.5} aria-hidden />
+                Visibility and more
+              </span>
+              <span className="text-ink-muted">{AUDIENCE_LABELS[audience]}</span>
+            </Button>
+          </SheetTrigger>
+          <SheetContent
+            title="Visibility and more"
+            description="Who sees the collection, when, and where it sits in the menu."
+            footer={
+              <SheetClose asChild>
+                <Button shape="pill">Done</Button>
+              </SheetClose>
+            }
+          >
+            <div className="flex flex-col gap-6">
+              <FormField label="Visibility" error={errors.audience?.message}>
+                <Controller
+                  control={form.control}
+                  name="audience"
+                  render={({ field }) => (
+                    <AudienceField value={field.value} onChange={field.onChange} fieldRef={field.ref} />
+                  )}
+                />
+              </FormField>
+              <FormField
+                label="Public from"
+                helper="Early access: MONO Members see it 12 hours before, Pass members 48 hours before. Empty = everyone now."
+              >
+                <Input
+                  type="datetime-local"
+                  value={publicLocal}
+                  onChange={(e) => setPublicLocal(e.target.value)}
+                />
+              </FormField>
+              <FormField label="Order" helper="Lowest first" error={errors.sortOrder?.message}>
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  {...form.register("sortOrder", { valueAsNumber: true })}
+                />
+              </FormField>
+              <Controller
+                control={form.control}
+                name="isFeatured"
+                render={({ field }) => (
+                  <Switch
+                    label="Featured on the home page"
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                )}
+              />
+            </div>
+          </SheetContent>
+        </Sheet>
+      </div>
+      <div className="flex flex-wrap items-center gap-2 sm:col-span-4">
+        <Button type="submit" shape="pill" loading={isSubmitting}>
+          {initial ? "Save" : "Add collection"}
+        </Button>
+        {initial && (
+          <Button variant="secondary" shape="pill" onClick={onDone}>
+            Cancel
+          </Button>
+        )}
+      </div>
+    </form>
+  );
+}
+
+/**
+ * The one admin list of shop groups (specs/catalog-groups-visibility.md): categories and collections are the same
+ * thing, so Tops, Bottoms and a festival drop sit here together, in menu order.
+ */
+export function CollectionManager({ collections }: { collections: Collection[] }) {
+  const { editing, startEditing, stopEditing, listRef } = useEditing<Collection>();
+  return (
+    <Stack gap={6}>
+      <CollectionForm key={editing?.id ?? "new"} initial={editing ?? undefined} onDone={stopEditing} />
+      {collections.length === 0 ? (
+        <EmptyState
+          title="No collections yet."
+          description="Add Tops, Bottoms, Accessories or a drop. Products can be in as many as you like."
+        />
+      ) : (
+        <ul ref={listRef} className="divide-y divide-line border-y border-line">
+          {collections.map((collection) => (
+            <li
+              key={collection.id}
+              // The whole row opens the form; its own buttons keep their jobs.
+              onClick={(event) => {
+                if ((event.target as HTMLElement).closest("button, a")) return;
+                startEditing(collection);
+              }}
+              className="flex cursor-pointer flex-wrap items-center justify-between gap-3 px-2 py-3 transition-colors duration-150 ease-standard hover:bg-surface"
+            >
+              <span className="flex flex-col gap-1">
+                <span className="flex flex-wrap items-center gap-2 text-body">
+                  {collection.name}
+                  {collection.isFeatured && <Badge variant="accent">Featured</Badge>}
+                  {collection.audience !== "PUBLIC" && <Badge>{AUDIENCE_LABELS[collection.audience]}</Badge>}
+                  {collection.publicAt && <Badge>Public from {formatDateTime(collection.publicAt)}</Badge>}
+                </span>
+                <span className="text-small text-ink-muted">
+                  /collections/{collection.slug} · {productCount(collection._count.products)} · order{" "}
+                  {collection.sortOrder} · add products from each product&apos;s page
+                </span>
+              </span>
+              <span className="flex gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  shape="pill"
+                  data-edit-id={collection.id}
+                  aria-label={`Edit ${collection.name}`}
+                  onClick={() => startEditing(collection)}
+                >
+                  Edit
+                </Button>
+                <ArchiveButton kind="collection" id={collection.id} name={collection.name} label="Delete" />
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Stack>
+  );
+}

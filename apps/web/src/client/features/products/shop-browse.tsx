@@ -10,7 +10,7 @@ type ShopBrowseProps = {
   /** The h1 with the total, e.g. "Shop (12)". It shrinks to `text-h3` while the bar is stuck (`group/bar`). */
   heading: React.ReactNode;
   intro?: string | null | undefined;
-  /** Below lg: the category chips and the toolbar (Filters sheet and sort). */
+  /** Below lg: the collection chips and the toolbar (Filters sheet and sort). */
   phoneBar: React.ReactNode;
   /** From lg: the filters on the left (`ShopSidebar`). */
   sidebar: React.ReactNode;
