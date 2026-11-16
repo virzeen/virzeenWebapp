@@ -8,7 +8,10 @@ export const dynamic = "force-dynamic";
 
 const refSchema = z.string().regex(/^VZ-\d{6}-\d{4}-\d{1,2}$/);
 
-/** eSewa failure redirect. Only the order's own customer can end the attempt early (see core). */
+/**
+ * eSewa failure redirect: re-checks the attempt and nothing ends early. The reference is guessable, so only the
+ * order's own customer is told anything about it; everyone else gets the same neutral page (see core).
+ */
 export async function GET(request: NextRequest) {
   return handleProviderReturn("esewa", async () => {
     const ref = refSchema.parse(request.nextUrl.searchParams.get("ref") ?? "");

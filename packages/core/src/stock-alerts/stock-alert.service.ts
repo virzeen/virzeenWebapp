@@ -2,7 +2,7 @@ import "server-only";
 import { db, type Prisma } from "@virzeen/db";
 import { MAX_STOCK_ALERTS } from "@virzeen/validators";
 import { variantLabelOf } from "../cart/cart-summary";
-import { publishedProductWhere } from "../catalog/catalog.reads";
+import { earlyHoursFor, publishedProductWhere, visibleProductWhere } from "../catalog/catalog.reads";
 import { imageForColor } from "../catalog/style-images";
 import { getCoreConfig } from "../config";
 import { AppError, isUniqueViolation } from "../errors";
@@ -73,8 +73,13 @@ export const stockAlertService = {
    * for MAX_STOCK_ALERTS variants.
    */
   async request(userId: string, variantId: string): Promise<void> {
+    // Only for what this customer may see (members-only products included, hidden ones not).
     const variant = await db.productVariant.findFirst({
-      where: { id: variantId, ...waitableVariant },
+      where: {
+        id: variantId,
+        ...waitableVariant,
+        product: visibleProductWhere(await earlyHoursFor(userId)),
+      },
       select: { stock: true },
     });
     if (!variant) throw new AppError("NOT_FOUND", "This product isn't available.");
@@ -120,7 +125,11 @@ export const stockAlertService = {
   /** The customer's waiting requests, newest first; ones for products out of the shop are left out. */
   async listForUser(userId: string): Promise<StockAlertItem[]> {
     const rows = await db.stockAlert.findMany({
-      where: { userId, notifiedAt: null, variant: waitableVariant },
+      where: {
+        userId,
+        notifiedAt: null,
+        variant: { ...waitableVariant, product: visibleProductWhere(await earlyHoursFor(userId)) },
+      },
       select: {
         createdAt: true,
         variant: {

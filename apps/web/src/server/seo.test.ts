@@ -1,8 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   breadcrumbJsonLd,
-  categoryDescription,
-  categoryTitle,
+  collectionDescription,
   collectionTitle,
   fit,
   productDescription,
@@ -11,9 +10,8 @@ import {
 
 describe("search titles", () => {
   it("names the brand with what's sold", () => {
-    expect(categoryTitle("Vases")).toBe("Vases by Virzeen");
+    expect(collectionTitle("Vases")).toBe("Vases by Virzeen");
     expect(productTitle("Linen Overshirt", "Tops")).toBe("Linen Overshirt | Tops by Virzeen");
-    expect(collectionTitle("Monsoon")).toBe("Monsoon collection by Virzeen");
     expect(collectionTitle("Winter Collection")).toBe("Winter Collection by Virzeen");
   });
 });
@@ -53,8 +51,8 @@ describe("search descriptions", () => {
     expect(text).toBe("Black vase. Rs 1,500. Free delivery on larger orders. Cash on delivery.");
   });
 
-  it("describes a category", () => {
-    expect(categoryDescription("Vases")).toBe(
+  it("describes a collection", () => {
+    expect(collectionDescription("Vases")).toBe(
       "Shop vases by Virzeen: monochrome, black and white pieces from Nepal. Free delivery on larger orders. Cash on delivery.",
     );
   });

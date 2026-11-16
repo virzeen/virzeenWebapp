@@ -51,6 +51,12 @@ export function formatDateTime(date: Date | string): string {
   return `${formatDate(date)}, ${p.hour}:${p.minute} ${p.dayPeriod}`;
 }
 
+/** "3:45 PM" (Asia/Kathmandu): the time an unpaid order must be paid by. */
+export function formatTime(date: Date | string): string {
+  const p = parts(date);
+  return `${p.hour}:${p.minute} ${p.dayPeriod}`;
+}
+
 /**
  * How long until an order should leave us, or how late it is: "Due in 25 min", "Due in 2 h", "Late by 3 h" (specs/member-perks.md).
  * `now` is passed in so a page reads the clock once.

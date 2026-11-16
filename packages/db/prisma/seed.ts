@@ -18,7 +18,8 @@ type SeedFeature = { title: string; body: string; image: number };
 type SeedProduct = {
   slug: string;
   name: string;
-  category: string;
+  /** Slug of the main collection (the old category). */
+  mainCollection: string;
   pricePaisa: number;
   description: string;
   care?: string;
@@ -36,21 +37,26 @@ type SeedProduct = {
   sizeGuide?: "Tops"; // a SIZE_GUIDES name (specs/size-guides.md)
 };
 
-const CATEGORIES = [
+/** The shop sections: collections too, since categories and collections are one thing (specs/catalog-groups-visibility.md). */
+const SECTIONS = [
   { slug: "tops", name: "Tops", sortOrder: 1 },
   { slug: "bottoms", name: "Bottoms", sortOrder: 2 },
   { slug: "outerwear", name: "Outerwear", sortOrder: 3 },
   { slug: "accessories", name: "Accessories", sortOrder: 4 },
-];
-
-const COLLECTIONS = [
   {
     slug: "monochromium-01",
     name: "Monochromium 01",
     description: "The first chapter: black, white and the greys between.",
+    sortOrder: 5,
     isFeatured: true,
   },
-  { slug: "essentials", name: "Essentials", description: "Everyday pieces, cut to last.", isFeatured: true },
+  {
+    slug: "essentials",
+    name: "Essentials",
+    description: "Everyday pieces, cut to last.",
+    sortOrder: 6,
+    isFeatured: true,
+  },
 ];
 
 const CARE = "Machine wash cold, inside out. Dry flat in the shade. Cool iron.";
@@ -85,7 +91,7 @@ const PRODUCTS: SeedProduct[] = [
   {
     slug: "linen-overshirt",
     name: "Linen Overshirt",
-    category: "tops",
+    mainCollection: "tops",
     pricePaisa: 450_000,
     description:
       "A relaxed overshirt in washed linen with a boxy fit, patch pockets and horn-effect buttons.",
@@ -124,7 +130,7 @@ const PRODUCTS: SeedProduct[] = [
   {
     slug: "monochrome-oversized-tee",
     name: "Monochrome Oversized Tee",
-    category: "tops",
+    mainCollection: "tops",
     pricePaisa: 245_000,
     description: "Heavyweight cotton jersey, dropped shoulders and a clean crew neck.",
     care: CARE,
@@ -137,7 +143,7 @@ const PRODUCTS: SeedProduct[] = [
   {
     slug: "grain-heavyweight-hoodie",
     name: "Grain Heavyweight Hoodie",
-    category: "tops",
+    mainCollection: "tops",
     pricePaisa: 590_000,
     description: "Brushed-back fleece with a double-layer hood and a subtle tonal mark.",
     care: CARE,
@@ -149,7 +155,7 @@ const PRODUCTS: SeedProduct[] = [
   {
     slug: "ribbed-knit-sweater",
     name: "Ribbed Knit Sweater",
-    category: "tops",
+    mainCollection: "tops",
     pricePaisa: 520_000,
     description: "A fine rib knit with a close fit and a soft, dry hand.",
     care: "Hand wash cold. Dry flat.",
@@ -161,7 +167,7 @@ const PRODUCTS: SeedProduct[] = [
   {
     slug: "tailored-wide-trousers",
     name: "Tailored Wide Trousers",
-    category: "bottoms",
+    mainCollection: "bottoms",
     pricePaisa: 480_000,
     description: "High-rise trousers with a pressed crease and a wide, fluid leg.",
     care: CARE,
@@ -173,7 +179,7 @@ const PRODUCTS: SeedProduct[] = [
   {
     slug: "relaxed-cargo-pants",
     name: "Relaxed Cargo Pants",
-    category: "bottoms",
+    mainCollection: "bottoms",
     pricePaisa: 420_000,
     description: "Cotton twill cargos with a tapered hem and hidden-snap pockets.",
     care: CARE,
@@ -185,7 +191,7 @@ const PRODUCTS: SeedProduct[] = [
   {
     slug: "pleated-midi-skirt",
     name: "Pleated Midi Skirt",
-    category: "bottoms",
+    mainCollection: "bottoms",
     pricePaisa: 390_000,
     description: "Knife pleats that move with you, finished with a clean waistband.",
     care: "Hand wash cold. Hang to dry.",
@@ -197,7 +203,7 @@ const PRODUCTS: SeedProduct[] = [
   {
     slug: "monochromium-bomber",
     name: "Monochromium Bomber",
-    category: "outerwear",
+    mainCollection: "outerwear",
     pricePaisa: 890_000,
     description: "A padded bomber in matte nylon with ribbed trims and a two-way zip.",
     care: "Wipe clean. Do not tumble dry.",
@@ -209,7 +215,7 @@ const PRODUCTS: SeedProduct[] = [
   {
     slug: "structured-tote",
     name: "Structured Tote",
-    category: "accessories",
+    mainCollection: "accessories",
     pricePaisa: 320_000,
     description: "A structured canvas tote with an inside zip pocket. Fits a 14-inch laptop.",
     collections: ["essentials"],
@@ -220,7 +226,7 @@ const PRODUCTS: SeedProduct[] = [
   {
     slug: "logo-cap",
     name: "Logo Cap",
-    category: "accessories",
+    mainCollection: "accessories",
     pricePaisa: 180_000,
     description: "Six-panel cotton cap with a tonal embroidered mark and an adjustable strap.",
     collections: ["essentials"],
@@ -231,7 +237,7 @@ const PRODUCTS: SeedProduct[] = [
   {
     slug: "silk-scarf",
     name: "Silk Scarf",
-    category: "accessories",
+    mainCollection: "accessories",
     pricePaisa: 260_000,
     description: "A square silk twill scarf printed with a monochrome gradient.",
     collections: ["monochromium-01"],
@@ -242,7 +248,7 @@ const PRODUCTS: SeedProduct[] = [
   {
     slug: "crew-socks-three-pack",
     name: "Crew Socks — Three Pack",
-    category: "accessories",
+    mainCollection: "accessories",
     pricePaisa: 90_000,
     description: "Combed cotton crew socks with a cushioned sole. Three pairs.",
     collections: ["essentials"],
@@ -266,24 +272,14 @@ const sku = (slug: string, color: string | null, size: string | null) =>
   ].join("-");
 
 async function main() {
-  const categoryIds = new Map<string, string>();
-  for (const category of CATEGORIES) {
-    const row = await db.category.upsert({
-      where: { slug: category.slug },
-      create: category,
-      update: { name: category.name, sortOrder: category.sortOrder, archivedAt: null },
-    });
-    categoryIds.set(category.slug, row.id);
-  }
-
   const collectionIds = new Map<string, string>();
-  for (const collection of COLLECTIONS) {
+  for (const section of SECTIONS) {
     const row = await db.collection.upsert({
-      where: { slug: collection.slug },
-      create: collection,
-      update: { ...collection, archivedAt: null },
+      where: { slug: section.slug },
+      create: section,
+      update: { ...section, archivedAt: null },
     });
-    collectionIds.set(collection.slug, row.id);
+    collectionIds.set(section.slug, row.id);
   }
 
   const sizeGuideIds = new Map<string, string>();
@@ -319,7 +315,7 @@ async function main() {
       // Every product's Country/Region of origin is China (owner, 2026-09-29).
       countryOfOrigin: "China",
       seoDescription: `${product.name} by Virzeen. ${product.description}`.slice(0, 155),
-      categoryId: categoryIds.get(product.category) as string,
+      mainCollectionId: collectionIds.get(product.mainCollection) as string,
       sizeGuideId: product.sizeGuide ? (sizeGuideIds.get(product.sizeGuide) as string) : null,
       fromPricePaisa: product.pricePaisa,
       isPublished: true,
@@ -336,7 +332,11 @@ async function main() {
     await db.product.update({
       where: { id: row.id },
       data: {
-        collections: { set: product.collections.map((slug) => ({ id: collectionIds.get(slug) as string })) },
+        collections: {
+          set: [...new Set([product.mainCollection, ...product.collections])].map((slug) => ({
+            id: collectionIds.get(slug) as string,
+          })),
+        },
       },
     });
     await db.productImage.deleteMany({ where: { productId: row.id } });
@@ -497,7 +497,7 @@ async function main() {
   }
 
   console.log(
-    `Seeded ${CATEGORIES.length} categories, ${SIZE_GUIDES.length} size guide${SIZE_GUIDES.length === 1 ? "" : "s"}, ${PRODUCTS.length} products, ${projects.length} portfolio projects${adminEmail ? `, admin ${adminEmail}` : ""}.`,
+    `Seeded ${SECTIONS.length} sections, ${SIZE_GUIDES.length} size guide${SIZE_GUIDES.length === 1 ? "" : "s"}, ${PRODUCTS.length} products, ${projects.length} portfolio projects${adminEmail ? `, admin ${adminEmail}` : ""}.`,
   );
 }
 

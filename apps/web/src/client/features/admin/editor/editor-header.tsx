@@ -2,7 +2,7 @@
 
 import { useFormState, useWatch } from "react-hook-form";
 import { EditableText } from "./editable-text";
-import { EditorCategory } from "./editor-category";
+import { EditorMainCollection } from "./editor-main-collection";
 import { useProductEditor } from "./editor-context";
 import { EditorPrice } from "./editor-price";
 import { slugForName } from "./editor-slug";
@@ -10,14 +10,14 @@ import { featureAltResets } from "./features-cards";
 import { photoAltResets } from "./made-alts";
 
 /**
- * The top of the right column, as on the product page (product-details.tsx): the name (the page's h1), the category
+ * The top of the right column, as on the product page (product-details.tsx): the name (the page's h1), the main collection
  * under it and the price, each editable in place. From lg it sits right of the gallery; below lg above it.
  */
 export function EditorHeader() {
   return (
     <div className="flex flex-col gap-1 lg:col-start-2 lg:row-start-1 lg:max-w-md">
       <EditorName />
-      <EditorCategory />
+      <EditorMainCollection />
       <EditorPrice />
     </div>
   );

@@ -11,10 +11,13 @@ const cuidLike = () => `t${randomBytes(12).toString("hex").slice(0, 23)}`;
 export async function resetDatabase() {
   await db.$transaction([
     db.orderEvent.deleteMany(),
+    // An order points at the attempt that paid it (`paidPaymentId`): unlink before deleting payments.
+    db.order.updateMany({ data: { paidPaymentId: null } }),
     db.payment.deleteMany(),
     db.orderItem.deleteMany(),
     db.order.deleteMany(),
     db.discountCode.deleteMany(),
+    db.siteNotice.deleteMany(),
     db.orderNumberCounter.deleteMany(),
     db.cartItem.deleteMany(),
     db.cart.deleteMany(),
@@ -31,7 +34,6 @@ export async function resetDatabase() {
     db.sizeGuide.deleteMany(),
     db.portfolioProject.deleteMany(),
     db.collection.deleteMany(),
-    db.category.deleteMany(),
     db.twoFactor.deleteMany(),
     db.session.deleteMany(),
     db.account.deleteMany(),
@@ -52,9 +54,11 @@ export async function createUser(overrides: { role?: "CUSTOMER" | "ADMIN"; email
   });
 }
 
-export async function createCategory() {
-  const slug = `cat-${next()}`;
-  return db.category.create({ data: { slug, name: `Category ${slug}` } });
+export async function createCollection(overrides: { audience?: "PUBLIC" | "PASS" } = {}) {
+  const slug = `collection-${next()}`;
+  return db.collection.create({
+    data: { slug, name: `Collection ${slug}`, audience: overrides.audience ?? "PUBLIC" },
+  });
 }
 
 type VariantOptions = {
@@ -71,14 +75,15 @@ type VariantOptions = {
 export async function createProduct(
   options: { published?: boolean; archived?: boolean; name?: string } = {},
 ) {
-  const category = await createCategory();
+  const collection = await createCollection();
   const slug = `product-${next()}`;
   return db.product.create({
     data: {
       slug,
       name: options.name ?? "Linen Overshirt",
       description: "Relaxed overshirt.",
-      categoryId: category.id,
+      mainCollectionId: collection.id,
+      collections: { connect: { id: collection.id } },
       isPublished: options.published ?? true,
       publishedAt: new Date(),
       archivedAt: options.archived ? new Date() : null,

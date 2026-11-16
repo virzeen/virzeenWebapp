@@ -7,7 +7,7 @@ import { useEffect } from "react";
 // Owner request 2026-10-01: opening a product must feel instant. <Link> prefetches only the loading skeleton of a
 // page that reads the database; this fetches the whole page as soon as a finger touches a link or the pointer
 // rests on it (100-300 ms before the click lands), so the page is usually ready when the tap ends. Only the pages
-// people open from lists: products, the shop and its categories, collections and portfolio stories.
+// people open from lists: products, the shop and its collections, collections and portfolio stories.
 const PAGES = /^\/(product|shop|collections|portfolio)(\/|$)/;
 
 /** "full": the page's data too, not just its skeleton (Next's internal enum, a string at runtime). */

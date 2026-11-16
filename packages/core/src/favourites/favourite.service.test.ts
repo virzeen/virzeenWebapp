@@ -238,7 +238,7 @@ describe("favouriteService.list", () => {
     });
   });
 
-  it("carries the category and the saved style's variants for sale, sizes in the product page's order", async () => {
+  it("carries the main collection and the saved style's variants for sale, sizes in the product page's order", async () => {
     const user = await createUser();
     const tee = await productWithStyles();
     const cap = await createProduct({ name: "Logo Cap" });
@@ -267,8 +267,8 @@ describe("favouriteService.list", () => {
     });
     const variantId = async (productId: string, size: string | null, color: string | null) =>
       (await db.productVariant.findFirstOrThrow({ where: { productId, size, color } })).id;
-    const categoryOf = async (categoryId: string) =>
-      (await db.category.findUniqueOrThrow({ where: { id: categoryId } })).name;
+    const categoryOf = async (mainCollectionId: string) =>
+      (await db.collection.findUniqueOrThrow({ where: { id: mainCollectionId } })).name;
     for (const [productId, color] of [
       [cap.id, ""],
       [tee.id, "Blue"],
@@ -296,10 +296,18 @@ describe("favouriteService.list", () => {
       // A product without styles or sizes: its one variant.
       ["", [{ id: await variantId(cap.id, null, null), size: null, stock: 3, pricePaisa: 180_000 }]],
     ]);
-    const [teeCategory, capCategory] = [await categoryOf(tee.categoryId), await categoryOf(cap.categoryId)];
-    expect(items.map((item) => item.category)).toEqual([teeCategory, teeCategory, teeCategory, capCategory]);
+    const [teeCategory, capCategory] = [
+      await categoryOf(tee.mainCollectionId),
+      await categoryOf(cap.mainCollectionId),
+    ];
+    expect(items.map((item) => item.collection)).toEqual([
+      teeCategory,
+      teeCategory,
+      teeCategory,
+      capCategory,
+    ]);
     expect(await favouriteService.summariesFor([{ productId: tee.id, color: "Black" }])).toEqual([
-      expect.objectContaining({ category: items[0]?.category, variants: items[0]?.variants }),
+      expect.objectContaining({ collection: items[0]?.collection, variants: items[0]?.variants }),
     ]);
   });
 });

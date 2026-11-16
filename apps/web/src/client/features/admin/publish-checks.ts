@@ -7,7 +7,7 @@ export type PublishCheck = { label: string; done: boolean };
 
 type CheckedValues = Pick<
   ProductInput,
-  "name" | "images" | "description" | "categoryId" | "shippingPaisa" | "variants"
+  "name" | "images" | "description" | "mainCollectionId" | "shippingPaisa" | "variants"
 >;
 
 /**
@@ -25,7 +25,7 @@ export function publishChecks(values: CheckedValues): { checks: PublishCheck[]; 
       done: forSale.length > 0 && forSale.every((v) => Number.isFinite(v.pricePaisa) && v.pricePaisa >= 100),
     },
     { label: "Shipping (0 for none)", done: Number.isFinite(values.shippingPaisa) },
-    { label: "Category", done: values.categoryId !== "" },
+    { label: "Main collection", done: values.mainCollectionId !== "" },
     { label: "Something for sale", done: forSale.length > 0 },
   ];
   // Only once everything else is in place: on a blank product it would just be noise.

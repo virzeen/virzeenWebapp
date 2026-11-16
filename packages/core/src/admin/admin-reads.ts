@@ -4,6 +4,7 @@ import {
   parseFeatureRows,
   parseSizeChart,
   type AdminProductStatus,
+  type Audience,
   type FeatureLayout,
   type FeatureRow,
   type ProductInput,
@@ -33,9 +34,12 @@ export type ProductFormValues = {
   details: string[];
   countryOfOrigin: string;
   seoDescription: string;
-  categoryId: string;
+  /** The main collection (the old category); it is always one of `collectionIds`. */
+  mainCollectionId: string;
   sizeGuideId: string;
   collectionIds: string[];
+  /** Who may see the product (specs/catalog-groups-visibility.md). */
+  audience: Audience;
   isPublished: boolean;
   images: { url: string; alt: string; color: string }[];
   /** Title and body may be "" (a feature that is only a picture). */
@@ -83,7 +87,8 @@ export async function readProductForEdit(client: Prisma.TransactionClient, id: s
       details: true,
       countryOfOrigin: true,
       seoDescription: true,
-      categoryId: true,
+      mainCollectionId: true,
+      audience: true,
       sizeGuide: { select: { id: true, archivedAt: true } },
       isPublished: true,
       // Kept after Unpublish: the editor stops making the slug from the name once a product has been published.
@@ -140,9 +145,10 @@ export async function readProductForEdit(client: Prisma.TransactionClient, id: s
     details: product.details,
     countryOfOrigin,
     seoDescription: product.seoDescription ?? "",
-    categoryId: product.categoryId,
+    mainCollectionId: product.mainCollectionId,
     sizeGuideId,
     collectionIds: product.collections.map((collection) => collection.id),
+    audience: product.audience,
     isPublished: product.isPublished,
     images,
     features: featureValues,
@@ -188,7 +194,8 @@ export const adminReads = {
         isPublished: true,
         fromPricePaisa: true,
         updatedAt: true,
-        category: { select: { name: true } },
+        mainCollection: { select: { name: true } },
+        audience: true,
         publicAt: true,
         images: { select: { url: true, alt: true }, orderBy: { sortOrder: "asc" }, take: 1 },
         variants: { where: { isActive: true }, select: { stock: true } },
@@ -213,20 +220,6 @@ export const adminReads = {
   /** One product for the editor: its fields, plus `values` (the form's values, ProductFormValues). */
   async getProductForEdit(id: string) {
     return readProductForEdit(db, id);
-  },
-
-  async listCategories() {
-    return db.category.findMany({
-      where: { archivedAt: null },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        sortOrder: true,
-        _count: { select: { products: { where: { archivedAt: null } } } },
-      },
-      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-    });
   },
 
   /** Size guides for the admin list: name, type, how many products (not archived) use each, last change. */
@@ -304,11 +297,13 @@ export const adminReads = {
         name: true,
         slug: true,
         description: true,
+        sortOrder: true,
         isFeatured: true,
+        audience: true,
         publicAt: true,
         _count: { select: { products: { where: { archivedAt: null } } } },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     });
   },
 

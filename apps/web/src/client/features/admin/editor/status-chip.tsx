@@ -20,15 +20,15 @@ type StatusChipProps = {
 export function StatusChip({ open, onOpenChange }: StatusChipProps) {
   const { form, product } = useProductEditor();
   const headingId = useId();
-  const [name, images, description, categoryId, shippingPaisa, variants] = useWatch({
+  const [name, images, description, mainCollectionId, shippingPaisa, variants] = useWatch({
     control: form.control,
-    name: ["name", "images", "description", "categoryId", "shippingPaisa", "variants"],
+    name: ["name", "images", "description", "mainCollectionId", "shippingPaisa", "variants"],
   });
   const { checks, noStock } = publishChecks({
     name,
     images,
     description,
-    categoryId,
+    mainCollectionId,
     shippingPaisa,
     variants,
   });

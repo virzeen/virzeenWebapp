@@ -1,7 +1,7 @@
 import { db } from "@virzeen/db";
 import type { ProductData } from "@virzeen/validators";
 import { beforeEach, describe, expect, it } from "vitest";
-import { createCategory, createUser, resetDatabase } from "../../test/factories";
+import { createCollection, createUser, resetDatabase } from "../../test/factories";
 import { adminReads } from "../admin/admin-reads";
 import { catalogReads } from "./catalog.reads";
 import { catalogService } from "./catalog.service";
@@ -21,7 +21,7 @@ const row = (color: string, size = "M", extra: Partial<Variant> = {}): Variant =
 });
 
 async function productInput(overrides: Partial<ProductData> = {}): Promise<ProductData> {
-  const category = await createCategory();
+  const category = await createCollection();
   return {
     name: "Oversized Tee",
     slug: "oversized-tee",
@@ -31,9 +31,10 @@ async function productInput(overrides: Partial<ProductData> = {}): Promise<Produ
     details: [],
     countryOfOrigin: "China",
     seoDescription: "",
-    categoryId: category.id,
+    mainCollectionId: category.id,
     sizeGuideId: "",
     collectionIds: [],
+    audience: "PUBLIC",
     isPublished: true,
     images: [{ url: "virzeen/products/tee/front", alt: "" }],
     features: [],
@@ -364,16 +365,16 @@ describe("drafts and descriptions", () => {
 
   it("createDraft makes a draft from a name, category and price, with origin China and a style number", async () => {
     const admin = await createUser({ role: "ADMIN" });
-    const category = await createCategory();
+    const category = await createCollection();
 
     const { id } = await catalogService.createDraft(admin.id, {
       name: "Monochrome Beanie",
-      categoryId: category.id,
+      collectionId: category.id,
       pricePaisa: 135_000,
     });
     const again = await catalogService.createDraft(admin.id, {
       name: "Monochrome Beanie",
-      categoryId: category.id,
+      collectionId: category.id,
       pricePaisa: 135_000,
     });
 
@@ -384,7 +385,7 @@ describe("drafts and descriptions", () => {
       slug: "monochrome-beanie",
       description: "",
       countryOfOrigin: "China",
-      categoryId: category.id,
+      mainCollectionId: category.id,
       isPublished: false,
       images: [],
       shippingPaisa: 0,
@@ -406,14 +407,18 @@ describe("drafts and descriptions", () => {
     expect(audit).toMatchObject({ action: "product.create", actorId: admin.id });
   });
 
-  it("createDraft refuses an archived category in the form's words", async () => {
+  it("createDraft refuses an archived collection in the form's words", async () => {
     const admin = await createUser({ role: "ADMIN" });
-    const category = await createCategory();
-    await db.category.update({ where: { id: category.id }, data: { archivedAt: new Date() } });
+    const category = await createCollection();
+    await db.collection.update({ where: { id: category.id }, data: { archivedAt: new Date() } });
 
     await expect(
-      catalogService.createDraft(admin.id, { name: "Beanie", categoryId: category.id, pricePaisa: 100_000 }),
-    ).rejects.toMatchObject({ code: "VALIDATION_FAILED", fields: { categoryId: "Choose a category" } });
+      catalogService.createDraft(admin.id, {
+        name: "Beanie",
+        collectionId: category.id,
+        pricePaisa: 100_000,
+      }),
+    ).rejects.toMatchObject({ code: "VALIDATION_FAILED", fields: { collectionId: "Choose a collection" } });
   });
 });
 
@@ -473,7 +478,7 @@ describe("styles in duplicates and in the shop", () => {
   });
 });
 
-describe("catalogReads.listRelatedByCategory (You may also like)", () => {
+describe("catalogReads.listRelatedByCollection (You may also like)", () => {
   beforeEach(resetDatabase);
 
   it("lists published products of the category, newest first, without the one left out", async () => {
@@ -488,22 +493,22 @@ describe("catalogReads.listRelatedByCategory (You may also like)", () => {
     });
     const second = await save("second-tee");
     await save("draft-tee", { isPublished: false });
-    await save("other-category-tee", { categoryId: (await createCategory()).id });
+    await save("other-category-tee", { mainCollectionId: (await createCollection()).id });
 
-    const all = await catalogReads.listRelatedByCategory({ categoryId: input.categoryId });
-    const others = await catalogReads.listRelatedByCategory({
-      categoryId: input.categoryId,
+    const all = await catalogReads.listRelatedByCollection({ collectionId: input.mainCollectionId });
+    const others = await catalogReads.listRelatedByCollection({
+      collectionId: input.mainCollectionId,
       excludeId: second.id,
     });
 
     expect(all.map((item) => item.slug)).toEqual(["second-tee", "first-tee"]);
     expect(others.map((item) => item.slug)).toEqual(["first-tee"]);
-    expect(await catalogReads.listRelated({ id: first.id, categoryId: input.categoryId })).toMatchObject([
-      { slug: "second-tee" },
-    ]);
-    expect(await catalogReads.listRelatedByCategory({ categoryId: input.categoryId, limit: 1 })).toHaveLength(
-      1,
-    );
+    expect(
+      await catalogReads.listRelated({ id: first.id, mainCollectionId: input.mainCollectionId }),
+    ).toMatchObject([{ slug: "second-tee" }]);
+    expect(
+      await catalogReads.listRelatedByCollection({ collectionId: input.mainCollectionId, limit: 1 }),
+    ).toHaveLength(1);
   });
 });
 
@@ -513,7 +518,7 @@ describe("catalogReads.listRecommendations (specs/product-page-v2.md)", () => {
   it("lists the category without the product, and the other categories, published only, newest first", async () => {
     const admin = await createUser({ role: "ADMIN" });
     const input = await productInput();
-    const otherCategory = (await createCategory()).id;
+    const otherCategory = (await createCollection()).id;
     const minutesAgo = (minutes: number) => new Date(Date.now() - minutes * 60_000);
     const save = async (slug: string, overrides: Partial<ProductData> = {}, publishedAt?: Date) => {
       const saved = await catalogService.saveProduct(admin.id, { product: { ...input, slug, ...overrides } });
@@ -524,40 +529,40 @@ describe("catalogReads.listRecommendations (specs/product-page-v2.md)", () => {
     await save("older-tee", {}, minutesAgo(5));
     await save("newer-tee", {}, minutesAgo(1));
     await save("draft-tee", { isPublished: false });
-    await save("older-cap", { categoryId: otherCategory }, minutesAgo(4));
-    await save("newer-cap", { categoryId: otherCategory }, minutesAgo(2));
-    await save("draft-cap", { categoryId: otherCategory, isPublished: false });
+    await save("older-cap", { mainCollectionId: otherCategory }, minutesAgo(4));
+    await save("newer-cap", { mainCollectionId: otherCategory }, minutesAgo(2));
+    await save("draft-cap", { mainCollectionId: otherCategory, isPublished: false });
     // Published, but nothing for sale any more.
-    const switchedOff = await save("switched-off-cap", { categoryId: otherCategory });
+    const switchedOff = await save("switched-off-cap", { mainCollectionId: otherCategory });
     await db.productVariant.updateMany({ where: { productId: switchedOff.id }, data: { isActive: false } });
-    const archived = await save("archived-cap", { categoryId: otherCategory });
+    const archived = await save("archived-cap", { mainCollectionId: otherCategory });
     await catalogService.archiveProduct(admin.id, archived.id);
 
     const slugs = (list: { slug: string }[]) => list.map((item) => item.slug);
     const all = await catalogReads.listRecommendations({
-      categoryId: input.categoryId,
+      collectionId: input.mainCollectionId,
       excludeId: current.id,
     });
-    expect(slugs(all.sameCategory)).toEqual(["newer-tee", "older-tee"]);
-    expect(slugs(all.otherCategories)).toEqual(["newer-cap", "older-cap"]);
+    expect(slugs(all.sameCollection)).toEqual(["newer-tee", "older-tee"]);
+    expect(slugs(all.otherCollections)).toEqual(["newer-cap", "older-cap"]);
 
     // Without a product to leave out (a draft's Preview), the whole category.
-    const whole = await catalogReads.listRecommendations({ categoryId: input.categoryId });
-    expect(slugs(whole.sameCategory)).toEqual(["newer-tee", "older-tee", "this-tee"]);
+    const whole = await catalogReads.listRecommendations({ collectionId: input.mainCollectionId });
+    expect(slugs(whole.sameCollection)).toEqual(["newer-tee", "older-tee", "this-tee"]);
 
     const one = await catalogReads.listRecommendations({
-      categoryId: input.categoryId,
+      collectionId: input.mainCollectionId,
       excludeId: current.id,
       limit: 1,
     });
-    expect({ same: slugs(one.sameCategory), other: slugs(one.otherCategories) }).toEqual({
+    expect({ same: slugs(one.sameCollection), other: slugs(one.otherCollections) }).toEqual({
       same: ["newer-tee"],
       other: ["newer-cap"],
     });
 
     // Seen from the other category, the tees are "More from Virzeen".
-    const fromCap = await catalogReads.listRecommendations({ categoryId: otherCategory });
-    expect(slugs(fromCap.otherCategories)).toEqual(["newer-tee", "older-tee", "this-tee"]);
+    const fromCap = await catalogReads.listRecommendations({ collectionId: otherCategory });
+    expect(slugs(fromCap.otherCollections)).toEqual(["newer-tee", "older-tee", "this-tee"]);
   });
 
   it("gives two empty lists when there is nothing else to show", async () => {
@@ -566,8 +571,8 @@ describe("catalogReads.listRecommendations (specs/product-page-v2.md)", () => {
     const only = await catalogService.saveProduct(admin.id, { product: input });
 
     expect(
-      await catalogReads.listRecommendations({ categoryId: input.categoryId, excludeId: only.id }),
-    ).toEqual({ sameCategory: [], otherCategories: [] });
+      await catalogReads.listRecommendations({ collectionId: input.mainCollectionId, excludeId: only.id }),
+    ).toEqual({ sameCollection: [], otherCollections: [] });
   });
 
   it("shows up to 8 in each list by default", async () => {
@@ -577,10 +582,10 @@ describe("catalogReads.listRecommendations (specs/product-page-v2.md)", () => {
       await catalogService.saveProduct(admin.id, { product: { ...input, slug: `tee-${index}` } });
     }
 
-    const lists = await catalogReads.listRecommendations({ categoryId: input.categoryId });
+    const lists = await catalogReads.listRecommendations({ collectionId: input.mainCollectionId });
 
-    expect(lists.sameCategory).toHaveLength(8);
-    expect(lists.otherCategories).toEqual([]);
+    expect(lists.sameCollection).toHaveLength(8);
+    expect(lists.otherCollections).toEqual([]);
   });
 });
 

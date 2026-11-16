@@ -45,6 +45,7 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams: 
       />
 
       <DataTable
+        rowLink
         caption="Orders"
         rows={rows}
         getRowId={(row) => row.orderNumber}

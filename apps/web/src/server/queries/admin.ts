@@ -2,7 +2,6 @@ import "server-only";
 import "@/server/bootstrap";
 import {
   adminReads,
-  catalogReads,
   discountService,
   orderService,
   portfolioService,
@@ -27,7 +26,6 @@ export const listAdminProducts = ({ q, status }: AdminProductFilters) => adminRe
 /** Every referral, newest first (specs/member-perks.md). */
 export const listAdminReferrals = () => referralService.adminList();
 export const getProductStatusCounts = () => adminReads.productStatusCounts();
-export const listAdminCategories = () => adminReads.listCategories();
 export const listAdminCollections = () => adminReads.listCollections();
 export const listAdminSizeGuides = () => adminReads.listSizeGuides();
 export const listAdminCustomers = (page: number, query = "") => adminReads.listCustomers(page, query);
@@ -67,20 +65,16 @@ export const getPortfolioProjectForEdit = cache(async (id: string) => {
   }
 });
 
-/** Categories, collections and size guides for the product form. */
+/** Collections and size guides for the product form. */
 export async function getProductFormOptions() {
-  const [categories, collections, sizeGuides] = await Promise.all([
-    adminReads.listCategories(),
+  const [collections, sizeGuides] = await Promise.all([
     adminReads.listCollections(),
     adminReads.listSizeGuideOptions(),
   ]);
   return {
-    // slug: the editor's preview links the breadcrumb to the category's shop page.
-    categories: categories.map((c) => ({ value: c.id, label: c.name, slug: c.slug })),
-    collections: collections.map((c) => ({ id: c.id, name: c.name })),
+    // slug: the editor's preview links the breadcrumb to the main collection's shop page.
+    collections: collections.map((c) => ({ id: c.id, name: c.name, slug: c.slug })),
     // The whole guide, so the preview's Size guide popup shows it without a database read.
     sizeGuides,
   };
 }
-
-export const listPublicCategories = () => catalogReads.listCategories();

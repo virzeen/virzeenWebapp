@@ -7,9 +7,9 @@ import { coarsePointer, editLabelFor } from "./editable-text-keys";
 import { EditableView } from "./editable-view";
 
 export type EditableSelectProps = {
-  /** The field's name, shown above the select while editing ("Category"). */
+  /** The field's name, shown above the select while editing ("Main collection"). */
   label: string;
-  /** What the pencil reads after "Edit"; defaults to the label ("Edit category"). */
+  /** What the pencil reads after "Edit"; defaults to the label ("Edit main collection"). */
   editLabel?: string;
   value: string;
   options: readonly SelectOption[];
@@ -18,10 +18,10 @@ export type EditableSelectProps = {
   onCommit: (next: string) => string | null | Promise<string | null>;
   /** A problem from the last save (form state), shown under the text. */
   error?: string | undefined;
-  /** More controls under the select while editing, e.g. "New category"; `close` ends the edit (focus → pencil). */
+  /** More controls under the select while editing, e.g. "New collection"; `close` ends the edit (focus → pencil). */
   extra?: (controls: { close: () => void }) => React.ReactNode;
   className?: string;
-  /** The value as the page shows it (e.g. the category under the name). */
+  /** The value as the page shows it (e.g. the main collection under the name). */
   children: React.ReactNode;
 };
 

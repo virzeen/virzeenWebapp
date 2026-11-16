@@ -4,26 +4,26 @@ import { Accordion, AccordionItem, Checkbox, Link, RadioGroup, RadioGroupItem } 
 import { useListingUrl } from "./listing-url";
 
 type ShopSidebarProps = {
-  categories: { slug: string; name: string }[];
-  /** The category this listing shows; none on /shop and collections. */
-  activeCategory?: string | undefined;
-  /** A collection or a search lists across categories, so no category is current. */
-  acrossCategories: boolean;
+  collections: { slug: string; name: string }[];
+  /** The collection this listing shows; none on /shop and collections. */
+  activeCollection?: string | undefined;
+  /** A collection or a search lists across collections, so no collection is current. */
+  acrossCollections: boolean;
   sizes: string[];
   colors: string[];
 };
 
-const CATEGORY_LINK =
+const COLLECTION_LINK =
   "flex min-h-10 items-center text-body text-ink hover:text-ink-muted aria-[current=page]:font-medium";
 
 /**
- * The listing's filters on the left from lg, like Nike's (owner 2026-11-08): the categories as a list, then Size,
+ * The listing's filters on the left from lg, like Nike's (owner 2026-11-08): the collections as a list, then Size,
  * Colour and Availability in open sections. A choice applies at once (the URL changes; "Any" removes it).
  */
 export function ShopSidebar({
-  categories,
-  activeCategory,
-  acrossCategories,
+  collections,
+  activeCollection,
+  acrossCollections,
   sizes,
   colors,
 }: ShopSidebarProps) {
@@ -34,28 +34,28 @@ export function ShopSidebar({
 
   return (
     <div className="flex flex-col gap-6">
-      {categories.length > 0 && (
-        <nav aria-label="Categories">
+      {collections.length > 0 && (
+        <nav aria-label="Collections">
           <ul className="flex flex-col">
             <li>
               <Link
                 href="/shop"
                 variant="subtle"
-                aria-current={!activeCategory && !acrossCategories ? "page" : undefined}
-                className={CATEGORY_LINK}
+                aria-current={!activeCollection && !acrossCollections ? "page" : undefined}
+                className={COLLECTION_LINK}
               >
                 All products
               </Link>
             </li>
-            {categories.map((category) => (
-              <li key={category.slug}>
+            {collections.map((collection) => (
+              <li key={collection.slug}>
                 <Link
-                  href={`/shop/${category.slug}`}
+                  href={`/collections/${collection.slug}`}
                   variant="subtle"
-                  aria-current={activeCategory === category.slug ? "page" : undefined}
-                  className={CATEGORY_LINK}
+                  aria-current={activeCollection === collection.slug ? "page" : undefined}
+                  className={COLLECTION_LINK}
                 >
-                  {category.name}
+                  {collection.name}
                 </Link>
               </li>
             ))}

@@ -4,14 +4,14 @@ import "server-only";
 import { catalogReads, catalogService } from "@virzeen/core";
 import {
   archiveSchema,
-  categorySchema,
   collectionSchema,
   createDraftProductSchema,
   duplicateProductSchema,
-  relatedByCategorySchema,
+  relatedByCollectionSchema,
   saveProductSchema,
   saveSizeGuideSchema,
   setPublicAtSchema,
+  setVisibilitySchema,
   uploadSignatureSchema,
 } from "@virzeen/validators";
 import { revalidatePath } from "next/cache";
@@ -40,7 +40,7 @@ export async function saveProductAction(input: unknown) {
   });
 }
 
-/** New product popup: a draft from a name, category and price; the caller opens its editor. */
+/** New product popup: a draft from a name, collection and price; the caller opens its editor. */
 export async function createDraftProductAction(input: unknown) {
   return runAdminAction("createDraftProduct", async (admin) => {
     const data = createDraftProductSchema.parse(input);
@@ -63,14 +63,14 @@ export async function duplicateProductAction(input: unknown) {
 
 /**
  * The carousels under the product in the editor and its Preview (specs/product-page-v2.md): "You may also like" (up
- * to 8 published products of the category, newest first, without the product itself) and "More from Virzeen" (up to
- * 8 of the other categories). Returns { sameCategory, otherCategories }. Read-only; admin only because drafts'
- * categories aren't public.
+ * to 8 published products of the main collection, newest first, without the product itself) and "More from Virzeen"
+ * (up to 8 of the other collections). Returns { sameCollection, otherCollections }. Read-only; admin only because
+ * drafts' collections aren't public.
  */
 export async function listRecommendationsAction(input: unknown) {
   return runAdminAction("listRecommendations", async () => {
-    const { categoryId, excludeId } = relatedByCategorySchema.parse(input);
-    return catalogReads.listRecommendations({ categoryId, excludeId });
+    const { collectionId, excludeId } = relatedByCollectionSchema.parse(input);
+    return catalogReads.listRecommendations({ collectionId, excludeId });
   });
 }
 
@@ -85,6 +85,20 @@ export async function setPublicAtAction(input: unknown) {
   });
 }
 
+/** Who may see a product and from when, from the products list's side panel. Audited in core. */
+export async function setProductVisibilityAction(input: unknown) {
+  return runAdminAction("setProductVisibility", async (admin) => {
+    const { id, audience, publicAt } = setVisibilitySchema.parse(input);
+    const result = await catalogService.setVisibility(admin.id, id, {
+      audience,
+      publicAt: publicAt ? new Date(publicAt) : null,
+    });
+    refreshCatalog();
+    revalidatePath("/admin/products");
+    return result;
+  });
+}
+
 export async function archiveProductAction(input: unknown) {
   return runAdminAction("archiveProduct", async (admin) => {
     const { id } = archiveSchema.parse(input);
@@ -92,24 +106,6 @@ export async function archiveProductAction(input: unknown) {
     refreshCatalog();
     // Its waiting "Notify me" requests end without an email (specs/notify-me.md).
     sendDueStockAlerts();
-    return result;
-  });
-}
-
-export async function saveCategoryAction(input: unknown) {
-  return runAdminAction("saveCategory", async (admin) => {
-    const data = categorySchema.parse(input);
-    const saved = await catalogService.saveCategory(admin.id, data);
-    refreshCatalog();
-    return saved;
-  });
-}
-
-export async function archiveCategoryAction(input: unknown) {
-  return runAdminAction("archiveCategory", async (admin) => {
-    const { id } = archiveSchema.parse(input);
-    const result = await catalogService.archiveCategory(admin.id, id);
-    refreshCatalog();
     return result;
   });
 }

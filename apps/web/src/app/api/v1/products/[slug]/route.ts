@@ -22,6 +22,7 @@ export const GET = apiHandler<Context>("v1.products.detail", async (_request, { 
     countryOfOrigin: product.countryOfOrigin,
     fromPricePaisa: product.fromPricePaisa,
     inStock: product.inStock,
+    membersOnly: product.membersOnly,
     imageUrl: product.images[0]?.url ?? null,
     images: product.images.map(({ url, alt, color }) => ({ url, alt, color })),
     features: product.features.map(({ title, body, imageUrl, imageAlt }) => ({

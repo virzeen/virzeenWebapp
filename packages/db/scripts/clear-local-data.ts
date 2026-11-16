@@ -11,6 +11,8 @@ if (!/@(localhost|127\.0\.0\.1)(:\d+)?\/virzeen_(test|e2e)(\?|$)/.test(url)) {
 const db = createDbClient(url);
 await db.$transaction([
   db.orderEvent.deleteMany(),
+  // An order points at the attempt that paid it (`paidPaymentId`): unlink before deleting payments.
+  db.order.updateMany({ data: { paidPaymentId: null } }),
   db.payment.deleteMany(),
   db.orderItem.deleteMany(),
   db.order.deleteMany(),
@@ -30,7 +32,6 @@ await db.$transaction([
   db.sizeGuide.deleteMany(),
   db.portfolioProject.deleteMany(),
   db.collection.deleteMany(),
-  db.category.deleteMany(),
   db.twoFactor.deleteMany(),
   db.session.deleteMany(),
   db.account.deleteMany(),

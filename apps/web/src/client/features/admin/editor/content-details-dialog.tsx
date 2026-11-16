@@ -17,7 +17,7 @@ export function EditorDetailsDialog() {
   const { form, style, product } = useProductEditor();
   const values = useWatch({ control: form.control }) as ProductInput;
   const shown = useMemo(() => {
-    const draft = { values, category: null, sizeGuide: null, productId: product.id };
+    const draft = { values, mainCollection: null, sizeGuide: null, productId: product.id };
     const preview = toPreviewProduct(draft);
     // Nothing ticked For sale yet: the popup's price still comes from the rows.
     if (preview.variants.length > 0) return preview;

@@ -132,7 +132,7 @@ test.describe("Product page", () => {
     await expect(more).toBeVisible();
     await expect(more.getByRole("link").first()).toBeVisible();
 
-    // The seed has more products in other categories than the 4 that fit at lg, so the buttons show.
+    // The seed has more products in other collections than the 4 that fit at lg, so the buttons show.
     const previous = more.getByRole("button", { name: "Previous products" });
     const next = more.getByRole("button", { name: "Next products" });
     await expect(previous).toBeDisabled();
@@ -194,7 +194,9 @@ test.describe("Product page", () => {
 
 // specs/mobile-menu.md: the phone menu (below md), like Nike's.
 test.describe("Phone menu", () => {
-  test("a guest opens the menu and goes to a category from the header's links @mobile", async ({ page }) => {
+  test("a guest opens the menu and goes to a collection from the header's links @mobile", async ({
+    page,
+  }) => {
     // The desktop project runs @mobile tests too, and the menu button only shows below md.
     const viewport = page.viewportSize();
     if (!viewport || viewport.width >= 768) await page.setViewportSize({ width: 390, height: 844 });
@@ -219,11 +221,11 @@ test.describe("Phone menu", () => {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 
     await menu.getByRole("link", { name: "Accessories", exact: true }).click();
-    await expect(page).toHaveURL(/\/shop\/accessories$/);
+    await expect(page).toHaveURL(/\/collections\/accessories$/);
     await expect(menu).toBeHidden();
     await expect(page.getByRole("heading", { level: 1, name: "Accessories" })).toBeVisible();
 
-    // On a category's page, its row is the current one.
+    // On a collection's page, its row is the current one.
     await openMenu.click();
     await expect(menu.getByRole("link", { name: "Accessories", exact: true })).toHaveAttribute(
       "aria-current",
@@ -246,7 +248,9 @@ test.describe("Storefront pages", () => {
     await page.goto("/");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("timeless monochromium experience.");
 
-    await page.goto("/shop/accessories");
+    // An old category address goes to the collection with the same slug, keeping the filters.
+    await page.goto("/shop/accessories?sort=price-asc");
+    await expect(page).toHaveURL(/\/collections\/accessories\?sort=price-asc$/);
     await expect(page.getByRole("heading", { level: 1, name: "Accessories" })).toBeVisible();
     await expect(page.getByRole("link", { name: /Logo Cap/ })).toBeVisible();
     await expect(page.getByRole("link", { name: /Linen Overshirt/ })).toHaveCount(0);
@@ -254,6 +258,75 @@ test.describe("Storefront pages", () => {
     await page.goto("/portfolio/preorder-starting-soon");
     await expect(page.getByRole("heading", { level: 1, name: "Preorder starting soon" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Shop the story" })).toBeVisible();
+  });
+
+  test("the home hero fills the whole screen on a phone, a tablet and a computer", async ({ page }) => {
+    for (const [width, height] of [
+      [390, 844],
+      [768, 1024],
+      [1280, 800],
+      [2560, 1080],
+    ] as const) {
+      await page.setViewportSize({ width, height });
+      await page.goto("/");
+      const hero = page.locator("section", { has: page.getByRole("heading", { level: 1 }) });
+      // The photo starts under the see-through header and reaches the bottom edge, from one side to the other.
+      const box = (await hero.boundingBox())!;
+      const header = (await page.getByRole("banner").boundingBox())!;
+      const pageWidth = await page.evaluate(() => document.documentElement.clientWidth);
+      expect(box.y).toBeLessThanOrEqual(header.y + 0.5);
+      expect(Math.abs(box.y + box.height - height)).toBeLessThanOrEqual(1);
+      expect(Math.abs(box.width - pageWidth)).toBeLessThanOrEqual(1);
+      // The photo covers the hero exactly, so it too reaches the bottom edge (with or without a bar above the header).
+      const photo = (await hero.locator("img").boundingBox())!;
+      expect(Math.abs(photo.width - pageWidth)).toBeLessThanOrEqual(1);
+      expect(Math.abs(photo.y - box.y)).toBeLessThanOrEqual(1);
+      expect(Math.abs(photo.y + photo.height - height)).toBeLessThanOrEqual(1);
+    }
+  });
+
+  test("the wheel keeps scrolling the home page smoothly when a scroll carries on over New and Featured", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto("/");
+    const row = page.getByRole("region", { name: "New and Featured" }).getByRole("list").first();
+    await row.scrollIntoViewIfNeeded();
+    // The pointer rests in the white space just above the cards; the page scroll then brings them under it.
+    const box = (await row.boundingBox())!;
+    await page.evaluate((by) => window.scrollBy(0, by), box.y - 500);
+    const rowTop = (await row.boundingBox())!.y;
+    await page.mouse.move(box.x + 200, rowTop - 120);
+
+    // Every frame's scroll position, and when it last changed.
+    const start = await page.evaluate(() => {
+      const w = window as unknown as { ys: number[]; changedAt: number };
+      w.ys = [window.scrollY];
+      w.changedAt = performance.now();
+      const tick = () => {
+        if (window.scrollY !== w.ys.at(-1)) w.changedAt = performance.now();
+        w.ys.push(window.scrollY);
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+      return window.scrollY;
+    });
+    // A trackpad-like scroll: small, mostly downward ticks with a little sideways drift now and then.
+    for (let i = 0; i < 30; i++) await page.mouse.wheel(i % 3 === 0 ? 3 : 0, 30);
+    await expect
+      .poll(() =>
+        page.evaluate(() => performance.now() - (window as unknown as { changedAt: number }).changedAt),
+      )
+      .toBeGreaterThan(300);
+
+    const { ys, end } = await page.evaluate(() => ({
+      ys: (window as unknown as { ys: number[] }).ys,
+      end: window.scrollY,
+    }));
+    // It never springs back up on the way down (owner: "it goes up and down like a spring"), and it got somewhere.
+    const steps = ys.slice(1).map((y, i) => y - ys[i]!);
+    expect(Math.min(...steps)).toBeGreaterThan(-0.5);
+    expect(end - start).toBeGreaterThan(600);
   });
 
   test("unknown products show the friendly not-found page", async ({ page }) => {

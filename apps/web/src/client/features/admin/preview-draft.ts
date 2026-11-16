@@ -12,8 +12,8 @@ import type { ProductDetailsData, SizeGuideView } from "@/client/features/produc
 
 export type PreviewDraft = {
   values: ProductInput;
-  /** The picked category; `id` finds the "You may also like" products (older drafts don't have it). */
-  category: { id?: string; name: string; slug: string } | null;
+  /** The picked main collection; `id` finds the "You may also like" products (older drafts don't have it). */
+  mainCollection: { id?: string; name: string; slug: string } | null;
   /** The picked size guide, from the form's options: the preview can't read the database. */
   sizeGuide: SizeGuideView | null;
   /** The saved product's id (left out of "You may also like"); null on a product not saved yet. */
@@ -66,13 +66,13 @@ function previewStyles(entries: ProductInput["styles"] | undefined, colors: read
 }
 
 /**
- * What "You may also like" in the preview asks for: the draft's category, without the product itself. null when no
- * category is picked yet.
+ * What "You may also like" in the preview asks for: the draft's main collection, without the product itself. null
+ * when none is picked yet.
  */
-export function relatedQueryFor(draft: PreviewDraft): { categoryId: string; excludeId?: string } | null {
-  const categoryId = draft.category?.id ?? text(draft.values.categoryId);
-  if (!categoryId) return null;
-  return draft.productId ? { categoryId, excludeId: draft.productId } : { categoryId };
+export function relatedQueryFor(draft: PreviewDraft): { collectionId: string; excludeId?: string } | null {
+  const collectionId = draft.mainCollection?.id ?? text(draft.values.mainCollectionId);
+  if (!collectionId) return null;
+  return draft.productId ? { collectionId, excludeId: draft.productId } : { collectionId };
 }
 
 /**
@@ -103,7 +103,7 @@ export function toPreviewProduct(draft: PreviewDraft): ProductDetailsData {
     benefits: lines(values.benefits),
     details: lines(values.details),
     countryOfOrigin: text(values.countryOfOrigin) || null,
-    category: draft.category ?? { name: "No category yet", slug: "" },
+    mainCollection: draft.mainCollection ?? { name: "No collection yet", slug: "" },
     images: values.images.map((image, index) => ({
       id: `${index}-${image.url}`,
       url: image.url,

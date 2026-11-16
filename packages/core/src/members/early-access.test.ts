@@ -74,8 +74,10 @@ describe("early access for a collection", () => {
     expect(await catalogReads.getCollectionBySlug(collection.slug, 12)).not.toBeNull();
     expect(await catalogReads.hasLiveCollection(collection.slug)).toBe(false);
     expect(await catalogReads.hasLiveCollection(collection.slug, 12)).toBe(true);
-    expect(await catalogReads.listCollections()).toHaveLength(0);
-    expect(await catalogReads.listCollections({ earlyHours: 12 })).toHaveLength(1);
+    const slugs = async (earlyHours: number) =>
+      (await catalogReads.listCollections({ earlyHours })).map((row) => row.slug);
+    expect(await slugs(0)).not.toContain("festival");
+    expect(await slugs(12)).toContain("festival");
     // Past its time it is for everyone.
     await db.collection.update({
       where: { id: collection.id },
@@ -119,6 +121,26 @@ describe("early access in the bag", () => {
     const { cartId } = await cartService.ensureCart({ guest: true });
     await expect(
       cartService.addItem({ cartId, variantId: soon.variant.id, quantity: 1 }),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+});
+
+describe("setting a product's visibility from the list", () => {
+  beforeEach(resetDatabase);
+
+  it("saves the level and the public time together, audits the old level and hides it from visitors", async () => {
+    const admin = await createUser({ role: "ADMIN" });
+    const { id, slug } = await productPublicIn(-1);
+    const when = new Date(Date.now() + 5 * HOUR);
+    await catalogService.setVisibility(admin.id, id, { audience: "PASS", publicAt: when });
+    const saved = await db.product.findUniqueOrThrow({ where: { id } });
+    expect(saved.audience).toBe("PASS");
+    expect(saved.publicAt?.getTime()).toBe(when.getTime());
+    expect(await catalogReads.getProductBySlug(slug)).toBeNull();
+    const log = await db.auditLog.findFirstOrThrow({ where: { action: "product.visibility", entityId: id } });
+    expect(log.diff).toMatchObject({ audience: "PASS", audienceBefore: "PUBLIC" });
+    await expect(
+      catalogService.setVisibility(admin.id, "missing", { audience: "PUBLIC", publicAt: null }),
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 });

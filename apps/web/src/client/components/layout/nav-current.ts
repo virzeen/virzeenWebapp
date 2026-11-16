@@ -3,14 +3,17 @@ export const SALE_COLLECTION = "sale";
 
 /**
  * The shop's main links, like Nike's (owner 2026-11-08): New and Featured (the shop, newest first), Sale (the "sale"
- * collection, once it's live), then every category (VHome, VWear…). The header shows them from xl, and the phone menu
+ * collection, once it's live), then every collection (VHome, VWear…). The header shows them from xl, and the phone menu
  * as its large rows (owner 2026-11-10).
  */
-export function shopNavItems(categories: readonly { slug: string; name: string }[], hasSale: boolean) {
+export function shopNavItems(collections: readonly { slug: string; name: string }[], hasSale: boolean) {
   return [
     { href: "/shop", label: "New and Featured" },
     ...(hasSale ? [{ href: `/collections/${SALE_COLLECTION}`, label: "Sale" }] : []),
-    ...categories.map((category) => ({ href: `/shop/${category.slug}`, label: category.name })),
+    // "sale" has its own link above, so it isn't listed twice.
+    ...collections
+      .filter((collection) => collection.slug !== SALE_COLLECTION)
+      .map((collection) => ({ href: `/collections/${collection.slug}`, label: collection.name })),
   ];
 }
 
@@ -20,7 +23,7 @@ export function isCurrent(pathname: string, href: string) {
 }
 
 /**
- * The one link of a menu that marks the current page: the most specific match, so on /shop/tops that's /shop/tops
+ * The one link of a menu that marks the current page: the most specific match, so on /collections/tops that's /collections/tops
  * (not /shop as well), and on /account/orders it's Orders, not My profile.
  */
 export function currentHref(pathname: string, hrefs: readonly string[]): string | undefined {
@@ -30,4 +33,9 @@ export function currentHref(pathname: string, hrefs: readonly string[]): string 
 /** The greeting's name: the first word of the account name, or null when there's no name. */
 export function firstName(name: string | null | undefined): string | null {
   return name?.trim().split(/\s+/)[0] || null;
+}
+
+/** The signed-in greeting: "Hi, {first name}", or "Hi there" while the account has no name (owner 2026-11-16). */
+export function greetingFor(first: string | null): string {
+  return first ? `Hi, ${first}` : "Hi there";
 }

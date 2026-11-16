@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 const limitSchema = z.coerce.number().int().min(1).max(50).catch(24);
 
-/** GET /api/v1/products?category&collection&cursor&limit → ProductSummary[] + nextCursor */
+/** GET /api/v1/products?collection&cursor&limit → ProductSummary[] + nextCursor */
 export const GET = apiHandler("v1.products.list", async (request) => {
   const params = Object.fromEntries(new URL(request.url).searchParams);
   const filters = shopFiltersSchema.parse(params);

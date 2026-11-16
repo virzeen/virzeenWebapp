@@ -1,14 +1,14 @@
 import { db } from "@virzeen/db";
 import type { ProductData, SizeGuideInput } from "@virzeen/validators";
 import { beforeEach, describe, expect, it } from "vitest";
-import { createCart, createCategory, createUser, resetDatabase } from "../../test/factories";
+import { createCart, createCollection, createUser, resetDatabase } from "../../test/factories";
 import { cartService } from "../cart/cart.service";
 import { adminReads } from "../admin/admin-reads";
 import { catalogReads } from "./catalog.reads";
 import { catalogService } from "./catalog.service";
 
 async function productInput(overrides: Partial<ProductData> = {}): Promise<ProductData> {
-  const category = await createCategory();
+  const category = await createCollection();
   return {
     name: "Linen Overshirt",
     slug: "linen-overshirt",
@@ -18,9 +18,10 @@ async function productInput(overrides: Partial<ProductData> = {}): Promise<Produ
     details: [],
     countryOfOrigin: "",
     seoDescription: "",
-    categoryId: category.id,
+    mainCollectionId: category.id,
     sizeGuideId: "",
     collectionIds: [],
+    audience: "PUBLIC",
     isPublished: true,
     images: [{ url: "virzeen/products/linen/front", alt: "Front view" }],
     features: [],
@@ -254,17 +255,17 @@ describe("catalogService.saveProduct", () => {
   });
 });
 
-describe("catalogService.archiveCategory", () => {
+describe("catalogService.archiveCollection", () => {
   beforeEach(resetDatabase);
 
-  it("refuses while products use the category, counting them in plain words", async () => {
+  it("refuses while products have it as their main collection, counting them in plain words", async () => {
     const admin = await createUser({ role: "ADMIN" });
     const input = await productInput();
     await catalogService.saveProduct(admin.id, { product: input });
 
-    await expect(catalogService.archiveCategory(admin.id, input.categoryId)).rejects.toMatchObject({
+    await expect(catalogService.archiveCollection(admin.id, input.mainCollectionId)).rejects.toMatchObject({
       code: "CONFLICT",
-      message: "Move or archive the 1 product in this category first.",
+      message: "Move or archive the 1 product that have this as their main collection first.",
     });
 
     await catalogService.saveProduct(admin.id, {
@@ -274,8 +275,8 @@ describe("catalogService.archiveCategory", () => {
         variants: input.variants.map((v) => ({ ...v, sku: v.sku.replace("LINEN", "SHIRT") })),
       },
     });
-    await expect(catalogService.archiveCategory(admin.id, input.categoryId)).rejects.toMatchObject({
-      message: "Move or archive the 2 products in this category first.",
+    await expect(catalogService.archiveCollection(admin.id, input.mainCollectionId)).rejects.toMatchObject({
+      message: "Move or archive the 2 products that have this as their main collection first.",
     });
   });
 });
@@ -800,11 +801,11 @@ describe("feature layouts and picture-only features (specs/product-page-v2.md)",
 
   it("starts a new draft with three across and no Custom rows", async () => {
     const admin = await createUser({ role: "ADMIN" });
-    const category = await createCategory();
+    const category = await createCollection();
 
     const draft = await catalogService.createDraft(admin.id, {
       name: "Beanie",
-      categoryId: category.id,
+      collectionId: category.id,
       pricePaisa: 135_000,
     });
 

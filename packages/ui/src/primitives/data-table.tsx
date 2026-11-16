@@ -1,4 +1,5 @@
 import { cn } from "../lib/cn";
+import { DataTableRow } from "./data-table-row";
 
 export type DataTableColumn<Row> = {
   key: string;
@@ -29,13 +30,26 @@ export type DataTableProps<Row> = {
   /** Rendered instead of the table body when there are no rows (usually an `EmptyState`). */
   empty?: React.ReactNode;
   className?: string;
+  /**
+   * Make the whole row clickable: a click anywhere on it (not on its own buttons or links) follows the row's first
+   * link. Use it when the first column links to the row's page.
+   */
+  rowLink?: boolean;
 };
 
 /**
  * Admin lists (orders, products, customers). Server-rendered; filters and pagination live in the URL.
  * Not for customer-facing UI.
  */
-export function DataTable<Row>({ columns, rows, getRowId, caption, empty, className }: DataTableProps<Row>) {
+export function DataTable<Row>({
+  columns,
+  rows,
+  getRowId,
+  caption,
+  empty,
+  className,
+  rowLink,
+}: DataTableProps<Row>) {
   if (rows.length === 0 && empty) return <>{empty}</>;
   return (
     <div className={cn("w-full overflow-x-auto rounded-md border border-line", className)}>
@@ -60,7 +74,7 @@ export function DataTable<Row>({ columns, rows, getRowId, caption, empty, classN
         </thead>
         <tbody className="divide-y divide-line">
           {rows.map((row) => (
-            <tr key={getRowId(row)} className="transition-colors duration-150 ease-standard hover:bg-surface">
+            <DataTableRow key={getRowId(row)} clickable={rowLink}>
               {columns.map((column) => (
                 <td
                   key={column.key}
@@ -73,7 +87,7 @@ export function DataTable<Row>({ columns, rows, getRowId, caption, empty, classN
                   {column.cell(row)}
                 </td>
               ))}
-            </tr>
+            </DataTableRow>
           ))}
         </tbody>
       </table>

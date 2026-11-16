@@ -5,7 +5,7 @@ const ready = {
   name: "Linen shirt",
   images: [{ url: "p/a", alt: "" }],
   description: "Soft linen.",
-  categoryId: "tz4a98xxat96iws9zmbrgj3a",
+  mainCollectionId: "tz4a98xxat96iws9zmbrgj3a",
   shippingPaisa: 15_000,
   variants: [{ sku: "", size: "M", color: "", pricePaisa: 150_000, stock: 2, isActive: true }],
 };

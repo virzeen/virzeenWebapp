@@ -6,12 +6,12 @@ import { useWatch } from "react-hook-form";
 import { ArchiveButton } from "../archive-button";
 import { DuplicateProductButton } from "../duplicate-product-button";
 import { useProductEditor } from "./editor-context";
-import { SettingsCollections, SettingsSearch } from "./editor-settings-fields";
+import { SettingsCollections, SettingsSearch, SettingsVisibility } from "./editor-settings-fields";
 import { SettingsRows } from "./editor-settings-rows";
 
 /**
  * Settings (specs/product-editor-on-page.md "Top bar"): what isn't on the product page. A sheet from the right with
- * the URL slug and search description, collections, per-size prices and SKU codes, then View in shop, Duplicate and
+ * the URL slug and search description, visibility, collections, per-size prices and SKU codes, then View in shop, Duplicate and
  * Archive. Every field saves when it's left, like the page.
  */
 export function EditorSettings() {
@@ -29,6 +29,7 @@ export function EditorSettings() {
       <SheetContent title="Settings" description="The parts of the product that aren't on its page.">
         <div className="flex flex-col gap-8">
           <SettingsSearch />
+          <SettingsVisibility />
           <SettingsCollections />
           <SettingsRows />
           <section aria-labelledby="settings-product-heading" className="flex flex-col gap-3">
@@ -48,7 +49,13 @@ export function EditorSettings() {
                 </ButtonLink>
               )}
               <DuplicateProductButton id={product.id} unsaved={save.status !== "saved"} />
-              <ArchiveButton kind="product" id={product.id} name={name} redirectTo="/admin/products" />
+              <ArchiveButton
+                kind="product"
+                id={product.id}
+                name={name}
+                redirectTo="/admin/products"
+                label="Delete"
+              />
             </div>
           </section>
         </div>

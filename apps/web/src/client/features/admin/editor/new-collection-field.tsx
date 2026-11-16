@@ -4,17 +4,17 @@ import { Button, FormField, Input, toast } from "@virzeen/ui";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { messageFor } from "@/client/lib/error-messages";
-import { saveCategoryAction } from "@/server/actions/admin/catalog";
+import { saveCollectionAction } from "@/server/actions/admin/catalog";
 import { slugify } from "../slugify";
-import type { CategoryOption } from "./editor-context";
+import type { CollectionOption } from "./editor-context";
 
-type NewCategoryFieldProps = {
-  /** The category was made: pick it. Returns a problem to show here, or null. */
-  onAdded: (category: CategoryOption) => string | null;
+type NewCollectionFieldProps = {
+  /** The collection was made: pick it. Returns a problem to show here, or null. */
+  onAdded: (collection: CollectionOption) => string | null;
 };
 
-/** "New category" under the category select (as in the form editor's Organise box): a name, then Add category. */
-export function NewCategoryField({ onAdded }: NewCategoryFieldProps) {
+/** "New collection" under the main collection select: a name, then Add collection. Public until changed in Collections. */
+export function NewCollectionField({ onAdded }: NewCollectionFieldProps) {
   const router = useRouter();
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
@@ -37,32 +37,38 @@ export function NewCategoryField({ onAdded }: NewCategoryFieldProps) {
     setError(null);
     const slug = slugify(trimmed);
     startTransition(async () => {
-      const result = await saveCategoryAction({ name: trimmed, slug, sortOrder: 0 });
+      const result = await saveCollectionAction({
+        name: trimmed,
+        slug,
+        sortOrder: 0,
+        isFeatured: false,
+        audience: "PUBLIC",
+      });
       if (!result.ok) {
         setError(
           result.error.code === "VALIDATION_FAILED" && result.error.fields?.slug
-            ? "A category with this name already exists. Choose it in the list."
+            ? "A collection with this name already exists. Choose it in the list."
             : messageFor(result.error),
         );
         return;
       }
-      toast.success("Category added");
+      toast.success("Collection added");
       router.refresh();
-      setError(onAdded({ value: result.data.id, label: trimmed, slug }));
+      setError(onAdded({ id: result.data.id, name: trimmed, slug }));
     });
   }
 
   if (!adding) {
     return (
       <Button ref={toggleRef} variant="link" size="sm" className="self-start" onClick={() => setAdding(true)}>
-        + New category
+        + New collection
       </Button>
     );
   }
 
   return (
     <div className="flex flex-col gap-2">
-      <FormField label="New category name" error={error ?? undefined}>
+      <FormField label="New collection name" error={error ?? undefined}>
         <Input
           value={name}
           maxLength={60}
@@ -79,7 +85,7 @@ export function NewCategoryField({ onAdded }: NewCategoryFieldProps) {
       </FormField>
       <div className="flex gap-2">
         <Button size="sm" shape="pill" loading={pending} onClick={add}>
-          Add category
+          Add collection
         </Button>
         <Button variant="ghost" size="sm" shape="pill" disabled={pending} onClick={() => setAdding(false)}>
           Cancel

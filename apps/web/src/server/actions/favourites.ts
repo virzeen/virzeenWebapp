@@ -33,8 +33,8 @@ export type FavouriteView = {
   /** When the account saved it; null for a guest's (the browser keeps its own time). */
   savedAt: string | null;
   product: ProductSummary;
-  /** The product's category name ("Tops"). */
-  category: string;
+  /** The product's main collection's name ("Tops"). */
+  collection: string;
   /** The saved style's variants for sale (stock 0 when sold out), sizes in shop order; [] when the style is gone. */
   variants: FavouriteVariant[];
   /** The saved style's photos, for the Add to bag popup (every photo without a style, or when it isn't sold). */

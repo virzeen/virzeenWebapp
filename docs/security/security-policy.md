@@ -47,6 +47,8 @@
 | Favourites                                                                     | 60 / min per user, or per IP for guests  |
 | "Notify me when it's back" (ask and stop, `alert` bucket)                      | 30 / 10 min per user                     |
 | Checkout                                                                       | 10 / 10 min per user                     |
+| Pay now on a waiting order (`checkout` bucket, shared with checkout)           | 10 / 10 min per user                     |
+| Cancel order on a waiting order (`account` bucket)                             | 30 / 10 min per user                     |
 | Discount code checks (apply, summary with a code, order with a code)           | 10 / 10 min per user, 30 / 10 min per IP |
 | Payment callbacks                                                              | 30 / min per IP                          |
 | `/api/v1/*` general                                                            | 120 / min per IP                         |

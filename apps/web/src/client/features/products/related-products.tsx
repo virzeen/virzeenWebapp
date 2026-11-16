@@ -3,10 +3,10 @@ import type { ProductCardData } from "./product-card";
 import { ProductCarousel } from "./product-carousel";
 
 /** The two rows under a product (core's ProductRecommendations, as cards). */
-export type RecommendationsView = { sameCategory: ProductCardData[]; otherCategories: ProductCardData[] };
+export type RecommendationsView = { sameCollection: ProductCardData[]; otherCollections: ProductCardData[] };
 
 /** Nothing to recommend: while loading, or when the read failed. */
-export const NO_RECOMMENDATIONS: RecommendationsView = { sameCategory: [], otherCategories: [] };
+export const NO_RECOMMENDATIONS: RecommendationsView = { sameCollection: [], otherCollections: [] };
 
 type RelatedProductsProps = {
   recommendations: RecommendationsView;
@@ -19,12 +19,12 @@ type RelatedProductsProps = {
 
 /**
  * Under a product page (specs/product-page-v2.md "Recommendations"): "You may also like" (published products of the
- * same category) then "More from Virzeen" (the other categories), each a carousel hidden when empty. Shared by the
+ * same main collection) then "More from Virzeen" (the other collections), each a carousel hidden when empty. Shared by the
  * shop's product page, the admin Preview and the product editor, so all three show the same rows.
  */
 export function RelatedProducts({ recommendations, inEditor = false }: RelatedProductsProps) {
-  const { sameCategory, otherCategories } = recommendations;
-  if (sameCategory.length === 0 && otherCategories.length === 0) return null;
+  const { sameCollection, otherCollections } = recommendations;
+  if (sameCollection.length === 0 && otherCollections.length === 0) return null;
 
   const rows = (
     <>
@@ -32,20 +32,20 @@ export function RelatedProducts({ recommendations, inEditor = false }: RelatedPr
         title="You may also like"
         description={
           inEditor
-            ? "Published products in the same category, as customers see them. Each opens in a new tab."
+            ? "Published products in the same main collection, as customers see them. Each opens in a new tab."
             : undefined
         }
-        products={sameCategory}
+        products={sameCollection}
         newTab={inEditor}
       />
       <ProductCarousel
         title="More from Virzeen"
         description={
           inEditor
-            ? "Published products in other categories, as customers see them. Each opens in a new tab."
+            ? "Published products in other collections, as customers see them. Each opens in a new tab."
             : undefined
         }
-        products={otherCategories}
+        products={otherCollections}
         newTab={inEditor}
       />
     </>

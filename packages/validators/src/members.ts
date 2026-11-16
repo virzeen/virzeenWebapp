@@ -56,9 +56,16 @@ export const setPublicAtSchema = z.strictObject({
 });
 export type SetPublicAtInput = z.infer<typeof setPublicAtSchema>;
 
-/** Interests (specs/member-area-nike-layout.md): the categories and collections a member likes. A save replaces the set. */
+/** The products list's side panel (specs/catalog-groups-visibility.md): who may see a product, and from when. */
+export const setVisibilitySchema = z.strictObject({
+  id: idSchema,
+  audience: z.enum(["PUBLIC", "PASS"], { error: "Choose who can buy it" }),
+  publicAt: z.iso.datetime({ error: "Enter a valid date and time" }).nullable(),
+});
+export type SetVisibilityInput = z.infer<typeof setVisibilitySchema>;
+
+/** Picks (specs/member-area-nike-layout.md): the collections a member likes. A save replaces the set. */
 export const interestsSchema = z.strictObject({
-  categoryIds: z.array(idSchema).max(MAX_INTERESTS, { error: `Choose up to ${MAX_INTERESTS}` }),
   collectionIds: z.array(idSchema).max(MAX_INTERESTS, { error: `Choose up to ${MAX_INTERESTS}` }),
 });
 export type InterestsInput = z.infer<typeof interestsSchema>;

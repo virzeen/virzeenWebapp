@@ -2,9 +2,10 @@ import "server-only";
 import { db, type Prisma } from "@virzeen/db";
 import { MAX_FAVOURITES, sortSizes, type FavouriteKey, type SetFavouriteInput } from "@virzeen/validators";
 import {
-  publishedProductWhere,
+  earlyHoursFor,
   summarySelect,
   toSummary,
+  visibleProductWhere,
   type ProductSummary,
 } from "../catalog/catalog.reads";
 import { AppError, isUniqueViolation } from "../errors";
@@ -38,8 +39,8 @@ export type FavouriteItem = {
   savedAt: Date | null;
   /** The card: the saved style's photos, price (the lowest of its sizes) and stock. */
   product: ProductSummary;
-  /** The product's category name, shown with the style ("Tops · Black"). */
-  category: string;
+  /** The product's main collection's name, shown with the style ("Tops · Black"). */
+  collection: string;
   /**
    * The saved style's variants for sale, sizes in shop order (sortSizes, like the product page); a product without
    * styles: all of them. [] when the style isn't sold any more.
@@ -52,10 +53,10 @@ export type FavouriteItem = {
   photos: FavouritePhoto[];
 };
 
-/** The card fields plus the category, every photo with its style, and every variant for sale with its price. */
+/** The card fields plus the main collection, every photo with its style, and every variant for sale with its price. */
 const favouriteProductSelect = {
   ...summarySelect,
-  category: { select: { name: true } },
+  mainCollection: { select: { name: true } },
   images: { select: { id: true, url: true, alt: true, color: true }, orderBy: { sortOrder: "asc" } },
   variants: {
     where: { isActive: true },
@@ -101,15 +102,15 @@ function variantsForStyle(row: FavouriteProductRow, color: string): FavouriteVar
 
 /**
  * The card for a favourite, like the product page opened in the saved style: that style's first photo (its second on
- * hover), the lowest price of its sizes, and in stock when any size is, plus the category and the style's variants.
+ * hover), the lowest price of its sizes, and in stock when any size is, plus the main collection and the style's variants.
  * A product without styles, or a style not sold any more, shows the product's usual card.
  */
 function summaryForStyle(
   row: FavouriteProductRow,
   color: string,
-): Pick<FavouriteItem, "style" | "product" | "category" | "variants" | "photos"> {
+): Pick<FavouriteItem, "style" | "product" | "collection" | "variants" | "photos"> {
   const summary = toSummary(row);
-  const card = { category: row.category.name, variants: variantsForStyle(row, color) };
+  const card = { collection: row.mainCollection.name, variants: variantsForStyle(row, color) };
   const variants = color ? row.variants.filter((variant) => variant.color === color) : [];
   if (variants.length === 0) return { style: "", product: summary, ...card, photos: row.images.map(toPhoto) };
   const styles = [...new Set(row.variants.flatMap((variant) => (variant.color ? [variant.color] : [])))];
@@ -150,8 +151,10 @@ const newestFirst = [
  * customer with a full list couldn't remove them by hand: only called when the list is full.
  */
 async function dropHidden(tx: Prisma.TransactionClient, userId: string) {
+  // What this customer may see: a Pass-only favourite isn't "hidden" from a Pass member.
+  const hours = await earlyHoursFor(userId);
   const { count } = await tx.favourite.deleteMany({
-    where: { userId, NOT: { product: publishedProductWhere } },
+    where: { userId, NOT: { product: visibleProductWhere(hours) } },
   });
   return count;
 }
@@ -170,7 +173,7 @@ export const favouriteService = {
       return { productId: input.productId, color: input.color, saved: false };
     }
     const product = await db.product.findFirst({
-      where: { ...publishedProductWhere, id: input.productId },
+      where: { ...visibleProductWhere(await earlyHoursFor(userId)), id: input.productId },
       select: { id: true },
     });
     if (!product) throw new AppError("NOT_FOUND", "This product isn't available.");
@@ -216,7 +219,7 @@ export const favouriteService = {
   /** The account's favourites for the Favourites page, newest first; products no longer on sale are left out. */
   async list(userId: string): Promise<FavouriteItem[]> {
     const rows = await db.favourite.findMany({
-      where: { userId, product: publishedProductWhere },
+      where: { userId, product: visibleProductWhere(await earlyHoursFor(userId)) },
       select: {
         productId: true,
         color: true,
@@ -250,7 +253,10 @@ export const favouriteService = {
           select: { productId: true, color: true },
         });
         const onSale = await tx.product.findMany({
-          where: { ...publishedProductWhere, id: { in: [...new Set(wanted.map((key) => key.productId))] } },
+          where: {
+            ...visibleProductWhere(await earlyHoursFor(userId)),
+            id: { in: [...new Set(wanted.map((key) => key.productId))] },
+          },
           select: { id: true },
         });
         const onSaleIds = new Set(onSale.map((product) => product.id));
@@ -285,8 +291,9 @@ export const favouriteService = {
   async summariesFor(keys: readonly FavouriteKey[]): Promise<FavouriteItem[]> {
     const wanted = uniqueKeys(keys).slice(0, MAX_FAVOURITES);
     if (wanted.length === 0) return [];
+    // A browser's favourites: a visitor's view of the shop.
     const rows = await db.product.findMany({
-      where: { ...publishedProductWhere, id: { in: [...new Set(wanted.map((key) => key.productId))] } },
+      where: { ...visibleProductWhere(0), id: { in: [...new Set(wanted.map((key) => key.productId))] } },
       select: favouriteProductSelect,
     });
     const byId = new Map(rows.map((row) => [row.id, row]));
