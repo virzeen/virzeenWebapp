@@ -46,6 +46,12 @@ const nextConfig: NextConfig = {
     // instead of asking the server (owner request 2026-10-01: pages must open fast). Anything that changes data
     // (Server Actions, sign-in, router.refresh) clears it, so the bag and stock never go stale.
     staleTimes: { dynamic: 30 },
+    // The stylesheet (~14 KB gzipped, Tailwind) comes inside the HTML instead of as a separate download, so the
+    // first paint no longer waits for it (performance-seo.md §2). Without this, the page's scripts sometimes
+    // finished before the stylesheet and Lighthouse counted all of them in the home page's LCP (1.3 s → 4.1 s,
+    // performance 99 → 83 on the same page). Production builds only; the style-src CSP already allows inline
+    // styles.
+    inlineCss: true,
   },
   async headers() {
     return [
