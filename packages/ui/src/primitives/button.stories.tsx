@@ -13,7 +13,7 @@ const meta = {
       control: "select",
       options: ["primary", "secondary", "ghost", "inverse", "destructive", "link", "underline", "menu"],
     },
-    size: { control: "select", options: ["sm", "md", "lg", "icon"] },
+    size: { control: "select", options: ["xs", "sm", "md", "lg", "icon", "icon-sm"] },
     shape: { control: "select", options: ["default", "pill"] },
   },
 } satisfies Meta<typeof Button>;
@@ -63,6 +63,9 @@ export const Menu: Story = {
   },
 };
 /** Secondary actions in a row (Edit, Archive, Filters): 44px tall on phones and tablets, 36px from `lg`. */
+export const Compact: Story = {
+  args: { variant: "secondary", size: "xs", shape: "pill", children: "Sort By" },
+};
 export const Small: Story = { args: { variant: "secondary", size: "sm", shape: "pill", children: "Edit" } };
 export const Pill: Story = { args: { shape: "pill", size: "lg", children: "Shop the collection" } };
 export const Inverse: Story = {

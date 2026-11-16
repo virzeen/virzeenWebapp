@@ -1,9 +1,11 @@
 import { ButtonLink, Container, EmptyState, Grid, Link, Skeleton } from "@virzeen/ui";
 import type { ShopFilters } from "@virzeen/validators";
+import { ListingPhoneRow } from "./listing-phone-row";
 import { ProductCard, type ProductCardData } from "./product-card";
 import { ProductGrid, ProductResults } from "./product-grid";
 import { ShopBrowse } from "./shop-browse";
 import { ShopSidebar } from "./shop-sidebar";
+import { SortMenu } from "./sort-menu";
 import { ShopToolbar } from "./shop-toolbar";
 
 type ShopListingData = {
@@ -26,13 +28,15 @@ type ShopListingProps = {
   activeCollection?: string;
 };
 
+// Plain text tabs, no rectangles (owner 2026-11-16): the current collection is black with a line under it.
 const CHIP =
-  "inline-flex min-h-11 shrink-0 items-center rounded-full border border-line px-4 text-small aria-[current=page]:border-ink aria-[current=page]:bg-ink aria-[current=page]:text-canvas";
+  "inline-flex min-h-11 shrink-0 items-center border-b-2 border-transparent text-small text-ink-muted hover:text-ink aria-[current=page]:border-ink aria-[current=page]:font-medium aria-[current=page]:text-ink";
 
 /**
  * Shared layout for /shop and /collections/[slug] (patterns.md §5), like Nike's listing from lg
  * (owner 2026-11-08): "{title} ({total})" in a bar that sticks while scrolling, Show Filters and Sort By, 3 products
- * a row.
+ * a row. On phones (owner 2026-11-16): the title, a sideways row of collections, a sticky bar with Filters (icon only)
+ * and Sort By, then 2 products a row.
  */
 export function ShopListing({ data, title, intro, filters, params, activeCollection }: ShopListingProps) {
   const { page, total, membersOnly, collections, options } = data;
@@ -40,8 +44,8 @@ export function ShopListing({ data, title, intro, filters, params, activeCollect
   const acrossCollections = Boolean(filters.q);
 
   const chips = collections.length > 0 && (
-    // Chips wrap instead of scrolling sideways, so the current one is never off-screen on a phone.
-    <nav aria-label="Collections" className="flex flex-wrap gap-2">
+    // Phones: part of the sideways row (ListingPhoneRow scrolls the current chip into view).
+    <nav aria-label="Collections" className="flex shrink-0 gap-6">
       <Link
         href="/shop"
         variant="subtle"
@@ -91,7 +95,7 @@ export function ShopListing({ data, title, intro, filters, params, activeCollect
   );
 
   return (
-    <Container className="flex flex-col gap-6 py-8 lg:gap-8 lg:pt-6 lg:pb-10">
+    <Container className="flex flex-col gap-4 py-4 lg:gap-8 lg:pt-6 lg:pb-10">
       <ProductResults initialItems={page.items} initialCursor={page.nextCursor} filters={params}>
         {/* Nike's listing title: 20px on phones, 24px from lg (smaller again once the bar sticks). */}
         <ShopBrowse
@@ -102,9 +106,17 @@ export function ShopListing({ data, title, intro, filters, params, activeCollect
           }
           intro={intro}
           phoneBar={
+            // Phones (owner 2026-11-16): the collections in a sideways row under the title, then a bar with an
+            // icon-only Filters button and Sort By that sticks (with the title) while scrolling; globals.css sets where.
             <>
-              {chips}
-              <ShopToolbar sizes={options.sizes} colors={options.colors} />
+              {chips && <ListingPhoneRow>{chips}</ListingPhoneRow>}
+              <div
+                data-phone-listing-bar
+                className="sticky z-10 -mx-gutter flex items-center gap-2 bg-canvas px-gutter py-2 transition-all duration-150 ease-standard"
+              >
+                <ShopToolbar sizes={options.sizes} colors={options.colors} />
+                <SortMenu variant="secondary" />
+              </div>
             </>
           }
           sidebar={
@@ -151,12 +163,12 @@ export function ShopListing({ data, title, intro, filters, params, activeCollect
 const CHIP_SKELETONS = ["a", "b", "c", "d", "e"];
 const CARD_SKELETONS = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l"];
 /**
- * Loading state for `ShopListing` (ui-discipline.md §6): the title bar, then below lg the chips and toolbar, and one
+ * Loading state for `ShopListing` (ui-discipline.md §6): the title bar, then below lg the collections row and the filter bar, and one
  * page of square cards (2 a row, 3 from lg; the filters start hidden).
  */
 export function ShopListingSkeleton({ intro = false }: { intro?: boolean }) {
   return (
-    <Container className="flex flex-col gap-6 py-8 lg:gap-8 lg:pt-6 lg:pb-10" aria-busy>
+    <Container className="flex flex-col gap-4 py-4 lg:gap-8 lg:pt-6 lg:pb-10" aria-busy>
       <div className="flex items-center justify-between gap-4 lg:h-16">
         <Skeleton className="h-9 w-48" />
         <div className="hidden items-center gap-2 lg:flex">
@@ -165,19 +177,14 @@ export function ShopListingSkeleton({ intro = false }: { intro?: boolean }) {
         </div>
       </div>
       {intro && <Skeleton shape="text" className="w-full max-w-prose" />}
-      <div className="flex flex-col gap-4 lg:hidden">
-        <div className="flex flex-wrap gap-2">
-          {CHIP_SKELETONS.map((id) => (
-            <Skeleton key={id} className="h-11 w-20 rounded-full" />
-          ))}
-        </div>
-        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-y border-line py-3">
-          <Skeleton shape="text" className="w-24" />
-          <div className="flex w-full items-center gap-2 sm:w-auto">
-            <Skeleton className="h-11 w-24 rounded-full" />
-            <Skeleton className="h-11 flex-1 sm:w-48 sm:flex-none" />
-          </div>
-        </div>
+      <div className="-mx-gutter flex gap-6 overflow-hidden px-gutter lg:hidden">
+        {CHIP_SKELETONS.map((id) => (
+          <Skeleton key={id} shape="text" className="my-3.5 w-20 shrink-0" />
+        ))}
+      </div>
+      <div className="flex gap-2 lg:hidden">
+        <Skeleton className="size-9 rounded-full" />
+        <Skeleton className="h-9 w-28 rounded-full" />
       </div>
       <Grid columns="products" gap={4}>
         {CARD_SKELETONS.map((id) => (

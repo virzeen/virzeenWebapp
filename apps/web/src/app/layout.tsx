@@ -2,6 +2,7 @@ import { Toaster } from "@virzeen/ui";
 import { colors } from "@virzeen/ui/tokens";
 import type { Metadata, Viewport } from "next";
 import { Inter, Inter_Tight, Noto_Sans_Devanagari } from "next/font/google";
+import { StatusBarFill } from "@/client/components/layout/status-bar-fill";
 import { ThemeColorSync } from "@/client/components/layout/theme-color-sync";
 import { PrefetchOnIntent } from "@/client/components/shared/prefetch-on-intent";
 import { ServiceWorker } from "@/client/components/shared/service-worker";
@@ -47,6 +48,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${text.variable} ${display.variable} ${rupee.variable}`}>
       <body>
+        <StatusBarFill />
         {children}
         <ThemeColorSync />
         <Toaster />

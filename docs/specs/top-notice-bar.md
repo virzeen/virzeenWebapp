@@ -10,11 +10,11 @@ A thin black bar at the very top of every shop page, white text, like the bar ab
 
 ## User flow
 
-1. A visitor opens any shop page. Above the header there is a black bar, 36px tall (`h-topbar` token), one line, white 12px/medium text, centred.
+1. A visitor opens any shop page. Above the header there is a black bar, 36px tall (`h-topbar` token), one line (two on phones for a visitor, see 5), white 12px/medium text, centred.
 2. With several notices the bar shows one; it changes by sliding sideways every 5 seconds (pauses on hover/focus, stops under `prefers-reduced-motion`). Small round arrows (desktop) and swipe (phone) move it manually, like Nike's.
 3. The notice is text + an optional underlined link. Each notice says who sees it: visitors (GUEST), MONO Members (MEMBER), Pass members (PASS), any mix.
 4. The bar is part of the page, not sticky, like Nike's: it scrolls away and the header stays (and slides away on the shop listing as before). Over the home hero the bar is still black above the transparent header.
-5. From md the bar's right corner holds the profile like Nike's: signed in "Hi, {name}" ("Hi there" while the account has no name, owner 2026-11-16) + icon with the hover menu (same greeting as its title, then Profile, Orders, Favourites, Account settings, Sign out; choosing a link closes it, owner 2026-11-16, and it opens again when the pointer or keyboard returns to the icon); signed out "Sign in" + icon. The profile icon left the main header row. Phones keep the account in the menu.
+5. From md the bar's right corner holds the profile like Nike's: signed in "Hi, {name}" ("Hi there" while the account has no name, owner 2026-11-16) + icon with the hover menu (same greeting as its title, then Profile, Orders, Favourites, Account settings, Sign out; choosing a link closes it, owner 2026-11-16, and it opens again when the pointer or keyboard returns to the icon); signed out "Sign in" + icon. The profile icon left the main header row. Phones keep the account in the menu; a signed-out visitor gets "Join Now | Sign In" on a first line on phones, with the notice and its link on the line below (owner 2026-11-16), so the bar is 68px tall there; signed in it stays one line.
 6. An admin opens `/admin/notices`: form above a list; each row has up/down, Edit and Delete (two taps). Fields: text, link words, link address, Starts on / Ends on (Nepal days), who sees it, Active. Saves, moves and deletes are audited.
 
 ## Default notices (shown when no written notice is active for that visitor's level)

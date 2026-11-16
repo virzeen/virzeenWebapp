@@ -24,6 +24,9 @@ const buttonVariants = cva(
         // Nike's main buttons (Add to Bag, Favourite, Checkout): 60px tall, 24px sides.
         lg: "h-15 px-6",
         icon: "size-11",
+        // The phone listing's Filters and Sort By (owner 2026-11-16: "a bit small"): 36px at every width, 14px text.
+        xs: "h-9 px-3 text-small",
+        "icon-sm": "size-9",
       },
       shape: {
         default: "rounded-sm",

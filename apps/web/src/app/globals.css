@@ -9,7 +9,7 @@
  * Anything scrolled into view (Tab, Shift+Tab, the skip link) stops below it (WCAG 2.4.11).
  */
 html:has([data-sticky-header]) {
-  scroll-padding-top: --spacing(20);
+  scroll-padding-top: calc(--spacing(20) + env(safe-area-inset-top, 0px));
 }
 
 /*
@@ -20,21 +20,33 @@ html:has([data-sticky-header]) {
  * Anything scrolled into view stops below the header and the bar (WCAG 2.4.11).
  */
 html:has([data-listing-bar]) {
+  scroll-padding-top: calc(--spacing(42) + env(safe-area-inset-top, 0px));
+
   @variant lg {
     scroll-padding-top: --spacing(36);
   }
 }
 
+/* Phones too (owner 2026-11-16): the header slides up past the status bar, so the inset is part of the move. */
 html:has([data-listing-bar]) [data-sticky-header][data-slide-away] {
-  @variant lg {
-    translate: 0 -100%;
-  }
+  translate: 0 calc(-100% - env(safe-area-inset-top, 0px));
 }
 
+/*
+ * Phones (owner 2026-11-16, like the computer layout): the 3rem title bar sticks under the 4rem header and the
+ * filter bar (`data-phone-listing-bar`: Filters and Sort By, 3.25rem) under the title; with the header slid away they
+ * move up to the top together, under the status bar's inset. The collections row between them scrolls away.
+ */
 [data-listing-bar] {
+  top: calc(4rem + env(safe-area-inset-top, 0px));
+
   @variant lg {
     top: --spacing(16);
   }
+}
+
+[data-phone-listing-bar] {
+  top: calc(7rem + env(safe-area-inset-top, 0px));
 }
 
 [data-listing-filters] {
@@ -46,9 +58,15 @@ html:has([data-listing-bar]) [data-sticky-header][data-slide-away] {
 
 html:has([data-sticky-header][data-slide-away]) {
   & [data-listing-bar] {
+    top: env(safe-area-inset-top, 0px);
+
     @variant lg {
       top: 0;
     }
+  }
+
+  & [data-phone-listing-bar] {
+    top: calc(3rem + env(safe-area-inset-top, 0px));
   }
 
   & [data-listing-filters] {

@@ -1,3 +1,5 @@
+import type { Viewport } from "next";
+import { colors } from "@virzeen/ui/tokens";
 import { firstName, SALE_COLLECTION } from "@/client/components/layout/nav-current";
 import { SiteFooter } from "@/client/components/layout/site-footer";
 import { SiteHeader } from "@/client/components/layout/site-header";
@@ -10,6 +12,10 @@ import { listMyFavouriteKeys, tierFor } from "@/server/queries/account";
 import { getCartView } from "@/server/queries/cart";
 import { hasLiveCollection, listShopCollections } from "@/server/queries/catalog";
 import { listNotices } from "@/server/queries/notices";
+
+// Every shop page starts with the black notice bar, so the browser bar colour (Android's status bar, Safari) is black from
+// the first byte of HTML; ThemeColorSync turns it white once the bar has scrolled away.
+export const viewport: Viewport = { themeColor: colors.ink };
 
 /** A signed-in customer's favourites, for every Favourite button; guests keep theirs in the browser. */
 async function favouriteKeys() {
