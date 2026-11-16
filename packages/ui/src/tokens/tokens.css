@@ -354,7 +354,7 @@
    `pt-safe`: the top bar (site header, the phone menu). `pb-safe-bar`: a bar fixed at the bottom that has 0.75rem
    padding (py-3). `top-safe`: the sticky site header's top offset, so it stops below the status bar (it adds no padding of
    its own: under the notice bar it would double the gap). `h-safe-top`: the height of the status-bar strip
-   (StatusBarFill). `pull-under-header`: the home hero reaches up under the see-through header, 4rem tall. `h-screen-cover`: as tall as the screen, status bar included (the home hero): on an iPhone home-screen
+   (StatusBarFill). `top-below-header`: where a bar that sticks under the 4rem site header stops (phone listing bar). `pull-under-header`: the home hero reaches up under the see-through header, 4rem tall. `h-screen-cover`: as tall as the screen, status bar included (the home hero): on an iPhone home-screen
    app `100svh` stops short of the status bar, which left a white strip under the hero, so the inset is added. A bar
    above the header (in the page flow, so it pushes the hero down) sets `--top-bar-height` to its height, and the hero
    still ends at the bottom edge of the screen. */
@@ -376,6 +376,9 @@
 }
 @utility top-safe {
   top: env(safe-area-inset-top, 0px);
+}
+@utility top-below-header {
+  top: calc(4rem + env(safe-area-inset-top, 0px));
 }
 @utility h-safe-top {
   height: env(safe-area-inset-top, 0px);

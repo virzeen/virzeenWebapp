@@ -10,7 +10,7 @@ type ShopBrowseProps = {
   /** The h1 with the total, e.g. "Shop (12)". It shrinks to `text-h3` while the bar is stuck (`group/bar`). */
   heading: React.ReactNode;
   intro?: string | null | undefined;
-  /** Below lg: the collection chips and the toolbar (Filters sheet and sort). */
+  /** Below lg: the collections row, then the bar with Filters and Sort By (sticks under the header). */
   phoneBar: React.ReactNode;
   /** From lg: the filters on the left (`ShopSidebar`). */
   sidebar: React.ReactNode;
@@ -56,7 +56,8 @@ export function ShopBrowse({ heading, intro, phoneBar, sidebar, children }: Shop
       </div>
       {intro && <p className="max-w-prose text-body-lg text-ink-muted">{intro}</p>}
 
-      <div className="flex flex-col gap-4 lg:hidden">{phoneBar}</div>
+      {/* `contents`: the phone bar's parts are the page column's own children, so the sticky one can stick all the way down. */}
+      <div className="contents lg:hidden">{phoneBar}</div>
 
       <div
         className={cn(

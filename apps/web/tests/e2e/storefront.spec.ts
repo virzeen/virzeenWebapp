@@ -317,6 +317,61 @@ test.describe("Storefront pages", () => {
     expect(wideJoin.y).toBeLessThan(wide.y + wide.height);
   });
 
+  test("on a phone the listing has the collections under the title, then a sticky bar with a Filters icon and Sort By", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/collections/accessories");
+    const pageWidth = await page.evaluate(() => document.documentElement.clientWidth);
+    const title = page.getByRole("heading", { level: 1 });
+    const chips = page.getByRole("navigation", { name: "Collections" });
+    const current = chips.locator('[aria-current="page"]');
+    const filters = page.getByRole("button", { name: "Filters" });
+    const sort = page.getByRole("button", { name: "Sort By" });
+    await expect(current).toBeVisible();
+    await expect(filters).toBeVisible();
+    await expect(sort).toBeVisible();
+    // Filters is the icon only (no words), the same height as the pills.
+    await expect(filters).toHaveText("");
+    // Order down the page: title, collections, then the bar with Filters and Sort By on one line.
+    const [t, c, f, s] = [
+      await title.boundingBox(),
+      await chips.boundingBox(),
+      await filters.boundingBox(),
+      await sort.boundingBox(),
+    ];
+    expect(c!.y).toBeGreaterThan(t!.y + t!.height - 1);
+    expect(f!.y).toBeGreaterThan(c!.y + c!.height - 1);
+    expect(Math.abs(f!.y - s!.y)).toBeLessThanOrEqual(1);
+    // The current collection is on screen (the row scrolled to it), and nothing makes the page scroll sideways.
+    await expect
+      .poll(async () => {
+        const box = (await current.boundingBox())!;
+        return box.x >= 0 && box.x + box.width <= pageWidth;
+      })
+      .toBe(true);
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth),
+    ).toBe(true);
+
+    // Sort By opens a list of links that stays on screen.
+    await sort.click();
+    const price = page.getByRole("link", { name: "Price: Low-High" });
+    await expect(price).toBeVisible();
+    const box = (await price.boundingBox())!;
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(pageWidth);
+    await page.keyboard.press("Escape");
+
+    // The bar sticks under the 64px site header while the page scrolls.
+    await page.mouse.move(100, 400);
+    await page.evaluate(() => window.scrollTo(0, 400));
+    const stuck = page.locator("[data-phone-listing-bar]");
+    await expect.poll(async () => Math.round((await stuck.boundingBox())!.y)).toBe(64);
+    await expect(filters).toBeInViewport();
+    await expect(sort).toBeInViewport();
+  });
+
   test("the wheel keeps scrolling the home page smoothly when a scroll carries on over New and Featured", async ({
     page,
   }) => {

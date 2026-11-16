@@ -2,7 +2,8 @@
 
 import { cn } from "@virzeen/ui";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
+import { useBarCoversTop } from "./use-bar-covers-top";
 
 /**
  * The strip behind the iPhone status bar (owner 2026-11-16: "no need the gradient in the upper"). With the page drawn
@@ -15,19 +16,8 @@ import { useEffect, useRef, useState } from "react";
  */
 export function StatusBarFill() {
   const pathname = usePathname();
-  const [dark, setDark] = useState(false);
   const strip = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const update = () => {
-      const bar = document.querySelector("[data-top-notice-bar]");
-      const inset = strip.current?.getBoundingClientRect().height ?? 0; // the resolved top inset
-      setDark(bar ? bar.getBoundingClientRect().bottom > inset : false);
-    };
-    update();
-    window.addEventListener("scroll", update, { passive: true });
-    return () => window.removeEventListener("scroll", update);
-  }, [pathname]);
+  const dark = useBarCoversTop(pathname, strip);
 
   return (
     <div
