@@ -23,7 +23,8 @@ type ShopBrowseProps = {
  * the left, "Show Filters" and "Sort By" on the right, then the products 3 a row. The filters start hidden; "Show
  * Filters" puts them in a column on the left. While scrolling, the bar sticks to the top (under the site header
  * when it comes back, globals.css) with a smaller title, and the filters column sticks under it and scrolls on its
- * own. Below lg: chips, the toolbar and 2 a row.
+ * own. Below lg (owner 2026-11-16) the same idea: the title bar sticks, the header slides away on the way down, and a
+ * filter bar (Filters, Sort By) sticks under the title; the collections row between them scrolls away; 2 a row.
  */
 export function ShopBrowse({ heading, intro, phoneBar, sidebar, children }: ShopBrowseProps) {
   const [filtersShown, setFiltersShown] = useState(false);
@@ -37,7 +38,7 @@ export function ShopBrowse({ heading, intro, phoneBar, sidebar, children }: Shop
         ref={barRef}
         data-listing-bar
         data-stuck={stuck ? "" : undefined}
-        className="group/bar flex items-center justify-between gap-4 lg:sticky lg:z-10 lg:h-16 lg:bg-canvas lg:transition-all lg:duration-150 lg:ease-standard"
+        className="group/bar sticky z-10 -mx-gutter flex h-12 items-center justify-between gap-4 bg-canvas px-gutter transition-all duration-150 ease-standard lg:mx-0 lg:h-16 lg:px-0"
       >
         {heading}
         <div className="hidden items-center gap-1 lg:flex">

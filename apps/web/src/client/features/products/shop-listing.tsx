@@ -107,15 +107,15 @@ export function ShopListing({ data, title, intro, filters, params, activeCollect
           intro={intro}
           phoneBar={
             // Phones (owner 2026-11-16): the collections in a sideways row under the title, then a bar with an
-            // icon-only Filters button and Sort By that sticks under the site header while scrolling.
+            // icon-only Filters button and Sort By that sticks (with the title) while scrolling; globals.css sets where.
             <>
               {chips && <ListingPhoneRow>{chips}</ListingPhoneRow>}
               <div
                 data-phone-listing-bar
-                className="sticky top-below-header z-10 -mx-gutter flex items-center gap-2 bg-canvas px-gutter py-2"
+                className="sticky z-10 -mx-gutter flex items-center gap-2 bg-canvas px-gutter py-2 transition-all duration-150 ease-standard"
               >
                 <ShopToolbar sizes={options.sizes} colors={options.colors} />
-                <SortMenu variant="secondary" align="start" />
+                <SortMenu variant="secondary" />
               </div>
             </>
           }

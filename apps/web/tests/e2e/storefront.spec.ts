@@ -317,7 +317,7 @@ test.describe("Storefront pages", () => {
     expect(wideJoin.y).toBeLessThan(wide.y + wide.height);
   });
 
-  test("on a phone the listing has the collections under the title, then a sticky bar with a Filters icon and Sort By", async ({
+  test("on a phone the listing has the collections under the title, then a sticky bar with a Filters icon and Sort By, and the header hides on the way down", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
@@ -354,22 +354,36 @@ test.describe("Storefront pages", () => {
       await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth),
     ).toBe(true);
 
-    // Sort By opens a list of links that stays on screen.
+    // Sort By opens a bottom panel like Filters, with the choices as links.
     await sort.click();
-    const price = page.getByRole("link", { name: "Price: Low-High" });
+    const panel = page.getByRole("dialog", { name: "Sort by" });
+    await expect(panel).toBeVisible();
+    await expect(panel.getByRole("link", { name: "Newest" })).toHaveAttribute("aria-current", "true");
+    const price = panel.getByRole("link", { name: "Price: Low-High" });
     await expect(price).toBeVisible();
-    const box = (await price.boundingBox())!;
-    expect(box.x).toBeGreaterThanOrEqual(0);
-    expect(box.x + box.width).toBeLessThanOrEqual(pageWidth);
-    await page.keyboard.press("Escape");
+    await price.click();
+    await expect(page).toHaveURL(/sort=price-asc/);
+    await expect(panel).toBeHidden();
+    await expect(sort).toContainText("Price: Low-High");
 
-    // The bar sticks under the 64px site header while the page scrolls.
-    await page.mouse.move(100, 400);
+    // Scrolling down hides the Virzeen header and leaves the title with the filter bar at the top; scrolling up
+    // brings the header back with the title and the bar under it.
+    const header = page.getByRole("banner");
+    const titleBar = page.locator("[data-listing-bar]");
+    const bar = page.locator("[data-phone-listing-bar]");
+    const top = async (locator: typeof bar) => Math.round((await locator.boundingBox())!.y);
     await page.evaluate(() => window.scrollTo(0, 400));
-    const stuck = page.locator("[data-phone-listing-bar]");
-    await expect.poll(async () => Math.round((await stuck.boundingBox())!.y)).toBe(64);
+    await expect(header).not.toBeInViewport();
+    await expect.poll(() => top(titleBar)).toBe(0);
+    await expect.poll(() => top(bar)).toBe(48);
+    await expect(title).toBeInViewport();
     await expect(filters).toBeInViewport();
     await expect(sort).toBeInViewport();
+    await page.evaluate(() => window.scrollBy(0, -120));
+    await expect(header).toBeInViewport();
+    await expect.poll(() => top(titleBar)).toBe(64);
+    await expect.poll(() => top(bar)).toBe(112);
+    await expect(filters).toBeInViewport();
   });
 
   test("the wheel keeps scrolling the home page smoothly when a scroll carries on over New and Featured", async ({
