@@ -26,6 +26,22 @@ export const SEARCH_QUERY_MIN = 2;
 /** At or under this, the shop says "Only {n} left" and the admin dashboard lists the size under "Low stock". */
 export const LOW_STOCK_THRESHOLD = 3;
 
+// Reading a size chart from a picture (specs/size-chart-from-picture.md). The picture goes to a Server Action, which
+// Next.js caps at 1 MB (next.config.ts `serverActions.bodySizeLimit`), so the browser shrinks it to 900 KB at most and
+// the server accepts a little more for the form's own overhead.
+
+/** What the browser shrinks the picture to, at most, before sending it to be read. */
+export const SIZE_CHART_PICTURE_MAX_BYTES = 900 * 1024;
+
+/** What the server accepts: the browser's limit plus room for the multipart form around the file. */
+export const SIZE_CHART_PICTURE_SERVER_MAX_BYTES = 950 * 1024;
+
+/** The longest side the browser keeps: plenty to read a table, and small to send. */
+export const SIZE_CHART_PICTURE_MAX_SIDE = 1600;
+
+/** The picture types that can be read (checked again on the server from the file's own bytes). */
+export const SIZE_CHART_PICTURE_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
+
 /** zod's `cuid2()`: what `idSchema` accepts. */
 const CUID2 = /^[0-9a-z]+$/;
 

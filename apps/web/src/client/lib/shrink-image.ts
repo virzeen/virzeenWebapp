@@ -1,6 +1,12 @@
 // Shrinks a photo in the browser before it's uploaded (owner request 2026-09-30: uploads were slow). A phone photo
 // is often 4000px and 5–10 MB; the shop never shows images wider than 1600px (next.config.ts deviceSizes), so a
 // 2400px WebP (sharp on high-density screens and zoom) at 0.85 quality is about 10× smaller and looks the same.
+// `shrinkForReading` (at the end) is the stricter version for a size chart picture that is only sent to be read.
+import {
+  SIZE_CHART_PICTURE_MAX_BYTES,
+  SIZE_CHART_PICTURE_MAX_SIDE,
+  SIZE_CHART_PICTURE_TYPES,
+} from "@virzeen/validators/limits";
 
 /** Longest side kept, in pixels. */
 export const MAX_SIDE = 2400;
@@ -21,8 +27,8 @@ export function renamed(name: string, type: string) {
   return `${base}.${extension}`;
 }
 
-function encode(canvas: HTMLCanvasElement, type: string) {
-  return new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, type, QUALITY));
+function encode(canvas: HTMLCanvasElement, type: string, quality = QUALITY) {
+  return new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, type, quality));
 }
 
 /**
@@ -60,5 +66,65 @@ export async function shrinkForUpload(file: File): Promise<File> {
     });
   } catch {
     return file;
+  }
+}
+
+// ── A size chart picture to be read (specs/size-chart-from-picture.md) ──
+
+/** Why a picture can't be sent to be read: not a JPG, PNG or WebP; can't be opened; or still over 900 KB when shrunk. */
+export type ReadingPictureResult =
+  { ok: true; file: File } | { ok: false; reason: "type" | "unreadable" | "too-big" };
+
+export const isReadablePictureType = (type: string) =>
+  (SIZE_CHART_PICTURE_TYPES as readonly string[]).includes(type);
+
+/** Longest side and quality to try, in turn, until the picture is small enough. A table stays legible at 1000px. */
+export const READING_ATTEMPTS = [
+  [SIZE_CHART_PICTURE_MAX_SIDE, 0.85],
+  [SIZE_CHART_PICTURE_MAX_SIDE, 0.7],
+  [1200, 0.7],
+  [1000, 0.6],
+] as const;
+
+/**
+ * A size chart picture shrunk to send to a Server Action (which Next.js caps at 1 MB): at most 1600px on the long
+ * side and 900 KB, as WebP (JPEG where the browser can't make WebP). Unlike `shrinkForUpload` it never skips a small
+ * file, and it keeps trying smaller until the picture fits. The picture stays in the browser and is never uploaded
+ * anywhere else. Never throws.
+ */
+export async function shrinkForReading(file: File): Promise<ReadingPictureResult> {
+  if (!isReadablePictureType(file.type)) return { ok: false, reason: "type" };
+  let bitmap: ImageBitmap;
+  try {
+    bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+  } catch {
+    return { ok: false, reason: "unreadable" };
+  }
+  try {
+    for (const [side, quality] of READING_ATTEMPTS) {
+      const { width, height } = targetSize(bitmap.width, bitmap.height, side);
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const context = canvas.getContext("2d");
+      if (!context) return { ok: false, reason: "unreadable" };
+      context.imageSmoothingQuality = "high";
+      context.drawImage(bitmap, 0, 0, width, height);
+      let blob = await encode(canvas, "image/webp", quality);
+      if (!blob || blob.type !== "image/webp") {
+        // Safari can't encode WebP; JPEG has no transparency, so see-through parts become white.
+        context.globalCompositeOperation = "destination-over";
+        context.fillStyle = "white";
+        context.fillRect(0, 0, width, height);
+        blob = await encode(canvas, "image/jpeg", quality);
+      }
+      if (blob && blob.size <= SIZE_CHART_PICTURE_MAX_BYTES)
+        return { ok: true, file: new File([blob], renamed(file.name, blob.type), { type: blob.type }) };
+    }
+    return { ok: false, reason: "too-big" };
+  } catch {
+    return { ok: false, reason: "unreadable" };
+  } finally {
+    bitmap.close();
   }
 }

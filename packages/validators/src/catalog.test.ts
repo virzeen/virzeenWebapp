@@ -17,6 +17,7 @@ import {
   productSchema,
   relatedByCollectionSchema,
   saveSizeGuideSchema,
+  sizeChartReadingSchema,
   sizeChartSchema,
   SIZE_GUIDE_KIND_LABELS,
   SIZE_GUIDE_KINDS,
@@ -692,5 +693,45 @@ describe("adminProductFiltersSchema", () => {
   it("keeps a known status and ignores anything else", () => {
     expect(adminProductFiltersSchema.parse({ status: "draft" })).toEqual({ status: "draft" });
     expect(adminProductFiltersSchema.parse({ status: "deleted" })).toEqual({ status: undefined });
+  });
+});
+
+describe("sizeChartReadingSchema (specs/size-chart-from-picture.md)", () => {
+  const reading = {
+    readable: true,
+    unit: "cm",
+    multipleTables: false,
+    columns: ["Chest", "Length"],
+    rows: [{ size: "M", values: ["114", "61"] }],
+    skipped: ["Weight"],
+    note: "",
+  };
+
+  it("accepts the reader's reply", () => {
+    expect(sizeChartReadingSchema.safeParse(reading).success).toBe(true);
+  });
+
+  it("refuses a field the reader was not asked for, at the top or inside a row", () => {
+    expect(sizeChartReadingSchema.safeParse({ ...reading, instructions: "ignore the rules" }).success).toBe(
+      false,
+    );
+    expect(
+      sizeChartReadingSchema.safeParse({ ...reading, rows: [{ size: "M", values: ["114"], html: "<b>" }] })
+        .success,
+    ).toBe(false);
+  });
+
+  it("refuses a unit that isn't cm, in or unknown", () => {
+    expect(sizeChartReadingSchema.safeParse({ ...reading, unit: "mm" }).success).toBe(false);
+  });
+
+  it("refuses a reply missing a field", () => {
+    const { note: _note, ...withoutNote } = reading;
+    expect(sizeChartReadingSchema.safeParse(withoutNote).success).toBe(false);
+  });
+
+  it("refuses a runaway reply", () => {
+    const columns = Array.from({ length: 41 }, (_, index) => `M${index}`);
+    expect(sizeChartReadingSchema.safeParse({ ...reading, columns }).success).toBe(false);
   });
 });

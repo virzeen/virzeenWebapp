@@ -34,6 +34,7 @@ export const listAdminDiscounts = () => discountService.listForAdmin();
 export const listAdminPortfolio = () => portfolioService.listForAdmin();
 export const listProductOptions = () => adminReads.listProductOptions();
 export const uploadsEnabled = () => features.cloudinary;
+export const pictureReadingEnabled = () => features.pictureReading;
 
 export const getAdminOrder = cache(async (orderNumber: string) => {
   try {

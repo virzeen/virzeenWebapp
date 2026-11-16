@@ -115,3 +115,50 @@ describe("environment validation", () => {
     ).toEqual(["BETTER_AUTH_URL", "EMAIL_TRANSPORT", "RATE_LIMIT_STORE"]);
   });
 });
+
+describe("picture reader settings (specs/size-chart-from-picture.md)", () => {
+  it("is off without a key, with Google's address and a default model", () => {
+    const parsed = createEnvSchema("production").parse(live);
+    expect(parsed.GEMINI_API_KEY).toBeUndefined();
+    expect(parsed.GEMINI_API_URL).toBe("https://generativelanguage.googleapis.com");
+    expect(parsed.GEMINI_MODEL).toMatch(/^gemini-/);
+  });
+
+  it("accepts the key with Google's address on the live site", () => {
+    expect(problems({ ...live, GEMINI_API_KEY: "fake-gemini-key" })).toEqual([]);
+  });
+
+  it("refuses another address for the key on the live site, even on staging with sandbox payments", () => {
+    expect(
+      problems({ ...live, GEMINI_API_KEY: "fake-gemini-key", GEMINI_API_URL: "https://evil.example" }),
+    ).toEqual(["GEMINI_API_URL"]);
+    expect(
+      problems({
+        ...live,
+        ...sandboxPayments,
+        ALLOW_SANDBOX_PAYMENTS: "true",
+        GEMINI_API_KEY: "fake-gemini-key",
+        GEMINI_API_URL: "http://localhost:4010/gemini",
+      }),
+    ).toEqual(["GEMINI_API_URL"]);
+  });
+
+  it("lets a local production build (e2e tests) point the key at a mock", () => {
+    const e2e = {
+      ...base,
+      NODE_ENV: "production",
+      NEXT_PUBLIC_SITE_URL: "http://localhost:3100",
+      BETTER_AUTH_URL: "http://localhost:3100",
+      EMAIL_TRANSPORT: "mailpit",
+      RATE_LIMIT_STORE: "memory",
+    };
+    expect(
+      problems({ ...e2e, GEMINI_API_KEY: "e2e-key", GEMINI_API_URL: "http://localhost:4010/gemini" }),
+    ).toEqual([]);
+  });
+
+  it("refuses a model name that could change the request's path", () => {
+    expect(problems({ ...live, GEMINI_MODEL: "gemini-3.8-flash/../../x" })).toEqual(["GEMINI_MODEL"]);
+    expect(problems({ ...live, GEMINI_MODEL: "gemini-3.5-flash-lite" })).toEqual([]);
+  });
+});

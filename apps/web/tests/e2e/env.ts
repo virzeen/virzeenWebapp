@@ -19,6 +19,9 @@ export const E2E_ENV: Record<string, string> = {
   ESEWA_STATUS_URL: `http://localhost:${MOCK_PORT}`,
   KHALTI_SECRET_KEY: "test_secret_key",
   KHALTI_BASE_URL: `http://localhost:${MOCK_PORT}/khalti/api/v2`,
+  // Reading a size chart picture goes to the mock in mock-providers.mjs, never to Google.
+  GEMINI_API_KEY: "e2e-gemini-key",
+  GEMINI_API_URL: `http://localhost:${MOCK_PORT}/gemini`,
   EMAIL_TRANSPORT: "mailpit",
   MAILPIT_URL,
   EMAIL_FROM: "Virzeen <orders@example.com>",

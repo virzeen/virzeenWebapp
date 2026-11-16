@@ -2,7 +2,7 @@ import { Link, Stack } from "@virzeen/ui";
 import { AdminPageHeader } from "@/client/features/admin/admin-page-header";
 import { SizeGuideForm } from "@/client/features/admin/size-guide-form";
 import { requireAdminPage } from "@/server/auth/session";
-import { uploadsEnabled } from "@/server/queries/admin";
+import { pictureReadingEnabled, uploadsEnabled } from "@/server/queries/admin";
 
 export const metadata = { title: "New size guide" };
 
@@ -21,7 +21,7 @@ export default async function NewSizeGuidePage() {
         title="New size guide"
         description="Clothing: a size table in cm that customers can switch to inches. Accessories: one picture of your size chart."
       />
-      <SizeGuideForm uploadsEnabled={uploadsEnabled()} />
+      <SizeGuideForm uploadsEnabled={uploadsEnabled()} pictureReadingEnabled={pictureReadingEnabled()} />
     </Stack>
   );
 }

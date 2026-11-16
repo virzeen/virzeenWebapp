@@ -4,7 +4,7 @@ import { AdminPageHeader } from "@/client/features/admin/admin-page-header";
 import { ArchiveButton } from "@/client/features/admin/archive-button";
 import { SizeGuideForm } from "@/client/features/admin/size-guide-form";
 import { requireAdminPage } from "@/server/auth/session";
-import { getSizeGuideForEdit, uploadsEnabled } from "@/server/queries/admin";
+import { getSizeGuideForEdit, pictureReadingEnabled, uploadsEnabled } from "@/server/queries/admin";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -33,7 +33,12 @@ export default async function EditSizeGuidePage({ params }: Props) {
         title={guide.name}
         actions={<ArchiveButton kind="sizeGuide" id={id} name={guide.name} redirectTo="/admin/size-guides" />}
       />
-      <SizeGuideForm guideId={id} defaultValues={values} uploadsEnabled={uploadsEnabled()} />
+      <SizeGuideForm
+        guideId={id}
+        defaultValues={values}
+        uploadsEnabled={uploadsEnabled()}
+        pictureReadingEnabled={pictureReadingEnabled()}
+      />
     </Stack>
   );
 }

@@ -30,6 +30,9 @@ const LIMITS = {
   favourite: [60, "1 m"],
   alert: [30, "10 m"],
   admin: [240, "1 m"],
+  // Reading a size chart picture (specs/size-chart-from-picture.md): each reading uses the shared free Google quota.
+  "admin:ai": [10, "10 m"],
+  "admin:ai-day": [40, "24 h"],
 } as const satisfies Record<string, readonly [number, Window]>;
 
 export type LimitName = keyof typeof LIMITS;
