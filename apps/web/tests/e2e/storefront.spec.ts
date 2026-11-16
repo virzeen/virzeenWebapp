@@ -285,6 +285,38 @@ test.describe("Storefront pages", () => {
     }
   });
 
+  test("on a phone the notice bar has Join Now and Sign In on its first line and the notice under them, and the header sits right under it", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/shop");
+    const bar = page.getByRole("region", { name: "Notices" });
+    const notice = bar.locator("p").first();
+    const join = bar.getByRole("link", { name: "Join Now" });
+    const signIn = bar.getByRole("link", { name: "Sign In" });
+    await expect(join).toBeVisible();
+    await expect(signIn).toBeVisible();
+    const barBox = (await bar.boundingBox())!;
+    const noticeBox = (await notice.boundingBox())!;
+    const joinBox = (await join.boundingBox())!;
+    const header = (await page.getByRole("banner").boundingBox())!;
+    // Two lines: the links above, the notice and its link below them (one line is 36px, two are 68px).
+    expect(noticeBox.y).toBeGreaterThanOrEqual(joinBox.y + joinBox.height - 1);
+    expect(Math.abs(barBox.height - 68)).toBeLessThanOrEqual(1);
+    // No extra gap: the header starts where the bar ends (the status-bar inset is not added a second time).
+    expect(Math.abs(header.y - (barBox.y + barBox.height))).toBeLessThanOrEqual(1);
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth),
+    ).toBe(true);
+
+    // From md the links move into the bar's right corner, on the same line as the words.
+    await page.setViewportSize({ width: 1280, height: 800 });
+    const wide = (await bar.boundingBox())!;
+    const wideJoin = (await bar.getByRole("link", { name: "Join Now" }).boundingBox())!;
+    expect(Math.abs(wide.height - 36)).toBeLessThanOrEqual(1);
+    expect(wideJoin.y).toBeLessThan(wide.y + wide.height);
+  });
+
   test("the wheel keeps scrolling the home page smoothly when a scroll carries on over New and Featured", async ({
     page,
   }) => {

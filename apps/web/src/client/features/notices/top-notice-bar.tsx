@@ -11,12 +11,31 @@ export type TopNotice = { id: string; text: string; linkLabel: string | null; li
 /** Seconds each notice stays before the next slides in. */
 const SECONDS_SHOWN = 5;
 
+const JOIN_LINK =
+  "inline-flex items-center px-4 text-caption font-medium tracking-tight text-ink no-underline hover:text-ink-muted md:px-0";
+
+/** "Join Now | Sign In": in the corner from md, on a first line of the bar on phones, above the notice (owner 2026-11-16). */
+function JoinLinks({ className, linkClassName }: { className?: string; linkClassName: string }) {
+  return (
+    <nav aria-label="Join or sign in" className={cn("flex items-center", className)}>
+      <Link href="/signup" className={linkClassName}>
+        Join Now
+      </Link>
+      <span aria-hidden className="h-3 w-px bg-line" />
+      <Link href="/login" className={linkClassName}>
+        Sign In
+      </Link>
+    </nav>
+  );
+}
+
 /**
  * The black bar above the header, like Nike's (specs/top-notice-bar.md): one line of white text, with the link's
  * words underlined after it. Several notices slide sideways every 5 seconds; the rotation pauses while the pointer
  * or keyboard focus is on the bar and never runs with reduced motion. Arrows (on every width) and swipe move it by hand.
  * It is part of the page, not sticky: it scrolls away and the header stays, as on Nike's. From md the right corner
- * holds the profile like Nike's: "Hi, {name}" with the hover menu when signed in, "Sign in" when not.
+ * holds the profile like Nike's: "Hi, {name}" with the hover menu when signed in, "Sign in" when not. On phones a
+ * visitor gets "Join Now | Sign In" on a first line above the notice (`data-signed-out`: top-notice-bar.css grows the bar's height).
  */
 export function TopNoticeBar({
   notices,
@@ -56,6 +75,7 @@ export function TopNoticeBar({
     <section
       aria-label="Notices"
       data-top-notice-bar
+      data-signed-out={isSignedIn ? undefined : ""}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onFocus={() => setPaused(true)}
@@ -72,9 +92,10 @@ export function TopNoticeBar({
       }}
       className="relative z-30 bg-canvas pt-safe tone-inverse"
     >
-      <Container className="grid h-9 grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto] lg:grid-cols-[1fr_minmax(0,36rem)_1fr]">
+      <Container className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto] lg:grid-cols-[1fr_minmax(0,36rem)_1fr]">
+        {!isSignedIn && <JoinLinks className="h-8 justify-center md:hidden" linkClassName={JOIN_LINK} />}
         <span aria-hidden className="hidden lg:block" />
-        <div className="relative flex min-w-0 items-stretch justify-center px-8 sm:px-12">
+        <div className="relative flex h-9 min-w-0 items-stretch justify-center px-8 sm:px-12">
           {count > 1 && (
             <button
               type="button"
@@ -129,21 +150,10 @@ export function TopNoticeBar({
           {isSignedIn ? (
             <AccountMenu firstName={firstName} />
           ) : (
-            <nav aria-label="Join or sign in" className="flex items-center gap-3">
-              <Link
-                href="/signup"
-                className="inline-flex h-9 items-center text-caption font-medium tracking-tight text-ink no-underline hover:text-ink-muted"
-              >
-                Join Now
-              </Link>
-              <span aria-hidden className="h-3 w-px bg-line" />
-              <Link
-                href="/login"
-                className="inline-flex h-9 items-center text-caption font-medium tracking-tight text-ink no-underline hover:text-ink-muted"
-              >
-                Sign In
-              </Link>
-            </nav>
+            <JoinLinks
+              className="gap-3"
+              linkClassName="inline-flex h-9 items-center text-caption font-medium tracking-tight text-ink no-underline hover:text-ink-muted"
+            />
           )}
         </div>
       </Container>

@@ -28,7 +28,8 @@ type SiteHeaderProps = {
  * On the home page it lies over the hero photo (owner, 2026-09-30): no background and white until the page scrolls,
  * then a 70% white, blurred background with black text; no border there, so the photo reaches the top edge (a 1px
  * border would leave a white line above it). Other pages keep the white header with its line.
- * `data-sticky-header` lets globals.css keep focused elements scrolled clear of it. `data-slide-away` is set while the
+ * On an iPhone home-screen app it sticks just below the status bar (`top-safe`, not padding: under the notice bar padding
+ * would double the gap; the strip above it is StatusBarFill). `data-sticky-header` lets globals.css keep focused elements scrolled clear of it. `data-slide-away` is set while the
  * page scrolls down (not while it holds keyboard focus): on the shop listing from lg, globals.css then slides the
  * header up out of view, like Nike's, and scrolling up brings it back.
  */
@@ -46,7 +47,7 @@ export function SiteHeader({ isSignedIn, firstName, collections, hasSale }: Site
         if (!event.currentTarget.contains(event.relatedTarget)) setKeyboardFocus(false);
       }}
       className={cn(
-        "sticky top-0 z-20 pt-safe transition duration-150 ease-standard",
+        "sticky top-safe z-20 transition duration-150 ease-standard",
         !overHero && "border-b border-line bg-canvas/85 backdrop-blur-md",
         overHero && !scrolled && "bg-transparent tone-inverse",
         overHero && scrolled && "bg-canvas/70 backdrop-blur-xl",

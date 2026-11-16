@@ -9,7 +9,7 @@
  * Anything scrolled into view (Tab, Shift+Tab, the skip link) stops below it (WCAG 2.4.11).
  */
 html:has([data-sticky-header]) {
-  scroll-padding-top: --spacing(20);
+  scroll-padding-top: calc(--spacing(20) + env(safe-area-inset-top, 0px));
 }
 
 /*
