@@ -56,6 +56,11 @@ export {
 } from "./catalog/catalog.reads";
 export { catalogService, type SavedProduct } from "./catalog/catalog.service";
 export {
+  interpretChartReading,
+  PICTURE_READING_MESSAGES,
+  type ChartReadingResult,
+} from "./catalog/size-chart-reading";
+export {
   favouriteService,
   type FavouriteItem,
   type FavouritePhoto,

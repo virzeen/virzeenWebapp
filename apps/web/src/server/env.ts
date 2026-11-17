@@ -24,6 +24,8 @@ export const features = {
   khalti: Boolean(env.KHALTI_SECRET_KEY),
   cloudinary: Boolean(env.CLOUDINARY_CLOUD_NAME && env.CLOUDINARY_API_KEY && env.CLOUDINARY_API_SECRET),
   sentry: Boolean(env.SENTRY_DSN),
+  /** "Fill from a picture" on a size guide (specs/size-chart-from-picture.md). */
+  pictureReading: Boolean(env.GEMINI_API_KEY),
 };
 
 export const siteUrl = env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "");

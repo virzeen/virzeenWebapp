@@ -1,11 +1,28 @@
-// Fake eSewa + Khalti for end-to-end tests (testing-strategy.md §4: provider HTTP is always mocked).
-// Implements just enough of each API for the checkout journeys. Never used outside tests.
+// Fake eSewa + Khalti + Gemini for end-to-end tests (testing-strategy.md §4: provider HTTP is always mocked).
+// Implements just enough of each API for the checkout journeys and "Fill from a picture". Never used outside tests.
 import { createHmac, randomBytes } from "node:crypto";
 import { createServer } from "node:http";
 
 const PORT = Number(process.env.MOCK_PROVIDERS_PORT ?? 4010);
 const ESEWA_SECRET = process.env.ESEWA_SECRET_KEY ?? "8gBm/:&EnhH.1/q";
 const KHALTI_KEY = process.env.KHALTI_SECRET_KEY ?? "test_secret_key";
+
+const GEMINI_KEY = process.env.GEMINI_API_KEY ?? "e2e-gemini-key";
+let geminiMode = "ok";
+const GEMINI_CHART = JSON.stringify({
+  readable: true,
+  unit: "unknown",
+  multipleTables: false,
+  columns: ["Chest", "Shoulder", "Sleeve", "Length"],
+  rows: [
+    { size: "XS", values: ["106", "51", "50", "59"] },
+    { size: "S", values: ["110", "52", "51", "60"] },
+    { size: "M", values: ["114", "53", "52", "61"] },
+    { size: "L", values: ["118", "54", "53", "62"] },
+  ],
+  skipped: ["Weight"],
+  note: "Measured flat by hand. Allow 1-2 cm difference.",
+});
 
 const esewa = new Map(); // transaction_uuid → { status, total_amount }
 const khalti = new Map(); // pidx → { amount, returnUrl, status }
@@ -108,6 +125,37 @@ createServer(async (req, res) => {
       res,
       `${tx.returnUrl}?pidx=${pidx}&status=${encodeURIComponent(tx.status)}&purchase_order_id=x`,
     );
+  }
+
+  // Gemini (reading a size chart picture, specs/size-chart-from-picture.md): answers generateContent with one fixed
+  // supplier chart (Chinese headings already translated, Weight left out, no unit). It checks what the site sends:
+  // the key header and an inline image. GET /gemini/_mode?value=busy makes it answer 429 (quota); value=ok undoes it.
+  if (url.pathname === "/gemini/_mode") {
+    geminiMode = url.searchParams.get("value") === "busy" ? "busy" : "ok";
+    return json(res, 200, { mode: geminiMode });
+  }
+  if (
+    req.method === "POST" &&
+    url.pathname.startsWith("/gemini/v1beta/models/") &&
+    url.pathname.endsWith(":generateContent")
+  ) {
+    if (req.headers["x-goog-api-key"] !== GEMINI_KEY)
+      return json(res, 403, { error: { status: "PERMISSION_DENIED", message: "API key not valid." } });
+    const body = JSON.parse((await readBody(req)) || "{}");
+    const image = body.contents?.[0]?.parts?.[0]?.inline_data;
+    if (!image?.data || !/^image\//.test(image.mime_type ?? ""))
+      return json(res, 400, { error: { status: "INVALID_ARGUMENT", message: "No image." } });
+    // The request shape from Google's Gemini 3 docs: structured output in responseFormat, no temperature.
+    if (
+      body.generationConfig?.responseFormat?.text?.mimeType !== "APPLICATION_JSON" ||
+      "temperature" in (body.generationConfig ?? {})
+    )
+      return json(res, 400, { error: { status: "INVALID_ARGUMENT", message: "Unexpected request shape." } });
+    if (geminiMode === "busy")
+      return json(res, 429, { error: { status: "RESOURCE_EXHAUSTED", message: "Quota exceeded." } });
+    return json(res, 200, {
+      candidates: [{ finishReason: "STOP", content: { parts: [{ text: GEMINI_CHART }] } }],
+    });
   }
 
   if (url.pathname === "/health") return json(res, 200, { ok: true });

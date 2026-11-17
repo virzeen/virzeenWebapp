@@ -30,6 +30,7 @@
 - Prisma only; no unsafe raw SQL.
 - React escapes output by default; never use `dangerouslySetInnerHTML` except for sanitized admin rich text (DOMPurify).
 - File uploads go directly to Cloudinary via signed upload params; allow only image types, max 10 MB. The signature is only made for the folders `products`, `portfolio` and `size-guides` (`uploadSignatureSchema`), as `virzeen/<folder>/<id>`.
+- Size chart pictures read by "Fill from a picture" (`specs/size-chart-from-picture.md`) go from the browser straight to an admin Server Action (JPEG, PNG or WebP by the file's own bytes, at most 950 KB), are forwarded to Google's Gemini API and are never stored, logged or uploaded to Cloudinary. The server calls only the fixed Gemini host and never fetches an address the admin sent. The key (`GEMINI_API_KEY`) lives in Railway and goes in a request header, never an address; the reply is accepted only as the strict schema's fields, and its text is shown only as escaped input values. The free tier lets Google use what it receives to improve its products, so only size charts (no customer data) are sent.
 
 ## 5. HTTP security headers (set in `next.config.ts`)
 
@@ -53,6 +54,8 @@
 | Payment callbacks                                                              | 30 / min per IP                          |
 | `/api/v1/*` general                                                            | 120 / min per IP                         |
 | Shop "Load more" and live search results (`api` bucket, shared with `/api/v1`) | 120 / min per IP                         |
+| Reading a size chart picture (`admin:ai`, after the `admin` bucket)            | 10 / 10 min per admin                    |
+| Reading a size chart picture, daily cap (`admin:ai-day`)                       | 40 / 24 h per admin                      |
 
 The OTP limits run in `app/api/auth/[...all]/route.ts` before Better Auth. Better Auth's own limiter stays on for its other endpoints (60 / min per IP); its built-in OTP rules are switched off because they are per IP only and would block real customers signing in at the same time.
 
@@ -72,7 +75,7 @@ No secrets, tokens, OTPs, or full personal data in logs. One owner-approved exce
 
 ## 10. Accounts that must have 2FA
 
-GitHub (org-enforced), Railway, Cloudflare, domain registrar, eSewa/Khalti merchant, Google Cloud, Cloudinary, Resend, Upstash, Sentry, and the partners' shared Gmail (it receives all `info@`/`sales@` mail and owner alerts — runbooks/email-setup.md). The shared Gmail is never an admin login: each partner has their own admin account on a personal address.
+GitHub (org-enforced), Railway, Cloudflare, domain registrar, eSewa/Khalti merchant, Google Cloud, the Google account that owns the Gemini key (AI Studio), Cloudinary, Resend, Upstash, Sentry, and the partners' shared Gmail (it receives all `info@`/`sales@` mail and owner alerts — runbooks/email-setup.md). The shared Gmail is never an admin login: each partner has their own admin account on a personal address.
 
 ## 11. OWASP quick checklist for reviews
 

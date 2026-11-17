@@ -521,6 +521,30 @@ export const sizeChartSchema = z
   );
 export type SizeChart = z.infer<typeof sizeChartSchema>;
 
+/** What a size chart picture says its numbers are in (specs/size-chart-from-picture.md); "unknown" when it doesn't say. */
+export const SIZE_CHART_UNITS = ["cm", "in", "unknown"] as const;
+export type SizeChartUnit = (typeof SIZE_CHART_UNITS)[number];
+
+/**
+ * The reader's reply about a size chart picture (specs/size-chart-from-picture.md), exactly as the model returns it:
+ * strict, so anything extra is refused, and loose about lengths because core cuts and counts (`interpretChartReading`).
+ * The array limits only keep a runaway reply from being read at all.
+ */
+export const sizeChartReadingSchema = z.strictObject({
+  /** False when the picture isn't a size chart (or can't be read). */
+  readable: z.boolean(),
+  unit: z.enum(SIZE_CHART_UNITS),
+  /** More than one table in the picture: only the first is read. */
+  multipleTables: z.boolean(),
+  columns: z.array(z.string()).max(40),
+  rows: z.array(z.strictObject({ size: z.string(), values: z.array(z.string()).max(40) })).max(60),
+  /** Headings of columns that aren't measurements (Weight, Price…), left out of the table. */
+  skipped: z.array(z.string()).max(20),
+  /** The chart's own footnote in English ("Measured flat…"), or empty. */
+  note: z.string().max(2000),
+});
+export type SizeChartReading = z.infer<typeof sizeChartReadingSchema>;
+
 /** Parses a stored size chart; an invalid one gives null, so the shop hides the guide instead of crashing. */
 export function parseSizeChart(value: unknown): SizeChart | null {
   const result = sizeChartSchema.safeParse(value);

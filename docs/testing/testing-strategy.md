@@ -39,7 +39,7 @@ Playwright MCP is for the agent to look and click; it does not replace written e
 
 - Never skip, weaken, or delete a failing test to get green. Fix the cause or ask.
 - Tests are deterministic: no real network, fixed clock (`vi.useFakeTimers`), seeded data.
-- Provider calls (eSewa, Khalti, Resend, Cloudinary) are mocked with MSW or injected fakes.
+- Provider calls (eSewa, Khalti, Resend, Cloudinary, Google Gemini) are mocked with MSW or injected fakes.
 - E2E selectors: roles/labels first, `data-testid` second, never CSS classes.
 - E2E runs against a fresh seeded database each run.
 

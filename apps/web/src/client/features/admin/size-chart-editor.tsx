@@ -9,6 +9,7 @@ import { keepFocusOnPress } from "./form-focus";
 import { ListError } from "./list-error";
 import { MAX_MEASUREMENTS, MAX_SIZES } from "./size-chart";
 import { SizeChartGrid } from "./size-chart-grid";
+import { SizeChartPictureReader } from "./size-chart-picture-reader";
 import { useReplaceTableDialog } from "./size-chart-replace-dialog";
 import { SizeChartTemplateChoices, SizeChartTemplateDialog } from "./size-chart-template-picker";
 import { isBlankChart, templateChart, type SizeChartTemplateId } from "./size-chart-templates";
@@ -18,9 +19,10 @@ import { useSizeChart } from "./use-size-chart";
  * A Clothing guide's "Size table" (specs/product-page-v2.md "Size guides"): when it starts empty, the three templates
  * above the grid until one is picked or the guide is saved (they stay while typing, so the grid doesn't move under
  * the cursor; once something is typed, a template asks before replacing it); otherwise "Start from a template" (asks
- * before replacing). Under the grid, Add size and Add measurement with how many there are of the most allowed.
+ * before replacing). Under the grid, Add size and Add measurement with how many there are of the most allowed. With a
+ * Gemini key set, "Fill from a picture" sits above the grid (specs/size-chart-from-picture.md).
  */
-export function SizeChartEditor() {
+export function SizeChartEditor({ pictureReadingEnabled }: { pictureReadingEnabled: boolean }) {
   const chart = useSizeChart();
   const form = useFormContext<SizeGuideFormValues>();
   const { errors, submitCount } = form.formState;
@@ -86,6 +88,17 @@ export function SizeChartEditor() {
         One row per size, values in cm like 96 or 96-101: customers can switch to inches. Leave a box blank if
         it doesn&apos;t apply. Copied a table from Excel or Google Sheets? Paste it into a box.
       </p>
+      {pictureReadingEnabled && (
+        <SizeChartPictureReader
+          blank={blank}
+          askReplace={replaceDialog.ask}
+          firstBox={() => boxAt("0:1")}
+          fill={(next) => {
+            chart.replace(next);
+            setOfferTemplates(false);
+          }}
+        />
+      )}
       {showTemplates && (
         <div
           ref={panelRef}

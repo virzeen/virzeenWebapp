@@ -31,6 +31,10 @@ Shop
 - [x] The table scrolls sideways inside the popup on narrow phones; it has a caption, `th scope="col"` headers and `th scope="row"` sizes.
 - [x] The unit choice is remembered for the visit (sessionStorage, optional).
 
+## Fill from a picture
+
+Added 2026-11-16 (`specs/size-chart-from-picture.md`): with a Gemini key set, a Clothing guide's Size table has a "Fill from a picture" button that reads a supplier's size chart picture (any language) and fills the table in English and cm, after asking when something is typed. Nothing is saved or stored by the reading; the admin checks the table against the picture and saves as usual.
+
 ## Out of scope
 
 - A default guide per category, several charts per guide, body vs garment toggles, shoe sizes.

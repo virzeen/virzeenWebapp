@@ -1,9 +1,13 @@
 import { expect, test, type Page } from "@playwright/test";
 import { createDbClient } from "@virzeen/db";
-import { E2E_ADMIN_EMAIL, E2E_DATABASE_URL } from "./env";
+import { E2E_ADMIN_EMAIL, E2E_DATABASE_URL, MOCK_PORT } from "./env";
 import { completeEmailSignIn, createMember, signIn, totp, uniqueEmail } from "./helpers";
 
 // Journeys 6–7 (testing-strategy.md §2) plus the admin TOTP step-up (security-policy.md §2).
+
+/** A 1×1 PNG: stands in for a supplier's size chart picture (the mock Gemini server answers the same for any). */
+const CHART_PNG =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
 
 /**
  * The product editor saves by itself after every finished edit (specs/product-editor-on-page.md): wait until the top
@@ -139,6 +143,82 @@ test("admin sets up two-factor, builds a product on its page and it appears in t
   await page.getByRole("navigation", { name: "Admin" }).getByRole("link", { name: "Size guides" }).click();
   await expect(page.getByRole("row", { name: /E2E Bags/ }).getByText("Accessories")).toBeVisible();
   await expect(page.getByRole("row", { name: /E2E Tops/ }).getByText("Clothing")).toBeVisible();
+
+  // "Fill from a picture" (specs/size-chart-from-picture.md): the mock Gemini server answers with a supplier chart.
+  await page.getByRole("link", { name: "New size guide" }).click();
+  await page.getByRole("textbox", { name: "Name", exact: true }).fill("E2E Picture");
+  await page.getByLabel("Measurement 1", { exact: true }).fill("Waist");
+  const reader = page.locator("[data-picture-reader]");
+  const choose = (file: { name: string; mimeType: string; buffer: Buffer }) =>
+    reader.locator('input[type="file"]').setInputFiles(file);
+  const chartPicture = { name: "chart.png", mimeType: "image/png", buffer: Buffer.from(CHART_PNG, "base64") };
+  // Not a picture: refused in the browser, nothing sent.
+  await choose({ name: "notes.txt", mimeType: "text/plain", buffer: Buffer.from("hello") });
+  await expect(reader.getByText("Choose a JPG, PNG or WebP picture.")).toBeVisible();
+  // Google's free quota is used up (429): a friendly message, the typed table untouched, and Try again.
+  await page.request.get(`http://localhost:${MOCK_PORT}/gemini/_mode?value=busy`);
+  await choose(chartPicture);
+  await expect(
+    reader.getByText("Reading pictures is busy right now. Try again in a minute, or type the table."),
+  ).toBeVisible();
+  await expect(reader.getByRole("img", { name: "Size chart picture you chose" })).toBeVisible();
+  await expect(page.getByLabel("Measurement 1", { exact: true })).toHaveValue("Waist");
+  // Quota is back: Try again reads it, and as something is typed, asks before replacing. Keep my table changes nothing.
+  await page.request.get(`http://localhost:${MOCK_PORT}/gemini/_mode?value=ok`);
+  await reader.getByRole("button", { name: "Try again" }).click();
+  const replaceTable = page.getByRole("dialog", { name: "Replace the table with the one from the picture?" });
+  await expect(replaceTable).toBeVisible();
+  await replaceTable.getByRole("button", { name: "Keep my table" }).click();
+  await expect(replaceTable).toBeHidden();
+  await expect(page.getByLabel("Measurement 1", { exact: true })).toHaveValue("Waist");
+  await expect(reader.getByText("Check every number against the picture before you save.")).toHaveCount(0);
+  // Choosing the picture again and replacing: English names, the numbers, what was left out, and the note in Fit tips.
+  await choose(chartPicture);
+  await replaceTable.getByRole("button", { name: "Replace table" }).click();
+  await expect(page.getByLabel("Measurement 1", { exact: true })).toHaveValue("Chest");
+  await expect(page.getByLabel("Measurement 4", { exact: true })).toHaveValue("Length");
+  await expect(page.getByLabel("Chest (cm), XS", { exact: true })).toHaveValue("106");
+  await expect(page.getByLabel("Length (cm), L", { exact: true })).toHaveValue("62");
+  await expect(reader.getByText("Check every number against the picture before you save.")).toBeVisible();
+  await expect(reader.getByText("Left out: Weight.")).toBeVisible();
+  await expect(
+    reader.getByText("The picture doesn't show a unit, so the numbers were read as cm."),
+  ).toBeVisible();
+  await expect(reader.getByText("Added the picture's note to Fit tips.")).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Fit tips" })).toHaveValue(
+    "Measured flat by hand. Allow 1-2 cm difference.",
+  );
+  // The filled table saves like a typed one.
+  await page.getByRole("button", { name: "Save size guide" }).click();
+  // Not the toast: the previous guide's "Size guide saved" may still be on screen. The edit page and its values prove it.
+  await expect(page).toHaveURL(/\/admin\/size-guides\/(?!new)[a-z0-9]+$/);
+  await expect(page.getByRole("heading", { level: 1, name: "E2E Picture" })).toBeVisible();
+  await expect(page.getByLabel("Shoulder (cm), M", { exact: true })).toHaveValue("53");
+  await expect(page.getByRole("textbox", { name: "Fit tips" })).toHaveValue(
+    "Measured flat by hand. Allow 1-2 cm difference.",
+  );
+  // Ctrl+V of a picture (a screenshot) is read straight away, and asks first because the table is filled in.
+  await page.evaluate((base64) => {
+    const bytes = Uint8Array.from(atob(base64), (char) => char.charCodeAt(0));
+    const clipboard = new DataTransfer();
+    clipboard.items.add(new File([bytes], "image.png", { type: "image/png" }));
+    document.dispatchEvent(
+      new ClipboardEvent("paste", { clipboardData: clipboard, bubbles: true, cancelable: true }),
+    );
+  }, CHART_PNG);
+  await expect(replaceTable).toBeVisible();
+  await replaceTable.getByRole("button", { name: "Keep my table" }).click();
+  // Cells copied from a spreadsheet (text on the clipboard) are not taken for a picture.
+  await page.evaluate((base64) => {
+    const bytes = Uint8Array.from(atob(base64), (char) => char.charCodeAt(0));
+    const clipboard = new DataTransfer();
+    clipboard.setData("text/plain", "1\t2");
+    clipboard.items.add(new File([bytes], "image.png", { type: "image/png" }));
+    document.dispatchEvent(
+      new ClipboardEvent("paste", { clipboardData: clipboard, bubbles: true, cancelable: true }),
+    );
+  }, CHART_PNG);
+  await expect(replaceTable).toBeHidden();
 
   // New product (specs/product-editor-on-page.md): a small popup makes a draft, and its editor opens.
   await page.getByRole("navigation", { name: "Admin" }).getByRole("link", { name: "Products" }).click();

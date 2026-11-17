@@ -18,6 +18,8 @@ const LIVE_PAYMENT_HOSTS = {
   KHALTI_BASE_URL: "khalti.com",
 } as const;
 
+const GEMINI_HOST = "generativelanguage.googleapis.com";
+
 const LOCAL_HOSTS = ["localhost", "127.0.0.1", "[::1]"];
 
 const optional = z
@@ -50,6 +52,16 @@ export function createEnvSchema(nodeEnv: string | undefined) {
       CLOUDINARY_CLOUD_NAME: optional,
       CLOUDINARY_API_KEY: optional,
       CLOUDINARY_API_SECRET: optional,
+
+      // Reading a size chart from a picture (specs/size-chart-from-picture.md): off until the key is set. The model id
+      // is a variable so a model Google retires is fixed in Railway, not in code. The URL exists for the e2e mock only.
+      GEMINI_API_KEY: optional,
+      GEMINI_MODEL: z
+        .string()
+        .trim()
+        .regex(/^[a-z0-9][a-z0-9.-]*$/, "must be a model id like gemini-3.8-flash")
+        .default("gemini-3.8-flash"),
+      GEMINI_API_URL: z.url().default("https://generativelanguage.googleapis.com"),
 
       EMAIL_TRANSPORT: z.enum(["resend", "mailpit"]).default(isProduction ? "resend" : "mailpit"),
       RESEND_API_KEY: optional,
@@ -90,6 +102,12 @@ export function createEnvSchema(nodeEnv: string | undefined) {
       if (!env.BETTER_AUTH_URL.startsWith("https://")) problem("BETTER_AUTH_URL", `must use https ${onLive}`);
       if (env.EMAIL_TRANSPORT !== "resend") problem("EMAIL_TRANSPORT", `must be resend ${onLive}`);
       if (env.RATE_LIMIT_STORE !== "upstash") problem("RATE_LIMIT_STORE", `must be upstash ${onLive}`);
+      // The picture reader's key must only ever go to Google (ALLOW_SANDBOX_PAYMENTS does not excuse a mock).
+      if (
+        env.GEMINI_API_KEY &&
+        (!env.GEMINI_API_URL.startsWith("https://") || hostOf(env.GEMINI_API_URL) !== GEMINI_HOST)
+      )
+        problem("GEMINI_API_URL", `must be Google's (https://${GEMINI_HOST}) ${onLive}`);
       if (env.ALLOW_SANDBOX_PAYMENTS) return;
       const sandbox =
         "points at the payment sandbox; set the live URL (or ALLOW_SANDBOX_PAYMENTS=true on staging)";

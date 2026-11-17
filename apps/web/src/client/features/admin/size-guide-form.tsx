@@ -28,6 +28,8 @@ type SizeGuideFormProps = {
   /** The saved guide (adminReads.getSizeGuideForEdit): `chart` is null for a PICTURE guide. */
   defaultValues?: Omit<SizeGuideFormValues, "chart"> & { chart: SizeChart | null };
   uploadsEnabled: boolean;
+  /** "Fill from a picture" is on (a Gemini key is set; specs/size-chart-from-picture.md). */
+  pictureReadingEnabled: boolean;
 };
 
 const EMPTY: SizeGuideFormValues = {
@@ -51,7 +53,12 @@ const draftChart = (chart: SizeChart | null) =>
  * Clothing guide's size table or an Accessories guide's picture, then fit tips and how to measure. "What customers
  * see" (the popup, live) sits beside it from xl and under it before that.
  */
-export function SizeGuideForm({ guideId, defaultValues, uploadsEnabled }: SizeGuideFormProps) {
+export function SizeGuideForm({
+  guideId,
+  defaultValues,
+  uploadsEnabled,
+  pictureReadingEnabled,
+}: SizeGuideFormProps) {
   const router = useRouter();
   const [formError, setFormError] = useState<string | null>(null);
   const form = useForm<SizeGuideFormValues, unknown, SizeGuideInput>({
@@ -141,7 +148,7 @@ export function SizeGuideForm({ guideId, defaultValues, uploadsEnabled }: SizeGu
               picturesRef={picturesRef}
             />
           ) : (
-            <SizeChartEditor />
+            <SizeChartEditor pictureReadingEnabled={pictureReadingEnabled} />
           )}
           <Separator />
 
